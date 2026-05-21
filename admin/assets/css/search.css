@@ -11,30 +11,138 @@
 /* CSS Document */
 
 .selected {
-	background-color:#d7d8db !important
+	background-color: #d7d8db !important;
 }
+
 tr.selected td {
-	background-color:#d7d8db !important
+	background-color: #d7d8db !important;
 }
+
 #search_settings_block .controls {
 	margin-left: 1px !important;
 }
+
 tr {
-	cursor:pointer
+	cursor: pointer;
 }
+
 .found_code {
 	color: #46a546;
 	font-weight: bolder;
 }
+
 .search_details_title {
 	font-size: large;
 	font-weight: bolder;
 }
+
 .small_column {
 	padding: 2px;
 	text-align: center;
 }
+
 th.small_column {
 	padding: 2px !important;
 	text-align: center !important;
+}
+
+/* Toast notifications */
+.search-notification-area {
+	position: fixed;
+	top: 1rem;
+	right: 1rem;
+	z-index: 1080;
+	width: 420px;
+	max-width: calc(100vw - 2rem);
+	pointer-events: none;
+}
+
+.search-notification-area .search-toast {
+	pointer-events: auto;
+	margin-bottom: 0.75rem;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+	word-break: break-word;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
+.search-toast-message {
+	padding-right: 2rem;
+	word-break: break-word;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
+/* Search results area must scroll horizontally instead of squashing */
+#search_results_table_block {
+	width: 100%;
+	overflow-x: auto;
+	overflow-y: visible;
+	-webkit-overflow-scrolling: touch;
+}
+
+#search_results_table_block table,
+#search_results_table {
+	min-width: 100%;
+	width: auto !important;
+	max-width: none !important;
+}
+
+/* Let table content wrap, but do not force the table to collapse */
+#search_results_table th,
+#search_results_table td {
+	vertical-align: top;
+}
+
+#search_results_table td {
+	word-break: break-word;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
+/* Keep tiny columns compact */
+#search_results_table th.small_column,
+#search_results_table td.small_column {
+	white-space: nowrap;
+}
+
+/* DataTables controls */
+#search_results_table_filter,
+#search_results_table_length {
+	margin-bottom: 0.75rem;
+}
+
+/* Search action area */
+#search_details_block .btn-group {
+	flex-wrap: wrap;
+}
+
+#item_notice_block {
+	margin-bottom: 1rem;
+}
+
+/* Progress bars */
+.search-progress-wrapper {
+	min-height: 1.5rem;
+}
+
+.progress-small {
+	height: 0.75rem;
+}
+
+#search_progress_bar,
+#replace_progress_bar {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+	.search-notification-area {
+		top: 0.75rem;
+		right: 0.75rem;
+		left: 0.75rem;
+		width: auto;
+	}
 }

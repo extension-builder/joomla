@@ -210,12 +210,6 @@ class HtmlView extends BaseHtmlView
 		$HeaderCheck = new HeaderCheck();
 
 		// always load these files.
-		Html::_('stylesheet', 'media/com_componentbuilder/uikit-v3/css/uikit.min.css', ['version' => 'auto']);
-		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/uikit.min.js', ['version' => 'auto']);
-		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/uikit-icons.min.js', ['version' => 'auto']);
-		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/Uploader.min.js', ['version' => 'auto']);
-
-		// always load these files.
 		Html::_('stylesheet', 'media/com_componentbuilder/datatable-bootstrap5/css/datatables.min.css', ['version' => 'auto']);
 		Html::_('script', 'media/com_componentbuilder/datatable-bootstrap5/js/pdfmake.min.js', ['version' => 'auto']);
 		Html::_('script', 'media/com_componentbuilder/datatable-bootstrap5/js/vfs_fonts.js', ['version' => 'auto']);
@@ -223,24 +217,6 @@ class HtmlView extends BaseHtmlView
 
 		// Add View JavaScript File
 		Html::_('script', 'administrator/components/com_componentbuilder/assets/js/initialization_selection.js', ['version' => 'auto']);
-
-		// Load uikit options.
-		$uikit = $this->params->get('uikit_load');
-		// Set script size.
-		$size = $this->params->get('uikit_min');
-		// Set css style.
-		$style = $this->params->get('uikit_style');
-
-		// The uikit css.
-		if ((!$HeaderCheck->css_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/uikit'.$style.$size.'.css', ['version' => 'auto']);
-		}
-		// The uikit js.
-		if ((!$HeaderCheck->js_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('script', 'media/com_componentbuilder/uikit-v2/js/uikit'.$size.'.js', ['version' => 'auto']);
-		}
 				// set some language strings for the JS class: [InitializationManager]
 				Text::script("COM_COMPONENTBUILDER_MISSING_REPOSITORY_OR_AREA_DATA");
 				Text::script("COM_COMPONENTBUILDER_FAILED_TO_RETRIEVE_REPOSITORY_INDEX");

@@ -147,6 +147,11 @@ class HtmlView extends BaseHtmlView
 		parent::display($tpl);
 	}
 
+	// These are subform layouts used in JCB
+	// LayoutHelper::render('sectionjcbjsix', [?]); // added to ensure the layout are loaded
+	// LayoutHelper::render('repeatablejcbjsix', [?]); // added to ensure the layout are loaded
+	// LayoutHelper::render('jcbbuildersuccessmessage', [?]); // added to ensure the layout are loaded
+
 	/**
 	 * Add the page title and toolbar.
 	 *
@@ -224,31 +229,13 @@ class HtmlView extends BaseHtmlView
 		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/uikit.min.js', ['version' => 'auto']);
 		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/uikit-icons.min.js', ['version' => 'auto']);
 		Html::_('script', 'media/com_componentbuilder/uikit-v3/js/Uploader.min.js', ['version' => 'auto']);
-
-		// Load uikit options.
-		$uikit = $this->params->get('uikit_load');
-		// Set script size.
-		$size = $this->params->get('uikit_min');
-		// Set css style.
-		$style = $this->params->get('uikit_style');
-
-		// The uikit css.
-		if ((!$HeaderCheck->css_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/uikit'.$style.$size.'.css', ['version' => 'auto']);
-		}
-		// The uikit js.
-		if ((!$HeaderCheck->js_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('script', 'media/com_componentbuilder/uikit-v2/js/uikit'.$size.'.js', ['version' => 'auto']);
-		}
 		 		// these comments are here so the layouts will be linked and loaded for the ajax (don't remove it)
 		
 				// change this to the layout of your custom importer columns display
-				// LayoutHelper::render('translationimportercolumnsdisplay', [?]);
+				// LayoutHelper::render('translationimportercolumnsdisplayjsix', [?]);
 		
 				// change this to the layout of your custom importer easy mapping
-				// LayoutHelper::render('translationimportereasymapping', [?]);
+				// LayoutHelper::render('translationimportereasymappingjsix', [?]);
 		
 				// add the libs for subform (since not adding it via xml but ajax)
 				$this->getDocument()

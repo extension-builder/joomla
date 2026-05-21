@@ -203,11 +203,6 @@ class HtmlView extends BaseHtmlView
 		parent::display($tpl);
 	}
 
-	// These are subform layouts used in JCB
-	// LayoutHelper::render('sectionjcbjfive', [?]); // added to ensure the layout are loaded
-	// LayoutHelper::render('repeatablejcbjfive', [?]); // added to ensure the layout are loaded
-	// LayoutHelper::render('jcbbuildersuccessmessage', [?]); // added to ensure the layout are loaded
-
 	/**
 	 * Get the dynamic build form fields needed on the page
 	 *
@@ -688,6 +683,11 @@ class HtmlView extends BaseHtmlView
 			// add Clear tmp button.
 			ToolbarHelper::custom('compiler.clearTmp', 'purge custom-button-cleartmp', '', 'COM_COMPONENTBUILDER_CLEAR_TMP', false);
 		}
+		if ($this->canDo->get('compiler.health_check'))
+		{
+			// add Health Check button.
+			ToolbarHelper::custom('compiler.healthCheck', 'health custom-button-healthcheck', '', 'COM_COMPONENTBUILDER_HEALTH_CHECK', false);
+		}
 		// set help url for this view if found
 		$this->help_url = ComponentbuilderHelper::getHelpUrl('compiler');
 		if (StringHelper::check($this->help_url))
@@ -722,49 +722,6 @@ class HtmlView extends BaseHtmlView
 
 		// Add View JavaScript File
 		Html::_('script', 'administrator/components/com_componentbuilder/assets/js/compiler.js', ['version' => 'auto']);
-
-		// Load uikit options.
-		$uikit = $this->params->get('uikit_load');
-		// Set script size.
-		$size = $this->params->get('uikit_min');
-		// Set css style.
-		$style = $this->params->get('uikit_style');
-
-		// The uikit css.
-		if ((!$HeaderCheck->css_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/uikit'.$style.$size.'.css', ['version' => 'auto']);
-		}
-		// The uikit js.
-		if ((!$HeaderCheck->js_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('script', 'media/com_componentbuilder/uikit-v2/js/uikit'.$size.'.js', ['version' => 'auto']);
-		}
-
-		// Load the needed uikit components in this view.
-		$uikitComp = $this->get('UikitComp');
-		if ($uikit != 2 && isset($uikitComp) && ArrayHelper::check($uikitComp))
-		{
-			// loading...
-			foreach ($uikitComp as $class)
-			{
-				foreach (ComponentbuilderHelper::$uk_components[$class] as $name)
-				{
-					// check if the CSS file exists.
-					if (@file_exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css'))
-					{
-						// load the css.
-						Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css', ['version' => 'auto']);
-					}
-					// check if the JavaScript file exists.
-					if (@file_exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js'))
-					{
-						// load the js.
-						Html::_('script', 'media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js', ['version' => 'auto'], ['type' => 'text/javascript', 'async' => 'async']);
-					}
-				}
-			}
-		}
 		// add marked library
 		Html::_('script', 'administrator/components/com_componentbuilder/custom/marked.js', ['version' => 'auto']);
 		// add styles

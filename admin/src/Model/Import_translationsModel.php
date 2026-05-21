@@ -26,7 +26,6 @@ use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 use Joomla\CMS\Helper\TagsHelper;
 use VDM\Joomla\Utilities\SessionHelper;
 use VDM\Joomla\Utilities\GuidHelper;
-use VDM\Joomla\Utilities\ArrayHelper as UtilitiesArrayHelper;
 
 // No direct access to this file
 \defined('_JEXEC') or die;
@@ -318,21 +317,6 @@ class Import_translationsModel extends ItemModel
 	public function setScript(string $path): void
 	{
 		$this->scripts[] = $path;
-	}
-
-	/**
-	 * Get the uikit needed components
-	 *
-	 * @return mixed  An array of objects on success.
-	 *
-	 */
-	public function getUikitComp()
-	{
-		if (isset($this->uikitComp) && UtilitiesArrayHelper::check($this->uikitComp))
-		{
-			return $this->uikitComp;
-		}
-		return false;
 	}
 
 	/**

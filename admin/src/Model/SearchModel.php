@@ -25,7 +25,6 @@ use Joomla\Utilities\ArrayHelper;
 use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 use Joomla\CMS\Helper\TagsHelper;
 use VDM\Joomla\Componentbuilder\Search\Factory as SearchFactory;
-use VDM\Joomla\Utilities\ArrayHelper as UtilitiesArrayHelper;
 
 // No direct access to this file
 \defined('_JEXEC') or die;
@@ -331,21 +330,6 @@ class SearchModel extends ItemModel
 
 		// return data object.
 		return $data;
-	}
-
-	/**
-	 * Get the uikit needed components
-	 *
-	 * @return mixed  An array of objects on success.
-	 *
-	 */
-	public function getUikitComp()
-	{
-		if (isset($this->uikitComp) && UtilitiesArrayHelper::check($this->uikitComp))
-		{
-			return $this->uikitComp;
-		}
-		return false;
 	}
 
 

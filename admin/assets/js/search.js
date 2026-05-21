@@ -10,19 +10,125 @@
 
 /* JS Document */
 /**
+ * Floating notification popup helper.
+ *
+ * These remain non-Joomla-dialog notifications so search results/errors
+ * can stack without interrupting the workflow.
+ *
+ * @param {string} message
+ * @param {string} type
+ * @param {number} timeout
+ *
+ * @returns {void}
+ */
+const showAppNotification = (message, type = 'info', timeout = 3000) => {
+	let notificationArea = document.getElementById('search-notification-area');
+
+	if (!notificationArea) {
+		notificationArea = document.createElement('div');
+		notificationArea.id = 'search-notification-area';
+		notificationArea.className = 'search-notification-area';
+		notificationArea.setAttribute('aria-live', 'polite');
+		notificationArea.setAttribute('aria-atomic', 'true');
+		document.body.appendChild(notificationArea);
+	}
+
+	const alertTypeMap = {
+		success: 'success',
+		danger: 'danger',
+		error: 'danger',
+		warning: 'warning',
+		info: 'info'
+	};
+
+	const alertClass = alertTypeMap[type] || 'info';
+
+	const wrapper = document.createElement('div');
+	wrapper.className = `alert alert-${alertClass} alert-dismissible fade show search-toast`;
+	wrapper.setAttribute('role', 'alert');
+	wrapper.innerHTML = `
+		<div class="search-toast-message">${message}</div>
+		<button type="button" class="btn-close" aria-label="Close"></button>
+	`;
+
+	const closeButton = wrapper.querySelector('.btn-close');
+
+	if (closeButton) {
+		closeButton.addEventListener('click', () => {
+			if (wrapper.parentNode) {
+				wrapper.remove();
+			}
+		});
+	}
+
+	notificationArea.appendChild(wrapper);
+
+	if (timeout > 0) {
+		window.setTimeout(() => {
+			if (wrapper.parentNode) {
+				wrapper.remove();
+			}
+		}, timeout);
+	}
+};
+
+/**
+ * Joomla native confirmation dialog.
+ *
+ * Used only for actual confirmations, not for search notifications.
+ *
+ * @param {string} message
+ * @param {Function} onConfirm
+ * @param {Function|null} onCancel
+ * @param {Object} options
+ *
+ * @returns {void}
+ */
+const showAppConfirm = (message, onConfirm, onCancel = null) => {
+	try {
+		const dialog = customElements.get('joomla-dialog');
+
+		if (!dialog) {
+			throw new Error('joomla-dialog not available');
+		}
+
+		dialog.confirm(message).then(function(result) {
+			if (result) {
+				if (typeof onConfirm === 'function') {
+					onConfirm();
+				}
+			} else {
+				if (typeof onCancel === 'function') {
+					onCancel();
+				}
+			}
+		});
+	} catch (error) {
+		// fallback
+		if (window.confirm(message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''))) {
+			if (typeof onConfirm === 'function') {
+				onConfirm();
+			}
+		} else if (typeof onCancel === 'function') {
+			onCancel();
+		}
+	}
+};
+
+/**
  * JS Function to execute the search
  */
 const doSearch = async (signal, tables) => {
 	try {
 		// build form
 		const formData = new FormData();
-
+		
 		// load the result table
 		const resultsTable = new DataTable('#search_results_table');
 
 		// get the search mode
 		let typeSearch = modeObject.querySelector('input[type=\'radio\']:checked').value;
-
+		
 		// set some search values
 		let searchValue = searchObject.value;
 		let replaceValue = replaceObject.value;
@@ -47,6 +153,7 @@ const doSearch = async (signal, tables) => {
 		// reset the progress bar
 		searchProgressBarObject.style.width = '0%';
 		searchProgressBarObject.innerHTML = '0%';
+		searchProgressBarObject.setAttribute('aria-valuenow', '0');
 
 		// show the progress bar
 		searchProgressObject.style.display = '';
@@ -70,7 +177,6 @@ const doSearch = async (signal, tables) => {
 		let index;
 
 		for (index = 0; index < progress; index++) {
-
 			let tableName = tables[index];
 
 			// add the table name
@@ -80,63 +186,76 @@ const doSearch = async (signal, tables) => {
 				signal: signal,
 				method: 'POST', // *GET, POST, PUT, DELETE, etc.
 				body: formData
-			}
+			};
 
 			if (abort_this_search_values) {
 				break;
 			}
-			const response = await fetch(UrlAjax + 'doSearch', options).then(response => {
-				total++;
-				// return the json response
-				if (response.ok) {
-					return response.json();
-				} else { 
-					UIkit.notify(Joomla.Text._('COM_COMPONENTBUILDER_THE_SEARCH_PROCESS_HAD_AN_ERROR_WITH_TABLE') + ' ' + tableName, {pos:'top-right', status:'danger'});
-				}
-			}).then((data) => {
-				if (typeof data.success !== 'undefined') {
-					UIkit.notify(data.success, {pos:'top-right', timeout : 200, status:'success'});
-				//} else if (typeof data.not_found !== 'undefined') {
-				//	UIkit.notify(data.not_found, {pos:'bottom-right', timeout : 200});
-				}
-				if (typeof data.items !== 'undefined') {
-					addTableItems(resultsTable, data.items, typeSearch);
-				}
-				if (typeof data.fields_count !== 'undefined') {
-					fieldCount += data.fields_count;
-				}
-				if (typeof data.line_count !== 'undefined') {
-					lineCount += data.line_count;
-				}
-				// calculate the percent
-				let percent = 100.0 * (total / progress);
-				// update the progress bar
-				searchProgressObject.style.display = ''; // always make sure it still shows...
-				searchProgressBarObject.style.width = percent.toFixed(2) + '%';
-				searchProgressBarObject.innerHTML = percent.toFixed(2) + '%';
-				// when complete hide the progress bar
-				if (progress == total) {
-					let total_field_line = ' ' +  fieldCount + ' ' + Joomla.Text._('COM_COMPONENTBUILDER_FIELDS_THAT_HAD') + ' ' +  lineCount + ' ' + Joomla.Text._('COM_COMPONENTBUILDER_LINES') + ' ';
-					if (progress == 1) {
-						searchProgressBarObject.innerHTML = Joomla.Text._('COM_COMPONENTBUILDER_SEARCHING') + ' ' + tableName + total_field_line + Joomla.Text._('COM_COMPONENTBUILDER_AND_FINISHED_THE_SEARCH_IN') + ' ' + getSearchLenght() + ' ' + Joomla.Text._('COM_COMPONENTBUILDER_SECONDS');
-					} else {
-						searchProgressBarObject.innerHTML = Joomla.Text._('COM_COMPONENTBUILDER_SEARCHING') + ' ' + progress + ' ' + Joomla.Text._('COM_COMPONENTBUILDER_TABLES_WITH') + total_field_line + Joomla.Text._('COM_COMPONENTBUILDER_AND_FINISHED_THE_SEARCH_IN') + ' ' + getSearchLenght() + ' ' + Joomla.Text._('COM_COMPONENTBUILDER_SECONDS');
+
+			await fetch(UrlAjax + 'doSearch', options)
+				.then(response => {
+					total++;
+
+					if (response.ok) {
+						return response.json();
 					}
-					// show the search button
-					startSearchButton.style.display = '';
-					// hidde the stop search button
-					stopSearchButton.style.display = 'none';
-					setTimeout(function () {
-						// hide the progress bar again
-						searchProgressObject.style.display = 'none';
-					}, 13000);
-				}
-			}).catch(error => {
-				console.log(error);
-				if (error.name === "AbortError") {
-					abort_this_search_values = true;
-				}
-			});
+
+					showAppNotification(
+						Joomla.Text._('COM_COMPONENTBUILDER_THE_SEARCH_PROCESS_HAD_AN_ERROR_WITH_TABLE') + ' ' + tableName,
+						'danger',
+						4000
+					);
+
+					return null;
+				})
+				.then((data) => {
+					if (!data) {
+						return;
+					}
+
+					if (typeof data.success !== 'undefined') {
+						showAppNotification(data.success, 'success', 1800);
+					}
+
+					if (typeof data.items !== 'undefined') {
+						addTableItems(resultsTable, data.items, typeSearch);
+					}
+
+					if (typeof data.fields_count !== 'undefined') {
+						fieldCount += data.fields_count;
+					}
+
+					if (typeof data.line_count !== 'undefined') {
+						lineCount += data.line_count;
+					}
+
+					let percent = 100.0 * (total / progress);
+
+					searchProgressObject.style.display = '';
+					searchProgressBarObject.style.width = percent.toFixed(2) + '%';
+					searchProgressBarObject.innerHTML = percent.toFixed(2) + '%';
+					searchProgressBarObject.setAttribute('aria-valuenow', percent.toFixed(2));
+
+					if (progress === total) {
+						searchProgressBarObject.innerHTML = '100%';
+						searchProgressBarObject.style.width = '100%';
+						searchProgressBarObject.setAttribute('aria-valuenow', '100');
+
+						startSearchButton.style.display = '';
+						stopSearchButton.style.display = 'none';
+
+						setTimeout(function () {
+							searchProgressObject.style.display = 'none';
+						}, 13000);
+					}
+				})
+				.catch(error => {
+					console.log(error);
+
+					if (error.name === 'AbortError') {
+						abort_this_search_values = true;
+					}
+				});
 		}
 	} catch (error) {
 		console.log(error);
@@ -144,7 +263,6 @@ const doSearch = async (signal, tables) => {
 		// Executed regardless if we caught the error
 	}
 };
-
 
 /**
  * JS Function to start search timer
@@ -166,7 +284,7 @@ const getSearchLenght = () => {
 	// strip the ms
 	timeDiff /= 1000;
 
-	// get seconds 
+	// get seconds
 	return Math.round(timeDiff);
 };
 
@@ -191,6 +309,8 @@ const getSelectedItem = async (table, row, field, line) => {
 		formData.append('regex_search', regexObject.checked ? 1 : 0);
 
 		// get search value
+		let postURL = '';
+
 		if (mode == 2) {
 			// add the line value
 			formData.append('line_nr', line);
@@ -204,22 +324,31 @@ const getSelectedItem = async (table, row, field, line) => {
 		let options = {
 			method: 'POST', // *GET, POST, PUT, DELETE, etc.
 			body: formData
-		}
+		};
 
-		const response = await fetch(postURL, options).then(response => {
-			if (response.ok) {
-				return response.json();
-			}
-		}).then((data) => {
-			if (typeof data.success !== 'undefined') {
-				UIkit.notify(data.success, {pos:'top-right', status:'success'});
-			}
-			if (typeof data.value !== 'undefined') {
-				addSelectedItem(data.value, table, row, field, line);
-			}
-		}).catch(error => {
-			console.log(error);
-		});
+		await fetch(postURL, options)
+			.then(response => {
+				if (response.ok) {
+					return response.json();
+				}
+				return null;
+			})
+			.then((data) => {
+				if (!data) {
+					return;
+				}
+
+				if (typeof data.success !== 'undefined') {
+					showAppNotification(data.success, 'success', 1500);
+				}
+
+				if (typeof data.value !== 'undefined') {
+					addSelectedItem(data.value, table, row, field, line);
+				}
+			})
+			.catch(error => {
+				console.log(error);
+			});
 	} catch (error) {
 		console.log(error);
 	} finally {
@@ -234,35 +363,45 @@ const replaceAllCheck = () => {
 	// get the current searc and replace values
 	let searchValue = searchObject.value;
 	let replaceValue = replaceObject.value;
+
 	// load question
 	let question = Joomla.Text._('COM_COMPONENTBUILDER_YOUR_ARE_ABOUT_TO_UPDATE_BALLB_VALUES_THAT_CAN_BE_FOUND_IN_THE_DATABASE') + '<br />' +
 		Joomla.Text._('COM_COMPONENTBUILDER_YOU_WILL_REPLACE') + ': [<span class="found_code">' + htmlentities(searchValue) + '</span>] ' +
 		Joomla.Text._('COM_COMPONENTBUILDER_WITH') + ': [<span class="found_code">' + htmlentities(replaceValue) + '</span>]<br />' +
 		Joomla.Text._('COM_COMPONENTBUILDER_THIS_CAN_NOT_BE_UNDONE_BYOU_HAVE_BEEN_WARNEDB') + '<br /><br />' +
 		Joomla.Text._('COM_COMPONENTBUILDER_ARE_YOU_THEREFORE_ABSOLUTELY_SURE_YOU_WANT_TO_CONTINUE');
+
 	// do check
-	UIkit.modal.confirm(question, function () {
+	showAppConfirm(
+		question,
+		function () {
+			// show the search settings again
+			showSearch();
+			// Create new controller and issue new request
+			controller_replace = new AbortController();
 
-		// show the search settings again
-		showSearch();
+			let tables = [];
+			let table = tableObject.value;
 
-		// Create new controller and issue new request
-		controller_replace = new AbortController();
-
-		// check if any specific table was set
-		let tables = [];
-		let table = tableObject.value;
-		if (table != -1) {
-			tables.push(table);
-			replaceAll(controller_replace.signal, tables);
-		} else {
-			replaceAll(controller_replace.signal, searchTables);
+			if (table != -1) {
+				tables.push(table);
+				replaceAll(controller_replace.signal, tables);
+			} else {
+				replaceAll(controller_replace.signal, searchTables);
+			}
+		},
+		null,
+		{
+			labels: {
+				Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES_UPDATE_ALL'),
+				Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO')
+			}
 		}
-	}, {labels: { Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES_UPDATE_ALL'), Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO') }});
+	);
 };
 
 /**
- * JS Function to execute the search
+ * JS Function to execute the replace all
  */
 const replaceAll = async (signal, tables) => {
 	try {
@@ -292,16 +431,16 @@ const replaceAll = async (signal, tables) => {
 		replaceProgressBarObject.style.width = '0%';
 
 		// show the progress bar
+		replaceProgressBarObject.innerHTML = '';
+		replaceProgressBarObject.setAttribute('aria-valuenow', '0');
 		replaceProgressObject.style.display = '';
 
 		let abort_this_replace_values = false;
-
 		let total = 0;
 		let progress = tables.length;
 		let index;
 
 		for (index = 0; index < progress; index++) {
-
 			let tableName = tables[index];
 
 			// add the table name
@@ -311,63 +450,106 @@ const replaceAll = async (signal, tables) => {
 				signal: signal,
 				method: 'POST', // *GET, POST, PUT, DELETE, etc.
 				body: formData
-			}
+			};
 
 			if (abort_this_replace_values) {
 				break;
 			}
-			const response = await fetch(UrlAjax + 'replaceAll', options).then(response => {
-				total++;
-				if (response.ok) {
-					return response.json();
-				} else { 
-					UIkit.notify(Joomla.Text._('COM_COMPONENTBUILDER_THE_REPLACE_PROCESS_HAD_AN_ERROR_WITH_TABLE') + ' ' + tableName, {pos:'top-right', status:'danger'});
-				}
-			}).then((data) => {
-				if (typeof data.success !== 'undefined') {
-					UIkit.notify(data.success, {pos:'top-right', timeout : 200, status:'success'});
-				} else if (typeof data.error !== 'undefined') {
-					UIkit.notify(data.error, {pos:'bottom-right', timeout : 200});
-				}
-				// calculate the percent
-				let percent = 100.0 * (total / progress);
-				// update the progress bar
-				replaceProgressBarObject.style.width = percent.toFixed(2) + '%';
-				// when complete hide the progress bar
-				if (progress == total) {
-					setTimeout(function () {
-						// hide the progress bar again
-						replaceProgressObject.style.display = 'none';
-						// we clear the table again
-						clearAll();
-						// if not reqex we reverse the search for you so you can see the update was a success
-						if (regexValue == 0) {
-							// set the replace value as the search value
-							UIkit.modal.confirm(Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_DO_A_REVERSE_SEARCH'), function(){
-								startNewSearch(replaceValue, searchValue, matchValue, wholeValue, regexValue, 2);
-							}, function () {
-								UIkit.modal.confirm(Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_REPEAT_THE_SAME_SEARCH'), function(){
-									startSearch();
-								}, function () {
-									clearSearch();
-								}, {labels: { Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'), Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO') }});
-							}, {labels: { Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'), Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO') }});
-						} else {
-							// else we search it again just to prove its changed
-							UIkit.modal.confirm(Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_REPEAT_THE_SAME_SEARCH'), function(){
-								startSearch();
-							}, function () {
-								clearSearch();
-							}, {labels: { Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'), Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO') }});
-						}
-					}, 3000);
-				}
-			}).catch(error => {
-				console.log(error);
-				if (error.name === "AbortError") {
-					abort_this_replace_values = true;
-				}
-			});
+
+			await fetch(UrlAjax + 'replaceAll', options)
+				.then(response => {
+					total++;
+
+					if (response.ok) {
+						return response.json();
+					}
+
+					showAppNotification(
+						Joomla.Text._('COM_COMPONENTBUILDER_THE_REPLACE_PROCESS_HAD_AN_ERROR_WITH_TABLE') + ' ' + tableName,
+						'danger',
+						4000
+					);
+
+					return null;
+				})
+				.then((data) => {
+					if (!data) {
+						return;
+					}
+
+					if (typeof data.success !== 'undefined') {
+						// silent during bulk replace
+					} else if (typeof data.error !== 'undefined') {
+						showAppNotification(data.error, 'warning', 2500);
+					}
+
+					let percent = 100.0 * (total / progress);
+					replaceProgressBarObject.style.width = percent.toFixed(2) + '%';
+					replaceProgressBarObject.innerHTML = percent.toFixed(2) + '%';
+					replaceProgressBarObject.setAttribute('aria-valuenow', percent.toFixed(2));
+
+					if (progress === total) {
+						setTimeout(function () {
+							replaceProgressObject.style.display = 'none';
+							clearAll();
+
+							if (regexValue == 0) {
+								showAppConfirm(
+									Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_DO_A_REVERSE_SEARCH'),
+									function () {
+										startNewSearch(replaceValue, searchValue, matchValue, wholeValue, regexValue, 2);
+									},
+									function () {
+										showAppConfirm(
+											Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_REPEAT_THE_SAME_SEARCH'),
+											function () {
+												startSearch();
+											},
+											function () {
+												clearSearch();
+											},
+											{
+												labels: {
+													Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'),
+													Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO')
+												}
+											}
+										);
+									},
+									{
+										labels: {
+											Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'),
+											Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO')
+										}
+									}
+								);
+							} else {
+								showAppConfirm(
+									Joomla.Text._('COM_COMPONENTBUILDER_WOULD_YOU_LIKE_TO_REPEAT_THE_SAME_SEARCH'),
+									function () {
+										startSearch();
+									},
+									function () {
+										clearSearch();
+									},
+									{
+										labels: {
+											Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'),
+											Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO')
+										}
+									}
+								);
+							}
+						}, 3000);
+					}
+				})
+				.catch(error => {
+					console.log(error);
+
+					if (error.name === 'AbortError') {
+						abort_this_replace_values = true;
+					}
+				});
 		}
 	} catch (error) {
 		console.log(error);
@@ -384,10 +566,21 @@ const setValueCheck = (row, field, table) => {
 	let question = Joomla.Text._('COM_COMPONENTBUILDER_YOUR_ARE_ABOUT_TO_UPDATE_ROW') + ' (' + row + ') -> (' + field + ') ' +
 		Joomla.Text._('COM_COMPONENTBUILDER_FIELD_IN_THE') + ' (' + table + ') ' + Joomla.Text._('COM_COMPONENTBUILDER_TABLE') + '.<br /><br />' +
 		Joomla.Text._('COM_COMPONENTBUILDER_THIS_CAN_NOT_BE_UNDONE_ARE_YOU_SURE_YOU_WANT_TO_CONTINUE');
+
 	// do check
-	UIkit.modal.confirm(question, function () {
-		setValue(row, field, table);
-	}, {labels: { Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'), Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO') }});
+	showAppConfirm(
+		question,
+		function () {
+			setValue(row, field, table);
+		},
+		null,
+		{
+			labels: {
+				Ok: Joomla.Text._('COM_COMPONENTBUILDER_YES'),
+				Cancel: Joomla.Text._('COM_COMPONENTBUILDER_NO')
+			}
+		}
+	);
 };
 
 /**
@@ -401,7 +594,6 @@ const setValue = async (row, field, table) => {
 
 		// build form
 		const formData = new FormData();
-
 		formData.append('value', value);
 		formData.append('row_id', row);
 		formData.append('field_name', field);
@@ -410,21 +602,29 @@ const setValue = async (row, field, table) => {
 		let options = {
 			method: 'POST', // *GET, POST, PUT, DELETE, etc.
 			body: formData
-		}
+		};
 
-		const response = await fetch(UrlAjax + 'setValue', options).then(response => {
-			if (response.ok) {
-				return response.json();
-			}
-		}).then((data) => {
-			if (typeof data.success !== 'undefined') {
-				UIkit.notify(data.success, {pos:'top-right', status:'success'});
-				clearSelectedItem();
-				tableActiveObject.remove().draw();
-			}
-		}).catch(error => {
-			console.log(error);
-		});
+		await fetch(UrlAjax + 'setValue', options)
+			.then(response => {
+				if (response.ok) {
+					return response.json();
+				}
+				return null;
+			})
+			.then((data) => {
+				if (!data) {
+					return;
+				}
+
+				if (typeof data.success !== 'undefined') {
+					showAppNotification(data.success, 'success', 2000);
+					clearSelectedItem();
+					tableActiveObject.remove().draw();
+				}
+			})
+			.catch(error => {
+				console.log(error);
+			});
 	} catch (error) {
 		console.log(error);
 	} finally {
@@ -437,10 +637,10 @@ const setValue = async (row, field, table) => {
  */
 const addSelectedItem = async (value, table, row, field, line) => {
 	// display area
-	if (value.length > 1)
-	{
+	if (value.length > 1) {
 		// add value to editor
 		const editor = await GetEditor();
+
 		if (editor) {
 			editor.setValue(value);
 		}
@@ -452,23 +652,25 @@ const addSelectedItem = async (value, table, row, field, line) => {
 		itemRowIdObject.innerHTML = row;
 		itemFieldNameObject.innerHTML = field;
 		itemLineNumberObject.innerHTML = line;
+
 		// set button and editor line if we have a line number
 		if (typeof line == 'number') {
 			// show and set the save button
 			buttonUpdateItemObject.style.display = '';
-			buttonUpdateItemObject.setAttribute('onclick',"setValueCheck(" + row + ", '" + field + "', '" + table + "');");
+			buttonUpdateItemObject.setAttribute('onclick', "setValueCheck(" + row + ", '" + field + "', '" + table + "');");
 			// Get line info from current state.
-			const editor = await GetEditor();
-			if (editor) {
-				const lineInfo = editor.instance.state.doc.line(line);
-				editor.instance.dispatch({
+			const selectedEditor = await GetEditor();
+
+			if (selectedEditor) {
+				const lineInfo = selectedEditor.instance.state.doc.line(line);
+				selectedEditor.instance.dispatch({
 					selection: { head: lineInfo.from, anchor: lineInfo.to },
 					scrollIntoView: true
 				});
 			}
 		} else {
 			// no line so no data we can't save this data
-			buttonUpdateItemObject.setAttribute('onclick', "");
+			buttonUpdateItemObject.setAttribute('onclick', '');
 			buttonUpdateItemObject.style.display = 'none';
 		}
 	}
@@ -480,6 +682,7 @@ const addSelectedItem = async (value, table, row, field, line) => {
 const clearSelectedItem = async () => {
 	// display area
 	const editor = await GetEditor();
+
 	if (editor) {
 		editor.setValue('');
 	}
@@ -500,10 +703,9 @@ const clearSelectedItem = async () => {
 const clearTableItems = async () => {
 	let table = new DataTable('#search_results_table');
 	// clear search
-	table.search('').columns().search( '' );
+	table.search('').columns().search('');
 	// clear items
-	table.clear().draw( true );
-
+	table.clear().draw(true);
 	// hide the update all items
 	buttonUpdateAllStyleDisplay('none');
 };
@@ -550,9 +752,11 @@ const getSearchURL = (search, replace = '', match = 0, whole = 0, regex = 0, mod
 	// check if its a single table search
 	let table = tableObject.value;
 	let table_name = '';
+
 	if (table != -1) {
 		table_name = '&table_name=' + urlencode(table);
 	}
+
 	// update the type of search
 	if (mode == 1) {
 		return UrlSearch + table_name +
@@ -568,13 +772,14 @@ const getSearchURL = (search, replace = '', match = 0, whole = 0, regex = 0, mod
 			'&whole_word=' + whole +
 			'&regex_search=' + regex;
 	}
+
 	return UrlSearch + table_name;
 };
 
 /**
  * JS Function to check if a element has a class
  */
- const hasClass = (elementObject, classNaam) => {
+const hasClass = (elementObject, classNaam) => {
 	return !!elementObject.className.match(new RegExp('(\\s|^)' + classNaam + '(\\s|$)'));
 };
 
@@ -583,7 +788,7 @@ const getSearchURL = (search, replace = '', match = 0, whole = 0, regex = 0, mod
  */
 const addClass = (elementObject, classNaam) => {
 	if (!hasClass(elementObject, classNaam)) {
-		elementObject.className += " " + classNaam;
+		elementObject.className += ' ' + classNaam;
 	}
 };
 
@@ -601,7 +806,8 @@ const removeClass = (elementObject, classNaam) => {
  * JS Function to add items to the table
  */
 const addTableItems = async (table, items, typeSearch) => {
-	table.rows.add(items).draw( false );
+	table.rows.add(items).draw(false);
+
 	if (typeSearch == 2) {
 		buttonUpdateAllStyleDisplay(''); // TODO should only show once all items are loaded
 	} else {
@@ -624,27 +830,36 @@ const buttonUpdateAllStyleDisplay = async (value) => {
 const startSearch = (field, forced = false) => {
 	// check mode
 	let mode = modeObject.querySelector('input[type=\'radio\']:checked').value;
+
 	if (mode == 0) {
 		// reset the search area
 		window.location.href = UrlSearch;
+		return;
 	}
+
 	// check if we have an Enter click
-	if (field && typeof field.code !== 'undefined' && field.code  === "Enter") {
+	if (field && typeof field.code !== 'undefined' && field.code === 'Enter') {
 		forced = true;
 	}
+
 	// get replace value if set
 	const replaceValue = replaceObject.value;
+
 	if (replaceValue.length > 0) {
 		// set the searched value
 		replacedObject.innerHTML = htmlentities(replaceValue);
 	} else {
 		replacedObject.innerHTML = '';
 	}
+
 	// get search value
 	const searchValue = searchObject.value;
+
 	if (searchValue.length > 2 || (searchValue.length > 0 && forced)) {
 		// Cancel any ongoing requests
-		if (controller) controller.abort();
+		if (controller) {
+			controller.abort();
+		}
 
 		// we clear the table again
 		clearAll();
@@ -658,6 +873,7 @@ const startSearch = (field, forced = false) => {
 		// check if any specific table was set
 		let tables = [];
 		let table = tableObject.value;
+
 		if (table != -1) {
 			tables.push(table);
 			doSearch(controller.signal, tables);
@@ -675,17 +891,20 @@ const startSearch = (field, forced = false) => {
  */
 const stopSearch = () => {
 	// Cancel any ongoing requests
-	if (controller) controller.abort();
+	if (controller) {
+		controller.abort();
+	}
 	// show the search button
 	startSearchButton.style.display = '';
 	// hidde the stop search button
 	stopSearchButton.style.display = 'none';
+
 	// remove the progress bar at some point
 	setTimeout(function () {
 		// hide the progress bar again
 		searchProgressObject.style.display = 'none';
 	}, 13000);
-}
+};
 
 /**
  * JS Function to hide search settings and show table search
@@ -694,8 +913,14 @@ const showSearch = () => {
 	searchSettingsObject.style.display = '';
 	searchDetailsObject.style.display = 'none';
 	replaceDetailsObject.style.display = 'none';
-	tableSearchObject.style.display = 'none';
-	tableLengthObject.style.display = 'none';
+
+	if (tableSearchObject) {
+		tableSearchObject.style.display = 'none';
+	}
+
+	if (tableLengthObject) {
+		tableLengthObject.style.display = 'none';
+	}
 };
 
 /**
@@ -704,10 +929,18 @@ const showSearch = () => {
 const hideSearch = () => {
 	searchSettingsObject.style.display = 'none';
 	searchDetailsObject.style.display = '';
-	tableSearchObject.style.display = '';
-	tableLengthObject.style.display = '';
+
+	if (tableSearchObject) {
+		tableSearchObject.style.display = '';
+	}
+
+	if (tableLengthObject) {
+		tableLengthObject.style.display = '';
+	}
+
 	// check if we are in replace mode
 	let mode = modeObject.querySelector('input[type=\'radio\']:checked').value;
+
 	if (mode == 2) {
 		replaceDetailsObject.style.display = '';
 	}

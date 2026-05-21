@@ -22,7 +22,6 @@ use Joomla\CMS\User\User;
 use Joomla\CMS\Document\Document;
 use VDM\Component\Componentbuilder\Administrator\Helper\HeaderCheck;
 use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
-use Joomla\Filesystem\File;
 use VDM\Joomla\Componentbuilder\Search\Factory as SearchFactory;
 use Joomla\CMS\Form\Form;
 use VDM\Joomla\Componentbuilder\Utilities\Permitted\Actions;
@@ -172,6 +171,11 @@ class HtmlView extends BaseHtmlView
 		Text::script('COM_COMPONENTBUILDER_YES');
 		// just get it on the page for now....
 		ToolbarHelper::inlinehelp();
+		
+		// get the web asset manager
+		$web = Factory::getApplication()->getDocument()->getWebAssetManager();
+		// load Joomla dialog only
+		$web->useScript('joomla.dialog');
 
 		// We don't need toolbar in the modal window.
 		if ($this->getLayout() !== 'modal')
@@ -467,57 +471,6 @@ class HtmlView extends BaseHtmlView
 
 		// Add View JavaScript File
 		Html::_('script', 'administrator/components/com_componentbuilder/assets/js/search.js', ['version' => 'auto']);
-
-		// Load uikit options.
-		$uikit = $this->params->get('uikit_load');
-		// Set script size.
-		$size = $this->params->get('uikit_min');
-		// Set css style.
-		$style = $this->params->get('uikit_style');
-
-		// The uikit css.
-		if ((!$HeaderCheck->css_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/uikit'.$style.$size.'.css', ['version' => 'auto']);
-		}
-		// The uikit js.
-		if ((!$HeaderCheck->js_loaded('uikit.min') || $uikit == 1) && $uikit != 2 && $uikit != 3)
-		{
-			Html::_('script', 'media/com_componentbuilder/uikit-v2/js/uikit'.$size.'.js', ['version' => 'auto']);
-		}
-
-		// Load the script to find all uikit components needed.
-		if ($uikit != 2)
-		{
-			// Set the default uikit components in this view.
-			$uikitComp = [];
-			$uikitComp[] = 'UIkit.notify';
-			$uikitComp[] = 'uk-progress';
-		}
-
-		// Load the needed uikit components in this view.
-		if ($uikit != 2 && isset($uikitComp) && ArrayHelper::check($uikitComp))
-		{
-			// loading...
-			foreach ($uikitComp as $class)
-			{
-				foreach (ComponentbuilderHelper::$uk_components[$class] as $name)
-				{
-					// check if the CSS file exists.
-					if (@file_exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css'))
-					{
-						// load the css.
-						Html::_('stylesheet', 'media/com_componentbuilder/uikit-v2/css/components/'.$name.$style.$size.'.css', ['version' => 'auto']);
-					}
-					// check if the JavaScript file exists.
-					if (@file_exists(JPATH_ROOT.'/media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js'))
-					{
-						// load the js.
-						Html::_('script', 'media/com_componentbuilder/uikit-v2/js/components/'.$name.$size.'.js', ['version' => 'auto'], ['type' => 'text/javascript', 'async' => 'async']);
-					}
-				}
-			}
-		}
 		// add styles
 		foreach ($this->styles as $style)
 		{

@@ -30,19 +30,31 @@ $tmpl    = $this->input->get('tmpl');
 $tmpl    = $tmpl ? '&tmpl=' . $tmpl : '';
 ?>
 <script type="text/javascript">
-	// waiting spinner
-	var outerDiv = document.querySelector('body');
-	var loadingDiv = document.createElement('div');
-	loadingDiv.id = 'loading';
-	loadingDiv.style.cssText = "background: rgba(255, 255, 255, .8) url('components/com_componentbuilder/assets/images/ajax.gif') 50% 35% no-repeat; top: " + (outerDiv.getBoundingClientRect().top + window.pageYOffset) + "px; left: " + (outerDiv.getBoundingClientRect().left + window.pageXOffset) + "px; width: " + outerDiv.offsetWidth + "px; height: " + outerDiv.offsetHeight + "px; position: fixed; opacity: 0.80; -ms-filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=80); filter: alpha(opacity=80); display: none;";
-	outerDiv.appendChild(loadingDiv);
-	loadingDiv.style.display = 'block';
-	// when page is ready remove and show
-	window.addEventListener('load', function() {
-		var componentLoader = document.getElementById('componentbuilder_loader');
-		if (componentLoader) componentLoader.style.display = 'block';
-		loadingDiv.style.display = 'none';
-	});
+	(function() {
+		// create loading overlay
+		var loadingDiv = document.createElement('div');
+		loadingDiv.id = 'loading';
+		loadingDiv.style.position = 'fixed';
+		loadingDiv.style.top = '0';
+		loadingDiv.style.left = '0';
+		loadingDiv.style.right = '0';
+		loadingDiv.style.bottom = '0';
+		loadingDiv.style.width = '100%';
+		loadingDiv.style.height = '100%';
+		loadingDiv.style.background = "rgba(255,255,255,0.8) url('components/com_componentbuilder/assets/images/ajax.gif') 50% 35% no-repeat";
+		loadingDiv.style.opacity = '0.8';
+		loadingDiv.style.zIndex = '9999';
+		loadingDiv.style.display = 'block';
+		loadingDiv.style.msFilter = "progid:DXImageTransform.Microsoft.Alpha(Opacity=80)";
+		loadingDiv.style.filter = "alpha(opacity=80)";
+		document.body.appendChild(loadingDiv);
+		// remove overlay when page fully loaded
+		window.addEventListener('load', function() {
+			var componentLoader = document.getElementById('componentbuilder_loader');
+			if (componentLoader) componentLoader.style.display = 'block';
+			loadingDiv.style.display = 'none';
+		});
+	})();
 </script>
 <div id="componentbuilder_loader" style="display: none;">
 <form action="<?php echo Route::_('index.php?option=com_componentbuilder&view=custom_code&layout=' . $layout . $tmpl . '&id='. (int) $this->item->id . $this->referral); ?>" method="post" name="adminForm" id="adminForm" class="form-validate" enctype="multipart/form-data">
@@ -215,42 +227,42 @@ jQuery('#adminForm').on('change', '#jform_target',function (e)
 
 
 
-jQuery('#adminForm').on('change', '#jform_function_name',function (e)
-{
-	e.preventDefault();
-	var target = jQuery("#jform_target input[type='radio']:checked").val();
-	if (target == 2) {
-		jQuery('#usedin').show();
-		var functioName = jQuery('#jform_function_name').val();
-		// check if this function name is taken
-		checkFunctionName(functioName);
-	} else {
-		jQuery('#usedin').hide();
+document.getElementById('adminForm').addEventListener('change', function (e) {
+	var el = e.target;
+
+	if (el.closest('#jform_function_name')) {
+		var target = document.querySelector('#jform_target input[type="radio"]:checked');
+		if (target && target.value == 2) {
+			document.getElementById('usedin').style.display = '';
+			var functioName = document.getElementById('jform_function_name').value;
+			// check if this function name is taken
+			checkFunctionName(functioName);
+		} else {
+			document.getElementById('usedin').style.display = 'none';
+		}
 	}
-});
-jQuery('#adminForm').on('change', '#jform_target',function (e)
-{
-	e.preventDefault();
-	var target = jQuery("#jform_target input[type='radio']:checked").val();
-	if (target == 2) {
-		jQuery('#usedin').show();
-		var functioName = jQuery('#jform_function_name').val();
-		// check if this function name is taken
-		checkFunctionName(functioName);
-	} else {
-		jQuery('#usedin').hide();
+
+	if (el.closest('#jform_target')) {
+		var target = document.querySelector('#jform_target input[type="radio"]:checked');
+		if (target && target.value == 2) {
+			document.getElementById('usedin').style.display = '';
+			var functioName = document.getElementById('jform_function_name').value;
+			// check if this function name is taken
+			checkFunctionName(functioName);
+		} else {
+			document.getElementById('usedin').style.display = 'none';
+		}
 	}
-});
-jQuery('#adminForm').on('change', '#jform_comment_type',function (e)
-{
-	e.preventDefault();
-	var type = jQuery("#jform_comment_type input[type='radio']:checked").val();
-	if (type == 2) {
-		jQuery('#html-comment-info').show();
-		jQuery('#phpjs-comment-info').hide();
-	} else {
-		jQuery('#html-comment-info').hide();
-		jQuery('#phpjs-comment-info').show();
+
+	if (el.closest('#jform_comment_type')) {
+		var type = document.querySelector('#jform_comment_type input[type="radio"]:checked');
+		if (type && type.value == 2) {
+			document.getElementById('html-comment-info').style.display = '';
+			document.getElementById('phpjs-comment-info').style.display = 'none';
+		} else {
+			document.getElementById('html-comment-info').style.display = 'none';
+			document.getElementById('phpjs-comment-info').style.display = '';
+		}
 	}
 });
 

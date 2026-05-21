@@ -235,8 +235,6 @@ class CompilerModel extends ListModel
 						]
 					)
 				);
-				// Checking if copyright has UIKit components that must be loaded.
-				$this->uikitComp = ComponentbuilderHelper::getUikitComp($item->copyright,$this->uikitComp);
 			}
 		}
 
@@ -286,21 +284,6 @@ class CompilerModel extends ListModel
 	public function setScript(string $path): void
 	{
 		$this->scripts[] = $path;
-	}
-
-	/**
-	 * Get the uikit needed components
-	 *
-	 * @return mixed  An array of objects on success.
-	 *
-	 */
-	public function getUikitComp()
-	{
-		if (isset($this->uikitComp) && UtilitiesArrayHelper::check($this->uikitComp))
-		{
-			return $this->uikitComp;
-		}
-		return false;
 	}
 
 	/**
