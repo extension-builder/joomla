@@ -1,0 +1,214 @@
+<?php
+
+$testHeader = <<<'PHP'
+<?php
+/**
+ * @package    Joomla.Component.Builder.Tests
+ *
+ * @created    14th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+PHP;
+
+$productionHeader = <<<'PHP'
+<?php
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    14th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+PHP;
+
+return [
+	'valid-token-aware-layout' => [
+		'path' => 'fixtures/PassingFixture.php',
+		'source' => <<<'PHP'
+<?php
+final class PassingFixture
+{
+	public function render(string $method): string
+	{
+		$literal = 'first
+    literal indentation is preserved';
+		$generated = <<<'TEXT'
+    generated indentation is preserved
+TEXT;
+    // Comment indentation is not structural PHP indentation.
+
+		return $this->{$method}($literal . $generated);
+		return self::{$method}($literal . $generated);
+	}
+}
+PHP
+		. "\n",
+		'rules' => []
+	],
+	'carriage-return' => [
+		'path' => 'fixtures/CarriageReturn.php',
+		'source' => "<?php\r\n\$value = 1;\r\n",
+		'rules' => ['line-ending']
+	],
+	'missing-terminal-newline' => [
+		'path' => 'fixtures/MissingNewline.php',
+		'source' => "<?php\n\$value = 1;",
+		'rules' => ['terminal-newline']
+	],
+	'extra-terminal-newline' => [
+		'path' => 'fixtures/ExtraNewline.php',
+		'source' => "<?php\n\$value = 1;\n\n",
+		'rules' => ['terminal-newline']
+	],
+	'trailing-whitespace' => [
+		'path' => 'fixtures/TrailingWhitespace.php',
+		'source' => "<?php\n\$value = 1; \n",
+		'rules' => ['trailing-whitespace']
+	],
+	'closing-php-tag' => [
+		'path' => 'fixtures/ClosingTag.php',
+		'source' => "<?php\n\$value = 1;\n?>\n",
+		'rules' => ['closing-tag']
+	],
+	'strict-types' => [
+		'path' => 'fixtures/StrictTypes.php',
+		'source' => "<?php\ndeclare(strict_types = 1);\n",
+		'rules' => ['strict-types']
+	],
+	'space-indentation' => [
+		'path' => 'fixtures/SpaceIndentation.php',
+		'source' => <<<'PHP'
+<?php
+final class SpaceIndentation
+{
+    public function run(): void
+    {
+    }
+}
+PHP
+		. "\n",
+		'rules' => ['indentation']
+	],
+	'same-line-structural-brace' => [
+		'path' => 'fixtures/SameLineBrace.php',
+		'source' => "<?php\nif (true) {\n}\n",
+		'rules' => ['opening-brace']
+	],
+	'missing-test-header' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/MissingHeader.php',
+		'source' => "<?php\n\$value = 1;\n",
+		'rules' => ['file-header']
+	],
+	'missing-production-header' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/MissingHeader.php',
+		'source' => "<?php\n\$value = 1;\n",
+		'rules' => ['file-header']
+	],
+	'test-package-on-production-file' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/TestPackage.php',
+		'source' => $testHeader . "\n\n\$value = 1;\n",
+		'rules' => ['file-header']
+	],
+	'production-package-on-test-file' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/ProductionPackage.php',
+		'source' => $productionHeader . "\n\n\$value = 1;\n",
+		'rules' => ['file-header']
+	],
+	'missing-production-declaration-docblock' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/MissingDeclarationDoc.php',
+		'source' => $productionHeader . <<<'PHP'
+
+
+namespace VDM\Joomla;
+
+
+final class MissingDeclarationDoc
+{
+}
+PHP
+		. "\n",
+		'rules' => ['declaration-docblock']
+	],
+	'missing-declaration-docblock' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/MissingDeclarationDoc.php',
+		'source' => $testHeader . <<<'PHP'
+
+
+namespace VDM\Tests\Support;
+
+
+final class MissingDeclarationDoc
+{
+}
+PHP
+		. "\n",
+		'rules' => ['declaration-docblock']
+	],
+	'missing-member-docblock' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/MissingMemberDoc.php',
+		'source' => $testHeader . <<<'PHP'
+
+
+namespace VDM\Tests\Support;
+
+
+/**
+ * Member fixture.
+ *
+ * @since  1.0.0
+ */
+final class MissingMemberDoc
+{
+	private string $value = '';
+}
+PHP
+		. "\n",
+		'rules' => ['member-docblock']
+	],
+	'missing-method-docblock' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/MissingMethodDoc.php',
+		'source' => $testHeader . <<<'PHP'
+
+
+namespace VDM\Tests\Support;
+
+
+/**
+ * Method fixture.
+ *
+ * @since  1.0.0
+ */
+final class MissingMethodDoc
+{
+	public function run(): void
+	{
+	}
+}
+PHP
+		. "\n",
+		'rules' => ['method-docblock']
+	],
+	'missing-since-tag' => [
+		'path' => 'libraries/vendor_jcb/tests/Support/MissingSince.php',
+		'source' => $testHeader . <<<'PHP'
+
+
+namespace VDM\Tests\Support;
+
+
+/**
+ * Declaration without version metadata.
+ */
+final class MissingSince
+{
+}
+PHP
+		. "\n",
+		'rules' => ['since-tag']
+	]
+];
