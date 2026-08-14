@@ -33,6 +33,10 @@ That structure must be understood before changing the legacy helper chain.
    lifecycle constraints, and trust boundaries to consider before API/MCP work.
 
 Repository-wide instructions for coding agents are in [`AGENTS.md`](../../AGENTS.md).
+The executable test harness and contribution rules are documented in the
+[testing standard](../development/testing.md), and PHP formatting, declaration,
+documentation, DI, and provider conventions are defined in the
+[PHP code standard](../development/php-code-style.md).
 
 ## Scope and evidence
 
