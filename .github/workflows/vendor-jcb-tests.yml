@@ -1,0 +1,158 @@
+name: Vendor JCB unit tests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - 6.x
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vendor-jcb-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  unit-tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            coverage: none
+            script: test
+          - php: '8.4'
+            coverage: pcov
+            script: test:coverage
+    env:
+      COMPOSER_NO_INTERACTION: '1'
+      COMPOSER_PROCESS_TIMEOUT: '0'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out Joomla CMS test runtime
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: joomla/joomla-cms
+          ref: c623e73b17c749f4644cb5634f59ca683b69d17b # 6.1.2
+          path: libraries/vendor_jcb/tests/.runtime/joomla-cms
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: ${{ matrix.coverage }}
+          extensions: curl, dom, fileinfo, gd, intl, ldap, mbstring, openssl, pdo_sqlite, simplexml, sodium, xml, xmlwriter, zip
+          ini-values: memory_limit=1G, pcov.directory=${{ github.workspace }}/libraries/vendor_jcb
+          tools: composer:2.10.2@sha256:5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          fail-fast: true
+
+      - name: Verify changed-file hygiene and test ownership
+        working-directory: libraries/vendor_jcb/tests
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          base_sha=""
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            base_sha="$PUSH_BASE_SHA"
+          fi
+
+          if [[ -n "$base_sha" && ! "$base_sha" =~ ^0+$ ]]; then
+            git diff --check "$base_sha...HEAD"
+            php bin/check-php-style.php --base="$base_sha"
+            php bin/check-test-ownership.php --base="$base_sha"
+          else
+            git show --check --format= HEAD
+            php bin/check-php-style.php
+            php bin/check-test-ownership.php
+          fi
+
+      - name: Resolve Composer cache directory
+        id: composer-cache
+        run: echo "directory=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer downloads
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ steps.composer-cache.outputs.directory }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('libraries/vendor_jcb/tests/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php }}-composer-
+            ${{ runner.os }}-composer-
+
+      - name: Validate test dependencies
+        run: composer --working-dir=libraries/vendor_jcb/tests validate --strict
+
+      - name: Install test dependencies
+        run: composer --working-dir=libraries/vendor_jcb/tests install --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Verify runtime platform requirements
+        run: composer --working-dir=libraries/vendor_jcb/tests check-platform-reqs
+
+      - name: Audit locked test dependencies
+        run: composer --working-dir=libraries/vendor_jcb/tests audit --locked
+
+      - name: Run unit tests
+        run: composer --working-dir=libraries/vendor_jcb/tests ${{ matrix.script }}
+
+      - name: Run documented known-contract failures
+        id: known-defects
+        if: matrix.php == '8.3'
+        continue-on-error: true
+        run: composer --working-dir=libraries/vendor_jcb/tests test:known-defects
+
+      - name: Report known-contract status
+        if: matrix.php == '8.3' && always()
+        env:
+          KNOWN_DEFECT_OUTCOME: ${{ steps.known-defects.outcome }}
+        run: |
+          if [[ "$KNOWN_DEFECT_OUTCOME" == "failure" ]]; then
+            echo "### Known contract defects remain reproducible" >> "$GITHUB_STEP_SUMMARY"
+            echo "The non-blocking known-defect suite failed as documented. Review its output before changing related production code." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$KNOWN_DEFECT_OUTCOME" == "success" ]]; then
+            echo "### Known contract defects now pass" >> "$GITHUB_STEP_SUMMARY"
+            echo "Remove obsolete known-defect grouping and make the recovered contract blocking." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Verify test runtime cleanup
+        if: always()
+        run: |
+          shopt -s nullglob
+          cache_roots=(libraries/vendor_jcb/tests/.runtime/cache-*)
+
+          if (( ${#cache_roots[@]} != 0 )); then
+            printf 'Leaked Joomla test cache: %s\n' "${cache_roots[@]}" >&2
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        if: matrix.coverage == 'pcov' && always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vendor-jcb-coverage-php-${{ matrix.php }}
+          path: libraries/vendor_jcb/tests/build/coverage/clover.xml
+          if-no-files-found: error
+          retention-days: 14
