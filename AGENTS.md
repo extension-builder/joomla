@@ -24,6 +24,12 @@ Use [`docs/architecture/source-inventory.md`](docs/architecture/source-inventory
 for orientation, then verify every assertion against the current source. The
 inventory is a snapshot, not a substitute for reading callers and providers.
 
+Before changing any PHP class under `libraries/vendor_jcb` or adding its test,
+read both development standards:
+
+1. [`docs/development/php-code-style.md`](docs/development/php-code-style.md)
+2. [`docs/development/testing.md`](docs/development/testing.md)
+
 ## Architecture invariants
 
 ### Preserve compiler behavior
@@ -147,8 +153,29 @@ interface already separates them.
 
 ## Testing expectations
 
-The documented baseline has no first-party test harness. Until one is added,
-perform the strongest available verification and state the gap explicitly.
+The first-party PHPUnit project lives in `libraries/vendor_jcb/tests` and is a
+required architectural guardrail. Production and test paths mirror one another;
+the package namespace inserts `Tests` at the documented boundary. Only the
+three named legacy files under `Componentbuilder/Compiler/Helper` are excluded.
+
+Every in-scope production declaration must be in exactly one ownership state:
+
+- `coverage-baseline.php` records explicit, untested debt; it does not claim
+  coverage.
+- `test-ownership.php` records a meaningful owning test and its mode.
+- A new production declaration may never enter the debt baseline. Add its test
+  ownership in the same change.
+
+Run `php bin/check-php-style.php --base=<merge-base>` and
+`php bin/check-test-ownership.php --base=<merge-base>` from the test project
+when PHP or production declarations change. Run the relevant package suite
+while developing and the complete `composer test` before handoff. The separate
+`composer test:known-defects` command intentionally reproduces documented
+existing contract failures. Add to that group only when a characterization
+test proves an unambiguous pre-existing production defect, keep the desired
+assertion executable, and add the symptom to the defect ledger in
+`docs/development/testing.md`. Never quarantine a regression introduced by the
+current change, and never weaken an assertion to obtain a green run.
 
 For compiler changes, the target standard is:
 
@@ -162,6 +189,28 @@ For compiler changes, the target standard is:
 Never update a golden fixture before explaining and reviewing every semantic
 diff.
 
+Tests must protect observable behavior, state transitions, failure paths,
+provider wiring, or generated output. Instantiation-only, `class_exists`, and
+method-existence checks are not ownership evidence. Mock external boundaries,
+not the subject; never call live GitHub, Gitea, OpenAI, production databases,
+or an installed Joomla application from the unit suite.
+
+## PHP code standard
+
+- Use one TAB per indentation level in first-party PHP source and tests. Spaces
+  are not an indentation alternative. Format-specific files such as YAML use
+  the syntax their format requires.
+- Follow the repository's Allman braces, file header, namespace/path spelling,
+  member order, explicit typed dependency properties, and complete `@since`,
+  `@param`, `@return`, and `@throws` documentation conventions.
+- Do not introduce `strict_types`, constructor property promotion, closing PHP
+  tags, or broad reformatting as an incidental change.
+- Preserve `VDM.Minify`'s upstream source formatting instead of restyling it;
+  new JCB-owned tests for Minify still follow the JCB tab-based standard.
+- Treat `docs/development/php-code-style.md` as authoritative for details and
+  examples. Existing inconsistencies identified there are legacy facts, not
+  precedents for new code.
+
 ## Change hygiene
 
 - Keep commits coherent: architecture/mechanical extraction, tests, and
@@ -171,6 +220,7 @@ diff.
   used.
 - Do not edit unrelated generated output or broad formatting while extracting
   a cluster.
-- Run whitespace/diff checks and all available tests before committing.
+- Run the changed-file PHP style guard, whitespace/diff checks, and all
+  available tests before committing.
 - If PHP tooling is unavailable, say so; do not claim PHP validation from
   Markdown or textual checks.
