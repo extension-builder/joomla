@@ -16,7 +16,7 @@ use ArrayAccess;
 use Countable;
 use IteratorAggregate;
 use JsonSerializable;
-use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use VDM\Joomla\Interfaces\Activeregistryinterface;
@@ -29,7 +29,7 @@ use VDM\Tests\Support\RegistryFixture;
  *
  * @since  6.1.6
  */
-#[CoversNamespace('VDM\Joomla\Interfaces')]
+#[CoversNothing]
 final class RegistryinterfaceTest extends TestCase
 {
 	/**

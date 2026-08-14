@@ -29,7 +29,6 @@ use VDM\Tests\Support\FilesystemTestCase;
  * @since  6.1.6
  */
 #[CoversClass(Agent::class)]
-#[CoversClass(AgentInterface::class)]
 #[UsesClass(Definition::class)]
 #[UsesClass(TypeDefinition::class)]
 final class AgentTest extends FilesystemTestCase

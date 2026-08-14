@@ -16,6 +16,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Abstraction\Database;
 use VDM\Joomla\Database\Load;
 use VDM\Joomla\Database\QuoteTrait;
@@ -31,7 +32,7 @@ use VDM\Tests\Support\JoomlaTestCase;
  */
 #[CoversClass(Load::class)]
 #[UsesClass(Database::class)]
-#[UsesClass(QuoteTrait::class)]
+#[UsesTrait(QuoteTrait::class)]
 #[UsesClass(ArrayHelper::class)]
 final class LoadTest extends JoomlaTestCase
 {

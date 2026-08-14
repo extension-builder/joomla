@@ -51,7 +51,6 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(SnippetRemoteConfig::class)]
 #[CoversClass(SnippetTypeRemoteConfig::class)]
 #[CoversClass(Table::class)]
-#[CoversClass(TableInterface::class)]
 #[UsesClass(ComponentConfig::class)]
 final class RepositoryConfigurationTest extends TestCase
 {

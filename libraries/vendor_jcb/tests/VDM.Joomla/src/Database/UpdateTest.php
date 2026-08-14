@@ -18,6 +18,7 @@ use Joomla\Registry\Registry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use ReflectionClass;
 use VDM\Joomla\Abstraction\Versioning;
 use VDM\Joomla\Database\DefaultTrait;
@@ -33,8 +34,8 @@ use VDM\Tests\Support\TestCase;
  */
 #[CoversClass(Update::class)]
 #[UsesClass(Versioning::class)]
-#[UsesClass(DefaultTrait::class)]
-#[UsesClass(QuoteTrait::class)]
+#[UsesTrait(DefaultTrait::class)]
+#[UsesTrait(QuoteTrait::class)]
 final class UpdateTest extends TestCase
 {
 	/**

@@ -274,9 +274,15 @@ baseline debt.
 
 An ownership record is valid only when its owner is under one of the six
 configured package suite roots, resolves through a static inheritance chain to
-PHPUnit's `TestCase`, exposes at least one public blocking test outside the
-`known-defect` group, and declares exact `CoversClass`/`CoversTrait` metadata or
-a containing `CoversNamespace`. Contract tests keep package suite roots,
+PHPUnit's `TestCase`, and exposes at least one public blocking test outside the
+`known-defect` group. Classes and enums require an exact `CoversClass` target or
+a containing `CoversNamespace`; traits require `CoversTrait` or a containing
+namespace. Interfaces have no executable lines for PHPUnit to target, so an
+interface in `contract` mode is owned by its exact ledger entry and structural
+assertions without targeting the interface itself. Its owner must still carry
+coverage metadata: use `CoversNothing` for a pure structural test, or retain the
+concrete class, trait, or namespace target for an aggregate behavioral owner.
+Never put `CoversClass` on an interface. Contract tests keep package suite roots,
 coverage source roots, and the three source exclusions synchronized with
 `phpunit.xml.dist`; a path that merely exists is not ownership evidence.
 
@@ -328,12 +334,23 @@ implementation in its assertion, or checks that a method exists.
   leaked static state.
 
 PHPUnit coverage metadata is mandatory. Put `#[CoversClass(Target::class)]` on
-behavioral tests and declare required collaborators with `#[UsesClass(...)]`.
-Use `#[CoversNothing]` only for a genuine architecture or infrastructure test
-that does not claim production coverage. Data providers use the PHPUnit 12
-`#[DataProvider('methodName')]` attribute; annotation metadata is not
-supported. Warnings, notices, and deprecations emitted by in-scope production
-code fail the suite; indirect third-party deprecations are ignored.
+behavioral class tests and `#[CoversTrait(Target::class)]` on trait tests. When
+important collaborators are declared, use the type-correct `#[UsesClass(...)]`
+or `#[UsesTrait(...)]` form. Pure structural interface contracts use
+`#[CoversNothing]`: interface ownership is enforced by `test-ownership.php` and
+`SourceInventory`, because PHPUnit cannot collect executable coverage from an
+interface declaration. An aggregate test that owns both an interface contract
+and concrete behavior keeps only its concrete `CoversClass`, `CoversTrait`, or
+valid namespace target.
+
+Coverage reports are telemetry, not the ownership authority. PHPUnit therefore
+does not enforce an exhaustive `Uses*` list for every incidental collaborator;
+the inventory validator remains the exact declaration-to-owner gate. This does
+not relax runtime diagnostics: invalid metadata targets and warnings, notices,
+deprecations, risky tests, and failures still fail their blocking jobs. Data
+providers use the PHPUnit 12 `#[DataProvider('methodName')]` attribute;
+annotation metadata is not supported. Indirect third-party deprecations are
+ignored.
 
 ### Compiler architecture renderer contracts
 

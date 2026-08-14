@@ -12,7 +12,7 @@
 namespace VDM\Joomla\Tests\Interfaces;
 
 
-use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use VDM\Joomla\Interfaces\Activeregistryinterface;
@@ -24,7 +24,7 @@ use VDM\Tests\Support\ActiveRegistryFixture;
  *
  * @since  6.1.6
  */
-#[CoversNamespace('VDM\Joomla\Interfaces')]
+#[CoversNothing]
 final class ActiveregistryinterfaceTest extends TestCase
 {
 	/**

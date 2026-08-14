@@ -14,7 +14,7 @@ namespace VDM\Joomla\Tests\Data\Power;
 
 use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use ReflectionClass;
 use VDM\Joomla\Componentbuilder\FactoryTrait;
 use VDM\Joomla\Componentbuilder\Package\Builder\Get;
@@ -31,7 +31,7 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.6
  */
 #[CoversClass(Item::class)]
-#[UsesClass(FactoryTrait::class)]
+#[UsesTrait(FactoryTrait::class)]
 final class ItemTest extends TestCase
 {
 	/**

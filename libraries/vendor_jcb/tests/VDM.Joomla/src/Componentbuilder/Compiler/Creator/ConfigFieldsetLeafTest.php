@@ -17,6 +17,7 @@ use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use ReflectionClass;
 use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\FunctionRegistry;
@@ -86,7 +87,7 @@ use VDM\Joomla\Utilities\StringHelper;
 #[UsesClass(ArrayHelper::class)]
 #[UsesClass(GetHelper::class)]
 #[UsesClass(StringHelper::class)]
-#[UsesClass(IsArray::class)]
+#[UsesTrait(IsArray::class)]
 final class ConfigFieldsetLeafTest extends CreatorTestCase
 {
 	/**

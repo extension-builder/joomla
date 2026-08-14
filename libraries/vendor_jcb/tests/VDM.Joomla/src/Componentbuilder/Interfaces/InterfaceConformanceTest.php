@@ -12,7 +12,7 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Interfaces;
 
 
-use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use VDM\Tests\Support\InterfaceContractManifest;
 use VDM\Tests\Support\InterfaceContractTestCase;
@@ -23,9 +23,7 @@ use VDM\Tests\Support\InterfaceContractTestCase;
  *
  * @since  1.0.0
  */
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Interfaces')]
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Power\Interfaces')]
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Search\Interfaces')]
+#[CoversNothing]
 final class InterfaceConformanceTest extends InterfaceContractTestCase
 {
 	/**

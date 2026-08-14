@@ -43,8 +43,6 @@ use VDM\Tests\Support\JoomlaTestCase;
 #[CoversClass(DatabaseLoad::class)]
 #[CoversClass(ModelInsert::class)]
 #[CoversClass(ModelLoad::class)]
-#[CoversClass(InsertInterface::class)]
-#[CoversClass(LoadInterface::class)]
 #[UsesClass(Config::class)]
 #[UsesClass(Table::class)]
 final class SearchBoundaryAndOrchestrationTest extends JoomlaTestCase

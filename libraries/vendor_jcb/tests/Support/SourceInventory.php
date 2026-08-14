@@ -681,14 +681,23 @@ final class SourceInventory
 				$declaration = $declarations[0]['name'] ?? null;
 				$kind = $declarations[0]['kind'] ?? null;
 
-				if (is_string($declaration) && is_string($kind)
-					&& !self::ownerCoversDeclaration($metadata, $declaration, $kind))
+				if (is_string($declaration) && is_string($kind))
 				{
-					$errors[] = sprintf(
-						'Test owner coverage metadata does not include %s: %s',
+					$hasCoverage = self::ownerCoversDeclaration(
+						$metadata,
 						$declaration,
-						$owner
+						$kind,
+						is_string($mode) ? $mode : ''
 					);
+
+					if (!$hasCoverage)
+					{
+						$errors[] = sprintf(
+							'Test owner coverage metadata does not include %s: %s',
+							$declaration,
+							$owner
+						);
+					}
 				}
 			}
 		}
@@ -707,6 +716,7 @@ final class SourceInventory
 	 *     classes: array<string, true>,
 	 *     traits: array<string, true>,
 	 *     namespaces: array<string, true>,
+	 *     has_coverage_metadata: bool,
 	 *     is_phpunit_test_case: bool,
 	 *     has_tests: bool,
 	 *     has_blocking_test: bool
@@ -727,6 +737,7 @@ final class SourceInventory
 				'classes' => [],
 				'traits' => [],
 				'namespaces' => [],
+				'has_coverage_metadata' => false,
 				'is_phpunit_test_case' => false,
 				'has_tests' => false,
 				'has_blocking_test' => false
@@ -781,6 +792,9 @@ final class SourceInventory
 			}
 		}
 
+		$hasCoverageMetadata = $classes !== [] || $traits !== [] || $namespaces !== []
+			|| preg_match('/#\[[^\]]*\bCoversNothing\b[^\]]*\]/', $source) === 1;
+
 		$classPosition = self::ownerClassPosition($source);
 		$classAttributes = $classPosition === null ? '' : substr($source, 0, $classPosition);
 		$classKnownDefect = self::hasKnownDefectGroup($classAttributes);
@@ -809,6 +823,7 @@ final class SourceInventory
 			'classes' => $classes,
 			'traits' => $traits,
 			'namespaces' => $namespaces,
+			'has_coverage_metadata' => $hasCoverageMetadata,
 			'is_phpunit_test_case' => self::ownerIsPhpUnitTestCase(
 				$path,
 				$testsRoot,
@@ -1147,22 +1162,33 @@ final class SourceInventory
 	 *     classes: array<string, true>,
 	 *     traits: array<string, true>,
 	 *     namespaces: array<string, true>,
+	 *     has_coverage_metadata: bool,
 	 *     is_phpunit_test_case: bool,
 	 *     has_tests: bool,
 	 *     has_blocking_test: bool
 	 * }               $metadata     Owner metadata.
 	 * @param   string  $declaration  Production declaration name.
 	 * @param   string  $kind         Production declaration kind.
+	 * @param   string  $mode         Ownership mode.
 	 *
-	 * @return  bool  True when exact or containing-namespace coverage is declared.
+	 * @return  bool  True when declaration-appropriate ownership metadata exists.
 	 * @since   1.0.0
 	 */
 	private static function ownerCoversDeclaration(
 		array $metadata,
 		string $declaration,
-		string $kind
+		string $kind,
+		string $mode
 	): bool
 	{
+		if ($kind === 'interface')
+		{
+			return $mode === 'contract'
+				&& $metadata['has_coverage_metadata']
+				&& !isset($metadata['classes'][$declaration])
+				&& !isset($metadata['traits'][$declaration]);
+		}
+
 		if ($kind === 'trait' && isset($metadata['traits'][$declaration]))
 		{
 			return true;

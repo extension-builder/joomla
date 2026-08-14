@@ -13,9 +13,8 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Interfaces;
 
 
 use Joomla\DI\ServiceProviderInterface;
-use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Tests\Support\RecordingServiceProviderContainer;
 use VDM\Tests\Support\TestCase;
 
@@ -25,28 +24,7 @@ use VDM\Tests\Support\TestCase;
  *
  * @since  1.0.0
  */
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Compiler\Interfaces')]
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Interfaces')]
-#[CoversNamespace('VDM\Joomla\Componentbuilder\Search\Interfaces')]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureComponent::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureController::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureDashboard::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModule::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitecturePlugin::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Component::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Creator::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Event::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Extension::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Field::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Header::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\History::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Joomlamodule::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Joomlaplugin::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Compiler\Service\Model::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Search\Service\Search::class)]
-#[UsesClass(\VDM\Joomla\Componentbuilder\Service\CoreRules::class)]
+#[CoversNothing]
 final class ProviderAliasContractTest extends TestCase
 {
 	/**
