@@ -16,6 +16,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Database\Delete;
 use VDM\Joomla\Database\QuoteTrait;
 use VDM\Joomla\Utilities\ArrayHelper;
@@ -30,7 +31,7 @@ use VDM\Tests\Support\JoomlaTestCase;
  */
 #[CoversClass(Delete::class)]
 #[UsesClass(ArrayHelper::class)]
-#[UsesClass(QuoteTrait::class)]
+#[UsesTrait(QuoteTrait::class)]
 #[UsesClass(Helper::class)]
 final class DeleteTest extends JoomlaTestCase
 {

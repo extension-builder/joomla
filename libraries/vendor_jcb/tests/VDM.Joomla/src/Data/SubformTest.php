@@ -14,6 +14,7 @@ namespace VDM\Joomla\Tests\Data;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Data\Guid;
 use VDM\Joomla\Data\Subform;
 use VDM\Joomla\Interfaces\Data\ItemsInterface;
@@ -27,7 +28,7 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.6
  */
 #[CoversClass(Subform::class)]
-#[UsesClass(Guid::class)]
+#[UsesTrait(Guid::class)]
 #[UsesClass(GuidHelper::class)]
 final class SubformTest extends TestCase
 {

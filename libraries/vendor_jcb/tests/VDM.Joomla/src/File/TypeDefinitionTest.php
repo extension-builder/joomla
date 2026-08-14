@@ -26,7 +26,6 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.6
  */
 #[CoversClass(TypeDefinition::class)]
-#[CoversClass(TypeDefinitionInterface::class)]
 final class TypeDefinitionTest extends TestCase
 {
 	/**

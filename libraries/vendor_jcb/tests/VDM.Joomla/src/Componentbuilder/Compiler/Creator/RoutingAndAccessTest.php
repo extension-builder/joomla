@@ -14,6 +14,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Creator;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Abstraction\Registry\Traits\IsArray;
@@ -58,7 +59,7 @@ use VDM\Joomla\Utilities\StringHelper;
 #[UsesClass(Line::class)]
 #[UsesClass(GetHelper::class)]
 #[UsesClass(StringHelper::class)]
-#[UsesClass(IsArray::class)]
+#[UsesTrait(IsArray::class)]
 final class RoutingAndAccessTest extends CreatorTestCase
 {
 	/**

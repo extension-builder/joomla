@@ -13,7 +13,6 @@ namespace VDM\Minify\Tests\Path\Interfaces;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use VDM\Minify\Path\Converter;
 use VDM\Minify\Path\Interfaces\ConverterInterface;
@@ -24,8 +23,7 @@ use VDM\Minify\Path\Interfaces\ConverterInterface;
  *
  * @since  6.1.6
  */
-#[CoversClass(ConverterInterface::class)]
-#[UsesClass(Converter::class)]
+#[CoversClass(Converter::class)]
 final class ConverterInterfaceTest extends TestCase
 {
 	/**

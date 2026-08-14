@@ -29,7 +29,6 @@ use VDM\Tests\Support\FilesystemTestCase;
  * @since  6.1.6
  */
 #[CoversClass(Definition::class)]
-#[CoversClass(DefinitionInterface::class)]
 #[UsesClass(MimeHelper::class)]
 final class DefinitionTest extends FilesystemTestCase
 {

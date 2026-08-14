@@ -14,7 +14,6 @@ namespace VDM\Joomla\Tests\Componentbuilder\Search;
 
 use Joomla\Input\Input;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Search\Abstraction\Engine;
 use VDM\Joomla\Componentbuilder\Search\Agent\Find;
 use VDM\Joomla\Componentbuilder\Search\Agent\Replace;
@@ -43,11 +42,6 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(Update::class)]
 #[CoversClass(Find::class)]
 #[CoversClass(Replace::class)]
-#[CoversClass(FindInterface::class)]
-#[CoversClass(ReplaceInterface::class)]
-#[CoversClass(SearchInterface::class)]
-#[CoversClass(SearchTypeInterface::class)]
-#[UsesClass(Input::class)]
 final class SearchEngineAndAgentsTest extends TestCase
 {
 	/**

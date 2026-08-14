@@ -195,6 +195,13 @@ method-existence checks are not ownership evidence. Mock external boundaries,
 not the subject; never call live GitHub, Gitea, OpenAI, production databases,
 or an installed Joomla application from the unit suite.
 
+Use type-correct PHPUnit coverage metadata: `CoversClass`/`UsesClass` for
+classes and `CoversTrait`/`UsesTrait` for traits. Interfaces are executableless
+contracts and must never be a `CoversClass` target. A pure structural interface
+owner uses `CoversNothing`; an aggregate owner retains its concrete coverage
+target. `SourceInventory` and `test-ownership.php`, not an exhaustive `Uses*`
+list in coverage telemetry, are the exact declaration-ownership gate.
+
 ## PHP code standard
 
 - Use one TAB per indentation level in first-party PHP source and tests. Spaces

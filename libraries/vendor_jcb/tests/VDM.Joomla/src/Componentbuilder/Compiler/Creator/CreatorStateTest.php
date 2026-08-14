@@ -17,6 +17,7 @@ use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\FunctionRegistry;
 use VDM\Joomla\Abstraction\Registry;
@@ -83,8 +84,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 #[UsesClass(TabCounter::class)]
 #[UsesClass(Counter::class)]
 #[UsesClass(Indent::class)]
-#[UsesClass(InArray::class)]
-#[UsesClass(PathCount::class)]
+#[UsesTrait(InArray::class)]
+#[UsesTrait(PathCount::class)]
 final class CreatorStateTest extends CreatorTestCase
 {
 	/**

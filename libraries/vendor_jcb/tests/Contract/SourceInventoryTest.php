@@ -219,6 +219,13 @@ final class SourceInventoryTest extends FilesystemTestCase
 	{
 		$document = new DOMDocument();
 		$this->assertTrue($document->load(dirname(__DIR__) . '/phpunit.xml.dist'));
+		$configuration = $document->documentElement;
+		$this->assertNotNull($configuration);
+		$this->assertSame('true', $configuration->getAttribute('requireCoverageMetadata'));
+		$this->assertSame('false', $configuration->getAttribute('beStrictAboutCoverageMetadata'));
+		$this->assertSame('true', $configuration->getAttribute('failOnWarning'));
+		$this->assertSame('true', $configuration->getAttribute('failOnPhpunitWarning'));
+		$this->assertSame('true', $configuration->getAttribute('failOnRisky'));
 		$xpath = new DOMXPath($document);
 		$suiteDirectories = [];
 
@@ -426,6 +433,165 @@ PHP
 			$this->assertContains(
 				'Test owner coverage metadata does not include VDM\Joomla\ExampleTrait: '
 				. 'VDM.Joomla/src/TraitOwnerTest.php',
+				$errors
+			);
+		}
+		finally
+		{
+			$this->removeFixtureTree($testsRoot);
+		}
+	}
+
+	/**
+	 * Allow contract interfaces to use aggregate metadata without executable targets.
+	 *
+	 * Interfaces contain no executable lines for PHPUnit to target. Their exact
+	 * ownership is therefore the contract ledger plus the structural assertions,
+	 * while classes and traits continue to require type-correct coverage targets.
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	public function testContractInterfaceCanUseExecutablelessCoverageMetadata(): void
+	{
+		$testsRoot = $this->createTemporaryTestsRoot();
+
+		try
+		{
+			$this->writeFixture(
+				$testsRoot,
+				'VDM.Joomla/src/StructuralOwnerTest.php',
+				<<<'PHP'
+<?php
+namespace Fixture\Tests;
+#[\PHPUnit\Framework\Attributes\CoversNothing]
+final class StructuralOwnerTest extends \PHPUnit\Framework\TestCase
+{
+	public function testSomething(): void
+	{
+	}
+}
+PHP
+			);
+			$this->writeFixture(
+				$testsRoot,
+				'VDM.Joomla/src/UnmarkedOwnerTest.php',
+				<<<'PHP'
+<?php
+namespace Fixture\Tests;
+final class UnmarkedOwnerTest extends \PHPUnit\Framework\TestCase
+{
+	public function testSomething(): void
+	{
+	}
+}
+PHP
+			);
+			$this->writeFixture(
+				$testsRoot,
+				'VDM.Joomla/src/InvalidInterfaceTargetOwnerTest.php',
+				<<<'PHP'
+<?php
+namespace Fixture\Tests;
+#[\PHPUnit\Framework\Attributes\CoversClass(\VDM\Joomla\InvalidTargetInterface::class)]
+final class InvalidInterfaceTargetOwnerTest extends \PHPUnit\Framework\TestCase
+{
+	public function testSomething(): void
+	{
+	}
+}
+PHP
+			);
+
+			$owner = 'VDM.Joomla/src/StructuralOwnerTest.php';
+			$unmarkedOwner = 'VDM.Joomla/src/UnmarkedOwnerTest.php';
+			$invalidTargetOwner = 'VDM.Joomla/src/InvalidInterfaceTargetOwnerTest.php';
+			$contractInterface = 'VDM.Joomla/src/ContractInterface.php';
+			$unmarkedInterface = 'VDM.Joomla/src/UnmarkedInterface.php';
+			$invalidTargetInterface = 'VDM.Joomla/src/InvalidTargetInterface.php';
+			$unitInterface = 'VDM.Joomla/src/UnitInterface.php';
+			$contractClass = 'VDM.Joomla/src/ContractClass.php';
+			$contractTrait = 'VDM.Joomla/src/ContractTrait.php';
+			$inventory = [
+				$contractInterface => [
+					'declarations' => [[
+						'kind' => 'interface',
+						'name' => 'VDM\Joomla\ContractInterface'
+					]]
+				],
+				$unmarkedInterface => [
+					'declarations' => [[
+						'kind' => 'interface',
+						'name' => 'VDM\Joomla\UnmarkedInterface'
+					]]
+				],
+				$invalidTargetInterface => [
+					'declarations' => [[
+						'kind' => 'interface',
+						'name' => 'VDM\Joomla\InvalidTargetInterface'
+					]]
+				],
+				$unitInterface => [
+					'declarations' => [[
+						'kind' => 'interface',
+						'name' => 'VDM\Joomla\UnitInterface'
+					]]
+				],
+				$contractClass => [
+					'declarations' => [[
+						'kind' => 'class',
+						'name' => 'VDM\Joomla\ContractClass'
+					]]
+				],
+				$contractTrait => [
+					'declarations' => [[
+						'kind' => 'trait',
+						'name' => 'VDM\Joomla\ContractTrait'
+					]]
+				]
+			];
+			$ownership = [
+				$contractInterface => ['mode' => 'contract', 'owner' => $owner],
+				$unmarkedInterface => ['mode' => 'contract', 'owner' => $unmarkedOwner],
+				$invalidTargetInterface => [
+					'mode' => 'contract',
+					'owner' => $invalidTargetOwner
+				],
+				$unitInterface => ['mode' => 'unit', 'owner' => $owner],
+				$contractClass => ['mode' => 'contract', 'owner' => $owner],
+				$contractTrait => ['mode' => 'contract', 'owner' => $owner]
+			];
+
+			$errors = SourceInventory::validate($inventory, [], $ownership, $testsRoot);
+
+			$this->assertNotContains(
+				'Test owner coverage metadata does not include VDM\Joomla\ContractInterface: '
+				. $owner,
+				$errors
+			);
+			$this->assertContains(
+				'Test owner coverage metadata does not include VDM\Joomla\UnmarkedInterface: '
+				. $unmarkedOwner,
+				$errors
+			);
+			$this->assertContains(
+				'Test owner coverage metadata does not include VDM\Joomla\InvalidTargetInterface: '
+				. $invalidTargetOwner,
+				$errors
+			);
+			$this->assertContains(
+				'Test owner coverage metadata does not include VDM\Joomla\UnitInterface: '
+				. $owner,
+				$errors
+			);
+			$this->assertContains(
+				'Test owner coverage metadata does not include VDM\Joomla\ContractClass: '
+				. $owner,
+				$errors
+			);
+			$this->assertContains(
+				'Test owner coverage metadata does not include VDM\Joomla\ContractTrait: '
+				. $owner,
 				$errors
 			);
 		}
