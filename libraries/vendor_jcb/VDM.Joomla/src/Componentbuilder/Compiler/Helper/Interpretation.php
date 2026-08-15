@@ -312,144 +312,12 @@ class Interpretation extends Fields
 	 */
 	public function setVersionController()
 	{
-		if (CFactory::_('Component')->isArray('version_update')
-			|| CFactory::_('Compiler.Builder.Update.Mysql')->isActive())
-		{
-			$updateXML = [];
-			// add the update server
-			if (CFactory::_('Component')->get('update_server_target', 3) != 3)
-			{
-				$updateXML[] = '<?xml version="1.0" encoding="utf-8"?>';
-				$updateXML[] = '<updates>';
-			}
-
-			// add the dynamic sql switch
-			$addDynamicSQL = true;
-			$addActive     = true;
-			if (CFactory::_('Component')->isArray('version_update'))
-			{
-				$updates = CFactory::_('Component')->get('version_update');
-				foreach ($updates as $nr => &$update)
-				{
-					$this->setUpdateXMLSQL($update, $updateXML, $addDynamicSQL);
-
-					if ($update['version']
-						== CFactory::_('Component')->get('component_version'))
-					{
-						$addActive = false;
-					}
-				}
-				CFactory::_('Component')->set('version_update', $updates);
-			}
-			// add the dynamic sql if not already added
-			if ($addDynamicSQL
-				&& CFactory::_('Compiler.Builder.Update.Mysql')->isActive())
-			{
-				// add the dynamic sql
-				$this->setDynamicUpdateXMLSQL($updateXML);
-			}
-			// add the new active version if needed
-			if ($addActive && CFactory::_('Compiler.Builder.Update.Mysql')->isActive())
-			{
-				// add the dynamic sql
-				$this->setDynamicUpdateXMLSQL($updateXML, $addActive);
-			}
-			// add the update server file
-			if (CFactory::_('Component')->get('update_server_target', 3) != 3)
-			{
-				$updateXML[] = '</updates>';
-				// UPDATE_SERVER_XML
-				$name = CFactory::_('Component')->get('update_server_file_name');
-				$target = array('admin' => $name);
-				CFactory::_('Utilities.Structure')->build($target, 'update_server');
-				CFactory::_('Compiler.Builder.Content.Multi')->set($name . '|UPDATE_SERVER_XML', implode(PHP_EOL, $updateXML));
-			}
-		}
-
-		// add the update server link to component XML
-		if (CFactory::_('Component')->get('add_update_server')
-			&& CFactory::_('Component')->isString('update_server_url'))
-		{
-			// UPDATESERVER
-			$updateServer   = [];
-			$updateServer[] = PHP_EOL . Indent::_(1) . "<updateservers>";
-			$updateServer[] = Indent::_(2)
-				. '<server type="extension" enabled="1" element="com_'
-				. CFactory::_('Config')->component_code_name . '" name="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component_name') . '">' . CFactory::_('Component')->get('update_server_url')
-				. '</server>';
-			$updateServer[] = Indent::_(1) . '</updateservers>';
-			// return the array to string
-			$updateServer = implode(PHP_EOL, $updateServer);
-			// add update server details to component XML file
-			CFactory::_('Compiler.Builder.Content.One')->set('UPDATESERVER', $updateServer);
-		}
-		else
-		{
-			// add update server details to component XML file
-			CFactory::_('Compiler.Builder.Content.One')->set('UPDATESERVER', '');
-		}
-
-		// add the changelog server to component XML
-		if (CFactory::_('Component')->get('add_changelog_server')
-			&& CFactory::_('Component')->isString('changelog_server_url'))
-		{
-			// CHANGELOGSERVER
-			$changelogServer = PHP_EOL . Indent::_(1) . "<changelogurl>" . CFactory::_('Component')->get('changelog_server_url')
-				. "</changelogurl>";
-			// add changelog server to component XML file
-			CFactory::_('Compiler.Builder.Content.One')->set('CHANGELOGSERVER', $changelogServer);
-
-			// CHANGELOG_SERVER_XML
-			$name = CFactory::_('Component')->get('changelog_server_file_name');
-			$target = array('admin' => $name);
-			CFactory::_('Utilities.Structure')->build($target, 'changelog_server');
-			CFactory::_('Compiler.Builder.Content.Multi')->set($name . '|CHANGELOG_SERVER_XML',
-				CFactory::_('Component')->get('changelogxml', '<changelogs></changelogs>')
-			);
-		}
-		else
-		{
-			// add update server details to component XML file
-			CFactory::_('Compiler.Builder.Content.One')->set('CHANGELOGSERVER', '');
-		}
-
-		// ensure to update Component version data
-		if (CFactory::_('Compiler.Builder.Update.Mysql')->isActive())
-		{
-			$buket = [];
-			$nr    = 0;
-			foreach (CFactory::_('Component')->get('version_update') as $values)
-			{
-				$buket['version_update' . $nr] = $values;
-				$nr++;
-			}
-			// update the joomla component table
-			$newJ       = [];
-			$newJ['id'] = (int) CFactory::_('Config')->component_id;
-			$newJ['component_version']
-				= CFactory::_('Component')->get('component_version');
-			// update the component with the new dynamic SQL
-			CFactory::_('Data.Item')->table('joomla_component')->set((object) $newJ, 'id'); // <-- to insure the history is also updated
-			// reset the watch here
-			CFactory::_('History')->get('joomla_component', CFactory::_('Config')->component_id);
-
-			// update the component update table
-			$newU = [];
-			if (CFactory::_('Component')->get('version_update_id', 0)  > 0)
-			{
-				$newU['id'] = (int) CFactory::_('Component')->get('version_update_id', 0);
-				$key = 'id';
-			}
-			else
-			{
-				$newU['joomla_component'] = (string) CFactory::_('Config')->component_guid;
-				$key = 'guid';
-			}
-			$newU['version_update'] = $buket;
-			// update the component with the new dynamic SQL
-			CFactory::_('Data.Item')->table('component_updates')->set((object) $newU, $key); // <-- to insure the history is also updated
-		}
+		$versionUpdate = CFactory::_('Extension.VersionUpdate');
+		$versionUpdate->setLastUpdateUrl(
+			is_string($this->lastupdateURL) ? $this->lastupdateURL : null
+		);
+		$versionUpdate->set();
+		$this->lastupdateURL = $versionUpdate->getLastUpdateUrl();
 	}
 
 	/**
@@ -458,65 +326,14 @@ class Interpretation extends Fields
 	 * @param   array  $updateXML
 	 * @param   bool   $current_version
 	 */
-	public function setDynamicUpdateXMLSQL(&$updateXML, $current_version = false
-	)
+	public function setDynamicUpdateXMLSQL(&$updateXML, $current_version = false)
 	{
-		// start building the update
-		$update_ = [];
-		if ($current_version)
-		{
-			// setup new version
-			$update_['version'] = CFactory::_('Component')->get('component_version');
-			// setup SQL
-			$update_['mysql'] = '';
-			// setup URL
-			$update_['url'] = 'http://domain.com/demo.zip';
-		}
-		else
-		{
-			// setup new version
-			$update_['version'] = CFactory::_('Component')->get('old_component_version');
-			// setup SQL
-			$update_['mysql'] = trim(
-				implode(PHP_EOL . PHP_EOL, CFactory::_('Compiler.Builder.Update.Mysql')->allActive())
-			);
-			// setup URL
-			if (isset($this->lastupdateURL))
-			{
-				$paceholders    = array(
-					CFactory::_('Component')->get('component_version') => CFactory::_('Component')->get('old_component_version'),
-					str_replace(
-						'.', '-', (string) CFactory::_('Component')->get('component_version')
-					)                                       => str_replace(
-						'.', '-', (string) CFactory::_('Component')->get('old_component_version')
-					),
-					str_replace(
-						'.', '_', (string) CFactory::_('Component')->get('component_version')
-					)                                       => str_replace(
-						'.', '_', (string) CFactory::_('Component')->get('old_component_version')
-					),
-					str_replace(
-						'.', '', (string) CFactory::_('Component')->get('component_version')
-					)                                       => str_replace(
-						'.', '', (string) CFactory::_('Component')->get('old_component_version')
-					)
-				);
-				$update_['url'] = CFactory::_('Placeholder')->update(
-					$this->lastupdateURL, $paceholders
-				);
-			}
-			else
-			{
-				// setup URL
-				$update_['url'] = 'http://domain.com/demo.zip';
-			}
-		}
-		// stop it from being added double
-		$addDynamicSQL = false;
-		// add dynamic SQL
-		$this->setUpdateXMLSQL($update_, $updateXML, $addDynamicSQL);
-
-		CFactory::_('Component')->appendArray('version_update', $update_);
+		$versionUpdate = CFactory::_('Extension.VersionUpdate');
+		$versionUpdate->setLastUpdateUrl(
+			is_string($this->lastupdateURL) ? $this->lastupdateURL : null
+		);
+		$versionUpdate->setDynamicUpdateXmlSql($updateXML, (bool) $current_version);
+		$this->lastupdateURL = $versionUpdate->getLastUpdateUrl();
 	}
 
 	/**
@@ -528,117 +345,12 @@ class Interpretation extends Fields
 	 */
 	public function setUpdateXMLSQL(&$update, &$updateXML, &$addDynamicSQL)
 	{
-		// ensure version naming is correct
-		$update['version'] = preg_replace('/^v/i', '', (string) $update['version']);
-		// setup SQL
-		if (StringHelper::check($update['mysql']))
-		{
-			$update['mysql'] = CFactory::_('Placeholder')->update_(
-				$update['mysql']
-			);
-		}
-		// add dynamic SQL
-		$force = false;
-		if ($addDynamicSQL
-			&& CFactory::_('Compiler.Builder.Update.Mysql')->isActive()
-			&& CFactory::_('Component')->get('old_component_version') == $update['version'])
-		{
-			$searchMySQL = preg_replace('/\s+/', '', (string) $update['mysql']);
-			// add the updates to the SQL only if not found
-			foreach (CFactory::_('Compiler.Builder.Update.Mysql')->allActive() as $search => $query)
-			{
-				if (strpos($searchMySQL, $search) === false)
-				{
-					$update['mysql'] .= PHP_EOL . PHP_EOL . $query;
-				}
-			}
-			// make sure no unneeded white space is added
-			$update['mysql'] = trim((string) $update['mysql']);
-			// update has been added
-			$addDynamicSQL = false;
-		}
-		// setup import files
-		if ($update['version'] != CFactory::_('Component')->get('component_version'))
-		{
-			$name   = StringHelper::safe($update['version']);
-			$target = ['admin' => $name];
-			$_name = preg_replace('/[\.]+/', '_', (string) $update['version']);
-			CFactory::_('Utilities.Structure')->build($target, 'sql_update', $_name);
-			CFactory::_('Compiler.Builder.Content.Multi')->set($name . '_' . $_name . '|UPDATE_VERSION_MYSQL',
-				$update['mysql']
-			);
-		}
-		elseif (isset($update['url'])
-			&& StringHelper::check(
-				$update['url']
-			))
-		{
-			$this->lastupdateURL = $update['url'];
-		}
-		// add the update server
-		if (CFactory::_('Component')->get('add_update_server', 3) != 3)
-		{
-			// we set the defaults
-			$u_element = 'com_' . CFactory::_('Config')->component_code_name;
-			$u_server_type = 'component';
-			$u_state = 'stable';
-			$u_target_version = '5.*';
-			$u_client = null;
-			// check if we have advance options set
-			if (isset($update['update_server_adv']) && $update['update_server_adv'])
-			{
-				$u_element = (isset($update['update_element']) && strlen((string) $update['update_element']) > 0)
-					? $update['update_element'] : $u_element;
-				$u_server_type = (isset($update['update_server_type']) && strlen((string) $update['update_server_type']) > 0)
-					? $update['update_server_type'] : $u_server_type;
-				$u_state = (isset($update['update_state']) && strlen((string) $update['update_state']) > 0)
-					? $update['update_state'] : $u_state;
-				$u_target_version = (isset($update['update_target_version']) && strlen((string) $update['update_target_version']) > 0)
-					? $update['update_target_version'] : $u_target_version;
-				$u_client = (isset($update['update_client']) && strlen((string) $update['update_client']) > 0)
-					? $update['update_client'] : $u_client;
-			}
-			// build update xml
-			$updateXML[] = Indent::_(1) . "<update>";
-			$updateXML[] = Indent::_(2) . "<name>"
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component_name') . "</name>";
-			$updateXML[] = Indent::_(2) . "<description>"
-				. CFactory::_('Compiler.Builder.Content.One')->get('SHORT_DESCRIPTION') . "</description>";
-			$updateXML[] = Indent::_(2) . "<element>$u_element</element>";
-			$updateXML[] = Indent::_(2) . "<type>$u_server_type</type>";
-			// check if we should add the target client value
-			if ($u_client)
-			{
-				$updateXML[] = Indent::_(2) . "<client>$u_client</client>";
-			}
-			$updateXML[] = Indent::_(2) . "<version>" . $update['version']
-				. "</version>";
-			$updateXML[] = Indent::_(2) . '<infourl title="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component_name') . '!">' . CFactory::_('Compiler.Builder.Content.One')->get('AUTHORWEBSITE') . '</infourl>';
-			$updateXML[] = Indent::_(2) . "<downloads>";
-			if (!isset($update['url'])
-				|| !StringHelper::check(
-					$update['url']
-				))
-			{
-				$update['url'] = 'http://domain.com/demo.zip';
-			}
-			$updateXML[] = Indent::_(3)
-				. '<downloadurl type="full" format="zip">' . $update['url']
-				. '</downloadurl>';
-			$updateXML[] = Indent::_(2) . "</downloads>";
-			$updateXML[] = Indent::_(2) . "<tags>";
-			$updateXML[] = Indent::_(3) . "<tag>$u_state</tag>";
-			$updateXML[] = Indent::_(2) . "</tags>";
-			$updateXML[] = Indent::_(2) . "<maintainer>"
-				. CFactory::_('Compiler.Builder.Content.One')->get('AUTHOR')
-				. "</maintainer>";
-			$updateXML[] = Indent::_(2) . "<maintainerurl>"
-				. CFactory::_('Compiler.Builder.Content.One')->get('AUTHORWEBSITE') . "</maintainerurl>";
-			$updateXML[] = Indent::_(2)
-				. '<targetplatform name="joomla" version="' . $u_target_version . '"/>';
-			$updateXML[] = Indent::_(1) . "</update>";
-		}
+		$versionUpdate = CFactory::_('Extension.VersionUpdate');
+		$versionUpdate->setLastUpdateUrl(
+			is_string($this->lastupdateURL) ? $this->lastupdateURL : null
+		);
+		$versionUpdate->setUpdateXmlSql($update, $updateXML, $addDynamicSQL);
+		$this->lastupdateURL = $versionUpdate->getLastUpdateUrl();
 	}
 
 	public function setHelperExelMethods()
