@@ -288,11 +288,11 @@ callers.
 
 ### Architecture target families
 
-The 24 target-selected Architecture families are:
+The 25 target-selected Architecture families are:
 
 | Objective | Stable families |
 | --- | --- |
-| Component helper | `Architecture.ComHelperClass.CreateUser` |
+| Component helper | `Architecture.ComHelperClass.CreateUser`, `Architecture.ComHelperClass.ExcelMethods` |
 | Model | `AllowEdit`, `CanDelete`, `CanEditState`, `CheckInNow` |
 | Admin single/list view | single `AddToolBar`, single `AddModalToolBar`, plural `AddToolBar` |
 | Site/custom views | site `AddToolBar`, custom single `AddToolBar`, custom plural `AddToolBar` |
@@ -302,8 +302,11 @@ The 24 target-selected Architecture families are:
 | Plugin | `Extension`, `Provider`, `MainXML` |
 
 Each family has J3/J4/J5/J6 concrete services. Singular and plural
-CustomAdminView toolbar services share one custom-admin interface, so 24
-families correspond to 23 effective Architecture contracts.
+CustomAdminView toolbar services share one custom-admin interface, so 25
+families correspond to 24 effective Architecture contracts. The
+`ExcelMethods` family extracted from the legacy helper keeps its shared
+mechanics in `Architecture/ComHelperClass/ExcelMethods` and uses thin
+target variants for the user-lookup difference.
 
 ## Interfaces and aliases are the stable seam
 

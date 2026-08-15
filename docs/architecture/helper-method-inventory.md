@@ -215,6 +215,12 @@ one-class-per-method design.
 
 Line numbers are navigation hints for this baseline, not stable identifiers.
 
+Since this baseline, the license-lock, WHMCS, crypt-key, version-update,
+excel-helper, and UIkit-helper methods listed in the
+[extraction progress](helper-refactoring.md#extraction-progress) table have
+been reduced to delegating shims; their behavior now lives in injected
+compiler services.
+
 ## Infusion call root
 
 `buildFileContent()` spans roughly lines 66–2,282 and contains 610 factory
