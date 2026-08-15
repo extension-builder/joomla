@@ -1960,6 +1960,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Extension/MoveFieldsRulesTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Extension/VersionUpdate.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Extension/VersionUpdateTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Factory.php' => [
 		'mode' => 'provider',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/FactoryTest.php'
