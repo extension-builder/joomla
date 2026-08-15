@@ -19,6 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\ComHelperClass\C
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\ComHelperClass\CreateUser as J5CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\ComHelperClass\CreateUser as J4CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\CreateUser as J3CreateUser;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\ExcelMethodsInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\ComHelperClass\ExcelMethods as J6ExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\ComHelperClass\ExcelMethods as J5ExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\ComHelperClass\ExcelMethods as J4ExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\ExcelMethods as J3ExcelMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
@@ -76,6 +81,21 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(CryptKey::class, 'Architecture.ComHelperClass.CryptKey')
 			->share('Architecture.ComHelperClass.CryptKey', [$this, 'getCryptKey'], true);
+
+		$container->alias(ExcelMethodsInterface::class, 'Architecture.ComHelperClass.ExcelMethods')
+			->share('Architecture.ComHelperClass.ExcelMethods', [$this, 'getExcelMethods'], true);
+
+		$container->alias(J6ExcelMethods::class, 'Architecture.ComHelperClass.J6.ExcelMethods')
+			->share('Architecture.ComHelperClass.J6.ExcelMethods', [$this, 'getJ6ExcelMethods'], true);
+
+		$container->alias(J5ExcelMethods::class, 'Architecture.ComHelperClass.J5.ExcelMethods')
+			->share('Architecture.ComHelperClass.J5.ExcelMethods', [$this, 'getJ5ExcelMethods'], true);
+
+		$container->alias(J4ExcelMethods::class, 'Architecture.ComHelperClass.J4.ExcelMethods')
+			->share('Architecture.ComHelperClass.J4.ExcelMethods', [$this, 'getJ4ExcelMethods'], true);
+
+		$container->alias(J3ExcelMethods::class, 'Architecture.ComHelperClass.J3.ExcelMethods')
+			->share('Architecture.ComHelperClass.J3.ExcelMethods', [$this, 'getJ3ExcelMethods'], true);
 	}
 
 	/**
@@ -217,6 +237,88 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Utilities.Structure'),
 			$container->get('Architecture.Component.Whmcs')
+		);
+	}
+
+	/**
+	 * Get The ExcelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ExcelMethodsInterface
+	 * @since   6.1.7
+	 */
+	public function getExcelMethods(Container $container): ExcelMethodsInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.ComHelperClass.J' . $this->targetVersion . '.ExcelMethods');
+	}
+
+	/**
+	 * Get The ExcelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ExcelMethods
+	 * @since   6.1.7
+	 */
+	public function getJ6ExcelMethods(Container $container): J6ExcelMethods
+	{
+		return new J6ExcelMethods(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get The ExcelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5ExcelMethods
+	 * @since   6.1.7
+	 */
+	public function getJ5ExcelMethods(Container $container): J5ExcelMethods
+	{
+		return new J5ExcelMethods(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get The ExcelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4ExcelMethods
+	 * @since   6.1.7
+	 */
+	public function getJ4ExcelMethods(Container $container): J4ExcelMethods
+	{
+		return new J4ExcelMethods(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get The ExcelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ExcelMethods
+	 * @since   6.1.7
+	 */
+	public function getJ3ExcelMethods(Container $container): J3ExcelMethods
+	{
+		return new J3ExcelMethods(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One')
 		);
 	}
 }
