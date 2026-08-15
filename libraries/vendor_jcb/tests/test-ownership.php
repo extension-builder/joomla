@@ -764,6 +764,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SecurityRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ComHelperClass/ExcelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/ImageType.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SharedArchitectureRendererTest.php'
@@ -799,6 +803,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/ComHelperClass/ExcelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
@@ -896,6 +904,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/ComHelperClass/ExcelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -992,6 +1004,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/ComHelperClass/ExcelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -1087,6 +1103,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/ComHelperClass/ExcelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
@@ -2081,6 +2101,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/CreateUserInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/ExcelMethodsInterface.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],

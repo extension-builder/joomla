@@ -59,6 +59,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => 'a74a8c6eb4e341d7a89a8eff232802b218dbe912542393f4aa2d1e30cfdfa00b',
 			'signature_hash' => '3e87c9aaba86e07ad1451a818121751705b41c0d21eeb61eda6afa7ac1097389'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\ExcelMethodsInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/ExcelMethodsInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => '979ef488f5cb94020dd059b31d09963bbe0915e928ff8747a4591e298160ea7f',
+			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AllowAddInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AllowAddInterface.php',
 			'implementations' => 4,
