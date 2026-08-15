@@ -1,5 +1,10 @@
 # System map
 
+For the enduring purpose behind these boundaries, start with the
+[project identity](project-identity.md). For repository ownership and mutation
+permission, the [change-boundary policy](../development/change-boundaries.md)
+is authoritative.
+
 ## What JCB is
 
 JCB is a compiler-driven extension engineering system. Structured definitions
@@ -32,6 +37,11 @@ repository adapters, but they have different outputs and lifecycles:
 
 The code under `libraries/vendor_jcb` is split by responsibility rather than
 placed in one monolithic namespace.
+
+This section describes only the JCB-owned `libraries/vendor_jcb/**` tree. The
+sibling `libraries/phpseclib3/**` and `libraries/phpspreadsheet/**` trees are
+externally maintained dependencies and must not be modified in this
+repository.
 
 | Layer | Representative location | Role |
 | --- | --- | --- |
