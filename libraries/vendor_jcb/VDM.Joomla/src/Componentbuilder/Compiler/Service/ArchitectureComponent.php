@@ -28,6 +28,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\CryptKey;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UikitMethods;
 
 
 /**
@@ -81,6 +82,9 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(CryptKey::class, 'Architecture.ComHelperClass.CryptKey')
 			->share('Architecture.ComHelperClass.CryptKey', [$this, 'getCryptKey'], true);
+
+		$container->alias(UikitMethods::class, 'Architecture.ComHelperClass.UikitMethods')
+			->share('Architecture.ComHelperClass.UikitMethods', [$this, 'getUikitMethods'], true);
 
 		$container->alias(ExcelMethodsInterface::class, 'Architecture.ComHelperClass.ExcelMethods')
 			->share('Architecture.ComHelperClass.ExcelMethods', [$this, 'getExcelMethods'], true);
@@ -237,6 +241,21 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Utilities.Structure'),
 			$container->get('Architecture.Component.Whmcs')
+		);
+	}
+
+	/**
+	 * Get The UikitMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UikitMethods
+	 * @since   6.1.7
+	 */
+	public function getUikitMethods(Container $container): UikitMethods
+	{
+		return new UikitMethods(
+			$container->get('Config')
 		);
 	}
 

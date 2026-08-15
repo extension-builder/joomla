@@ -768,6 +768,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ComHelperClass/UikitMethods.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ComHelperClass/UikitMethodsTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/ImageType.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SharedArchitectureRendererTest.php'
