@@ -8,17 +8,55 @@ contracts matter as much as individual return values.
 These instructions apply repository-wide unless a more specific `AGENTS.md`
 exists below the files being changed.
 
+## Non-negotiable repository ownership boundaries
+
+Repository access is not permission to edit every path. Apply these boundaries
+before inspecting a proposed implementation or staging a change:
+
+These boundaries are repository-owner constraints. A nested `AGENTS.md` may
+narrow them for its subtree, but may not authorize a path prohibited or
+protected here.
+
+| Path | Default rule | Exception and required evidence |
+| --- | --- | --- |
+| `libraries/vendor_jcb/**` | This is the only JCB-owned library tree in this repository. Library implementation, refactoring, and test work belongs here. | Follow the architecture, PHP, and testing contracts below. |
+| `libraries/phpseclib3/**` | **Never edit.** This is an externally maintained dependency. | No task in this repository authorizes a direct change. Report the upstream requirement instead. |
+| `libraries/phpspreadsheet/**` | **Never edit.** This is an externally maintained dependency. | No task in this repository authorizes a direct change. Report the upstream requirement instead. |
+| `admin/**` | **Do not edit without explicit, task-specific permission.** This stable administrator application is generated from JCB's own definitions. Suggestions and analysis do not grant mutation permission. | Every authorized change must include a same-change record under `docs/graphical-user-interface-changes/`. |
+| `media/js/**` | **Do not edit without explicit, task-specific permission.** This is the only JCB-maintained subtree under `media`. | Every authorized change must include the same GUI change record required for `admin/**`. |
+| every other path under `media/**` | **Never edit.** These assets are maintained elsewhere or supplied through libraries. | No direct repository edit is permitted. |
+
+“Explicit permission” means that the current task specifically authorizes a
+change inside the protected path. A general request to refactor JCB, improve a
+feature, fix tests, update documentation, or make the repository consistent is
+not permission. Never add even an instruction file inside a prohibited or
+unapproved protected tree; keep governance in this root file and `docs/`.
+
+For an authorized `admin/**` or `media/js/**` change, the implementation and
+its change record are one indivisible deliverable. The record must identify
+every created, modified, renamed, or deleted path; the affected symbols or
+locations; what changed; why; user-visible or behavioral impact; verification;
+and the status of reconciling the change back into JCB's authoritative
+generation/maintenance system. Missing documentation makes the change
+incomplete and unmergeable.
+
+Read the complete [repository change-boundary policy](docs/development/change-boundaries.md)
+and use the [GUI change-record template](docs/graphical-user-interface-changes/change-record-template.md)
+before proposing work in a protected area.
+
 ## Read before changing compiler or Package code
 
 Read the architecture guide in this order:
 
-1. [`docs/architecture/system-map.md`](docs/architecture/system-map.md)
-2. [`docs/architecture/compiler.md`](docs/architecture/compiler.md)
-3. [`docs/architecture/package-distribution.md`](docs/architecture/package-distribution.md)
-4. [`docs/architecture/review-findings.md`](docs/architecture/review-findings.md)
-5. [`docs/architecture/helper-refactoring.md`](docs/architecture/helper-refactoring.md)
-6. [`docs/architecture/helper-method-inventory.md`](docs/architecture/helper-method-inventory.md)
-7. [`docs/architecture/testing-strategy.md`](docs/architecture/testing-strategy.md)
+1. [`docs/architecture/project-identity.md`](docs/architecture/project-identity.md)
+2. [`docs/architecture/system-map.md`](docs/architecture/system-map.md)
+3. [`docs/architecture/compiler-execution-flow.md`](docs/architecture/compiler-execution-flow.md)
+4. [`docs/architecture/compiler.md`](docs/architecture/compiler.md)
+5. [`docs/architecture/package-distribution.md`](docs/architecture/package-distribution.md)
+6. [`docs/architecture/review-findings.md`](docs/architecture/review-findings.md)
+7. [`docs/architecture/helper-refactoring.md`](docs/architecture/helper-refactoring.md)
+8. [`docs/architecture/helper-method-inventory.md`](docs/architecture/helper-method-inventory.md)
+9. [`docs/architecture/testing-strategy.md`](docs/architecture/testing-strategy.md)
 
 Use [`docs/architecture/source-inventory.md`](docs/architecture/source-inventory.md)
 for orientation, then verify every assertion against the current source. The
@@ -41,6 +79,14 @@ read both development standards:
 - Keep mechanical extraction separate from intentional behavior change.
 - JCB builds itself. A successful local method test is not proof that the
   resulting extension tree is equivalent.
+- Preserve the construction boundary: resolving the shared `Compiler` service
+  starts the timer, runs `Initializer::init()`, and then invokes the legacy
+  `Infusion` constructor. Substantial data loading and content construction
+  therefore happen before `Compiler::run()`.
+- Preserve the ordered execution stack, including Infusion's deferred
+  `secondRunAdmin` work and its second configuration-fieldset pass. Moving a
+  call to a seemingly equivalent later phase can change which state exists and
+  is an architectural behavior change.
 
 ### Use the correct Joomla-version axis
 
