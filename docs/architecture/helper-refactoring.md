@@ -122,6 +122,24 @@ lines at this documentation baseline. The historical helper methods carried
 explicit replacement annotations; that is the precedent for temporary
 forwarders in the next extraction phase.
 
+### Extraction progress
+
+The following Interpretation methods have been extracted into injected
+services and remain in the helper only as delegating shims:
+
+| Legacy methods | Replacement service |
+| --- | --- |
+| `setLockLicense`, `setLockLicensePer`, `checkStatmentLicenseLocked`, `setBoolLicenseLock`, `setHelperLicenseLock`, `setInitLicenseLock` | `Architecture.Component.LicenseLock` |
+| `setWHMCSCryption` | `Architecture.Component.Whmcs` |
+| `setGetCryptKey` | `Architecture.ComHelperClass.CryptKey` |
+| `setVersionController`, `setDynamicUpdateXMLSQL`, `setUpdateXMLSQL` | `Extension.VersionUpdate` (the shims synchronize the legacy public `$lastupdateURL` property with the service state in both directions) |
+| `setHelperExelMethods` | `Architecture.ComHelperClass.ExcelMethods` (J3/J4/J5/J6 target family; the lost Joomla 4+ user assignment is preserved and recorded in the known-defect ledger) |
+| `setUikitHelperMethods` | `Architecture.ComHelperClass.UikitMethods` |
+
+Each extraction ships with unit or family-contract tests, provider catalog
+and interface-conformance fixture updates, and test-ownership entries. Use
+these moves as the template for the remaining clusters.
+
 ## Interpretation domain map
 
 The following ranges are orientation clusters, not automatic class boundaries.
