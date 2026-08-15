@@ -35,7 +35,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Extension\Files\Power;
 
 /**
  * Extension Script Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class Extension implements ServiceProviderInterface
@@ -410,4 +410,3 @@ class Extension implements ServiceProviderInterface
 		);
 	}
 }
-
