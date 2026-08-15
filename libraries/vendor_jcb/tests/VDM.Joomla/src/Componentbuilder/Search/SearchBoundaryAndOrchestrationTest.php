@@ -13,6 +13,8 @@ namespace VDM\Joomla\Tests\Componentbuilder\Search;
 
 
 use Joomla\Input\Input;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -29,7 +31,9 @@ use VDM\Joomla\Componentbuilder\Search\Interfaces\LoadInterface;
 use VDM\Joomla\Componentbuilder\Search\Model\Insert as ModelInsert;
 use VDM\Joomla\Componentbuilder\Search\Model\Load as ModelLoad;
 use VDM\Joomla\Componentbuilder\Table;
+use VDM\Joomla\Database\Load as CoreDatabaseLoad;
 use VDM\Joomla\Interfaces\TableInterface;
+use VDM\Joomla\Utilities\Component\Helper as ComponentHelper;
 use VDM\Tests\Support\JoomlaTestCase;
 
 
@@ -291,6 +295,74 @@ final class SearchBoundaryAndOrchestrationTest extends JoomlaTestCase
 		$this->assertSame(1, $subject->offset(1));
 		$this->assertSame(301, $subject->offset(2));
 		$this->assertSame(1201, $subject->offset(5));
+	}
+
+	/**
+	 * Protect the shared ID axis used by bundled ordering and continuation.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testDatabaseLoadOrdersLimitedBundlesById(): void
+	{
+		$query = $this->createMock(QueryInterface::class);
+		$query->method('select')->willReturnSelf();
+		$query->method('from')->willReturnSelf();
+		$query->expects($this->once())->method('where')->with('[a.id] >= 310')->willReturnSelf();
+		$query->expects($this->once())->method('order')->with('[a.id] ASC')->willReturnSelf();
+		$query->expects($this->once())->method('setLimit')->with(300)->willReturnSelf();
+
+		$database = $this->createMock(DatabaseInterface::class);
+		$database->method('quoteName')->willReturnCallback(
+			static function (string|array $name, string|array|null $as = null): string|array
+			{
+				if (is_array($name))
+				{
+					$aliases = is_array($as) ? $as : array_fill(0, count($name), null);
+
+					return array_map(
+						static fn (string $column, ?string $alias): string => $alias === null
+							? '[' . $column . ']'
+							: '[' . $column . '] AS [' . $alias . ']',
+						$name,
+						$aliases
+					);
+				}
+
+				return $as === null
+					? '[' . $name . ']'
+					: '[' . $name . '] AS [' . $as . ']';
+			}
+		);
+		$database->method('quote')->willReturnCallback(
+			static fn (mixed $value): string => "'" . (string) $value . "'"
+		);
+		$database->expects($this->once())->method('createQuery')->willReturn($query);
+		$database->expects($this->once())->method('setQuery')->with($query);
+		$database->expects($this->once())->method('execute')->willReturn(true);
+		$database->expects($this->once())->method('getNumRows')->willReturn(0);
+		$database->expects($this->never())->method('loadObjectList');
+
+		$config = $this->config(['table_name' => 'demo']);
+		$table = $this->createStub(Table::class);
+		$table->method('fields')->willReturn(['title', 'code']);
+		$table->method('titleName')->willReturn('title');
+		$model = $this->createStub(ModelLoad::class);
+		$model->method('last')->willReturn(309);
+		$originalOption = ComponentHelper::$option;
+		ComponentHelper::setOption('com_componentbuilder');
+
+		try
+		{
+			$load = new CoreDatabaseLoad($database);
+			$subject = new DatabaseLoad($config, $table, $model, $load);
+
+			$this->assertNull($subject->items('demo', 2));
+		}
+		finally
+		{
+			ComponentHelper::setOption($originalOption);
+		}
 	}
 
 	/**
