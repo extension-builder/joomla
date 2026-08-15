@@ -220,4 +220,3 @@ class ArchitectureComponent implements ServiceProviderInterface
 		);
 	}
 }
-
