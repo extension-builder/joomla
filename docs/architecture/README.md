@@ -8,31 +8,44 @@ capabilities.
 
 The central design idea is simple: JCB turns structured extension definitions
 into native Joomla extensions through a shared, version-aware compiler graph.
-The implementation is deliberately organized around small domain services,
-shared state registries, stable interfaces, and service-provider selectors.
-That structure must be understood before changing the legacy helper chain.
+Its identity is defined by that controlled transformation, not by any one kind
+of extension it can produce. The implementation is deliberately organized
+around small domain services, shared state registries, stable interfaces, and
+service-provider selectors. Its source-ordered execution stack must be
+understood before changing the legacy helper chain.
 
 ## Reading order
 
-1. [System map](system-map.md) — library boundaries, namespaces, factories,
+1. [Project identity](project-identity.md) — what JCB is, the outcome it owns,
+   why it is self-hosting, and the enduring tests for an appropriate change.
+2. [System map](system-map.md) — library boundaries, namespaces, factories,
    and the rules that determine where a class belongs.
-2. [Compiler architecture](compiler.md) — composition, execution lifecycle,
-   state builders, and Joomla-version dispatch.
-3. [Package distribution engine](package-distribution.md) — repository-backed
+3. [Compiler execution flow](compiler-execution-flow.md) — the exact
+   construction, initialization, infusion, materialization, and finalization
+   chronology, including deferred work and failure boundaries.
+4. [Compiler architecture](compiler.md) — composition, shared state builders,
+   Joomla-version dispatch, interfaces, and placement decisions.
+5. [Package distribution engine](package-distribution.md) — repository-backed
    import/export of JCB definitions, which is separate from compilation.
-4. [Legacy helper refactoring playbook](helper-refactoring.md) — evidence,
+6. [Architecture review findings](review-findings.md) — verified
+   discrepancies, lifecycle constraints, and trust boundaries to consider
+   before API/MCP work.
+7. [Legacy helper refactoring playbook](helper-refactoring.md) — evidence,
    extraction boundaries, sequencing, and compatibility constraints for
    `Fields`, `Interpretation`, and `Infusion`.
-5. [Helper method inventory](helper-method-inventory.md) — the exact remaining
+8. [Helper method inventory](helper-method-inventory.md) — the exact remaining
    API, hidden dynamic calls, state, version branches, events, and dependencies.
-6. [Testing and conformance strategy](testing-strategy.md) — a staged path from
+9. [Testing and conformance strategy](testing-strategy.md) — a staged path from
    the present baseline to unit, contract, golden-output, and integration tests.
-7. [Source inventory](source-inventory.md) — a compact map of the relevant
+10. [Source inventory](source-inventory.md) — a compact map of the relevant
    folders, service families, versioned implementations, and sibling libraries.
-8. [Architecture review findings](review-findings.md) — verified discrepancies,
-   lifecycle constraints, and trust boundaries to consider before API/MCP work.
 
 Repository-wide instructions for coding agents are in [`AGENTS.md`](../../AGENTS.md).
+Before changing any path, read the authoritative
+[repository change boundaries](../development/change-boundaries.md). In
+particular, `admin/**` and `media/js/**` require explicit task-specific
+permission and a same-change record, while the dependency trees and all other
+`media/**` paths are prohibited.
 The executable test harness and contribution rules are documented in the
 [testing standard](../development/testing.md), and PHP formatting, declaration,
 documentation, DI, and provider conventions are defined in the
@@ -60,6 +73,9 @@ The documents use these labels:
 
 - Preserve generated output, event order, registry paths, placeholder keys,
   side effects, and public behavior while extracting code.
+- Preserve the construction and execution chronology. Resolving `Compiler`
+  already initializes the component and builds content before `run()` starts
+  materializing and packaging the result.
 - Select code-generation variants by the **target Joomla version** and
   runtime integrations by the **host Joomla version**. These axes are not
   interchangeable.

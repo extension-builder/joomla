@@ -32,9 +32,11 @@ Dynamic version keys currently accept the integer supplied by Config but only
 J3–J6 services are registered. Unsupported target input can therefore become a
 missing service lookup rather than a domain-level validation error.
 
-`Compiler::run()` returns early when extension-file update or component ZIP
-creation fails. Both paths return before `endCompilationTimer()`, so failed
-builds do not execute the nominal timer-finalization path.
+`Compiler::run()` returns early when extension-file update fails or when
+`zipComponent()` fails, whether because ZIP creation failed or because the
+final component-directory removal failed. Both top-level paths return before
+`endCompilationTimer()`, so failed builds do not execute the nominal
+timer-finalization path.
 
 ## Filesystem restore trust boundary
 

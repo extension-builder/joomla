@@ -1,5 +1,11 @@
 # Compiler architecture
 
+This document explains the compiler's composition, state, version dispatch,
+interfaces, and placement rules. Read the
+[compiler execution flow](compiler-execution-flow.md) alongside it for the
+source-ordered constructor-to-archive chronology and the timing contracts that
+must remain exact during refactoring.
+
 ## Boundary and entry points
 
 The compiler lives primarily under
@@ -58,6 +64,11 @@ receives 21 typed collaborators. Its constructor:
 
 The legacy call is an explicit transition seam. New code should be extracted
 outward from it, not added to the inheritance chain.
+
+The constructor boundary is architectural: component data loading, structure
+preparation, and legacy content infusion happen while the shared `Compiler`
+service is being resolved. `run()` is the subsequent materialization and
+packaging phase; it is not the beginning of all compilation work.
 
 Resolving the `Compiler` key is therefore side-effectful: initialization may
 query data, retrieve missing definitions, clear/rebuild directories, and fill
@@ -134,10 +145,11 @@ emit additional before/after events, many with by-reference arguments:
 | Module archive | before/after module ZIP plus optional backup/server events per module |
 | Plugin archive | before/after plugin ZIP plus optional backup/server events per plugin |
 
-`run()` returns `false` when extension-file update or component ZIP fails.
-Module/plugin archive methods report within their own loops rather than forming
-additional top-level boolean gates. Refactoring must preserve those failure
-boundaries as well as the events.
+`run()` returns `false` when extension-file update fails or when
+`zipComponent()` fails, whether because ZIP creation failed or because the
+final component-directory removal failed. Module/plugin archive methods report
+within their own loops rather than forming additional top-level boolean gates.
+Refactoring must preserve those failure boundaries as well as the events.
 
 ## Shared state: builders, not one global array
 
