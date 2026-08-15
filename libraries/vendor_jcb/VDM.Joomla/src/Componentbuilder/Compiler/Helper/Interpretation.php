@@ -16,7 +16,6 @@ use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
 use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
-use VDM\Joomla\FOF\Encrypt\AES;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\ObjectHelper;
@@ -211,34 +210,13 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * set the lock license (NOT OKAY)
+	 * set the lock license
+	 *
+	 * @deprecated 6.1.7 Use the Architecture.Component.LicenseLock service.
 	 */
 	public function setLockLicense()
 	{
-		if (CFactory::_('Component')->get('add_license', 0) == 3)
-		{
-			if (!CFactory::_('Compiler.Builder.Content.One')->exists('HELPER_SITE_LICENSE_LOCK'))
-			{
-				$_WHMCS = '_' . StringHelper::safe(
-						Unique::get(10), 'U'
-					);
-				// add it to the system
-				CFactory::_('Compiler.Builder.Content.One')->set('HELPER_SITE_LICENSE_LOCK', $this->setHelperLicenseLock($_WHMCS, 'site'));
-				CFactory::_('Compiler.Builder.Content.One')->set('HELPER_LICENSE_LOCK', $this->setHelperLicenseLock($_WHMCS, 'admin'));
-				CFactory::_('Compiler.Builder.Content.One')->set('LICENSE_LOCKED_INT', $this->setInitLicenseLock($_WHMCS));
-				CFactory::_('Compiler.Builder.Content.One')->set('LICENSE_LOCKED_DEFINED',
-					PHP_EOL . PHP_EOL . 'defined(\'' . $_WHMCS
-					. '\') or die(Joomla__'.'_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_(\'NIE_REG_NIE\'));');
-			}
-		}
-		else
-		{
-			// don't add it to the system
-			CFactory::_('Compiler.Builder.Content.One')->set('HELPER_SITE_LICENSE_LOCK', '');
-			CFactory::_('Compiler.Builder.Content.One')->set('HELPER_LICENSE_LOCK', '');
-			CFactory::_('Compiler.Builder.Content.One')->set('LICENSE_LOCKED_INT', '');
-			CFactory::_('Compiler.Builder.Content.One')->set('LICENSE_LOCKED_DEFINED', '');
-		}
+		CFactory::_('Architecture.Component.LicenseLock')->set();
 	}
 
 	/**
@@ -246,36 +224,12 @@ class Interpretation extends Fields
 	 *
 	 * @param   string  $view
 	 * @param   string  $target
+	 *
+	 * @deprecated 6.1.7 Use the Architecture.Component.LicenseLock service.
 	 */
 	public function setLockLicensePer(&$view, $target)
 	{
-		if (CFactory::_('Component')->get('add_license', 0) == 3)
-		{
-			if (!CFactory::_('Compiler.Builder.Content.Multi')->exists($view . '|BOOLMETHOD'))
-			{
-				$boolMethod = 'get' . StringHelper::safe(
-						Unique::get(3, false, 'ddd'), 'W'
-					);
-				$globalbool = 'set' . StringHelper::safe(
-						Unique::get(3), 'W'
-					);
-				// add it to the system
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_LOCKED_SET_BOOL',
-					$this->setBoolLicenseLock($boolMethod, $globalbool));
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_LOCKED_CHECK',
-					$this->checkStatmentLicenseLocked($boolMethod));
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_TABLE_LOCKED_CHECK',
-					$this->checkStatmentLicenseLocked($boolMethod, '$table'));
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|BOOLMETHOD', $boolMethod);
-			}
-		}
-		else
-		{
-			// don't add it to the system
-			CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_LOCKED_SET_BOOL', '');
-			CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_LOCKED_CHECK', '');
-			CFactory::_('Compiler.Builder.Content.Multi')->set($view . '|LICENSE_TABLE_LOCKED_CHECK', '');
-		}
+		CFactory::_('Architecture.Component.LicenseLock')->setView($view);
 	}
 
 	/**
@@ -288,18 +242,8 @@ class Interpretation extends Fields
 	 */
 	public function checkStatmentLicenseLocked($boolMethod, $thIIS = '$this')
 	{
-		$statment[] = PHP_EOL . Indent::_(2) . "if (!" . $thIIS . "->"
-			. $boolMethod . "())";
-		$statment[] = Indent::_(2) . "{";
-		$statment[] = Indent::_(3) . "\$app = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();";
-		$statment[] = Indent::_(3) . "\$app->enqueueMessage(Text:"
-			. ":_('NIE_REG_NIE'), 'error');";
-		$statment[] = Indent::_(3) . "\$app->redirect('index.php');";
-		$statment[] = Indent::_(3) . "return false;";
-		$statment[] = Indent::_(2) . "}";
-
-		// return the genuine mentod statement
-		return implode(PHP_EOL, $statment);
+		return CFactory::_('Architecture.Component.LicenseLock')
+			->checkStatement($boolMethod, $thIIS);
 	}
 
 	/**
@@ -312,41 +256,8 @@ class Interpretation extends Fields
 	 */
 	public function setBoolLicenseLock($boolMethod, $globalbool)
 	{
-		$bool[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-		$bool[] = Indent::_(1) . " * The private bool.";
-		$bool[] = Indent::_(1) . " **/";
-		$bool[] = Indent::_(1) . "private $" . $globalbool . ";";
-		$bool[] = PHP_EOL . Indent::_(1) . "/**";
-		$bool[] = Indent::_(1) . " * Check if this install has a license.";
-		$bool[] = Indent::_(1) . " **/";
-		$bool[] = Indent::_(1) . "public function " . $boolMethod . "()";
-		$bool[] = Indent::_(1) . "{";
-		$bool[] = Indent::_(2) . "if(!empty(\$this->" . $globalbool . "))";
-		$bool[] = Indent::_(2) . "{";
-		$bool[] = Indent::_(3) . "return \$this->" . $globalbool . ";";
-		$bool[] = Indent::_(2) . "}";
-		$bool[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-			. " Get the global params";
-		$bool[] = Indent::_(2) . "\$params = ComponentHelper::getParams('com_"
-			. CFactory::_('Config')->component_code_name . "', true);";
-		$bool[] = Indent::_(2)
-			. "\$whmcs_key = \$params->get('whmcs_key', null);";
-		$bool[] = Indent::_(2) . "if (\$whmcs_key)";
-		$bool[] = Indent::_(2) . "{";
-		$bool[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " load the file";
-		$bool[] = Indent::_(3)
-			. "JLoader::import( 'whmcs', JPATH_ADMINISTRATOR .'/components/com_"
-			. CFactory::_('Config')->component_code_name . "');";
-		$bool[] = Indent::_(3) . "\$the = new \WHMCS(\$whmcs_key);";
-		$bool[] = Indent::_(3) . "\$this->" . $globalbool . " = \$the->_is;";
-		$bool[] = Indent::_(3) . "return \$this->" . $globalbool . ";";
-		$bool[] = Indent::_(2) . "}";
-		$bool[] = Indent::_(2) . "return false;";
-		$bool[] = Indent::_(1) . "}";
-
-		// return the genuine method statement
-		return implode(PHP_EOL, $bool);
+		return CFactory::_('Architecture.Component.LicenseLock')
+			->boolMethod($boolMethod, $globalbool);
 	}
 
 	/**
@@ -359,33 +270,8 @@ class Interpretation extends Fields
 	 */
 	public function setHelperLicenseLock($_WHMCS, $target)
 	{
-		$helper[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-		$helper[] = Indent::_(1) . " * Check if this install has a license.";
-		$helper[] = Indent::_(1) . " **/";
-		$helper[] = Indent::_(1) . "public static function isGenuine()";
-		$helper[] = Indent::_(1) . "{";
-		$helper[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-			. " Get the global params";
-		$helper[] = Indent::_(2)
-			. "\$params = ComponentHelper::getParams('com_"
-			. CFactory::_('Config')->component_code_name . "', true);";
-		$helper[] = Indent::_(2)
-			. "\$whmcs_key = \$params->get('whmcs_key', null);";
-		$helper[] = Indent::_(2) . "if (\$whmcs_key)";
-		$helper[] = Indent::_(2) . "{";
-		$helper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " load the file";
-		$helper[] = Indent::_(3)
-			. "JLoader::import( 'whmcs', JPATH_ADMINISTRATOR .'/components/com_"
-			. CFactory::_('Config')->component_code_name . "');";
-		$helper[] = Indent::_(3) . "\$the = new \WHMCS(\$whmcs_key);";
-		$helper[] = Indent::_(3) . "return \$the->_is;";
-		$helper[] = Indent::_(2) . "}";
-		$helper[] = Indent::_(2) . "return false;";
-		$helper[] = Indent::_(1) . "}";
-
-		// return the genuine mentod statement
-		return implode(PHP_EOL, $helper);
+		return CFactory::_('Architecture.Component.LicenseLock')
+			->helperMethod();
 	}
 
 	/**
@@ -397,19 +283,8 @@ class Interpretation extends Fields
 	 */
 	public function setInitLicenseLock($_WHMCS)
 	{
-		$init[] = PHP_EOL . "if (!defined('" . $_WHMCS . "'))";
-		$init[] = "{";
-		$init[] = Indent::_(1) . "\$allow = "
-			. CFactory::_('Compiler.Builder.Content.One')->get('Component')
-			. "Helper::isGenuine();";
-		$init[] = Indent::_(1) . "if (\$allow)";
-		$init[] = Indent::_(1) . "{";
-		$init[] = Indent::_(2) . "define('" . $_WHMCS . "', 1);";
-		$init[] = Indent::_(1) . "}";
-		$init[] = "}";
-
-		// return the initializing statement
-		return implode(PHP_EOL, $init);
+		return CFactory::_('Architecture.Component.LicenseLock')
+			->initLock($_WHMCS);
 	}
 
 	/**
@@ -419,297 +294,7 @@ class Interpretation extends Fields
 	 */
 	public function setWHMCSCryption()
 	{
-		// make sure we have the correct file
-		if (CFactory::_('Component')->isString('whmcs_key'))
-		{
-			// Get the basic encryption.
-			$basickey = ComponentbuilderHelper::getCryptKey('basic');
-			$key = CFactory::_('Component')->get('whmcs_key');
-
-			// Get the encryption object.
-			$basic = new AES($basickey);
-			if ($basickey && $key === base64_encode(
-					base64_decode((string) $key, true)
-				))
-			{
-				// basic decrypt data whmcs_key.
-				$key = rtrim(
-					(string) $basic->decryptString($key), "\0"
-				);
-				// set the needed string to connect to whmcs
-				$key["kasier"] = CFactory::_('Component')->get('whmcs_url', '');
-				$key["geheim"] = $key;
-				$key["onthou"] = 1;
-				// prep the call info
-				$theKey = base64_encode(serialize($key));
-				// set the script
-				$encrypt[] = "/**";
-				$encrypt[] = "* " . Line::_(__Line__, __Class__) . "WHMCS Class ";
-				$encrypt[] = "**/";
-				$encrypt[] = "class WHMCS";
-				$encrypt[] = "{";
-				$encrypt[] = Indent::_(1) . "public \$_key = false;";
-				$encrypt[] = Indent::_(1) . "public \$_is = false;";
-				$encrypt[] = PHP_EOL . Indent::_(1)
-					. "public function __construct(\$Vk5smi0wjnjb)";
-				$encrypt[] = Indent::_(1) . "{";
-				$encrypt[] = Indent::_(2) . "// get the session";
-				$encrypt[] = Indent::_(2)
-					. "\$session = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();";
-				$encrypt[] = Indent::_(2)
-					. "\$V2uekt2wcgwk = \$session->get(\$Vk5smi0wjnjb, null);";
-				$encrypt[] = Indent::_(2)
-					. "\$h4sgrGsqq = \$this->get(\$Vk5smi0wjnjb,\$V2uekt2wcgwk);";
-				$encrypt[] = Indent::_(2)
-					. "if (isset(\$h4sgrGsqq['nuut']) && \$h4sgrGsqq['nuut'] && (isset(\$h4sgrGsqq['status']) && 'Active' === \$h4sgrGsqq['status']) && isset(\$h4sgrGsqq['eiegrendel']) && strlen(\$h4sgrGsqq['eiegrendel']) > 300)";
-				$encrypt[] = Indent::_(2) . "{";
-				$encrypt[] = Indent::_(3)
-					. "\$session->set(\$Vk5smi0wjnjb, \$h4sgrGsqq['eiegrendel']);";
-				$encrypt[] = Indent::_(2) . "}";
-				$encrypt[] = Indent::_(2)
-					. "if ((isset(\$h4sgrGsqq['status']) && 'Active' === \$h4sgrGsqq['status']) && isset(\$h4sgrGsqq['md5hash']) && strlen(\$h4sgrGsqq['md5hash']) == 32 && isset(\$h4sgrGsqq['customfields']) && strlen(\$h4sgrGsqq['customfields']) > 4)";
-				$encrypt[] = Indent::_(2) . "{";
-				$encrypt[] = Indent::_(3)
-					. "\$this->_key = md5(\$h4sgrGsqq['customfields']);";
-				$encrypt[] = Indent::_(2) . "}";
-				$encrypt[] = Indent::_(2)
-					. "if ((isset(\$h4sgrGsqq['status']) && 'Active' === \$h4sgrGsqq['status']) && isset(\$h4sgrGsqq['md5hash']) && strlen(\$h4sgrGsqq['md5hash']) == 32 )";
-				$encrypt[] = Indent::_(2) . "{";
-				$encrypt[] = Indent::_(3) . "\$this->_is = true;";
-				$encrypt[] = Indent::_(2) . "}";
-				$encrypt[] = Indent::_(1) . "}";
-				$encrypt[] = PHP_EOL . Indent::_(1)
-					. "private function get(\$Vk5smi0wjnjb,\$V2uekt2wcgwk)";
-				$encrypt[] = Indent::_(1) . "{";
-				$encrypt[] = Indent::_(2)
-					. "\$Viioj50xuqu2 = unserialize(base64_decode('" . $theKey
-					. "'));";
-				$encrypt[] = Indent::_(2)
-					. "\$Visqfrd1caus = time() . md5(mt_rand(1000000000, 9999999999) . \$Vk5smi0wjnjb);";
-				$encrypt[] = Indent::_(2) . "\$Vo4tezfgcf3e = date(\"Ymd\");";
-				$encrypt[] = Indent::_(2)
-					. "\$Vozblwvfym2f = \$_SERVER['SERVER_NAME'];";
-				$encrypt[] = Indent::_(2)
-					. "\$Vozblwvfym2fdie = isset(\$_SERVER['SERVER_ADDR']) ? \$_SERVER['SERVER_ADDR'] : \$_SERVER['LOCAL_ADDR'];";
-				$encrypt[] = Indent::_(2)
-					. "\$V343jp03dxco = dirname(__FILE__);";
-				$encrypt[] = Indent::_(2)
-					. "\$Vc2rayehw4f0 = unserialize(base64_decode('czozNjoibW9kdWxlcy9zZXJ2ZXJzL2xpY2Vuc2luZy92ZXJpZnkucGhwIjs='));";
-				$encrypt[] = Indent::_(2) . "\$Vlpolphukogz = false;";
-				$encrypt[] = Indent::_(2) . "if (\$V2uekt2wcgwk) {";
-				$encrypt[] = Indent::_(3) . "\$V2uekt2wcgwk = str_replace(\""
-					. '".PHP_EOL."' . "\", '', \$V2uekt2wcgwk);";
-				$encrypt[] = Indent::_(3)
-					. "\$Vm5cxjdc43g4 = substr(\$V2uekt2wcgwk, 0, strlen(\$V2uekt2wcgwk) - 32);";
-				$encrypt[] = Indent::_(3)
-					. "\$Vbgx0efeu2sy = substr(\$V2uekt2wcgwk, strlen(\$V2uekt2wcgwk) - 32);";
-				$encrypt[] = Indent::_(3)
-					. "if (\$Vbgx0efeu2sy == md5(\$Vm5cxjdc43g4 . \$Viioj50xuqu2['geheim'])) {";
-				$encrypt[] = Indent::_(4)
-					. "\$Vm5cxjdc43g4 = strrev(\$Vm5cxjdc43g4);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vbgx0efeu2sy = substr(\$Vm5cxjdc43g4, 0, 32);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vm5cxjdc43g4 = substr(\$Vm5cxjdc43g4, 32);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vm5cxjdc43g4 = base64_decode(\$Vm5cxjdc43g4);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vm5cxjdc43g4finding = unserialize(\$Vm5cxjdc43g4);";
-				$encrypt[] = Indent::_(4)
-					. "\$V3qqz0p00fbq  = \$Vm5cxjdc43g4finding['dan'];";
-				$encrypt[] = Indent::_(4)
-					. "if (\$Vbgx0efeu2sy == md5(\$V3qqz0p00fbq  . \$Viioj50xuqu2['geheim'])) {";
-				$encrypt[] = Indent::_(5)
-					. "\$Vbfbwv2y4kre = date(\"Ymd\", mktime(0, 0, 0, date(\"m\"), date(\"d\") - \$Viioj50xuqu2['onthou'], date(\"Y\")));";
-				$encrypt[] = Indent::_(5)
-					. "if (\$V3qqz0p00fbq  > \$Vbfbwv2y4kre) {";
-				$encrypt[] = Indent::_(6) . "\$Vlpolphukogz = true;";
-				$encrypt[] = Indent::_(6)
-					. "\$Vwasqoybpyed = \$Vm5cxjdc43g4finding;";
-				$encrypt[] = Indent::_(6)
-					. "\$Vcixw3trerrt = explode(',', \$Vwasqoybpyed['validdomain']);";
-				$encrypt[] = Indent::_(6)
-					. "if (!in_array(\$_SERVER['SERVER_NAME'], \$Vcixw3trerrt)) {";
-				$encrypt[] = Indent::_(7) . "\$Vlpolphukogz = false;";
-				$encrypt[] = Indent::_(7)
-					. "\$Vm5cxjdc43g4finding['status'] = \"sleg\";";
-				$encrypt[] = Indent::_(7) . "\$Vwasqoybpyed = [];";
-				$encrypt[] = Indent::_(6) . "}";
-				$encrypt[] = Indent::_(6)
-					. "\$Vkni3xyhkqzv = explode(',', \$Vwasqoybpyed['validip']);";
-				$encrypt[] = Indent::_(6)
-					. "if (!in_array(\$Vozblwvfym2fdie, \$Vkni3xyhkqzv)) {";
-				$encrypt[] = Indent::_(7) . "\$Vlpolphukogz = false;";
-				$encrypt[] = Indent::_(7)
-					. "\$Vm5cxjdc43g4finding['status'] = \"sleg\";";
-				$encrypt[] = Indent::_(7) . "\$Vwasqoybpyed = [];";
-				$encrypt[] = Indent::_(6) . "}";
-				$encrypt[] = Indent::_(6)
-					. "\$Vckfvnepoaxj = explode(',', \$Vwasqoybpyed['validdirectory']);";
-				$encrypt[] = Indent::_(6)
-					. "if (!in_array(\$V343jp03dxco, \$Vckfvnepoaxj)) {";
-				$encrypt[] = Indent::_(7) . "\$Vlpolphukogz = false;";
-				$encrypt[] = Indent::_(7)
-					. "\$Vm5cxjdc43g4finding['status'] = \"sleg\";";
-				$encrypt[] = Indent::_(7) . "\$Vwasqoybpyed = [];";
-				$encrypt[] = Indent::_(6) . "}";
-				$encrypt[] = Indent::_(5) . "}";
-				$encrypt[] = Indent::_(4) . "}";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(2) . "}";
-				$encrypt[] = Indent::_(2) . "if (!\$Vlpolphukogz) {";
-				$encrypt[] = Indent::_(3) . "\$V1u0c4dl3ehp = array(";
-				$encrypt[] = Indent::_(4) . "'licensekey' => \$Vk5smi0wjnjb,";
-				$encrypt[] = Indent::_(4) . "'domain' => \$Vozblwvfym2f,";
-				$encrypt[] = Indent::_(4) . "'ip' => \$Vozblwvfym2fdie,";
-				$encrypt[] = Indent::_(4) . "'dir' => \$V343jp03dxco,";
-				$encrypt[] = Indent::_(3) . ");";
-				$encrypt[] = Indent::_(3)
-					. "if (\$Visqfrd1caus) \$V1u0c4dl3ehp['check_token'] = \$Visqfrd1caus;";
-				$encrypt[] = Indent::_(3) . "\$Vdsjeyjmpq2o = '';";
-				$encrypt[] = Indent::_(3)
-					. "foreach (\$V1u0c4dl3ehp AS \$V2sgyscukmgi=>\$V1u00zkzmb1d) {";
-				$encrypt[] = Indent::_(4)
-					. "\$Vdsjeyjmpq2o .= \$V2sgyscukmgi.'='.urlencode(\$V1u00zkzmb1d).'&';";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3)
-					. "if (function_exists('curl_exec')) {";
-				$encrypt[] = Indent::_(4) . "\$Vdathuqgjyf0 = curl_init();";
-				$encrypt[] = Indent::_(4)
-					. "curl_setopt(\$Vdathuqgjyf0, CURLOPT_URL, \$Viioj50xuqu2['kasier'] . \$Vc2rayehw4f0);";
-				$encrypt[] = Indent::_(4)
-					. "curl_setopt(\$Vdathuqgjyf0, CURLOPT_POST, 1);";
-				$encrypt[] = Indent::_(4)
-					. "curl_setopt(\$Vdathuqgjyf0, CURLOPT_POSTFIELDS, \$Vdsjeyjmpq2o);";
-				$encrypt[] = Indent::_(4)
-					. "curl_setopt(\$Vdathuqgjyf0, CURLOPT_TIMEOUT, 30);";
-				$encrypt[] = Indent::_(4)
-					. "curl_setopt(\$Vdathuqgjyf0, CURLOPT_RETURNTRANSFER, 1);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5 = curl_exec(\$Vdathuqgjyf0);";
-				$encrypt[] = Indent::_(4) . "curl_close(\$Vdathuqgjyf0);";
-				$encrypt[] = Indent::_(3) . "} else {";
-				$encrypt[] = Indent::_(4)
-					. "\$Vrpmu4bvnmkp = fsockopen(\$Viioj50xuqu2['kasier'], 80, \$Vc0t5kmpwkwk, \$Va3g41fnofhu, 5);";
-				$encrypt[] = Indent::_(4) . "if (\$Vrpmu4bvnmkp) {";
-				$encrypt[] = Indent::_(5) . "\$Vznkm0a0me1y = \"\r" . PHP_EOL
-					. "\";";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop = \"POST \".\$Viioj50xuqu2['kasier'] . \$Vc2rayehw4f0 . \" HTTP/1.0\" . \$Vznkm0a0me1y;";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop .= \"Host: \".\$Viioj50xuqu2['kasier'] . \$Vznkm0a0me1y;";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop .= \"Content-type: application/x-www-form-urlencoded\" . \$Vznkm0a0me1y;";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop .= \"Content-length: \".@strlen(\$Vdsjeyjmpq2o) . \$Vznkm0a0me1y;";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop .= \"Connection: close\" . \$Vznkm0a0me1y . \$Vznkm0a0me1y;";
-				$encrypt[] = Indent::_(5)
-					. "\$V2sgyscukmgiop .= \$Vdsjeyjmpq2o;";
-				$encrypt[] = Indent::_(5) . "\$Vqojefyeohg5 = '';";
-				$encrypt[] = Indent::_(5)
-					. "@stream_set_timeout(\$Vrpmu4bvnmkp, 20);";
-				$encrypt[] = Indent::_(5)
-					. "@fputs(\$Vrpmu4bvnmkp, \$V2sgyscukmgiop);";
-				$encrypt[] = Indent::_(5)
-					. "\$V2czq24pjexf = @socket_get_status(\$Vrpmu4bvnmkp);";
-				$encrypt[] = Indent::_(5)
-					. "while (!@feof(\$Vrpmu4bvnmkp)&&\$V2czq24pjexf) {";
-				$encrypt[] = Indent::_(6)
-					. "\$Vqojefyeohg5 .= @fgets(\$Vrpmu4bvnmkp, 1024);";
-				$encrypt[] = Indent::_(6)
-					. "\$V2czq24pjexf = @socket_get_status(\$Vrpmu4bvnmkp);";
-				$encrypt[] = Indent::_(5) . "}";
-				$encrypt[] = Indent::_(5) . "@fclose (\$Vqojefyeohg5);";
-				$encrypt[] = Indent::_(4) . "}";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3) . "if (!\$Vqojefyeohg5) {";
-				$encrypt[] = Indent::_(4)
-					. "\$Vbfbwv2y4kre = date(\"Ymd\", mktime(0, 0, 0, date(\"m\"), date(\"d\") - \$Viioj50xuqu2['onthou'], date(\"Y\")));";
-				$encrypt[] = Indent::_(4)
-					. "if (isset(\$V3qqz0p00fbq) && \$V3qqz0p00fbq  > \$Vbfbwv2y4kre) {";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed = \$Vm5cxjdc43g4finding;";
-				$encrypt[] = Indent::_(4) . "} else {";
-				$encrypt[] = Indent::_(5) . "\$Vwasqoybpyed = [];";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed['status'] = \"sleg\";";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed['description'] = \"Remote Check Failed\";";
-				$encrypt[] = Indent::_(5) . "return \$Vwasqoybpyed;";
-				$encrypt[] = Indent::_(4) . "}";
-				$encrypt[] = Indent::_(3) . "} else {";
-				$encrypt[] = Indent::_(4) . "preg_match_all('"
-					. '/<(.*?)>([^<]+)<\/\\1>/i'
-					. "', \$Vqojefyeohg5, \$V1ot20wob03f);";
-				$encrypt[] = Indent::_(4) . "\$Vwasqoybpyed = [];";
-				$encrypt[] = Indent::_(4)
-					. "foreach (\$V1ot20wob03f[1] AS \$V2sgyscukmgi=>\$V1u00zkzmb1d) {";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed[\$V1u00zkzmb1d] = \$V1ot20wob03f[2][\$V2sgyscukmgi];";
-				$encrypt[] = Indent::_(4) . "}";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3) . "if (!is_array(\$Vwasqoybpyed)) {";
-				$encrypt[] = Indent::_(4)
-					. "die(\"Invalid License Server Response\");";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3)
-					. "if (isset(\$Vwasqoybpyed['md5hash']) && \$Vwasqoybpyed['md5hash']) {";
-				$encrypt[] = Indent::_(4)
-					. "if (\$Vwasqoybpyed['md5hash'] != md5(\$Viioj50xuqu2['geheim'] . \$Visqfrd1caus)) {";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed['status'] = \"sleg\";";
-				$encrypt[] = Indent::_(5)
-					. "\$Vwasqoybpyed['description'] = \"MD5 Checksum Verification Failed\";";
-				$encrypt[] = Indent::_(5) . "return \$Vwasqoybpyed;";
-				$encrypt[] = Indent::_(4) . "}";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3)
-					. "if (isset(\$Vwasqoybpyed['status']) && \$Vwasqoybpyed['status'] == \"Active\") {";
-				$encrypt[] = Indent::_(4)
-					. "\$Vwasqoybpyed['dan'] = \$Vo4tezfgcf3e;";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = serialize(\$Vwasqoybpyed);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = base64_encode(\$Vqojefyeohg5ing);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = md5(\$Vo4tezfgcf3e . \$Viioj50xuqu2['geheim']) . \$Vqojefyeohg5ing;";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = strrev(\$Vqojefyeohg5ing);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = \$Vqojefyeohg5ing . md5(\$Vqojefyeohg5ing . \$Viioj50xuqu2['geheim']);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vqojefyeohg5ing = wordwrap(\$Vqojefyeohg5ing, 80, \""
-					. '".PHP_EOL."' . "\", true);";
-				$encrypt[] = Indent::_(4)
-					. "\$Vwasqoybpyed['eiegrendel'] = \$Vqojefyeohg5ing;";
-				$encrypt[] = Indent::_(3) . "}";
-				$encrypt[] = Indent::_(3) . "\$Vwasqoybpyed['nuut'] = true;";
-				$encrypt[] = Indent::_(2) . "}";
-				$encrypt[] = Indent::_(2)
-					. "unset(\$V1u0c4dl3ehp,\$Vqojefyeohg5,\$V1ot20wob03f,\$Viioj50xuqu2['kasier'],\$Viioj50xuqu2['geheim'],\$Vo4tezfgcf3e,\$Vozblwvfym2fdie,\$Viioj50xuqu2['onthou'],\$Vbgx0efeu2sy);";
-				$encrypt[] = Indent::_(2) . "return \$Vwasqoybpyed;";
-				$encrypt[] = Indent::_(1) . "}";
-				$encrypt[] = "}";
-
-				// return the help methods
-				return implode(PHP_EOL, $encrypt);
-			}
-		}
-		// give notice of this issue
-		$this->app->enqueueMessage(
-			Text::_('COM_COMPONENTBUILDER_HR_HTHREEWHMCS_ERRORHTHREE'), 'Error'
-		);
-		$this->app->enqueueMessage(
-			Text::_(
-				'The <b>WHMCS class</b> could not be added to this component. You will need to enable the add-on in the Joomla Component area (Add WHMCS)->Yes. If you have done this, then please check that you have your own <b>Basic Encryption<b/> set in the global settings of JCB. Then open and save this component again, making sure that your WHMCS settings are still correct.'
-			), 'Error'
-		);
-
-		return "//" . Line::_(__Line__, __Class__)
-			. " The WHMCS class could not be added to this component." . PHP_EOL
-			. "//" . Line::_(__Line__, __Class__)
-			. " Please note that you will need to enable the add-on in the Joomla Component area (Add WHMCS)->Yes.";
+		return CFactory::_('Architecture.Component.Whmcs')->get();
 	}
 
 	/**
@@ -719,208 +304,7 @@ class Interpretation extends Fields
 	 */
 	public function setGetCryptKey()
 	{
-		// WHMCS_ENCRYPT_FILE
-		CFactory::_('Compiler.Builder.Content.One')->set('WHMCS_ENCRYPT_FILE', '');
-		// check if encryption is ative
-		if (CFactory::_('Compiler.Builder.Model.Basic.Field')->isActive()
-			|| CFactory::_('Compiler.Builder.Model.Medium.Field')->isActive()
-			|| CFactory::_('Compiler.Builder.Model.Whmcs.Field')->isActive()
-			|| CFactory::_('Component')->get('add_license'))
-		{
-			if (CFactory::_('Compiler.Builder.Model.Whmcs.Field')->isActive()
-				|| CFactory::_('Component')->get('add_license'))
-			{
-				// set whmcs encrypt file into place
-				$target = array('admin' => 'whmcs');
-				$done   = CFactory::_('Utilities.Structure')->build($target, 'whmcs');
-				// the text for the file WHMCS_ENCRYPTION_BODY
-				CFactory::_('Compiler.Builder.Content.Multi')->set('whmcs' . '|WHMCS_ENCRYPTION_BODY', $this->setWHMCSCryption());
-				// ENCRYPT_FILE
-				CFactory::_('Compiler.Builder.Content.One')->set('WHMCS_ENCRYPT_FILE', PHP_EOL . Indent::_(3) . "<filename>whmcs.php</filename>");
-			}
-			// get component name
-			$component = CFactory::_('Config')->component_code_name;
-			// set the getCryptKey function to the helper class
-			$function = [];
-			// start building the getCryptKey function/class method
-			$function[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$function[] = Indent::_(1) . " *	Get The Encryption Keys";
-			$function[] = Indent::_(1) . " *";
-			$function[] = Indent::_(1)
-				. " *	@param  string        \$type     The type of key";
-			$function[] = Indent::_(1)
-				. " *	@param  string/bool   \$default  The return value if no key was found";
-			$function[] = Indent::_(1) . " *";
-			$function[] = Indent::_(1) . " *	@return  string   On success";
-			$function[] = Indent::_(1) . " *";
-			$function[] = Indent::_(1) . " **/";
-			$function[] = Indent::_(1)
-				. "public static function getCryptKey(\$type, \$default = false)";
-			$function[] = Indent::_(1) . "{";
-			$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Get the global params";
-			$function[] = Indent::_(2)
-				. "\$params = ComponentHelper::getParams('com_" . $component
-				. "', true);";
-			// add the basic option
-			if (CFactory::_('Compiler.Builder.Model.Basic.Field')->isActive())
-			{
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Basic Encryption Type";
-				$function[] = Indent::_(2) . "if ('basic' === \$type)";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3)
-					. "\$basic_key = \$params->get('basic_key', \$default);";
-				$function[] = Indent::_(3)
-					. "if (Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$basic_key))";
-				$function[] = Indent::_(3) . "{";
-				$function[] = Indent::_(4) . "return \$basic_key;";
-				$function[] = Indent::_(3) . "}";
-				$function[] = Indent::_(2) . "}";
-			}
-			// add the medium option
-			if (CFactory::_('Compiler.Builder.Model.Medium.Field')->isActive())
-			{
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Medium Encryption Type";
-				$function[] = Indent::_(2) . "if ('medium' === \$type)";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " check if medium key is already loaded.";
-				$function[] = Indent::_(3)
-					. "if (Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(self::\$mediumCryptKey))";
-				$function[] = Indent::_(3) . "{";
-				$function[] = Indent::_(4)
-					. "return (self::\$mediumCryptKey !== 'none') ? trim(self::\$mediumCryptKey) : \$default;";
-				$function[] = Indent::_(3) . "}";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " get the path to the medium encryption key.";
-				$function[] = Indent::_(3)
-					. "\$medium_key_path = \$params->get('medium_key_path', null);";
-				$function[] = Indent::_(3)
-					. "if (Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$medium_key_path))";
-				$function[] = Indent::_(3) . "{";
-				$function[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-					. " load the key from the file.";
-				$function[] = Indent::_(4)
-					. "if (self::getMediumCryptKey(\$medium_key_path))";
-				$function[] = Indent::_(4) . "{";
-				$function[] = Indent::_(5)
-					. "return trim(self::\$mediumCryptKey);";
-				$function[] = Indent::_(4) . "}";
-				$function[] = Indent::_(3) . "}";
-				$function[] = Indent::_(2) . "}";
-			}
-			// end the function
-			$function[] = PHP_EOL . Indent::_(2) . "return \$default;";
-			$function[] = Indent::_(1) . "}";
-			// set the getMediumCryptKey class/method
-			if (CFactory::_('Compiler.Builder.Model.Medium.Field')->isActive())
-			{
-				$function[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-				$function[] = Indent::_(1) . " *	The Medium Encryption Key";
-				$function[] = Indent::_(1) . " *";
-				$function[] = Indent::_(1) . " *	@var  string/bool";
-				$function[] = Indent::_(1) . " **/";
-				$function[] = Indent::_(1)
-					. "protected static \$mediumCryptKey = false;";
-				$function[] = PHP_EOL . Indent::_(1) . "/**";
-				$function[] = Indent::_(1)
-					. " *	Get The Medium Encryption Key";
-				$function[] = Indent::_(1) . " *";
-				$function[] = Indent::_(1)
-					. " *	@param   string    \$path  The path to the medium crypt key folder";
-				$function[] = Indent::_(1) . " *";
-				$function[] = Indent::_(1)
-					. " *	@return  string    On success";
-				$function[] = Indent::_(1) . " *";
-				$function[] = Indent::_(1) . " **/";
-				$function[] = Indent::_(1)
-					. "public static function getMediumCryptKey(\$path)";
-				$function[] = Indent::_(1) . "{";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Prep the path a little";
-				$function[] = Indent::_(2)
-					. "\$path = '/'. trim(str_replace('//', '/', \$path), '/');";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Check if folder exist";
-				$function[] = Indent::_(2) . "if (!is_dir(\$path))";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Lock key.";
-				$function[] = Indent::_(3) . "self::\$mediumCryptKey = 'none';";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Set the error message.";
-				$function[] = Indent::_(3)
-					. "Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->enqueueMessage(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. CFactory::_('Config')->lang_prefix
-					. "_CONFIG_MEDIUM_KEY_PATH_ERROR'), 'Error');";
-				$function[] = Indent::_(3) . "return false;";
-				$function[] = Indent::_(2) . "}";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Create FileName and set file path";
-				$function[] = Indent::_(2)
-					. "\$filePath = \$path.'/.'.md5('medium_crypt_key_file');";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Check if we already have the file set";
-				$function[] = Indent::_(2)
-					. "if ((self::\$mediumCryptKey = @file_get_contents(\$filePath)) !== FALSE)";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3) . "return true;";
-				$function[] = Indent::_(2) . "}";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Set the key for the first time";
-				$function[] = Indent::_(2)
-					. "self::\$mediumCryptKey = self::randomkey(128);";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Open the key file";
-				$function[] = Indent::_(2) . "\$fh = @fopen(\$filePath, 'w');";
-				$function[] = Indent::_(2) . "if (!is_resource(\$fh))";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Lock key.";
-				$function[] = Indent::_(3) . "self::\$mediumCryptKey = 'none';";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Set the error message.";
-				$function[] = Indent::_(3)
-					. "Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->enqueueMessage(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. CFactory::_('Config')->lang_prefix
-					. "_CONFIG_MEDIUM_KEY_PATH_ERROR'), 'Error');";
-				$function[] = Indent::_(3) . "return false;";
-				$function[] = Indent::_(2) . "}";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Write to the key file";
-				$function[] = Indent::_(2)
-					. "if (!fwrite(\$fh, self::\$mediumCryptKey))";
-				$function[] = Indent::_(2) . "{";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Close key file.";
-				$function[] = Indent::_(3) . "fclose(\$fh);";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Lock key.";
-				$function[] = Indent::_(3) . "self::\$mediumCryptKey = 'none';";
-				$function[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Set the error message.";
-				$function[] = Indent::_(3)
-					. "Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->enqueueMessage(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. CFactory::_('Config')->lang_prefix
-					. "_CONFIG_MEDIUM_KEY_PATH_ERROR'), 'Error');";
-				$function[] = Indent::_(3) . "return false;";
-				$function[] = Indent::_(2) . "}";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Close key file.";
-				$function[] = Indent::_(2) . "fclose(\$fh);";
-				$function[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Key is set.";
-				$function[] = Indent::_(2) . "return true;";
-				$function[] = Indent::_(1) . "}";
-			}
-
-			// return the help methods
-			return implode(PHP_EOL, $function);
-		}
-
-		return '';
+		return CFactory::_('Architecture.ComHelperClass.CryptKey')->get();
 	}
 
 	/**
@@ -18238,4 +17622,3 @@ class Interpretation extends Fields
 		return $matches[1];
 	}
 }
-

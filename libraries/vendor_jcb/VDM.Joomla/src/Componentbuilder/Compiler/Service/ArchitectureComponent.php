@@ -20,11 +20,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\ComHelperClass\
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\ComHelperClass\CreateUser as J4CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\CreateUser as J3CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\CryptKey;
 
 
 /**
  * Architecture Component Helper Class Service Provider
- * 
+ *
  * @since 5.0.2
  */
 class ArchitectureComponent implements ServiceProviderInterface
@@ -64,6 +67,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(ImageType::class, 'Architecture.Component.ImageType')
 			->share('Architecture.Component.ImageType', [$this, 'getImageType'], true);
+
+		$container->alias(LicenseLock::class, 'Architecture.Component.LicenseLock')
+			->share('Architecture.Component.LicenseLock', [$this, 'getLicenseLock'], true);
+
+		$container->alias(Whmcs::class, 'Architecture.Component.Whmcs')
+			->share('Architecture.Component.Whmcs', [$this, 'getWhmcs'], true);
+
+		$container->alias(CryptKey::class, 'Architecture.ComHelperClass.CryptKey')
+			->share('Architecture.ComHelperClass.CryptKey', [$this, 'getCryptKey'], true);
 	}
 
 	/**
@@ -149,6 +161,62 @@ class ArchitectureComponent implements ServiceProviderInterface
 		return new ImageType(
 			$container->get('Utilities.Paths'),
 			$container->get('Utilities.Image')
+		);
+	}
+
+	/**
+	 * Get The LicenseLock Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LicenseLock
+	 * @since   6.1.7
+	 */
+	public function getLicenseLock(Container $container): LicenseLock
+	{
+		return new LicenseLock(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi')
+		);
+	}
+
+	/**
+	 * Get The Whmcs Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Whmcs
+	 * @since   6.1.7
+	 */
+	public function getWhmcs(Container $container): Whmcs
+	{
+		return new Whmcs(
+			$container->get('Component')
+		);
+	}
+
+	/**
+	 * Get The CryptKey Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CryptKey
+	 * @since   6.1.7
+	 */
+	public function getCryptKey(Container $container): CryptKey
+	{
+		return new CryptKey(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Model.Basic.Field'),
+			$container->get('Compiler.Builder.Model.Medium.Field'),
+			$container->get('Compiler.Builder.Model.Whmcs.Field'),
+			$container->get('Utilities.Structure'),
+			$container->get('Architecture.Component.Whmcs')
 		);
 	}
 }
