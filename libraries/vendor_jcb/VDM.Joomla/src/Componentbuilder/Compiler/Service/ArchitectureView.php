@@ -56,7 +56,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLo
 
 /**
  * Architecture View Service Provider
- * 
+ *
  * @since 5.1.4
  */
 class ArchitectureView implements ServiceProviderInterface
@@ -908,4 +908,3 @@ class ArchitectureView implements ServiceProviderInterface
 		);
 	}
 }
-
