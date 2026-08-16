@@ -366,249 +366,53 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.ComHelperClass.ExcelMethods')->get();
 	}
 
+	/**
+	 * set the admin view site menu xml
+	 *
+	 * @param   string  $nameSingleCode
+	 * @param   array   $view
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.AdminView service.
+	 */
 	public function setAdminViewMenu(&$nameSingleCode, &$view)
 	{
-		$xml = '';
-		// build the file target values
-		$target = array('site' => $nameSingleCode);
-		// build the edit.xml file
-		if (CFactory::_('Utilities.Structure')->build($target, 'admin_menu'))
-		{
-			// set the lang
-			$lang = StringHelper::safe(
-				'com_' . CFactory::_('Config')->component_code_name . '_menu_'
-				. $nameSingleCode,
-				'U'
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_TITLE',
-				'Create ' . $view['settings']->name_single
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_OPTION',
-				'Create ' . $view['settings']->name_single
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_DESC',
-				$view['settings']->short_description
-			);
-			//start loading xml
-			$xml = '<?xml version="1.0" encoding="utf-8" ?>';
-			$xml .= PHP_EOL . '<metadata>';
-			$xml .= PHP_EOL . Indent::_(1) . '<layout title="' . $lang
-				. '_TITLE" option="' . $lang . '_OPTION">';
-			$xml .= PHP_EOL . Indent::_(2) . '<message>';
-			$xml .= PHP_EOL . Indent::_(3) . '<![CDATA[' . $lang . '_DESC]]>';
-			$xml .= PHP_EOL . Indent::_(2) . '</message>';
-			$xml .= PHP_EOL . Indent::_(1) . '</layout>';
-			$xml .= PHP_EOL . '</metadata>';
-		}
-		else
-		{
-			$this->app->enqueueMessage(
-				Text::sprintf(
-					'<hr /><p>Site menu for <b>%s</b> was not build.</p>',
-					$nameSingleCode
-				), 'Warning'
-			);
-		}
-
-		return $xml;
+		return CFactory::_('Architecture.Menu.AdminView')
+			->get($nameSingleCode, $view);
 	}
 
+	/**
+	 * set the custom view menu xml
+	 *
+	 * @param   array  $view
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.CustomView service.
+	 */
 	public function setCustomViewMenu(&$view)
 	{
-		$target_area = 'Administrator';
-		if (CFactory::_('Config')->build_target === 'site')
-		{
-			$target_area = 'Site';
-		}
-		$xml = '';
-		// build the file target values
-		$target = array('site' => $view['settings']->code);
-		// build the default.xml file
-		if (CFactory::_('Utilities.Structure')->build($target, 'menu'))
-		{
-			// set the lang
-			$lang = StringHelper::safe(
-				'com_' . CFactory::_('Config')->component_code_name . '_menu_'
-				. $view['settings']->code, 'U'
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_TITLE', $view['settings']->name
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_OPTION', $view['settings']->name
-			);
-			CFactory::_('Language')->set(
-				'adminsys', $lang . '_DESC', $view['settings']->description
-			);
-			//start loading xml
-			$xml = '<?xml version="1.0" encoding="utf-8" ?>';
-			$xml .= PHP_EOL . '<metadata>';
-			$xml .= PHP_EOL . Indent::_(1) . '<layout title="' . $lang
-				. '_TITLE" option="' . $lang . '_OPTION">';
-			$xml .= PHP_EOL . Indent::_(2) . '<message>';
-			$xml .= PHP_EOL . Indent::_(3) . '<![CDATA[' . $lang . '_DESC]]>';
-			$xml .= PHP_EOL . Indent::_(2) . '</message>';
-			$xml .= PHP_EOL . Indent::_(1) . '</layout>';
-			if (CFactory::_('Compiler.Builder.Request')->isArray("id.{$view['settings']->code}")
-				|| CFactory::_('Compiler.Builder.Request')->isArray("catid.{$view['settings']->code}"))
-			{
-				$xml .= PHP_EOL . Indent::_(1) . '<!--' . Line::_(
-						__LINE__,__CLASS__
-					)
-					. ' Add fields to the request variables for the layout. -->';
-				$xml .= PHP_EOL . Indent::_(1) . '<fields name="request">';
-				$xml .= PHP_EOL . Indent::_(2) . '<fieldset name="request"';
-
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$xml .= PHP_EOL . Indent::_(3)
-						. 'addrulepath="/administrator/components/com_'
-						. CFactory::_('Config')->component_code_name . '/models/rules"';
-					$xml .= PHP_EOL . Indent::_(3)
-						. 'addfieldpath="/administrator/components/com_'
-						. CFactory::_('Config')->component_code_name . '/models/fields">';
-				}
-				else
-				{
-					$xml .= PHP_EOL . Indent::_(3)
-						. 'addruleprefix="' . CFactory::_('Config')->namespace_prefix
-						. '\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-						. '\\'. $target_area . '\Rule"';
-					$xml .= PHP_EOL . Indent::_(3)
-						. 'addfieldprefix="' . CFactory::_('Config')->namespace_prefix
-						. '\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-						. '\\'. $target_area . '\Field">';
-				}
-
-				if (CFactory::_('Compiler.Builder.Request')->isArray("id.{$view['settings']->code}"))
-				{
-					foreach (CFactory::_('Compiler.Builder.Request')->
-						get("id.{$view['settings']->code}") as $requestFieldXML)
-					{
-						$xml .= PHP_EOL . Indent::_(3) . $requestFieldXML;
-					}
-				}
-				if (CFactory::_('Compiler.Builder.Request')->isArray("catid.{$view['settings']->code}"))
-				{
-					foreach (CFactory::_('Compiler.Builder.Request')->
-						get("catid.{$view['settings']->code}") as $requestFieldXML)
-					{
-						$xml .= PHP_EOL . Indent::_(3) . $requestFieldXML;
-					}
-				}
-				$xml .= PHP_EOL . Indent::_(2) . '</fieldset>';
-				$xml .= PHP_EOL . Indent::_(1) . '</fields>';
-			}
-			if (CFactory::_('Compiler.Builder.Frontend.Params')->exists($view['settings']->name))
-			{
-				// first we must setup the fields for the page use
-				$params = $this->setupFrontendParamFields(
-					CFactory::_('Compiler.Builder.Frontend.Params')->get($view['settings']->name),
-					$view['settings']->code
-				);
-				// now load the fields
-				if (ArrayHelper::check($params))
-				{
-					$xml .= PHP_EOL . Indent::_(1) . '<!--' . Line::_(
-							__LINE__,__CLASS__
-						) . ' Adding page parameters -->';
-					$xml .= PHP_EOL . Indent::_(1) . '<fields name="params">';
-					$xml .= PHP_EOL . Indent::_(2)
-						. '<fieldset name="basic" label="COM_'
-						. CFactory::_('Compiler.Builder.Content.One')->get('COMPONENT') . '"';
-					if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-					{
-						$xml .= PHP_EOL . Indent::_(3)
-							. 'addrulepath="/administrator/components/com_'
-							. CFactory::_('Config')->component_code_name . '/models/rules"';
-						$xml .= PHP_EOL . Indent::_(3)
-							. 'addfieldpath="/administrator/components/com_'
-							. CFactory::_('Config')->component_code_name . '/models/fields">';
-					}
-					else
-					{
-						$xml .= PHP_EOL . Indent::_(3)
-							. 'addruleprefix="' . CFactory::_('Config')->namespace_prefix
-							. '\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-							. '\\'. $target_area . '\Rule"';
-						$xml .= PHP_EOL . Indent::_(3)
-							. 'addfieldprefix="' . CFactory::_('Config')->namespace_prefix
-							. '\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-							. '\\'. $target_area . '\Field">';
-					}
-					$xml .= implode(Indent::_(3), $params);
-					$xml .= PHP_EOL . Indent::_(2) . '</fieldset>';
-					$xml .= PHP_EOL . Indent::_(1) . '</fields>';
-				}
-			}
-			$xml .= PHP_EOL . '</metadata>';
-		}
-		else
-		{
-			$this->app->enqueueMessage(
-				Text::sprintf(
-					'<hr /><p>Site menu for <b>%s</b> was not build.</p>',
-					$view['settings']->code
-				), 'Warning'
-			);
-		}
-
-		return $xml;
+		return CFactory::_('Architecture.Menu.CustomView')->get($view);
 	}
 
+	/**
+	 * setup the frontend param fields
+	 *
+	 * @param   array   $params
+	 * @param   string  $view
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.CustomView service.
+	 */
 	public function setupFrontendParamFields($params, $view)
 	{
-		$keep       = [];
-		$menuSetter = $view . '_menu';
-		foreach ($params as $field)
-		{
-			// some switch to see if it should be added to front end params
-			$target = GetHelper::between(
-				$field, 'display="', '"'
-			);
-			if (!StringHelper::check($target)
-				|| $target === 'menu')
-			{
-				$field = str_replace('display="menu"', '', (string) $field);
-				// we update fields that have options if not only added to menu
-				if ($target !== 'menu'
-					&& strpos($field, 'Option Set. -->') !== false
-					&& strpos($field, $menuSetter) === false
-					&& !StringHelper::check($target))
-				{
-					// we add the global option
-					$field = str_replace(
-						'Option Set. -->',
-						Line::_(__Line__, __Class__) . ' Global & Option Set. -->'
-						. PHP_EOL . Indent::_(3) . '<option value="">' . PHP_EOL
-						. Indent::_(4) . 'JGLOBAL_USE_GLOBAL</option>', $field
-					);
-					// update the default to be global
-					$field = preg_replace(
-						'/default=".+"/', 'default=""', $field
-					);
-					// update the default to be filter
-					$field = preg_replace(
-						'/filter=".+"/', 'filter="string"', $field
-					);
-					// update required
-					$field = str_replace(
-						'required="true"', 'required="false"', $field
-					);
-					// add to keeper array
-					$keep[] = $field;
-				}
-				else
-				{
-					$keep[] = $field;
-				}
-			}
-		}
-
-		return $keep;
+		return CFactory::_('Architecture.Menu.CustomView')
+			->params($params, $view);
 	}
 
 	/**

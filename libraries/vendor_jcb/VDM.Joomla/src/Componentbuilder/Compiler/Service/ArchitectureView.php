@@ -52,6 +52,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\ItemCo
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\Link;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkAuthority;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLogic;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Menu\CustomView as J6MenuCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Menu\CustomView as J5MenuCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Menu\CustomView as J4MenuCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
 
 
 /**
@@ -201,6 +207,24 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkLogic::class, 'Architecture.AdminViews.ListItem.LinkLogic')
 			->share('Architecture.AdminViews.ListItem.LinkLogic', [$this, 'getAdminViewsListItemLinkLogic'], true);
+
+		$container->alias(MenuAdminView::class, 'Architecture.Menu.AdminView')
+			->share('Architecture.Menu.AdminView', [$this, 'getMenuAdminView'], true);
+
+		$container->alias(MenuCustomViewInterface::class, 'Architecture.Menu.CustomView')
+			->share('Architecture.Menu.CustomView', [$this, 'getMenuCustomView'], true);
+
+		$container->alias(J6MenuCustomView::class, 'Architecture.Menu.J6.CustomView')
+			->share('Architecture.Menu.J6.CustomView', [$this, 'getJ6MenuCustomView'], true);
+
+		$container->alias(J5MenuCustomView::class, 'Architecture.Menu.J5.CustomView')
+			->share('Architecture.Menu.J5.CustomView', [$this, 'getJ5MenuCustomView'], true);
+
+		$container->alias(J4MenuCustomView::class, 'Architecture.Menu.J4.CustomView')
+			->share('Architecture.Menu.J4.CustomView', [$this, 'getJ4MenuCustomView'], true);
+
+		$container->alias(J3MenuCustomView::class, 'Architecture.Menu.J3.CustomView')
+			->share('Architecture.Menu.J3.CustomView', [$this, 'getJ3MenuCustomView'], true);
 	}
 
 	/**
@@ -905,6 +929,121 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new LinkLogic(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The Menu AdminView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuAdminView
+	 * @since   6.1.7
+	 */
+	public function getMenuAdminView(Container $container): MenuAdminView
+	{
+		return new MenuAdminView(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The Menu CustomView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuCustomViewInterface
+	 * @since   6.1.7
+	 */
+	public function getMenuCustomView(Container $container): MenuCustomViewInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.Menu.J' . $this->targetVersion . '.CustomView');
+	}
+
+	/**
+	 * Get The Menu CustomView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6MenuCustomView
+	 * @since   6.1.7
+	 */
+	public function getJ6MenuCustomView(Container $container): J6MenuCustomView
+	{
+		return new J6MenuCustomView(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Frontend.Params'),
+			$container->get('Compiler.Builder.Request'),
+			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The Menu CustomView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5MenuCustomView
+	 * @since   6.1.7
+	 */
+	public function getJ5MenuCustomView(Container $container): J5MenuCustomView
+	{
+		return new J5MenuCustomView(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Frontend.Params'),
+			$container->get('Compiler.Builder.Request'),
+			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The Menu CustomView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4MenuCustomView
+	 * @since   6.1.7
+	 */
+	public function getJ4MenuCustomView(Container $container): J4MenuCustomView
+	{
+		return new J4MenuCustomView(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Frontend.Params'),
+			$container->get('Compiler.Builder.Request'),
+			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The Menu CustomView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3MenuCustomView
+	 * @since   6.1.7
+	 */
+	public function getJ3MenuCustomView(Container $container): J3MenuCustomView
+	{
+		return new J3MenuCustomView(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Frontend.Params'),
+			$container->get('Compiler.Builder.Request'),
+			$container->get('Utilities.Structure')
 		);
 	}
 }

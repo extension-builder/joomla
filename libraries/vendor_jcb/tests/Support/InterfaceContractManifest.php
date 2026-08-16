@@ -101,6 +101,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '094bdd739552998b80d6a3896229a05636dd3777acc87301358066a39c099fcc',
 			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Menu\\CustomViewInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Menu/CustomViewInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => '4d3489b3cde8ef07e3ef273909da12d6e5eb55fa994e9083cd571a3b041a828f',
+			'signature_hash' => 'e634946193b7824d22820d442104ddd7c52763347937c99b3bf95359b267abd4'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Model\\AllowEditInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Model/AllowEditInterface.php',
 			'implementations' => 5,
