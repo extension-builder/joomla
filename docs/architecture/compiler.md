@@ -288,11 +288,12 @@ callers.
 
 ### Architecture target families
 
-The 25 target-selected Architecture families are:
+The 26 target-selected Architecture families are:
 
 | Objective | Stable families |
 | --- | --- |
 | Component helper | `Architecture.ComHelperClass.CreateUser`, `Architecture.ComHelperClass.ExcelMethods` |
+| View menus | `Architecture.Menu.CustomView` |
 | Model | `AllowEdit`, `CanDelete`, `CanEditState`, `CheckInNow` |
 | Admin single/list view | single `AddToolBar`, single `AddModalToolBar`, plural `AddToolBar` |
 | Site/custom views | site `AddToolBar`, custom single `AddToolBar`, custom plural `AddToolBar` |
@@ -302,11 +303,13 @@ The 25 target-selected Architecture families are:
 | Plugin | `Extension`, `Provider`, `MainXML` |
 
 Each family has J3/J4/J5/J6 concrete services. Singular and plural
-CustomAdminView toolbar services share one custom-admin interface, so 25
-families correspond to 24 effective Architecture contracts. The
-`ExcelMethods` family extracted from the legacy helper keeps its shared
-mechanics in `Architecture/ComHelperClass/ExcelMethods` and uses thin
-target variants for the user-lookup difference.
+CustomAdminView toolbar services share one custom-admin interface, so 26
+families correspond to 25 effective Architecture contracts. The
+`ExcelMethods` and `Menu.CustomView` families extracted from the legacy
+helper keep their shared mechanics outside the version folders and use
+thin target variants for the user-lookup and fieldset-path differences.
+The unversioned `Architecture.Menu.AdminView` service builds the admin
+view site menu beside that family.
 
 ## Interfaces and aliases are the stable seam
 

@@ -135,6 +135,8 @@ services and remain in the helper only as delegating shims:
 | `setVersionController`, `setDynamicUpdateXMLSQL`, `setUpdateXMLSQL` | `Extension.VersionUpdate` (the shims synchronize the legacy public `$lastupdateURL` property with the service state in both directions) |
 | `setHelperExelMethods` | `Architecture.ComHelperClass.ExcelMethods` (J3/J4/J5/J6 target family; the lost Joomla 4+ user assignment is preserved and recorded in the known-defect ledger) |
 | `setUikitHelperMethods` | `Architecture.ComHelperClass.UikitMethods` |
+| `setAdminViewMenu` | `Architecture.Menu.AdminView` |
+| `setCustomViewMenu`, `setupFrontendParamFields` | `Architecture.Menu.CustomView` (J3/J4/J5/J6 target family for the fieldset rule/field lookup attributes) |
 
 Each extraction ships with unit or family-contract tests, provider catalog
 and interface-conformance fixture updates, and test-ownership entries. Use
