@@ -836,6 +836,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Menu/CustomView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -935,6 +939,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Dashboard/View.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Menu/CustomView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Model/AllowEdit.php' => [
 		'mode' => 'contract',
@@ -1036,6 +1044,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Menu/CustomView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -1136,6 +1148,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Menu/CustomView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -1191,6 +1207,14 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/SiteView/AddToolBar.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/AdminView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/CustomView.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AllowEdit.php' => [
 		'mode' => 'contract',
@@ -2129,6 +2153,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Dashboard/ViewInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Menu/CustomViewInterface.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
