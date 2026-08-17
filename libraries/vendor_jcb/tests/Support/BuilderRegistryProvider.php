@@ -68,6 +68,7 @@ final class BuilderRegistryProvider
 		'DynamicButtons',
 		'DynamicFields',
 		'EventDispatcher',
+		'EximportView',
 		'ExtensionCustomFields',
 		'ExtensionsParams',
 		'FieldGroupControl',

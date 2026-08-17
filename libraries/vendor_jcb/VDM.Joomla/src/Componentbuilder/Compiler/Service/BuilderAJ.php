@@ -48,6 +48,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\DynamicButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\EventDispatcher;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DoNotEscape;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DynamicFields;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\EximportView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ExtensionCustomFields;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ExtensionsParams;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldGroupControl;
@@ -73,7 +74,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\JsonString;
 
 /**
  * Builder A-J Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class BuilderAJ implements ServiceProviderInterface
@@ -189,6 +190,9 @@ class BuilderAJ implements ServiceProviderInterface
 
 		$container->alias(DynamicFields::class, 'Compiler.Builder.Dynamic.Fields')
 			->share('Compiler.Builder.Dynamic.Fields', [$this, 'getDynamicFields'], true);
+
+		$container->alias(EximportView::class, 'Compiler.Builder.Eximport.View')
+			->share('Compiler.Builder.Eximport.View', [$this, 'getEximportView'], true);
 
 		$container->alias(ExtensionCustomFields::class, 'Compiler.Builder.Extension.Custom.Fields')
 			->share('Compiler.Builder.Extension.Custom.Fields', [$this, 'getExtensionCustomFields'], true);
@@ -642,6 +646,19 @@ class BuilderAJ implements ServiceProviderInterface
 	public function getDoNotEscape(Container $container): DoNotEscape
 	{
 		return new DoNotEscape();
+	}
+
+	/**
+	 * Get The EximportView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  EximportView
+	 * @since   6.1.7
+	 */
+	public function getEximportView(Container $container): EximportView
+	{
+		return new EximportView();
 	}
 
 	/**
