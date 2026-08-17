@@ -6868,193 +6868,33 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * Build the show, hide and required statements for every target field.
+	 *
+	 * @param   bool    $toggleSwitch    Whether the required attribute is toggled rather than set once.
+	 * @param   mixed   $targets         The target fields.
+	 * @param   string  $targetBehavior  The jQuery call that reveals a target.
+	 * @param   string  $targetDefault   The jQuery call that returns a target to its default.
+	 * @param   string  $uniqueVar       The unique key of the condition being built.
+	 * @param   string  $nameSingleCode  The single view code name.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.TargetControlsScript service.
+	 */
 	public function setTargetControlsScript($toggleSwitch, $targets,
-	                                        $targetBehavior, $targetDefault, $uniqueVar, $nameSingleCode
-	)
+		$targetBehavior, $targetDefault, $uniqueVar, $nameSingleCode)
 	{
-		$bucket = [];
-		if (ArrayHelper::check($targets)
-			&& !in_array(
-				$uniqueVar, $this->targetControlsScriptChecker
-			))
-		{
-			foreach ($targets as $target)
-			{
-				if (ArrayHelper::check($target))
-				{
-					// set the required var
-					if ($target['required'] === 'yes')
-					{
-						$unique                                 = $uniqueVar
-							. Unique::get(3);
-						$bucket[$target['name']]['requiredVar'] = "jform_"
-							. $unique . "_required = false;" . PHP_EOL;
-					}
-					else
-					{
-						$bucket[$target['name']]['requiredVar'] = '';
-					}
-					// set target type
-					$targetTypeSufix = "";
-					if (CFactory::_('Field.Groups')->check(
-						$target['type'], 'spacer'
-					))
-					{
-						// target a class if this is a note or spacer
-						$targetType = ".";
-					}
-					elseif ($target['type'] === 'editor'
-						|| $target['type'] === 'subform')
-					{
-						// target the label if  editor field
-						$targetType = "#jform_";
-						// since the id is not alway accessable we use the lable TODO (not best way)
-						$targetTypeSufix = "-lbl";
-					}
-					else
-					{
-						// target an id if this is a field
-						$targetType = "#jform_";
-					}
-					// set the target behavior
-					$bucket[$target['name']]['behavior'] = PHP_EOL . Indent::_(
-							2
-						) . "jQuery('" . $targetType . $target['name']
-						. $targetTypeSufix . "').closest('.control-group')."
-						. $targetBehavior . "();";
-					// set the target default
-					$bucket[$target['name']]['default'] = PHP_EOL . Indent::_(2)
-						. "jQuery('" . $targetType . $target['name']
-						. $targetTypeSufix . "').closest('.control-group')."
-						. $targetDefault . "();";
-					// the hide required function
-					if ($target['required'] === 'yes')
-					{
-						if ($toggleSwitch)
-						{
-							$hide                            = PHP_EOL
-								. Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-								. " remove required attribute from "
-								. $target['name'] . " field";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "if (!jform_" . $unique
-								. "_required)";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "{";
-							$hide                            .= PHP_EOL
-								. Indent::_(3) . "updateFieldRequired('"
-								. $target['name'] . "',1);";
-							$hide                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeAttr('required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeAttr('aria-required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeClass('required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(3) . "jform_" . $unique
-								. "_required = true;";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "}";
-							$bucket[$target['name']]['hide'] = $hide;
-							// the show required function
-							$show                            = PHP_EOL
-								. Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-								. " add required attribute to "
-								. $target['name'] . " field";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "if (jform_" . $unique
-								. "_required)";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "{";
-							$show                            .= PHP_EOL
-								. Indent::_(3) . "updateFieldRequired('"
-								. $target['name'] . "',0);";
-							$show                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name']
-								. "').prop('required','required');";
-							$show                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name']
-								. "').attr('aria-required',true);";
-							$show                            .= PHP_EOL
-								. Indent::_(3) . "jQuery('#jform_"
-								. $target['name'] . "').addClass('required');";
-							$show                            .= PHP_EOL
-								. Indent::_(3) . "jform_" . $unique
-								. "_required = false;";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "}";
-							$bucket[$target['name']]['show'] = $show;
-						}
-						else
-						{
-							$hide                            = PHP_EOL
-								. Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-								. " remove required attribute from "
-								. $target['name'] . " field";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "updateFieldRequired('"
-								. $target['name'] . "',1);";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeAttr('required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeAttr('aria-required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name']
-								. "').removeClass('required');";
-							$hide                            .= PHP_EOL
-								. Indent::_(2) . "jform_" . $unique
-								. "_required = true;" . PHP_EOL;
-							$bucket[$target['name']]['hide'] = $hide;
-							// the show required function
-							$show                            = PHP_EOL
-								. Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-								. " add required attribute to "
-								. $target['name'] . " field";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "updateFieldRequired('"
-								. $target['name'] . "',0);";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name']
-								. "').prop('required','required');";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name']
-								. "').attr('aria-required',true);";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "jQuery('#jform_"
-								. $target['name'] . "').addClass('required');";
-							$show                            .= PHP_EOL
-								. Indent::_(2) . "jform_" . $unique
-								. "_required = false;" . PHP_EOL;
-							$bucket[$target['name']]['show'] = $show;
-						}
-						// make sure that the axaj and other needed things for this view is loaded
-						$this->validationFixBuilder[$nameSingleCode][]
-							= $target['name'];
-					}
-					else
-					{
-						$bucket[$target['name']]['hide'] = '';
-						$bucket[$target['name']]['show'] = '';
-					}
-				}
-			}
-			$this->targetControlsScriptChecker[] = $uniqueVar;
-		}
+		$bucket = CFactory::_('Architecture.Field.TargetControlsScript')->get(
+			(bool) $toggleSwitch, $targets, (string) $targetBehavior,
+			(string) $targetDefault, (string) $uniqueVar,
+			(string) $nameSingleCode
+		);
+
+		// the methods still on this helper read the fixes off this property
+		$this->validationFixBuilder = CFactory::_('Compiler.Builder.Validation.Fix')
+			->allActive();
 
 		return $bucket;
 	}

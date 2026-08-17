@@ -71,6 +71,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\TemplateData;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UikitComp;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UpdateMysql;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
 
 
@@ -262,6 +263,9 @@ class BuilderLZ implements ServiceProviderInterface
 		$container->alias(UpdateMysql::class, 'Compiler.Builder.Update.Mysql')
 			->share('Compiler.Builder.Update.Mysql', [$this, 'getUpdateMysql'], true);
 
+
+		$container->alias(ValidationFix::class, 'Compiler.Builder.Validation.Fix')
+			->share('Compiler.Builder.Validation.Fix', [$this, 'getValidationFix'], true);
 		$container->alias(ViewsDefaultOrdering::class, 'Compiler.Builder.Views.Default.Ordering')
 			->share('Compiler.Builder.Views.Default.Ordering', [$this, 'getViewsDefaultOrdering'], true);
 	}
@@ -979,6 +983,19 @@ class BuilderLZ implements ServiceProviderInterface
 	public function getUikitComp(Container $container): UikitComp
 	{
 		return new UikitComp();
+	}
+
+	/**
+	 * Get The ValidationFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ValidationFix
+	 * @since   6.1.7
+	 */
+	public function getValidationFix(Container $container): ValidationFix
+	{
+		return new ValidationFix();
 	}
 
 	/**

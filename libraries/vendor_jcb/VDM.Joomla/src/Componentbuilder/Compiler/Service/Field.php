@@ -26,6 +26,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\UniqueName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Rule;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Customcode;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\CustomFieldCode;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\TargetControlsScript;
 use VDM\Joomla\Componentbuilder\Compiler\Field\DatabaseName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaThree\CoreField as J3CoreField;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaFour\CoreField as J4CoreField;
@@ -105,6 +106,9 @@ class Field implements ServiceProviderInterface
 		$container->alias(CustomFieldCode::class, 'Architecture.Field.CustomFieldCode')
 			->share('Architecture.Field.CustomFieldCode', [$this, 'getCustomFieldCode'], true);
 
+
+		$container->alias(TargetControlsScript::class, 'Architecture.Field.TargetControlsScript')
+			->share('Architecture.Field.TargetControlsScript', [$this, 'getTargetControlsScript'], true);
 		$container->alias(DatabaseName::class, 'Field.Database.Name')
 			->share('Field.Database.Name', [$this, 'getDatabaseName'], true);
 
@@ -340,6 +344,22 @@ class Field implements ServiceProviderInterface
 	{
 		return new CustomFieldCode(
 			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The TargetControlsScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  TargetControlsScript
+	 * @since   6.1.7
+	 */
+	public function getTargetControlsScript(Container $container): TargetControlsScript
+	{
+		return new TargetControlsScript(
+			$container->get('Field.Groups'),
+			$container->get('Compiler.Builder.Validation.Fix')
 		);
 	}
 
