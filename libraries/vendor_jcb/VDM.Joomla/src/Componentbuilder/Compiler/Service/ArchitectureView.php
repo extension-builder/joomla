@@ -63,6 +63,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\Lis
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface as LinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListBody as SharedLinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListBody as J3LinkedViewListBody;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\BuilderInterface as LinkedViewBuilder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\Builder as SharedLinkedViewBuilder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\Builder as J3LinkedViewBuilder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\LinkedView\Builder as J4LinkedViewBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface as AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface as AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedAdminViewFootableScripts;
@@ -263,6 +267,18 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3LinkedViewListBody::class, 'Architecture.LinkedView.J3.ListBody')
 			->share('Architecture.LinkedView.J3.ListBody', [$this, 'getJ3LinkedViewListBody'], true);
+
+		$container->alias(LinkedViewBuilder::class, 'Architecture.LinkedView.Builder')
+			->share('Architecture.LinkedView.Builder', [$this, 'getLinkedViewBuilder'], true);
+
+		$container->alias(SharedLinkedViewBuilder::class, 'Architecture.LinkedView.Shared.Builder')
+			->share('Architecture.LinkedView.Shared.Builder', [$this, 'getSharedLinkedViewBuilder'], true);
+
+		$container->alias(J3LinkedViewBuilder::class, 'Architecture.LinkedView.J3.Builder')
+			->share('Architecture.LinkedView.J3.Builder', [$this, 'getJ3LinkedViewBuilder'], true);
+
+		$container->alias(J4LinkedViewBuilder::class, 'Architecture.LinkedView.J4.Builder')
+			->share('Architecture.LinkedView.J4.Builder', [$this, 'getJ4LinkedViewBuilder'], true);
 
 		$container->alias(AdminViewEditBody::class, 'Architecture.AdminView.EditBody')
 			->share('Architecture.AdminView.EditBody', [$this, 'getAdminViewEditBody'], true);
@@ -1235,6 +1251,100 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.AdminViews.ListLink'),
 			$container->get('Compiler.Builder.Do.Not.Escape'),
 			$container->get('Compiler.Builder.Field.Names')
+		);
+	}
+
+	/**
+	 * Get The LinkedView Builder Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LinkedViewBuilder
+	 * @since   6.1.7
+	 */
+	public function getLinkedViewBuilder(Container $container): LinkedViewBuilder
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// Joomla 3 takes its input from the global application and reaches a
+		// new record through the edit task
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.LinkedView.J3.Builder');
+		}
+
+		// seeding a new record from the parent guid arrived in Joomla 5
+		if ((int) $this->targetVersion === 4)
+		{
+			return $container->get('Architecture.LinkedView.J4.Builder');
+		}
+
+		return $container->get('Architecture.LinkedView.Shared.Builder');
+	}
+
+	/**
+	 * Get The LinkedView Builder Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedLinkedViewBuilder
+	 * @since   6.1.7
+	 */
+	public function getSharedLinkedViewBuilder(Container $container): SharedLinkedViewBuilder
+	{
+		return new SharedLinkedViewBuilder(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.AdminView.FootableScripts'),
+			$container->get('Architecture.LinkedView.ListBody'),
+			$container->get('Architecture.LinkedView.ListHead'),
+			$container->get('Architecture.LinkedView.ListQuery')
+		);
+	}
+
+	/**
+	 * Get The LinkedView Builder Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3LinkedViewBuilder
+	 * @since   6.1.7
+	 */
+	public function getJ3LinkedViewBuilder(Container $container): J3LinkedViewBuilder
+	{
+		return new J3LinkedViewBuilder(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.AdminView.FootableScripts'),
+			$container->get('Architecture.LinkedView.ListBody'),
+			$container->get('Architecture.LinkedView.ListHead'),
+			$container->get('Architecture.LinkedView.ListQuery')
+		);
+	}
+
+	/**
+	 * Get The LinkedView Builder Class for Joomla 4.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4LinkedViewBuilder
+	 * @since   6.1.7
+	 */
+	public function getJ4LinkedViewBuilder(Container $container): J4LinkedViewBuilder
+	{
+		return new J4LinkedViewBuilder(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.AdminView.FootableScripts'),
+			$container->get('Architecture.LinkedView.ListBody'),
+			$container->get('Architecture.LinkedView.ListHead'),
+			$container->get('Architecture.LinkedView.ListQuery')
 		);
 	}
 
