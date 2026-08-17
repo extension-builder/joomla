@@ -54,6 +54,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkAu
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLogic;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ViewBody as J6AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ViewBody as J5AdminViewsViewBody;
@@ -228,6 +230,12 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkLogic::class, 'Architecture.AdminViews.ListItem.LinkLogic')
 			->share('Architecture.AdminViews.ListItem.LinkLogic', [$this, 'getAdminViewsListItemLinkLogic'], true);
+
+		$container->alias(AdminViewFadeInEffect::class, 'Architecture.AdminView.FadeInEffect')
+			->share('Architecture.AdminView.FadeInEffect', [$this, 'getAdminViewFadeInEffect'], true);
+
+		$container->alias(LayoutView::class, 'Architecture.Layout.View')
+			->share('Architecture.Layout.View', [$this, 'getLayoutView'], true);
 
 		$container->alias(AdminViewsListLink::class, 'Architecture.AdminViews.ListLink')
 			->share('Architecture.AdminViews.ListLink', [$this, 'getAdminViewsListLink'], true);
@@ -1013,6 +1021,42 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new LinkLogic(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AdminView FadeInEffect Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewFadeInEffect
+	 * @since   6.1.7
+	 */
+	public function getAdminViewFadeInEffect(Container $container): AdminViewFadeInEffect
+	{
+		return new AdminViewFadeInEffect(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The Layout View Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LayoutView
+	 * @since   6.1.7
+	 */
+	public function getLayoutView(Container $container): LayoutView
+	{
+		return new LayoutView(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Layout.Data'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Header'),
+			$container->get('Utilities.Structure')
 		);
 	}
 
