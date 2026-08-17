@@ -92,6 +92,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Model/CanEditState' => $all,
 			'Model/CheckInNow' => $all,
 			'Model/ItemsStringFix' => $legacy,
+			'Model/ListQuery' => $legacy,
 			'LinkedView/Builder' => ['JoomlaThree', 'JoomlaFour'],
 			'LinkedView/ListBody' => $legacy,
 			'LinkedView/ListQuery' => $legacy,
@@ -107,7 +108,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(37, $families);
+		$this->assertCount(38, $families);
 
 		foreach ($families as $family => $diverging)
 		{
