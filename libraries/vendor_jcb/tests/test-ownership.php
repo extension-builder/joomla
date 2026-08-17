@@ -4377,8 +4377,8 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Power/RepositoryConfigurationTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Power/Parser.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Power/GenerationContractTest.php'
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Power/ParserTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Power/Plantuml.php' => [
 		'mode' => 'contract',
