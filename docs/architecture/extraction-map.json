@@ -613,6 +613,15 @@
       "Architecture/Model/SearchQuery.php"
     ]
   },
+  "setTargetControlsScript": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Field/TargetControlsScript.php",
+        "matched": 6
+      }
+    ]
+  },
   "setUikitHelperMethods": {
     "fingerprints": 6,
     "moved_into": [
