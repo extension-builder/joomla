@@ -2219,187 +2219,19 @@ class Interpretation extends Fields
 		return $script;
 	}
 
+	/**
+	 * build the save method of an admin edit view model
+	 *
+	 * @param   string  $view  The single view name
+	 *
+	 * @return  string The php to place in the model
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.ItemSave service.
+	 */
 	public function setMethodItemSave(&$view)
 	{
-		$script = '';
-		// get component name
-		$Component = CFactory::_('Compiler.Builder.Content.One')->get('Component');
-		$component = CFactory::_('Config')->component_code_name;
-		// check if there was script added before modeling of data
-		$script .= CFactory::_('Customcode.Dispenser')->get(
-			'php_before_save', $view, PHP_EOL . PHP_EOL
-		);
-		// turn array into JSON string
-		if (CFactory::_('Compiler.Builder.Json.Item')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Json.Item')->get($view) as $jsonItem)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Set the " . $jsonItem
-					. " items to data.";
-				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-					. $jsonItem . "']) && is_array(\$data['" . $jsonItem
-					. "']))";
-				$script .= PHP_EOL . Indent::_(2) . "{";
-				$script .= PHP_EOL . Indent::_(3) . "\$" . $jsonItem
-					. " = new Registry;";
-				$script .= PHP_EOL . Indent::_(3) . "\$" . $jsonItem
-					. "->loadArray(\$data['" . $jsonItem . "']);";
-				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $jsonItem
-					. "'] = (string) \$" . $jsonItem . ";";
-				$script .= PHP_EOL . Indent::_(2) . "}";
-				if (CFactory::_('Compiler.Builder.Permission.Fields')->isArray("$view.$jsonItem"))
-				{
-					$script .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						)
-						. " Also check permission since the value may be removed due to permissions";
-					$script .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						)
-						. " Then we do not want to clear it out, but simple ignore the empty "
-						. $jsonItem;
-					$script .= PHP_EOL . Indent::_(2)
-						. "elseif (!isset(\$data['" . $jsonItem . "'])";
-					// only add permission that are available
-					foreach (CFactory::_('Compiler.Builder.Permission.Fields')->get("$view.$jsonItem")
-						as $permission_option => $fieldType
-					)
-					{
-						if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-						{
-							$script .= PHP_EOL . Indent::_(3)
-								. "&& Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser()->authorise('" . $view
-								. "." . $permission_option . "." . $jsonItem
-								. "', 'com_" . $component . "')";
-						}
-						else
-						{
-							$script .= PHP_EOL . Indent::_(3)
-								. "&& Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity()->authorise('" . $view
-								. "." . $permission_option . "." . $jsonItem
-								. "', 'com_" . $component . "')";
-						}
-					}
-					$script .= ")";
-				}
-				else
-				{
-					$script .= PHP_EOL . Indent::_(2)
-						. "elseif (!isset(\$data['" . $jsonItem . "']))";
-				}
-				$script .= PHP_EOL . Indent::_(2) . "{";
-				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Set the empty " . $jsonItem . " to data";
-				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $jsonItem
-					. "'] = '';";
-				$script .= PHP_EOL . Indent::_(2) . "}";
-			}
-		}
-		// turn string into json string
-		if (CFactory::_('Compiler.Builder.Json.String')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Json.String')->get($view) as $jsonString)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Set the " . $jsonString
-					. " string to JSON string.";
-				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-					. $jsonString . "']))";
-				$script .= PHP_EOL . Indent::_(2) . "{";
-				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $jsonString
-					. "'] = (string) json_encode(\$data['" . $jsonString
-					. "']);";
-				$script .= PHP_EOL . Indent::_(2) . "}";
-			}
-		}
-		// turn string into base 64 string
-		if (CFactory::_('Compiler.Builder.Base.Six.Four')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Base.Six.Four')->get($view) as $baseString)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Set the " . $baseString
-					. " string to base64 string.";
-				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-					. $baseString . "']))";
-				$script .= PHP_EOL . Indent::_(2) . "{";
-				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $baseString
-					. "'] = base64_encode(\$data['" . $baseString . "']);";
-				$script .= PHP_EOL . Indent::_(2) . "}";
-			}
-		}
-		// turn string into encrypted string
-		foreach (CFactory::_('Config')->cryption_types as $cryptionType)
-		{
-			if (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->
-				exists($view))
-			{
-				if ('expert' !== $cryptionType)
-				{
-					$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-						. Line::_(__Line__, __Class__) . " Get the " . $cryptionType
-						. " encryption key.";
-					$script .= PHP_EOL . Indent::_(2) . "\$" . $cryptionType
-						. "key = " . $Component . "Helper::getCryptKey('"
-						. $cryptionType . "');";
-					$script .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Get the encryption object";
-					$script .= PHP_EOL . Indent::_(2) . "\$" . $cryptionType
-						. " = new Super_" . "__99175f6d_dba8_4086_8a65_5c4ec175e61d___Power(\$" . $cryptionType . "key);";
-					foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->
-						get($view) as $baseString)
-					{
-						$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-							. Line::_(__Line__, __Class__) . " Encrypt data "
-							. $baseString . ".";
-						$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-							. $baseString . "']) && \$" . $cryptionType
-							. "key)";
-						$script .= PHP_EOL . Indent::_(2) . "{";
-						$script .= PHP_EOL . Indent::_(3) . "\$data['"
-							. $baseString . "'] = \$" . $cryptionType
-							. "->encryptString(\$data['" . $baseString . "']);";
-						$script .= PHP_EOL . Indent::_(2) . "}";
-					}
-				}
-				else
-				{
-					if (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field.Initiator')->
-						exists("{$view}.save"))
-					{
-						foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field.Initiator')->
-							get("{$view}.save") as $block)
-						{
-							$script .= PHP_EOL . Indent::_(2) . implode(
-								PHP_EOL . Indent::_(2), $block
-							);
-						}
-					}
-					// set the expert script
-					foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->
-						get($view) as $baseString => $locker_)
-					{
-						$_placeholder_for_field
-							= array('[[[field]]]' => "\$data['"
-							. $baseString . "']");
-						$script .= CFactory::_('Placeholder')->update(
-							PHP_EOL . Indent::_(2) . implode(
-								PHP_EOL . Indent::_(2), $locker_['save']
-							), $_placeholder_for_field
-						);
-					}
-				}
-			}
-		}
-		// add custom PHP to the save method
-		$script .= CFactory::_('Customcode.Dispenser')->get(
-			'php_save', $view, PHP_EOL . PHP_EOL
-		);
-
-		return $script;
+		return CFactory::_('Architecture.Model.ItemSave')->get($view);
 	}
 
 	public function setJtableConstructor(&$view)

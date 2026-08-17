@@ -95,6 +95,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Model/BatchCopy' => $legacy,
 			'Model/BatchMove' => $legacy,
 			'Model/GetForm' => $legacy,
+			'Model/ItemSave' => $legacy,
 			'Model/ItemsMethod' => $legacy,
 			'Model/ItemsStringFix' => $legacy,
 			'Model/ListQuery' => $legacy,
@@ -113,7 +114,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(43, $families);
+		$this->assertCount(44, $families);
 
 		foreach ($families as $family => $diverging)
 		{
