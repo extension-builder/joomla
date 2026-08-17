@@ -17,6 +17,12 @@ use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface as ModelBatchCopy;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchCopy as SharedModelBatchCopy;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\BatchCopy as J3ModelBatchCopy;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchMoveInterface as ModelBatchMove;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchMove as SharedModelBatchMove;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\BatchMove as J3ModelBatchMove;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface as ModelGetForm;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetForm as SharedModelGetForm;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\GetForm as J3ModelGetForm;
@@ -112,6 +118,24 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelListQuery::class, 'Architecture.Model.J3.ListQuery')
 			->share('Architecture.Model.J3.ListQuery', [$this, 'getJ3ModelListQuery'], true);
+
+		$container->alias(ModelBatchCopy::class, 'Architecture.Model.BatchCopy')
+			->share('Architecture.Model.BatchCopy', [$this, 'getModelBatchCopy'], true);
+
+		$container->alias(SharedModelBatchCopy::class, 'Architecture.Model.Shared.BatchCopy')
+			->share('Architecture.Model.Shared.BatchCopy', [$this, 'getSharedModelBatchCopy'], true);
+
+		$container->alias(J3ModelBatchCopy::class, 'Architecture.Model.J3.BatchCopy')
+			->share('Architecture.Model.J3.BatchCopy', [$this, 'getJ3ModelBatchCopy'], true);
+
+		$container->alias(ModelBatchMove::class, 'Architecture.Model.BatchMove')
+			->share('Architecture.Model.BatchMove', [$this, 'getModelBatchMove'], true);
+
+		$container->alias(SharedModelBatchMove::class, 'Architecture.Model.Shared.BatchMove')
+			->share('Architecture.Model.Shared.BatchMove', [$this, 'getSharedModelBatchMove'], true);
+
+		$container->alias(J3ModelBatchMove::class, 'Architecture.Model.J3.BatchMove')
+			->share('Architecture.Model.J3.BatchMove', [$this, 'getJ3ModelBatchMove'], true);
 
 		$container->alias(ModelGetForm::class, 'Architecture.Model.GetForm')
 			->share('Architecture.Model.GetForm', [$this, 'getModelGetForm'], true);
@@ -517,6 +541,136 @@ class ArchitectureModel implements ServiceProviderInterface
 	 * @return  ModelGetForm
 	 * @since   6.1.7
 	 */
+	/**
+	 * Get The BatchCopy Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelBatchCopy
+	 * @since   6.1.7
+	 */
+	public function getModelBatchCopy(Container $container): ModelBatchCopy
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes the current user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.BatchCopy');
+		}
+
+		return $container->get('Architecture.Model.Shared.BatchCopy');
+	}
+
+	/**
+	 * Get The BatchCopy Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelBatchCopy
+	 * @since   6.1.7
+	 */
+	public function getSharedModelBatchCopy(Container $container): SharedModelBatchCopy
+	{
+		return new SharedModelBatchCopy(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Title')
+		);
+	}
+
+	/**
+	 * Get The BatchCopy Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelBatchCopy
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelBatchCopy(Container $container): J3ModelBatchCopy
+	{
+		return new J3ModelBatchCopy(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Title')
+		);
+	}
+
+	/**
+	 * Get The BatchMove Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelBatchMove
+	 * @since   6.1.7
+	 */
+	public function getModelBatchMove(Container $container): ModelBatchMove
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes the current user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.BatchMove');
+		}
+
+		return $container->get('Architecture.Model.Shared.BatchMove');
+	}
+
+	/**
+	 * Get The BatchMove Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelBatchMove
+	 * @since   6.1.7
+	 */
+	public function getSharedModelBatchMove(Container $container): SharedModelBatchMove
+	{
+		return new SharedModelBatchMove(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get The BatchMove Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelBatchMove
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelBatchMove(Container $container): J3ModelBatchMove
+	{
+		return new J3ModelBatchMove(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
 	public function getModelGetForm(Container $container): ModelGetForm
 	{
 		if (empty($this->targetVersion))
