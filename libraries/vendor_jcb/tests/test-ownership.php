@@ -780,6 +780,14 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedLinkedViewListBodyTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/CustomQuery.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelCustomQueryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Creator/CustomFieldTypeFileInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelCustomQueryTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/LinkedView/ListHead.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/LinkedViewListHeadTest.php'

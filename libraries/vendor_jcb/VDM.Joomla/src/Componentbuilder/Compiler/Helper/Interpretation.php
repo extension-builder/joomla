@@ -8450,96 +8450,27 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Add the custom field selects and joins to a list query.
+	 *
+	 * @param   string  $nameListCode    The list view code name.
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $tab             Extra indentation of the generated lines.
+	 * @param   bool    $just_text       Select the display text without its id alias.
+	 *
+	 * @return  string  The generated query lines.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.CustomQuery service.
+	 */
 	public function setCustomQuery($nameListCode, $nameSingleCode,
 	                               $tab = '',
 	                               $just_text = false
 	)
 	{
-		if (CFactory::_('Compiler.Builder.Custom.Field')->exists($nameListCode))
-		{
-			$query = "";
-			foreach (CFactory::_('Compiler.Builder.Custom.Field')->get($nameListCode) as $filter)
-			{
-				// only load this if table is set
-				if ((CFactory::_('Compiler.Builder.Custom.List')->exists($nameSingleCode . '.' . $filter['code'])
-						&& isset($filter['custom']['table'])
-						&& StringHelper::check($filter['custom']['table'])
-						&& $filter['method'] == 0)
-					|| ($just_text && isset($filter['custom']['table'])
-						&& StringHelper::check($filter['custom']['table'])
-						&& $filter['method'] == 0))
-				{
-					$query .= PHP_EOL . PHP_EOL . Indent::_(2) . $tab . "//"
-						. Line::_(__Line__, __Class__) . " From the "
-						. StringHelper::safe(
-							StringHelper::safe(
-								$filter['custom']['table'], 'w'
-							)
-						) . " table.";
-					// we must add some fix for none ID keys (I know this is horrible... but we need it)
-					// TODO we assume that all tables in admin has ids
-					if ($filter['custom']['id'] !== 'id')
-					{
-						// we want to at times just have the words and not the ids as well
-						if ($just_text)
-						{
-							$query .= PHP_EOL . Indent::_(2) . $tab
-								. "\$query->select(\$db->quoteName(['"
-								. $filter['custom']['db'] . "."
-								. $filter['custom']['text'] . "','"
-								. $filter['custom']['db'] . ".id'],['"
-								. $filter['code'] . "','"
-								. $filter['code'] . "_id']));";
-						}
-						else
-						{
-							$query .= PHP_EOL . Indent::_(2) . $tab
-								. "\$query->select(\$db->quoteName(['"
-								. $filter['custom']['db'] . "."
-								. $filter['custom']['text'] . "','"
-								. $filter['custom']['db'] . ".id'],['"
-								. $filter['code'] . "_" . $filter['custom']['text']
-								. "','" . $filter['code'] . "_id']));";
-						}
-					}
-					else
-					{
-						// we want to at times just have the words and not the ids as well
-						if ($just_text)
-						{
-							$query .= PHP_EOL . Indent::_(2) . $tab
-								. "\$query->select(\$db->quoteName('"
-								. $filter['custom']['db'] . "."
-								. $filter['custom']['text'] . "','"
-								. $filter['code'] . "'));";
-						}
-						else
-						{
-							$query .= PHP_EOL . Indent::_(2) . $tab
-								. "\$query->select(\$db->quoteName('"
-								. $filter['custom']['db'] . "."
-								. $filter['custom']['text'] . "','"
-								. $filter['code'] . "_" . $filter['custom']['text']
-								. "'));";
-						}
-					}
-					$query .= PHP_EOL . Indent::_(2) . $tab
-						. "\$query->join('LEFT', \$db->quoteName('"
-						. $filter['custom']['table'] . "', '"
-						. $filter['custom']['db']
-						. "') . ' ON (' . \$db->quoteName('a." . $filter['code']
-						. "') . ' = ' . \$db->quoteName('"
-						. $filter['custom']['db'] . "."
-						. $filter['custom']['id'] . "') . ')');";
-				}
-				// build the field type file
-				CFactory::_('Compiler.Creator.Custom.Field.Type.File')->set(
-					$filter, $nameListCode, $nameSingleCode
-				);
-			}
-
-			return $query;
-		}
+		return CFactory::_('Architecture.Model.CustomQuery')->get(
+			$nameListCode, $nameSingleCode, (string) $tab, (bool) $just_text
+		);
 	}
 
 	/**
