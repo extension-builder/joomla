@@ -748,6 +748,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/FootableScripts.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedFootableScriptsRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminView/FootableScripts.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedFootableScriptsRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminView/FootableScriptsInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedFootableScriptsRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/CustomTabs.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/EditTabsRendererTest.php'

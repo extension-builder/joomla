@@ -6910,122 +6910,14 @@ class Interpretation extends Fields
 	 * @param   bool  $init
 	 *
 	 * @return string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.FootableScripts service.
 	 */
 	public function setFootableScripts($init = true)
 	{
-		$footable_version = CFactory::_('Config')->get('footable_version', 2);
-		if (2 == $footable_version) // loading version 2
-		{
-			$foo = PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add the CSS for Footable.";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/css/footable.core.min.css', ['version' => 'auto']);";
-			$foo .= PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Use the Metro Style";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "if (!isset(\$this->fooTableStyle) || 0 == \$this->fooTableStyle)";
-			$foo .= PHP_EOL . Indent::_(2) . "{";
-			$foo .= PHP_EOL . Indent::_(3)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/css/footable.metro.min.css', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2) . "}";
-			$foo .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Use the Legacy Style.";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "elseif (isset(\$this->fooTableStyle) && 1 == \$this->fooTableStyle)";
-			$foo .= PHP_EOL . Indent::_(2) . "{";
-			$foo .= PHP_EOL . Indent::_(3)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/css/footable.standalone.min.css', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2) . "}";
-			$foo .= PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add the JavaScript for Footable";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name . "/footable-v2/js/footable.js', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/js/footable.sort.js', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/js/footable.filter.js', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v2/js/footable.paginate.js', ['version' => 'auto']);";
-			if ($init)
-			{
-				$foo .= PHP_EOL . PHP_EOL . Indent::_(2)
-					. '$footable = "jQuery(document).ready(function() { jQuery(function () { jQuery('
-					. "'.footable'" . ').footable(); }); jQuery('
-					. "'.nav-tabs'" . ').on(' . "'click'" . ', ' . "'li'"
-					. ', function() { setTimeout(tableFix, 10); }); }); function tableFix() { jQuery('
-					. "'.footable'" . ').trigger(' . "'footable_resize'"
-					. '); }";';
-
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$foo .= PHP_EOL . Indent::_(2)
-						. "\$this->getDocument()->addScriptDeclaration(\$footable);"
-						. PHP_EOL;
-				}
-				else
-				{
-					$foo .= PHP_EOL . Indent::_(2)
-						. "\$this->getDocument()->getWebAssetManager()->addInlineScript(\$footable);"
-						. PHP_EOL;
-				}
-			}
-		}
-		elseif (3 == $footable_version) // loading version 3
-		{
-
-			$foo = PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add the CSS for Footable";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('stylesheet', 'https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v3/css/footable.standalone.min.css', ['version' => 'auto']);";
-			$foo .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Add the JavaScript for Footable (adding all functions)";
-			$foo .= PHP_EOL . Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/footable-v3/js/footable.min.js', ['version' => 'auto']);";
-			if ($init)
-			{
-				$foo .= PHP_EOL . PHP_EOL . Indent::_(2)
-					. '$footable = "jQuery(document).ready(function() { jQuery(function () { jQuery('
-					. "'.footable'" . ').footable();});});";';
-
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$foo .= PHP_EOL . Indent::_(2)
-						. "\$this->getDocument()->addScriptDeclaration(\$footable);"
-						. PHP_EOL;
-				}
-				else
-				{
-					$foo .= PHP_EOL . Indent::_(2)
-						. "\$this->getDocument()->getWebAssetManager()->addInlineScript(\$footable);"
-						. PHP_EOL;
-				}
-			}
-		}
-
-		return $foo;
+		return CFactory::_('Architecture.AdminView.FootableScripts')
+			->get((bool) $init);
 	}
 
 	/**
