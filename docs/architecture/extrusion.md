@@ -104,8 +104,12 @@ requirement on the replacement:
 - **No form awareness.** A component's `forms/*.xml` — the authoritative
   record of field type, options, `showon`, validation, and fieldsets — is
   ignored entirely.
-- **Bypasses the CRUD layer.** `VDM\Joomla\Data\{Item,Insert,Update,Load}`
-  and `Data\Guid` exist and are the current placement rule for JCB writes.
+- **Bypasses the Data pipeline.** `VDM\Joomla\Data\{Item,Items}` is JCB's
+  storage contract: it resolves insert versus update from the `guid` and encodes
+  each value per the `store` declared in the Table class. `Builder` instead
+  writes with `db->insertObject()` and hand-applies `base64_encode()` to
+  `admin_view.sql`, which is exactly the encoding the pipeline would have
+  applied itself (§3.12).
 
 ## 2. Objective
 
@@ -188,6 +192,7 @@ domain gets several small ones, each shared and each with one subject:
 | `Extrusion.Registry.Schema` | tables, columns, types, keys, decoded notes | Reader |
 | `Extrusion.Registry.Form` | fieldsets, fields, raw attribute bags, options | Reader |
 | `Extrusion.Registry.Language` | constant → English string catalogue | Reader |
+| `Extrusion.Registry.View` | classified templates and layouts, split into PHP and HTML | Reader |
 | `Extrusion.Registry.Resolved` | final per-field values, each with its origin | Resolver |
 | `Extrusion.Registry.Report` | matched, unmatched, guessed, skipped, unresolved | all |
 
@@ -231,9 +236,9 @@ Componentbuilder/Extrusion/
 ├── Extruder.php                    the fluent entry service
 ├── Service/
 │   ├── Extrusion.php               Extruder, Config          <- the only
-│   ├── Registry.php                the eight registries        files that
+│   ├── Registry.php                the nine registries         files that
 │   ├── Discovery.php               Scanner, Manifest, Layout    contain `new`
-│   ├── Reader.php                  Table, Schema, Sql\*, Form, Language
+│   ├── Reader.php                  Table, Schema, Sql\*, Form, Language, View
 │   ├── Resolver.php                Precedence, Fieldtype, Role, …
 │   └── Writer.php                  Field, AdminView, AdminFields, …
 ├── Interfaces/
@@ -245,11 +250,11 @@ Componentbuilder/Extrusion/
 │   └── WriterInterface.php
 ├── Registry/
 │   ├── Source.php  Inventory.php  Table.php  Schema.php
-│   └── Form.php  Language.php  Resolved.php  Report.php
+│   └── Form.php  Language.php  View.php  Resolved.php  Report.php
 ├── Discovery/
 │   ├── Scanner.php                 bounded, guarded recursive walk
 │   ├── Manifest.php                find and read com_x.xml
-│   └── Locator/{Table,Schema,Form,Language}.php
+│   └── Locator/{Table,Schema,Form,Language,View}.php
 ├── Layout/
 │   ├── JoomlaThree.php  JoomlaFour.php  JoomlaFive.php  JoomlaSix.php
 │   └── Heuristic.php               content-signature fallback
@@ -258,7 +263,8 @@ Componentbuilder/Extrusion/
 │   ├── Schema.php
 │   ├── Sql/{Splitter,CreateTable,Insert}.php
 │   ├── Form.php
-│   └── Language.php
+│   ├── Language.php
+│   └── View/{Template,Layout,Split}.php   the `?>` PHP/HTML split
 ├── Resolver/
 │   ├── Precedence.php  Fieldtype.php  Language.php
 │   ├── ViewName.php  Role.php  Tab.php  Condition.php  FieldXml.php
@@ -266,6 +272,7 @@ Componentbuilder/Extrusion/
 └── Writer/
     ├── Field.php  AdminView.php  AdminFields.php
     ├── AdminFieldsConditions.php  AdminCustomTabs.php
+    ├── Template.php  Layout.php
     └── ComponentAdminViews.php
 ```
 
@@ -549,7 +556,7 @@ the XML `type`, with three policies that the data forces:
   matching `src/Field/SubjectsField.php` (J4+) or `models/fields/subjects.php`
   (J3) is the component's own field type and maps to JCB `Custom` /
   `CustomUser` — exactly what the seeded `subjects`/`staffusers` examples
-  represent. The source file path is captured for phase 4.
+  represent. The source file path is captured for phase 5.
 
 `Mapping::$dataTypes` (SQL type → field type) survives only as the last tier,
 for columns with no form field at all.
@@ -575,7 +582,7 @@ where two tiers both have an answer.
 
 Nothing else in the pipeline decides precedence, and the report is generated
 straight from the origin distribution. The tier order is itself an option
-(§3.13), so an author whose notes have gone stale can promote XML above them.
+(§3.14), so an author whose notes have gone stale can promote XML above them.
 
 `Resolver\FieldXml` then composes the JCB `field.xml` attribute string by
 passing the resolved settings into
@@ -583,36 +590,147 @@ passing the resolved settings into
 `Builder` makes, but with the full resolved attribute bag instead of six
 hardcoded keys.
 
-### 3.12 Writing
+### 3.12 Storage: the Data pipeline is the only writer
 
-Writers take `VDM\Joomla\Data\{Item,Insert,Update}` as injected dependencies
-and set `guid`. No writer calls `db->insertObject()`.
+This is the part not to reinvent. JCB already has a complete, stable, dynamic
+storage and retrieval pipeline, and the extrusion writers are consumers of it —
+they do not model columns, encode values, or decide insert versus update.
 
-They are also idempotent, which requires a source-to-definition identity the
-current code has none of. Identity comes from the best available source:
+The pipeline is [`VDM\Joomla\Data`](../../libraries/vendor_jcb/VDM.Joomla/src/Data),
+and the two classes to use are `Item` for one entity and `Items` for many:
 
-1. **The table map's own `guid`**, when tier 0 supplied one. This is the ideal
-   case — the source project already assigned a stable per-field identity, so a
-   re-run matches exactly and, for a component that came out of JCB in the
-   first place, the extruded definition can line up with the original.
+```php
+// one entity
+$this->item->table('layout')->set($layout);          // insert or update, decided for us
+
+// many entities
+$this->items->table('field')->set($fields);          // keyed on guid
+
+// reading back
+$existing = $this->item->table('admin_view')->get($guid);
+```
+
+Both are resolved from the container (`Data.Item`, `Data.Items`) and injected,
+never constructed. `table()` returns `self`, so the active table is set
+fluently.
+
+**What the pipeline does for us**, verified in the source:
+
+| Behavior | Where | Consequence for extrusion |
+| --- | --- | --- |
+| Insert or update decided by whether the `guid` already exists | `Data\Item::action()` → `'update'` / `'insert'` | idempotency is free; we supply a stable guid and call `set()` once |
+| Values encoded per the field's `store` | `Model\Upsert` reads `store` from the Table class and applies `base64_encode` / `json_encode` | **we must pass raw values.** Encoding ourselves would double-encode |
+| Values decoded on read | `Model\Load` applies the inverse | round-tripping is symmetric |
+| Column set and types | the Table class (§3.5) | we never hand-map a column list |
+
+That third row is the trap worth naming: today's legacy `Builder` does
+`base64_encode($this->sql[$name])` by hand before writing `admin_view.sql`.
+Going through `Data\Item` that becomes wrong, because `Model\Upsert` will encode
+it again. Every writer in this design passes plain values and lets the pipeline
+apply `store`.
+
+**Why this is the right coupling.** The Table class is generated from JCB's own
+definitions, so when JCB gains a field or changes a `store`, the pipeline
+follows automatically and the extrusion writers keep working without edits.
+Binding to `Data\Item` + the Table class means binding to the one thing in JCB
+that stays current by construction.
+
+Out of scope for now, by decision: subform storage as one-to-one and one-to-many
+relationships. `Data\Subform`, `Data\MultiSubform`, and `Data\UsersSubform`
+exist and are the eventual answer for `addfields`, `addtabs`, and `addconditions`
+shapes; until then those are written as the JSON the columns already hold.
+
+**Identity.** `set()` needs a stable `guid` to key on, from the best available
+source:
+
+1. **The table map's own `guid`**, when tier 0 supplied one — the source project
+   already assigned a stable per-field identity, so a re-run matches exactly and
+   a component that came out of JCB can line up with its original definitions.
 2. **A deterministic UUIDv5-style GUID** from a fixed namespace plus
    `component code name + table name [+ column name]`, for everything else.
 
 `Data\Guid::getGuid()` is v4 random and stays the generator for genuinely new
-records; extruded records take one of the two identities above, so a second run
-over the same source updates in place instead of producing another
-`(dynamic build)` set. The alternative — matching on `name` — collides across
-components and is not viable.
+records. Because `set()` already resolves insert versus update, the `onExisting`
+option (§3.14) is a policy layer above that mechanism — `skip` short-circuits
+before the call, `replace` clears dependents first — not a reimplementation of
+it.
 
 Writers, in dependency order: `Field` → `AdminView` → `AdminFields` →
-`AdminFieldsConditions` → `AdminCustomTabs` → `ComponentAdminViews`.
-
-Two tier-0-only values write straight through: `store` onto
-`#__componentbuilder_field.store`, and `tab_name` onto the tab structures
+`AdminFieldsConditions` → `AdminCustomTabs` → `ComponentAdminViews`, then
+`Template` and `Layout` (§3.13). Two tier-0-only values write straight through:
+`store` onto the field definition, and `tab_name` onto the tab structures
 instead of the fieldset inference. How `link` should land is the one mapping
 still open — see §6.
 
-### 3.13 Entry point and options
+### 3.13 Views, templates, and layouts
+
+The admin area of §3.11 and §3.12 is fields and views. The view *layer* — what a view
+renders — lives in JCB's `template` and `layout` tables, and both have the same
+two-part shape.
+
+**The PHP/HTML split.** A JCB layout or template file is one PHP file that is
+really two artifacts. Everything above the closing `?>` is PHP; everything after
+it is HTML. JCB stores them in two columns, confirmed against the Table class:
+
+| JCB table | PHP column | HTML column | Switch |
+| --- | --- | --- | --- |
+| `template` | `php_view` (`editor`, `store: base64`, MEDIUMTEXT) | `template` (`editor`, `store: base64`, TEXT) | `add_php_view` (TINYINT) |
+| `layout` | `php_view` (`editor`, `store: base64`, MEDIUMTEXT) | `layout` (`editor`, `store: base64`, TEXT) | `add_php_view` (TINYINT) |
+
+`Reader\Layout` and `Reader\Template` therefore split one source file into:
+
+1. the header — `defined('_JEXEC')`, `use` statements, the file docblock —
+   which is **discarded**, because JCB regenerates it;
+2. the remaining PHP above the final top-level `?>` → `php_view`, with
+   `add_php_view = 1`;
+3. everything after that `?>` → `template` / `layout`.
+
+Edge cases that need a stated rule rather than a guess: a file with no closing
+`?>` is all PHP (`add_php_view = 1`, HTML empty); a file whose only PHP is the
+`_JEXEC` guard is all HTML (`add_php_view = 0`); and `?>` occurrences inside
+strings or heredocs must not split the file, which is why this is a token scan
+(`token_get_all()`) and not `strrpos($source, '?>')`.
+
+Both columns carry `store: base64`, so per §3.12 the reader hands over **raw
+PHP and raw HTML** and `Model\Upsert` encodes them.
+
+**Which file is which.** The placement map discriminates by folder, and the
+`type` key in `move` is the label:
+
+| Location (J4+, J3 in parentheses) | `type` | JCB meaning |
+| --- | --- | --- |
+| `admin/tmpl/<name>/default.php` (`admin/views/<view>/tmpl/default.php`) | `list` / `single` | the view's main template |
+| `admin/tmpl/<name>/edit.php`, `modal.php`, `modalreturn.php` | `edit`, `*_modal` | edit and modal templates |
+| `admin/tmpl/<name>/default_<x>.php` | `template` | a JCB **template** |
+| `admin/layouts/*.php` | `layout` | a JCB **layout** |
+| `admin/layouts/<name>/*.php` | `layoutoverride`, `layoutitems`, `layoutfull`, `layoutlinkedview`, `layouttitle`, `layoutpublished`, `layoutmetadata` | per-view layout overrides |
+| `site/tmpl/<name>/…` (`site/views/<view>/tmpl/…`) | same set | site view equivalents |
+| `site/layouts/…` | same set | site layouts |
+
+Two discriminations the map cannot make on its own, and how to resolve them:
+
+- **List versus edit view.** In J4 both `ADMIN_VIEW.php` (`type: single`) and
+  `ADMIN_VIEWS.php` (`type: list`) are written as `default.php`, into
+  `admin/tmpl/<name>/` and `admin/tmpl/<names>/` respectively. The singular
+  and plural sibling folders are the signal, corroborated by what accompanies
+  them — `emptystate.php` and `default_body.php` mark a list; `edit.php` and a
+  matching `forms/<view>.xml` mark an edit view.
+- **Admin view versus custom admin view.** These share identical paths in both
+  J3 and J4 — `admin/tmpl/<name>/` and `admin/layouts/`. Nothing in the layout
+  distinguishes them. The discriminator is backing data: an admin view has a
+  database table and a form XML; a custom admin view has neither. So this
+  inference depends on §3.7 having run, and where it stays ambiguous the view is
+  recorded in the report as unclassified rather than guessed into the wrong
+  table.
+
+**Most components are not JCB components.** Tier 0 will usually be absent and
+the source will often be an older J3 component, so this section's value does not
+depend on the table class. The `?>` split and the folder discrimination work on
+any component that follows Joomla's own layout, and the report names whatever
+could not be classified so the remaining manual work is a short, explicit list
+rather than a re-read of the whole tree.
+
+### 3.14 Entry point and options
 
 `Extruder` is the single entry service: resolved from the container, fluent,
 with a terminal `extrude()`. There is no request object to construct, so there
@@ -639,7 +757,7 @@ $report = Extrusion\Factory::_('Extruder')
 
 Each setter validates and writes into the shared `Config`, which every
 downstream service receives by injection. `reset()` clears `Config` and all
-eight registries and is the run boundary; `extrude()` returns
+nine registries and is the run boundary; `extrude()` returns
 `Registry\Report`.
 
 The option catalogue, which is the part worth getting right up front:
@@ -663,7 +781,7 @@ The option catalogue, which is the part worth getting right up front:
 | `language` | `true` | Resolve constants to English strings |
 | `translations` | `false` | Also import other language packs into `language_translation` |
 | `relations` | `true` | Import `link` relationships when a table class supplies them |
-| `code` | `false` | PHP custom-code extrusion (phase 4) |
+| `code` | `false` | PHP custom-code extrusion (phase 5) |
 | `include` / `exclude` | `[]` | Table or view name filters |
 
 **Interpretation**
@@ -756,7 +874,26 @@ where a table class supplied them, GUIDs, component linkage, a working
 `dryRun`, and an idempotent second run. Fix the `array_search()` list-flag
 defect here and retire it from the defect ledger.
 
-### Phase 4 — code extrusion
+### Phase 4 — templates and layouts
+
+`Reader\View\{Split,Template,Layout}`, `Discovery\Locator\View`,
+`Registry\View`, `Writer\{Template,Layout}`.
+
+Deliverable: the view layer. Each template and layout file classified by the
+placement map, split at the final top-level `?>` into `php_view` and
+`template`/`layout` with `add_php_view` set, and written through `Data\Item`
+with raw values so `store: base64` is applied once by the pipeline.
+
+This phase is deliberately ahead of code extrusion because the split is
+mechanical and verifiable: reassembling `php_view` and the HTML column
+reproduces the source body, which makes a round-trip test the gate. Extracting
+method bodies from a model (phase 5) has no equivalent check.
+
+Tests worth having here: the `?>`-inside-string and heredoc cases, a file with
+no closing tag, a guard-only file, and the singular/plural folder pair that
+separates a list view from an edit view.
+
+### Phase 5 — code extrusion
 
 Last, and explicitly the speculative one. `Reader\Php` (no `php-parser` in the
 repository, so `token_get_all()`), `Discovery\Locator\{Model,Controller,View}`,
@@ -778,7 +915,7 @@ Deliverable: candidate snippets attached with a confidence score and the
 `add_php_*` switches left off, never silently enabled. A diff view belongs to
 the interface session.
 
-### Phase 5 — retire the legacy stack
+### Phase 6 — retire the legacy stack
 
 Wire the interface to `Extruder`, reduce `Helper\{Mapping,Builder,Extrusion}`
 to delegates, migrate `ExtrusionContractTest` ownership onto the new classes,
@@ -790,8 +927,11 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
 - Phases 1 and 2 are independent of the database and of Joomla's application
   object. They can be built and tested in full isolation, which is the main
   argument for the discovery/reading/resolution split.
-- Phase 3 is the only phase that writes, and every write goes through
-  injected `Data\*` services.
+- Phases 3 and 4 are the only phases that write, and every write goes through
+  an injected `Data\Item` or `Data\Items` with the active table set by
+  `table()`. No `db->insertObject()`, no hand-applied `base64_encode()` or
+  `json_encode()` — the pipeline applies `store` from the Table class, so
+  encoding in a writer double-encodes.
 - `new` must appear in no file outside `Extrusion/Service/*.php`. This is
   cheap to enforce mechanically and worth a guard in the test project.
 - Each new production declaration takes its `test-ownership.php` entry in the
@@ -799,7 +939,7 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
 - `php bin/check-php-style.php --base=<merge-base>` and
   `php bin/check-test-ownership.php --base=<merge-base>` run from the test
   project on every phase.
-- Nothing in phases 0–4 edits `admin/**` or `media/**`. The interface session
+- Nothing in phases 0–5 edits `admin/**` or `media/**`. The interface session
   will need those paths and therefore a GUI change record.
 
 ## 6. Open decisions
