@@ -146,6 +146,110 @@ final class VersionSelectionTest extends TestCase
 	}
 
 	/**
+	 * Verify collapsed selectors route diverging targets and share the rest.
+	 *
+	 * A family that renders identically across a run of targets registers one
+	 * shared service instead of a class per target, so its selector must send
+	 * every target outside the diverging set to that one key.
+	 *
+	 * @param   class-string<ServiceProviderInterface>  $providerClass  Provider under test.
+	 * @param   string                                  $method         Logical selector method.
+	 * @param   array<int, string>                      $keys           Target major to service key.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('collapsedTargetSelectors')]
+	public function testCollapsedSelectorRoutesDivergingAndSharedTargets(
+		string $providerClass,
+		string $method,
+		array $keys
+	): void
+	{
+		foreach ($keys as $version => $key)
+		{
+			$provider = new $providerClass();
+			$container = new Container();
+			$config = (object) ['joomla_version' => $version];
+			$selected = $this->selectorStub($providerClass, $method);
+			$container->share('Config', $config, true);
+			$container->share($key, $selected, true);
+
+			$this->assertSame($selected, $provider->{$method}($container));
+
+			$nextVersion = $version === 6 ? 3 : $version + 1;
+			$config->joomla_version = $nextVersion;
+
+			if ($keys[$nextVersion] !== $key)
+			{
+				$container->share(
+					$keys[$nextVersion],
+					$this->selectorStub($providerClass, $method),
+					true
+				);
+			}
+
+			$this->assertSame(
+				$selected,
+				$provider->{$method}($container),
+				'Target selection must remain stable for one shared provider instance.'
+			);
+		}
+	}
+
+	/**
+	 * Provide every collapsed target selector and the key each target resolves to.
+	 *
+	 * @return  iterable<string, array{class-string<ServiceProviderInterface>, string, array<int, string>}>
+	 * @since   6.1.7
+	 */
+	public static function collapsedTargetSelectors(): iterable
+	{
+		yield 'model allow edit' => [ArchitectureModel::class, 'getModelAllowEdit', [
+			3 => 'Architecture.Model.J3.AllowEdit',
+			4 => 'Architecture.Model.Shared.AllowEdit',
+			5 => 'Architecture.Model.Shared.AllowEdit',
+			6 => 'Architecture.Model.Shared.AllowEdit',
+		]];
+		yield 'component helper excel methods' => [ArchitectureComponent::class, 'getExcelMethods', [
+			3 => 'Architecture.ComHelperClass.J3.ExcelMethods',
+			4 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
+			5 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
+			6 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
+		]];
+		yield 'admin views view body' => [ArchitectureView::class, 'getAdminViewsViewBody', [
+			3 => 'Architecture.AdminViews.J3.ViewBody',
+			4 => 'Architecture.AdminViews.Shared.ViewBody',
+			5 => 'Architecture.AdminViews.Shared.ViewBody',
+			6 => 'Architecture.AdminViews.Shared.ViewBody',
+		]];
+		yield 'admin views list head' => [ArchitectureView::class, 'getAdminViewsListHead', [
+			3 => 'Architecture.AdminViews.J3.ListHead',
+			4 => 'Architecture.AdminViews.Shared.ListHead',
+			5 => 'Architecture.AdminViews.Shared.ListHead',
+			6 => 'Architecture.AdminViews.Shared.ListHead',
+		]];
+		yield 'admin views display method' => [ArchitectureView::class, 'getAdminViewsDisplayMethod', [
+			3 => 'Architecture.AdminViews.J3.DisplayMethod',
+			4 => 'Architecture.AdminViews.Shared.DisplayMethod',
+			5 => 'Architecture.AdminViews.Shared.DisplayMethod',
+			6 => 'Architecture.AdminViews.Shared.DisplayMethod',
+		]];
+		yield 'custom view display method' => [ArchitectureView::class, 'getCustomViewDisplayMethod', [
+			3 => 'Architecture.CustomView.J3.DisplayMethod',
+			4 => 'Architecture.CustomView.J4.DisplayMethod',
+			5 => 'Architecture.CustomView.Shared.DisplayMethod',
+			6 => 'Architecture.CustomView.Shared.DisplayMethod',
+		]];
+		yield 'menu custom view' => [ArchitectureView::class, 'getMenuCustomView', [
+			3 => 'Architecture.Menu.J3.CustomView',
+			4 => 'Architecture.Menu.Shared.CustomView',
+			5 => 'Architecture.Menu.Shared.CustomView',
+			6 => 'Architecture.Menu.Shared.CustomView',
+		]];
+	}
+
+	/**
 	 * Provide every compiler target-version selector and its concrete key family.
 	 *
 	 * @return  iterable<string, array{class-string<ServiceProviderInterface>, string, string}>
@@ -158,7 +262,6 @@ final class VersionSelectionTest extends TestCase
 		yield 'controller allow edit' => [ArchitectureController::class, 'getAllowEdit', 'Architecture.Controller.J%d.AllowEdit'];
 		yield 'controller allow edit views' => [ArchitectureController::class, 'getAllowEditViews', 'Architecture.Controller.J%d.AllowEditViews'];
 		yield 'dashboard view' => [ArchitectureDashboard::class, 'getViewInterface', 'Architecture.Dashboard.J%d.View'];
-		yield 'model allow edit' => [ArchitectureModel::class, 'getModelAllowEdit', 'Architecture.Model.J%d.AllowEdit'];
 		yield 'model can delete' => [ArchitectureModel::class, 'getModelCanDelete', 'Architecture.Model.J%d.CanDelete'];
 		yield 'model can edit state' => [ArchitectureModel::class, 'getModelCanEditState', 'Architecture.Model.J%d.CanEditState'];
 		yield 'model check in now' => [ArchitectureModel::class, 'getCheckInNow', 'Architecture.Model.J%d.CheckInNow'];

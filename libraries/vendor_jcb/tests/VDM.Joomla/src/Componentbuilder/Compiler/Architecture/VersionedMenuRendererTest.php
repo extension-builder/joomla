@@ -316,8 +316,8 @@ final class VersionedMenuRendererTest extends ArchitectureTestCase
 	 */
 	private function rendererClass(string $version): string
 	{
-		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-			. $version . '\\Menu\\CustomView';
+		// only Joomla 3 keeps its own path-attribute rendering
+		return $this->targetClass($version, 'Menu\\CustomView', ['JoomlaThree']);
 	}
 
 	/**

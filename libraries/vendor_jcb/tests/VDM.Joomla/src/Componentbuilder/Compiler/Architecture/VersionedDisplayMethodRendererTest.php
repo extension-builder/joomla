@@ -404,8 +404,8 @@ final class VersionedDisplayMethodRendererTest extends ArchitectureTestCase
 	 */
 	private function adminViewsClass(string $version): string
 	{
-		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-			. $version . '\\AdminViews\\DisplayMethod';
+		// only Joomla 3 keeps its own filter form
+		return $this->targetClass($version, 'AdminViews\\DisplayMethod', ['JoomlaThree']);
 	}
 
 	/**
@@ -418,7 +418,9 @@ final class VersionedDisplayMethodRendererTest extends ArchitectureTestCase
 	 */
 	private function customViewClass(string $version): string
 	{
-		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-			. $version . '\\CustomView\\DisplayMethod';
+		// Joomla 3 and 4 still dispatch plugin events the legacy way
+		return $this->targetClass(
+			$version, 'CustomView\\DisplayMethod', ['JoomlaThree', 'JoomlaFour']
+		);
 	}
 }

@@ -176,6 +176,33 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 	}
 
 	/**
+	 * Resolve the class a Joomla target uses for one generated concern.
+	 *
+	 * A family only carries a class per target where the generated code
+	 * really differs. Every other target shares the one implementation in
+	 * the root of the concern folder, so a target outside $diverging
+	 * resolves to that shared class rather than to a namespace of its own.
+	 *
+	 * @param   string         $version    Target namespace segment, such as `JoomlaThree`.
+	 * @param   string         $concern    Concern path below Architecture, such as `Menu\CustomView`.
+	 * @param   array<string>  $diverging  Target segments that carry their own class.
+	 *
+	 * @return  class-string
+	 * @since   6.1.7
+	 */
+	protected function targetClass(string $version, string $concern, array $diverging): string
+	{
+		$root = 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\';
+
+		if (in_array($version, $diverging, true))
+		{
+			return $root . $version . '\\' . $concern;
+		}
+
+		return $root . $concern;
+	}
+
+	/**
 	 * Get the shared configuration fixture.
 	 *
 	 * @return  Config
