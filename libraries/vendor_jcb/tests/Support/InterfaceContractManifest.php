@@ -66,6 +66,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '02e09153c584d06f4ab3c873bc8b867b59f6e6a0f2271dee402fedbd1cc4dfb5',
 			'signature_hash' => 'e91441e3d05b795f6fcfa445d824058473c4aafe129bc800616ad3cd83ede517'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\ViewBodyInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ViewBodyInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => 'dc800360f43a8ac31290c19712345fb18127c55853b241105b1337df00a40602',
+			'signature_hash' => '8a9f89a192ce427c1bcf1a1bb71d17653caa8ba165accaa74dffd08a48cdcb8b'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\CreateUserInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/CreateUserInterface.php',
 			'implementations' => 4,
