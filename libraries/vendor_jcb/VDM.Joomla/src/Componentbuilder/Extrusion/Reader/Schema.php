@@ -168,9 +168,9 @@ final class Schema implements ReaderInterface
 	/**
 	 * Store one parsed table and note its summary.
 	 *
-	 * @param   array   $table  The parsed table and its columns.
-	 * @param   string  $path   The schema file the table came from.
-	 * @param   string|null  $name  Optional artifact name.
+	 * @param   array        $table  The parsed table and its columns.
+	 * @param   string       $path   The schema file the table came from.
+	 * @param   string|null  $name   Optional artifact name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
