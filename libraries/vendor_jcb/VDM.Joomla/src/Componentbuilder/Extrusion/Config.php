@@ -1,0 +1,206 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    17th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Componentbuilder\Extrusion;
+
+
+use VDM\Joomla\Abstraction\Registry;
+use VDM\Joomla\Interfaces\Registryinterface;
+
+
+/**
+ * Extrusion Configuration
+ *
+ * Holds one run's options. The Extruder's fluent setters validate and write
+ * here, and every downstream service receives this object by injection, so the
+ * options are read from exactly one place.
+ *
+ * @since 6.1.6
+ */
+final class Config extends Registry implements Registryinterface
+{
+	/**
+	 * The reviewed option defaults for a run.
+	 *
+	 * @var    array<string, mixed>
+	 * @since  6.1.6
+	 */
+	private const DEFAULTS = [
+		'mode' => 'create',
+		'component' => 0,
+		'onExisting' => 'update',
+		'admin' => true,
+		'site' => false,
+		'tabs' => true,
+		'conditions' => true,
+		'language' => true,
+		'translations' => false,
+		'relations' => true,
+		'code' => false,
+		'include' => [],
+		'exclude' => [],
+		'precedence' => ['table', 'notes', 'xml', 'derived'],
+		'tableClass' => 'auto',
+		'layout' => 'auto',
+		'languageTag' => 'en-GB',
+		'dryRun' => false,
+		'strict' => false,
+		'depth' => 12,
+		'maxFiles' => 20000
+	];
+
+	/**
+	 * The permitted values for the enumerated options.
+	 *
+	 * @var    array<string, array<string>>
+	 * @since  6.1.6
+	 */
+	private const ALLOWED = [
+		'mode' => ['create', 'update'],
+		'onExisting' => ['skip', 'update', 'replace'],
+		'tableClass' => ['auto', 'off'],
+		'layout' => ['auto', 'j3', 'j4', 'j5', 'j6']
+	];
+
+	/**
+	 * The precedence tiers, highest first, that a run may reorder.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	public const TIERS = ['table', 'notes', 'xml', 'derived'];
+
+	/**
+	 * Constructor.
+	 *
+	 * @param   mixed        $data       Optional data to load into the registry.
+	 * @param   string|null  $separator  The path separator.
+	 *
+	 * @since   6.1.6
+	 */
+	public function __construct($data = null, ?string $separator = null)
+	{
+		parent::__construct($data, $separator);
+
+		$this->defaults();
+	}
+
+	/**
+	 * Restore every option to its reviewed default.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function defaults(): self
+	{
+		foreach (self::DEFAULTS as $key => $value)
+		{
+			$this->set($key, $value);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Clear the configuration and restore the defaults.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function clear(): self
+	{
+		parent::clear();
+
+		return $this->defaults();
+	}
+
+	/**
+	 * Whether a value is permitted for an enumerated option.
+	 *
+	 * @param   string  $key    The option name.
+	 * @param   string  $value  The candidate value.
+	 *
+	 * @return  bool  True when the option is unconstrained or the value is allowed.
+	 * @since   6.1.6
+	 */
+	public function permitted(string $key, string $value): bool
+	{
+		if (!isset(self::ALLOWED[$key]))
+		{
+			return true;
+		}
+
+		return in_array($value, self::ALLOWED[$key], true);
+	}
+
+	/**
+	 * The permitted values for an enumerated option.
+	 *
+	 * @param   string  $key  The option name.
+	 *
+	 * @return  array<string>  The allowed values, or an empty list when unconstrained.
+	 * @since   6.1.6
+	 */
+	public function allowed(string $key): array
+	{
+		return self::ALLOWED[$key] ?? [];
+	}
+
+	/**
+	 * Whether an option name is part of the reviewed catalogue.
+	 *
+	 * @param   string  $key  The option name.
+	 *
+	 * @return  bool  True when the option is known.
+	 * @since   6.1.6
+	 */
+	public function known(string $key): bool
+	{
+		return array_key_exists($key, self::DEFAULTS);
+	}
+
+	/**
+	 * Whether a source table or view name passes the include and exclude filters.
+	 *
+	 * @param   string  $name  The table or view name.
+	 *
+	 * @return  bool  True when the name should be extruded.
+	 * @since   6.1.6
+	 */
+	public function selected(string $name): bool
+	{
+		$include = (array) $this->get('include', []);
+		$exclude = (array) $this->get('exclude', []);
+
+		if ($include !== [] && !in_array($name, $include, true))
+		{
+			return false;
+		}
+
+		return !in_array($name, $exclude, true);
+	}
+
+	/**
+	 * The precedence rank of one tier, lower being stronger.
+	 *
+	 * @param   string  $tier  The tier name.
+	 *
+	 * @return  int  The rank, or a rank past every tier when unknown.
+	 * @since   6.1.6
+	 */
+	public function rank(string $tier): int
+	{
+		$order = (array) $this->get('precedence', self::TIERS);
+		$rank = array_search($tier, $order, true);
+
+		return $rank === false ? count(self::TIERS) + 1 : (int) $rank;
+	}
+}
