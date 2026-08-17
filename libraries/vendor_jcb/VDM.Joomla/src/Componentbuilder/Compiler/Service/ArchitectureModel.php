@@ -16,6 +16,8 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SearchQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface as ModelItemsStringFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsStringFix as SharedModelItemsStringFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemsStringFix as J3ModelItemsStringFix;
@@ -43,7 +45,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\CheckInN
 
 /**
  * Architecture Model Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class ArchitectureModel implements ServiceProviderInterface
@@ -86,6 +88,12 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(CustomQuery::class, 'Architecture.Model.CustomQuery')
 			->share('Architecture.Model.CustomQuery', [$this, 'getModelCustomQuery'], true);
+
+		$container->alias(SearchQuery::class, 'Architecture.Model.SearchQuery')
+			->share('Architecture.Model.SearchQuery', [$this, 'getModelSearchQuery'], true);
+
+		$container->alias(FilterQuery::class, 'Architecture.Model.FilterQuery')
+			->share('Architecture.Model.FilterQuery', [$this, 'getModelFilterQuery'], true);
 
 		$container->alias(J3ModelAllowEdit::class, 'Architecture.Model.J3.AllowEdit')
 			->share('Architecture.Model.J3.AllowEdit', [$this, 'getJ3ModelAllowEdit'], true);
@@ -282,6 +290,38 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Custom.Field'),
 			$container->get('Compiler.Builder.Custom.List'),
 			$container->get('Compiler.Creator.Custom.Field.Type.File')
+		);
+	}
+
+	/**
+	 * Get The SearchQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SearchQuery
+	 * @since   6.1.7
+	 */
+	public function getModelSearchQuery(Container $container): SearchQuery
+	{
+		return new SearchQuery(
+			$container->get('Compiler.Builder.Search')
+		);
+	}
+
+	/**
+	 * Get The FilterQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  FilterQuery
+	 * @since   6.1.7
+	 */
+	public function getModelFilterQuery(Container $container): FilterQuery
+	{
+		return new FilterQuery(
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Content.One')
 		);
 	}
 

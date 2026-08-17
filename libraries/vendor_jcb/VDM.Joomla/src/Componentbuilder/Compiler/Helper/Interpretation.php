@@ -7502,64 +7502,19 @@ class Interpretation extends Fields
 		return $query;
 	}
 
+	/**
+	 * build search query
+	 *
+	 * @param   string  $nameListCode  The list view name
+	 *
+	 * @return  string The php to place in model
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.SearchQuery service.
+	 */
 	public function setSearchQuery($nameListCode)
 	{
-		if (CFactory::_('Compiler.Builder.Search')->exists($nameListCode))
-		{
-			// setup the searh options
-			$search = "'(";
-			foreach (CFactory::_('Compiler.Builder.Search')->get($nameListCode) as $nr => $array)
-			{
-				// array( 'type' => $typeName, 'code' => $name, 'custom' => $custom, 'list' => $field['list']);
-				if ($nr == 0)
-				{
-					$search .= "a." . $array['code'] . " LIKE '.\$search.'";
-					if (ArrayHelper::check($array['custom'])
-						&& 1 == $array['list'])
-					{
-						$search .= " OR " . $array['custom']['db'] . "."
-							. $array['custom']['text'] . " LIKE '.\$search.'";
-					}
-				}
-				else
-				{
-					$search .= " OR a." . $array['code'] . " LIKE '.\$search.'";
-					if (ArrayHelper::check($array['custom'])
-						&& 1 == $array['list'])
-					{
-						$search .= " OR " . $array['custom']['db'] . "."
-							. $array['custom']['text'] . " LIKE '.\$search.'";
-					}
-				}
-			}
-			$search .= ")'";
-			// now setup query
-			$query = PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Filter by search.";
-			$query .= PHP_EOL . Indent::_(2)
-				. "\$search = \$this->getState('filter.search');";
-			$query .= PHP_EOL . Indent::_(2) . "if (!empty(\$search))";
-			$query .= PHP_EOL . Indent::_(2) . "{";
-			$query .= PHP_EOL . Indent::_(3)
-				. "if (stripos(\$search, 'id:') === 0)";
-			$query .= PHP_EOL . Indent::_(3) . "{";
-			$query .= PHP_EOL . Indent::_(4)
-				. "\$query->where('a.id = ' . (int) substr(\$search, 3));";
-			$query .= PHP_EOL . Indent::_(3) . "}";
-			$query .= PHP_EOL . Indent::_(3) . "else";
-			$query .= PHP_EOL . Indent::_(3) . "{";
-			$query .= PHP_EOL . Indent::_(4)
-				. "\$search = \$db->quote('%' . \$db->escape(\$search) . '%');";
-			$query .= PHP_EOL . Indent::_(4) . "\$query->where(" . $search
-				. ");";
-			$query .= PHP_EOL . Indent::_(3) . "}";
-			$query .= PHP_EOL . Indent::_(2) . "}";
-			$query .= PHP_EOL;
-
-			return $query;
-		}
-
-		return '';
+		return CFactory::_('Architecture.Model.SearchQuery')->get($nameListCode);
 	}
 
 	/**
@@ -7592,46 +7547,12 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in model to filter
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.FilterQuery service.
 	 */
 	public function setFilterQuery($nameListCode)
 	{
-		if (CFactory::_('Compiler.Builder.Filter')->exists($nameListCode))
-		{
-			// component helper name
-			$Helper = CFactory::_('Compiler.Builder.Content.One')->get('Component') . 'Helper';
-			// start building the filter query
-			$filterQuery = "";
-			foreach (CFactory::_('Compiler.Builder.Filter')->get($nameListCode) as $filter)
-			{
-				// only add for none category fields
-				if ($filter['type'] != 'category')
-				{
-					$filterQuery .= PHP_EOL . Indent::_(2) . "//"
-						. Line::_(__Line__, __Class__) . " Filter by "
-						. ucwords((string) $filter['code']) . ".";
-					// we only add multi filter option if new filter type
-					// and we have multi filter set for this field (2 = topbar)
-					if (CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 2
-						&& isset($filter['multi'])
-						&& $filter['multi'] == 2)
-					{
-						$filterQuery .= $this->setMultiFilterQuery(
-							$filter, $Helper
-						);
-					}
-					else
-					{
-						$filterQuery .= $this->setSingleFilterQuery(
-							$filter, $Helper
-						);
-					}
-				}
-			}
-
-			return $filterQuery;
-		}
-
-		return '';
+		return CFactory::_('Architecture.Model.FilterQuery')->get($nameListCode);
 	}
 
 	/**
@@ -7643,43 +7564,17 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in model to filter this field
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.FilterQuery service.
 	 */
 	protected function setSingleFilterQuery($filter, $Helper, $a = "a")
 	{
-		$filterQuery = PHP_EOL . Indent::_(2) . "\$_"
-			. $filter['code'] . " = \$this->getState('filter."
-			. $filter['code'] . "');";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "if (is_numeric(\$_"
-			. $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "if (is_float(\$_"
-			. $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(4)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . (float) \$_" . $filter['code'] . ");";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "else";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(4)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . (int) \$_" . $filter['code'] . ");";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "elseif ("
-			. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$_" . $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(3)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . \$db->quote(\$db->escape(\$_" . $filter['code']
-			. ")));";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "}";
-
-		return $filterQuery;
+		return CFactory::_('Architecture.Model.FilterQuery')
+			->getSingleFilterQuery($filter, $Helper, $a);
 	}
 
 	/**
-	 * build multiple filter query
+	 * build multi filter query
 	 *
 	 * @param   array   $filter  The field/filter
 	 * @param   string  $Helper  The helper name of the component being build
@@ -7687,76 +7582,13 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in model to filter this field
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.FilterQuery service.
 	 */
 	protected function setMultiFilterQuery($filter, $Helper, $a = "a")
 	{
-		$filterQuery = PHP_EOL . Indent::_(2) . "\$_"
-			. $filter['code'] . " = \$this->getState('filter."
-			. $filter['code'] . "');";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "if (is_numeric(\$_"
-			. $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "if (is_float(\$_"
-			. $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(4)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . (float) \$_" . $filter['code'] . ");";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "else";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(4)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . (int) \$_" . $filter['code'] . ");";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "elseif ("
-			. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$_" . $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(3)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " = ' . \$db->quote(\$db->escape(\$_" . $filter['code']
-			. ")));";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "elseif ("
-			. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$_" . $filter['code'] . "))";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "{";
-
-		$filterQuery .= PHP_EOL . Indent::_(3) . "//"
-			. Line::_(__Line__, __Class__) . " Secure the array for the query";
-
-		$filterQuery .= PHP_EOL . Indent::_(3) . "\$_" . $filter['code']
-			. " = array_map( function (\$val) use(&\$db) {";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "if (is_numeric(\$val))";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "if (is_float(\$val))";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(6) . "return (float) \$val;";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "else";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(6) . "return (int) \$val;";
-		$filterQuery .= PHP_EOL . Indent::_(5) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "elseif ("
-			. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$val))";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "{";
-		$filterQuery .= PHP_EOL . Indent::_(5)
-			. "return \$db->quote(\$db->escape(\$val));";
-		$filterQuery .= PHP_EOL . Indent::_(4) . "}";
-		$filterQuery .= PHP_EOL . Indent::_(3) . "}, \$_"
-			. $filter['code'] . ");";
-
-		$filterQuery .= PHP_EOL . Indent::_(3) . "//"
-			. Line::_(__Line__, __Class__) . " Filter by the "
-			. ucwords((string) $filter['code']) . " Array.";
-
-		$filterQuery .= PHP_EOL . Indent::_(3)
-			. "\$query->where('" . $a . "." . $filter['code']
-			. " IN (' . implode(',', \$_" . $filter['code'] . ") . ')');";
-		$filterQuery .= PHP_EOL . Indent::_(2) . "}";
-
-		return $filterQuery;
+		return CFactory::_('Architecture.Model.FilterQuery')
+			->getMultiFilterQuery($filter, $Helper, $a);
 	}
 
 	public function buildTheViewScript($viewArray)
