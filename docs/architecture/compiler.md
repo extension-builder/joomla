@@ -288,23 +288,23 @@ callers.
 
 ### Architecture target families
 
-The 26 target-selected Architecture families are:
+The 29 target-selected Architecture families are:
 
 | Objective | Stable families |
 | --- | --- |
 | Component helper | `Architecture.ComHelperClass.CreateUser`, `Architecture.ComHelperClass.ExcelMethods` |
 | View menus | `Architecture.Menu.CustomView` |
 | Model | `AllowEdit`, `CanDelete`, `CanEditState`, `CheckInNow` |
-| Admin single/list view | single `AddToolBar`, single `AddModalToolBar`, plural `AddToolBar` |
-| Site/custom views | site `AddToolBar`, custom single `AddToolBar`, custom plural `AddToolBar` |
+| Admin single/list view | single `AddToolBar`, single `AddModalToolBar`, plural `AddToolBar`, plural `DisplayMethod`, plural `ListHead` |
+| Site/custom views | site `AddToolBar`, custom single `AddToolBar`, custom plural `AddToolBar`, `CustomView.DisplayMethod` |
 | Controller | `AllowAdd`, `AllowEdit`, `AllowEditViews` |
 | Dashboard | `Architecture.Dashboard.View` |
 | Module | `Library`, `Template`, `Helper`, `Dispatcher`, `Provider`, `MainXML` |
 | Plugin | `Extension`, `Provider`, `MainXML` |
 
 Each family has J3/J4/J5/J6 concrete services. Singular and plural
-CustomAdminView toolbar services share one custom-admin interface, so 26
-families correspond to 25 effective Architecture contracts. The
+CustomAdminView toolbar services share one custom-admin interface, so 29
+families correspond to 28 effective Architecture contracts. The
 `ExcelMethods` and `Menu.CustomView` families extracted from the legacy
 helper keep their shared mechanics outside the version folders and use
 thin target variants for the user-lookup and fieldset-path differences.

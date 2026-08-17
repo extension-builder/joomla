@@ -136,11 +136,22 @@ services and remain in the helper only as delegating shims:
 | `setHelperExelMethods` | `Architecture.ComHelperClass.ExcelMethods` (J3/J4/J5/J6 target family; the lost Joomla 4+ user assignment is preserved and recorded in the known-defect ledger) |
 | `setUikitHelperMethods` | `Architecture.ComHelperClass.UikitMethods` |
 | `setAdminViewMenu` | `Architecture.Menu.AdminView` |
+| `setAdminViewDisplayMethod` | `Architecture.AdminViews.DisplayMethod` (J3/J4/J5/J6 target family for the filter-form retrieval) |
+| `setCustomViewDisplayMethod` | `Architecture.CustomView.DisplayMethod` (J3/J4/J5/J6 target family; the shared class holds both the legacy and modern dispatcher mechanics) |
+| `setListHead`, `setListColnr` | `Architecture.AdminViews.ListHead` (J3/J4/J5/J6 target family) with the column count in `Compiler.Builder.List.Column.Number` |
+| `setCustomAdminViewListLink`, `getCustomAdminViewButtons` | `Architecture.AdminViews.ListLink` with `Compiler.Builder.Custom.Admin.View.List.Link`, `.List.Id` and `Custom.Admin.Added` |
 | `setCustomViewMenu`, `setupFrontendParamFields` | `Architecture.Menu.CustomView` (J3/J4/J5/J6 target family for the fieldset rule/field lookup attributes) |
 
 Each extraction ships with unit or family-contract tests, provider catalog
 and interface-conformance fixture updates, and test-ownership entries. Use
 these moves as the template for the remaining clusters.
+
+Where a cluster owned helper state, that state moved into a focused shared
+Builder registry and the legacy shim copies the registry back onto the old
+public property. This keeps event-surface consumers of the compiler object
+working while the remaining readers are migrated. The formerly undeclared
+dynamic property `customAdminViewListId` is now both a registry and an
+explicitly declared compatibility mirror.
 
 ## Interpretation domain map
 
