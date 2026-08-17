@@ -84,6 +84,7 @@ final class BuilderRegistryProvider
 		'HasPermissions',
 		'HiddenFields',
 		'History',
+		'ImportCustomScripts',
 		'IntegerFields',
 		'ItemsMethodEximportString',
 		'ItemsMethodListString',

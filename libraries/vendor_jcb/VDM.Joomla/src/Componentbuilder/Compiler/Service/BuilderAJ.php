@@ -64,6 +64,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\HasMenuGlobal;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\HasPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\HiddenFields;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\History;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ImportCustomScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\IntegerFields;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ItemsMethodEximportString;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ItemsMethodListString;
@@ -238,6 +239,9 @@ class BuilderAJ implements ServiceProviderInterface
 
 		$container->alias(History::class, 'Compiler.Builder.History')
 			->share('Compiler.Builder.History', [$this, 'getHistory'], true);
+
+		$container->alias(ImportCustomScripts::class, 'Compiler.Builder.Import.Custom.Scripts')
+			->share('Compiler.Builder.Import.Custom.Scripts', [$this, 'getImportCustomScripts'], true);
 
 		$container->alias(IntegerFields::class, 'Compiler.Builder.Integer.Fields')
 			->share('Compiler.Builder.Integer.Fields', [$this, 'getIntegerFields'], true);
@@ -867,6 +871,19 @@ class BuilderAJ implements ServiceProviderInterface
 	public function getHistory(Container $container): History
 	{
 		return new History();
+	}
+
+	/**
+	 * Get The ImportCustomScripts Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ImportCustomScripts
+	 * @since 6.1.7
+	 */
+	public function getImportCustomScripts(Container $container): ImportCustomScripts
+	{
+		return new ImportCustomScripts();
 	}
 
 	/**
