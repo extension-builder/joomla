@@ -626,6 +626,16 @@ class Interpretation extends Fields
 		CFactory::_('Config')->lang_target = $tmp;
 	}
 
+	/**
+	 * Set the module loader of a view.
+	 *
+	 * @param   array   $view    The view definition.
+	 * @param   string  $TARGET  The upper case build target of the view.
+	 *
+	 * @return  string  The generated module loader.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setGetModules($view, $TARGET)
 	{
 		if (CFactory::_('Compiler.Builder.Get.Module')->
@@ -7614,10 +7624,17 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * @param $nameSingleCode
-	 * @param $layoutName
-	 * @param $items
-	 * @param $type
+	 * Build one layout of a view.
+	 *
+	 * @param   string  $nameSingleCode  The single view name.
+	 * @param   string  $layoutName      The layout name.
+	 * @param   string  $items           The generated layout items.
+	 * @param   string  $type            The structure type of the layout file.
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Layout.View service.
 	 */
 	public function setLayout($nameSingleCode, $layoutName, $items, $type)
 	{
