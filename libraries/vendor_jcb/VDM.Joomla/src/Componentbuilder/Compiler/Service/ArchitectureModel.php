@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SelectionTranslation;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\AllowEditInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AllowEdit as SharedModelAllowEdit;
@@ -63,6 +64,9 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		$container->alias(SelectionTranslation::class, 'Architecture.Model.SelectionTranslation')
 			->share('Architecture.Model.SelectionTranslation', [$this, 'getModelSelectionTranslation'], true);
+
+		$container->alias(FieldRelation::class, 'Architecture.Model.FieldRelation')
+			->share('Architecture.Model.FieldRelation', [$this, 'getModelFieldRelation'], true);
 
 		$container->alias(CustomQuery::class, 'Architecture.Model.CustomQuery')
 			->share('Architecture.Model.CustomQuery', [$this, 'getModelCustomQuery'], true);
@@ -134,6 +138,22 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		return new SelectionTranslation(
 			$container->get('Compiler.Builder.Selection.Translation')
+		);
+	}
+
+	/**
+	 * Get The Model FieldRelation Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  FieldRelation
+	 * @since   6.1.7
+	 */
+	public function getModelFieldRelation(Container $container): FieldRelation
+	{
+		return new FieldRelation(
+			$container->get('Compiler.Builder.List.Join'),
+			$container->get('Placeholder')
 		);
 	}
 
