@@ -132,7 +132,7 @@ final class Manifest
 		$this->source->set('path', $root);
 
 		$supplied = $this->supplied();
-		$manifest = $this->find($root);
+		$manifest = $this->find($root) ?? $this->beside($root);
 
 		if ($manifest !== null)
 		{
@@ -254,6 +254,66 @@ final class Manifest
 			$candidates,
 			static fn (array $left, array $right): int => $left['rank'] <=> $right['rank']
 		);
+
+		return $candidates[0]['facts'];
+	}
+
+	/**
+	 * Look for the manifest in the directory the source root sits in.
+	 *
+	 * A component's manifest lives beside its administrator folder, not inside it.
+	 * Once installed the two are in the same directory, but in a repository the
+	 * layout is admin/, site/ and the manifest as siblings -- so aiming the run at
+	 * the administrator folder alone, which is exactly what someone extruding only
+	 * the back end would do, leaves the manifest one level up and out of reach.
+	 *
+	 * Only the containing directory's own files are considered, and only when
+	 * nothing was found inside the root. Nothing is read from any deeper part of the
+	 * tree above the root, so the scan the run performs stays bounded by the root it
+	 * was given; this reads one directory listing beside it and no more.
+	 *
+	 * @param   string  $root  The resolved source root.
+	 *
+	 * @return  array<string, mixed>|null  The manifest facts, or null when there are none.
+	 * @since   6.1.6
+	 */
+	protected function beside(string $root): ?array
+	{
+		$parent = dirname($root);
+
+		if ($parent === $root || !is_dir($parent) || !is_readable($parent))
+		{
+			return null;
+		}
+
+		$candidates = [];
+
+		foreach ((array) @glob($parent . '/*.xml') as $path)
+		{
+			if (!is_string($path) || !is_file($path))
+			{
+				continue;
+			}
+
+			$facts = $this->parse($path);
+
+			if ($facts !== null && ($facts['typed'] ?? false))
+			{
+				$candidates[] = ['facts' => $facts, 'rank' => $this->rank($parent, $path, 0)];
+			}
+		}
+
+		if ($candidates === [])
+		{
+			return null;
+		}
+
+		usort(
+			$candidates,
+			static fn (array $left, array $right): int => $left['rank'] <=> $right['rank']
+		);
+
+		$this->report->set('source.manifest_beside', $parent);
 
 		return $candidates[0]['facts'];
 	}

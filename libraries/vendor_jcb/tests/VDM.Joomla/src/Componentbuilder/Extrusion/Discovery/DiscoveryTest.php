@@ -928,4 +928,68 @@ final class DiscoveryTest extends FilesystemTestCase
 		$this->assertSame(1, $this->inventory->get('language_count'));
 		$this->assertTrue($this->report->get('located.schema.missing'));
 	}
+	/**
+	 * Aiming at the administrator folder still finds the manifest beside it.
+	 *
+	 * In a repository a component is admin/, site/ and its manifest as siblings, so
+	 * a run pointed at the back end alone would otherwise learn nothing about the
+	 * component itself -- and the back end alone is exactly what someone extruding
+	 * only the administrator area would point at.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheManifestIsFoundBesideTheAdministratorFolder(): void
+	{
+		$root = $this->tree('beside', [
+			'com_thing.xml' => str_replace(
+				'<name>com_example</name>',
+				'<name>Thing</name>',
+				ExtrusionComponentFixture::MANIFEST
+			),
+			'admin/sql/install.mysql.utf8.sql' => ExtrusionComponentFixture::SCHEMA
+		]);
+
+		$this->assertTrue($this->manifest()->establish($root . '/admin'));
+		$this->assertSame('com_thing', $this->source->get('code_name'));
+		$this->assertSame('Thing', $this->source->get('name'));
+		$this->assertSame('2.4.1', $this->source->get('version'));
+		$this->assertSame($root, $this->report->get('source.manifest_beside'));
+		$this->assertSame(
+			$root . '/com_thing.xml',
+			$this->source->get('manifest'),
+			'The manifest read is the one beside the folder, named exactly.'
+		);
+	}
+
+	/**
+	 * Only a manifest that declares itself a component is taken from beside.
+	 *
+	 * Reading a directory the run was not pointed at is a deliberate exception, so
+	 * it is held to the strictest test there is: the extension type must say
+	 * component outright. A module or plugin manifest sitting beside the folder
+	 * must never be mistaken for the component's own.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAnUntypedOrForeignManifestBesideTheFolderIsRefused(): void
+	{
+		$root = $this->tree('foreign', [
+			'mod_thing.xml' => str_replace(
+				'type="component"',
+				'type="module"',
+				ExtrusionComponentFixture::MANIFEST
+			),
+			'admin/sql/install.mysql.utf8.sql' => ExtrusionComponentFixture::SCHEMA
+		]);
+
+		$this->manifest()->establish($root . '/admin');
+
+		$this->assertNull(
+			$this->report->get('source.manifest_beside'),
+			'A module manifest beside the folder is not the component.'
+		);
+		$this->assertNull($this->source->get('manifest'));
+	}
 }
