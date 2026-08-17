@@ -7553,55 +7553,19 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * set the view fade in effect
+	 *
+	 * @param   array  $view
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.FadeInEffect service.
+	 */
 	public function setFadeInEfect(&$view)
 	{
-		$component = CFactory::_('Config')->component_code_name;
-
-		// check if we should load the fade in affect
-		if ($view['settings']->add_fadein == 1)
-		{
-			$fadein   = [];
-			$fadein[] = "<script type=\"text/javascript\">";
-			$fadein[] = Indent::_(1) . "(function() {";
-			$fadein[] = Indent::_(2) . "// create loading overlay";
-			$fadein[] = Indent::_(2) . "var loadingDiv = document.createElement('div');";
-			$fadein[] = Indent::_(2) . "loadingDiv.id = 'loading';";
-
-			// robust styling (no size calculations)
-			$fadein[] = Indent::_(2) . "loadingDiv.style.position = 'fixed';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.top = '0';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.left = '0';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.right = '0';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.bottom = '0';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.width = '100%';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.height = '100%';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.background = \"rgba(255,255,255,0.8) url('components/com_{$component}/assets/images/ajax.gif') 50% 35% no-repeat\";";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.opacity = '0.8';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.zIndex = '9999';";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.display = 'block';";
-
-			// IE fallback (harmless elsewhere)
-			$fadein[] = Indent::_(2) . "loadingDiv.style.msFilter = \"progid:DXImageTransform.Microsoft.Alpha(Opacity=80)\";";
-			$fadein[] = Indent::_(2) . "loadingDiv.style.filter = \"alpha(opacity=80)\";";
-
-			$fadein[] = Indent::_(2) . "document.body.appendChild(loadingDiv);";
-
-			$fadein[] = Indent::_(2) . "// remove overlay when page fully loaded";
-			$fadein[] = Indent::_(2) . "window.addEventListener('load', function() {";
-			$fadein[] = Indent::_(3) . "var componentLoader = document.getElementById('{$component}_loader');";
-			$fadein[] = Indent::_(3) . "if (componentLoader) componentLoader.style.display = 'block';";
-			$fadein[] = Indent::_(3) . "loadingDiv.style.display = 'none';";
-			$fadein[] = Indent::_(2) . "});";
-
-			$fadein[] = Indent::_(1) . "})();";
-			$fadein[] = "</script>";
-
-			$fadein[] = "<div id=\"{$component}_loader\" style=\"display: none;\">";
-
-			return implode(PHP_EOL, $fadein);
-		}
-
-		return "<div id=\"{$component}_loader\">";
+		return CFactory::_('Architecture.AdminView.FadeInEffect')->get($view);
 	}
 
 	/**
@@ -7612,175 +7576,8 @@ class Interpretation extends Fields
 	 */
 	public function setLayout($nameSingleCode, $layoutName, $items, $type)
 	{
-		// we check if there is a local override
-		if (!$this->setLayoutOverride($nameSingleCode, $layoutName, $items))
-		{
-			// first build the layout file
-			$target = array('admin' => $nameSingleCode);
-			CFactory::_('Utilities.Structure')->build($target, $type, $layoutName);
-			// add to front if needed
-			if (CFactory::_('Config')->lang_target === 'both')
-			{
-				$target = array('site' => $nameSingleCode);
-				CFactory::_('Utilities.Structure')->build($target, $type, $layoutName);
-			}
-			if (StringHelper::check($items))
-			{
-				// LAYOUTITEMS <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|LAYOUTITEMS', $items);
-			}
-			else
-			{
-				// LAYOUTITEMS <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|bogus', 'boom');
-			}
-		}
-	}
-
-	/**
-	 * @param   string  $nameSingleCode
-	 * @param   string  $layoutName
-	 * @param   string  $items
-	 *
-	 * @return  boolean  true if override was found
-	 */
-	protected function setLayoutOverride($nameSingleCode, $layoutName, $items)
-	{
-		if (($data = $this->getLayoutOverride($nameSingleCode, $layoutName))
-			!== null)
-		{
-			// first build the layout file
-			$target = array('admin' => $nameSingleCode);
-			CFactory::_('Utilities.Structure')->build($target, 'layoutoverride', $layoutName);
-			// add to front if needed
-			if (CFactory::_('Config')->lang_target === 'both')
-			{
-				$target = array('site' => $nameSingleCode);
-				CFactory::_('Utilities.Structure')->build($target, 'layoutoverride', $layoutName);
-			}
-			// make sure items is an empty string (should not be needed.. but)
-			if (!StringHelper::check($items))
-			{
-				$items = '';
-			}
-			// set placeholder
-			$placeholder                                    = CFactory::_('Placeholder')->active;
-			$placeholder[Placefix::_h('LAYOUTITEMS')] = $items;
-			// OVERRIDE_LAYOUT_CODE <<<DYNAMIC>>>
-			$php_view = (array) explode(PHP_EOL, (string) $data['php_view'] ?? '');
-			if (ArrayHelper::check($php_view))
-			{
-				$php_view = PHP_EOL . PHP_EOL . implode(PHP_EOL, $php_view);
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|OVERRIDE_LAYOUT_CODE',
-					CFactory::_('Placeholder')->update(
-						$php_view, $placeholder
-					)
-				);
-			}
-			else
-			{
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|OVERRIDE_LAYOUT_CODE', '');
-			}
-			// OVERRIDE_LAYOUT_BODY <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|OVERRIDE_LAYOUT_BODY',
-				PHP_EOL . CFactory::_('Placeholder')->update(
-					$data['html'] ?? '', $placeholder
-				)
-			);
-			// OVERRIDE_LAYOUT_HEADER <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '_' . $layoutName . '|OVERRIDE_LAYOUT_HEADER',
-				(($header = CFactory::_('Header')->get(
-						'override.layout',
-						$layoutName, false)
-					) !== false) ? PHP_EOL . PHP_EOL . $header : ''
-			);
-
-			// since override was found
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
-	 * @param   string  $nameSingleCode
-	 * @param   string  $layoutName
-	 *
-	 * @return  array|null  the layout data
-	 */
-	protected function getLayoutOverride($nameSingleCode, $layoutName): ?array
-	{
-		$get_key = null;
-		// check if there is an override by component name, view name, & layout name
-		if (CFactory::_('Templatelayout.Data')->set(
-			'override', $nameSingleCode, false, array(''),
-			array(CFactory::_('Config')->component_code_name . $nameSingleCode . $layoutName)
-		))
-		{
-			$get_key = CFactory::_('Config')->component_code_name . $nameSingleCode . $layoutName;
-		}
-		// check if there is an override by component name & layout name
-		elseif (CFactory::_('Templatelayout.Data')->set(
-			'override', $nameSingleCode, false, array(''),
-			array(CFactory::_('Config')->component_code_name . $layoutName)
-		))
-		{
-			$get_key = CFactory::_('Config')->component_code_name . $layoutName;
-		}
-		// check if there is an override by view & layout name
-		elseif (CFactory::_('Templatelayout.Data')->set(
-			'override', $nameSingleCode, false, array(''),
-			array($nameSingleCode . $layoutName)
-		))
-		{
-			$get_key = $nameSingleCode . $layoutName;
-		}
-		// check if there is an override by layout name (global layout)
-		elseif (CFactory::_('Templatelayout.Data')->set(
-			'override', $nameSingleCode, false, array(''),
-			array($layoutName)
-		))
-		{
-			$get_key = $layoutName;
-		}
-
-		// check if we have a get key
-		if ($get_key)
-		{
-			$data = CFactory::_('Compiler.Builder.Layout.Data')->
-				get(CFactory::_('Config')->build_target . '.' . $get_key);
-
-			if ($data === null)
-			{
-				var_dump(CFactory::_('Config')->build_target . '.' . $get_key);
-				var_dump('admin.' .$get_key);
-				var_dump(CFactory::_('Compiler.Builder.Layout.Data')->get('admin.' .$get_key));
-				var_dump('site.' .$get_key);
-				var_dump(CFactory::_('Compiler.Builder.Layout.Data')->get('site.' . $get_key));
-				var_dump('both.' .$get_key);
-				var_dump(CFactory::_('Compiler.Builder.Layout.Data')->get('both.' . $get_key));
-				exit;
-			}
-			// remove since we will add the layout now
-			if (CFactory::_('Config')->lang_target === 'both')
-			{
-				CFactory::_('Compiler.Builder.Layout.Data')->
-					remove('admin.' . $get_key);
-				CFactory::_('Compiler.Builder.Layout.Data')->
-					remove('site.' . $get_key);
-				CFactory::_('Compiler.Builder.Layout.Data')->
-					remove('both.' . $get_key);
-			}
-			else
-			{
-				CFactory::_('Compiler.Builder.Layout.Data')->
-					remove(CFactory::_('Config')->build_target . '.' . $get_key);
-			}
-
-			return $data;
-		}
-
-		return null;
+		CFactory::_('Architecture.Layout.View')
+			->set($nameSingleCode, $layoutName, $items, $type);
 	}
 
 	/**
