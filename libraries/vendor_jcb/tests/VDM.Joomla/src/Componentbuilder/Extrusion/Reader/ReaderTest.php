@@ -1896,38 +1896,57 @@ SQL);
 	/**
 	 * A front end view that edits a record is passed over, not half extruded.
 	 *
-	 * Such a view is an administrator view moved to the front: recovering it means
-	 * recovering the model and field set behind it, which is a different job. Writing
-	 * it as a site view would compile into a form with nothing in it.
+	 * The evidence is the file name and nothing else. An edit view carries edit.php
+	 * and no default.php; a list view carries default.php. What the markup contains
+	 * cannot decide it, because a front end list view renders an adminForm with a
+	 * token for its own filters exactly as an edit view does -- in the Joomla Service
+	 * Directory five of its seven real site views do precisely that.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testAFrontEndEditViewIsNotExtrudedAsASiteView(): void
+	public function testAFrontEndEditViewIsRecognisedByItsFileNameAndSkipped(): void
 	{
-		$reader = $this->siteViewReader();
+		$inventory = new Inventory();
+		$files = [
+			['site/tmpl/company/edit.php', '<form name="adminForm">edit</form>', 'edit', 'edit'],
+			['site/tmpl/companies/default.php', "<?php\n?>\n<form name=\"adminForm\">list</form>", 'companies', 'main']
+		];
+		$inventory->set('view_count', count($files));
 
-		$this->assertTrue($reader->editing('<?php echo $this->form->renderField("name"); ?>'));
-		$this->assertTrue($reader->editing('<form name="adminForm" method="post">'));
-		$this->assertTrue($reader->editing("<form name='adminForm'>"));
-		$this->assertTrue($reader->editing("<?php echo HTMLHelper::_('form.token'); ?>"));
-		$this->assertFalse($reader->editing('<h1>Just content</h1>'));
-		$this->assertFalse(
-			$reader->editing('<?php echo $this->item->name; ?>'),
-			'Displaying a record is not editing one.'
+		foreach ($files as $index => [$relative, $contents, $view, $role])
+		{
+			$inventory->set('view.' . $index . '.path', $this->writeTemporaryFile($relative, $contents));
+			$inventory->set('view.' . $index . '.name', basename($relative, '.php'));
+			$inventory->set('view.' . $index . '.role', $role);
+			$inventory->set('view.' . $index . '.scope', 'site');
+			$inventory->set('view.' . $index . '.view', $view);
+		}
+
+		$dispatcher = new Dispatcher(
+			new Config(),
+			$inventory,
+			$this->report,
+			$this->languageReader(),
+			$this->tableReader(),
+			$this->schemaReader(),
+			$this->formReader(),
+			$this->layoutReader(),
+			$this->templateReader(),
+			$this->siteViewReader()
 		);
 
-		$edit = $this->writeTemporaryFile(
-			'site/tmpl/submit/default.php',
-			"<?php\ndefined('_JEXEC') or die;\n?>\n"
-			. '<form name="adminForm"><?php echo $this->form->renderField(\'name\'); ?></form>'
+		$this->assertSame(1, $dispatcher->dispatch());
+		$this->assertSame(
+			['companies'],
+			array_keys((array) $this->view->get('site_view')),
+			'A list view whose markup renders an adminForm is still a site view.'
 		);
-
-		$this->assertFalse($reader->read($edit, 'submit'));
-		$this->assertFalse($this->view->exists('site_view.submit.name'));
-		$this->assertStringContainsString(
-			'a front end view that edits a record',
-			(string) $this->report->get('site_view.submit.skipped')
+		$this->assertFalse($this->view->exists('site_view.edit.name'));
+		$this->assertSame(
+			[$this->temporaryPath('site/tmpl/company/edit.php')],
+			array_values((array) $this->report->get('view.skipped.edit_view')),
+			'The view that was passed over is named, not silently dropped.'
 		);
 	}
 }
