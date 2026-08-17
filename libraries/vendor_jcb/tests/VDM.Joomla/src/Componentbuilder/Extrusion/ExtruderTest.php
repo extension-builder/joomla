@@ -425,6 +425,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame(2, $report->get('counts.views'));
 		$this->assertSame(
 			[
+				'joomla_component' => 1,
 				'field' => 8,
 				'admin_view' => 2,
 				'admin_fields' => 2,
@@ -436,12 +437,13 @@ final class ExtruderTest extends FilesystemTestCase
 			],
 			(array) $report->get('written_counts')
 		);
-		$this->assertSame(19, $report->get('counts.written'));
+		$this->assertSame(20, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame(
-			['field' => 8, 'admin_view' => 2, 'admin_fields' => 2,
-				'admin_fields_conditions' => 1, 'admin_custom_tabs' => 1,
-				'layout' => 1, 'template' => 2, 'component_admin_views' => 1],
+			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2,
+				'admin_fields' => 2, 'admin_fields_conditions' => 1,
+				'admin_custom_tabs' => 1, 'layout' => 1, 'template' => 2,
+				'component_admin_views' => 1],
 			$this->tallied()
 		);
 
@@ -522,7 +524,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame('com_legacy', $this->source()->get('code_name'));
 		$this->assertSame(6, $report->get('counts.artifacts'));
 		$this->assertSame(2, $report->get('counts.views'));
-		$this->assertSame(19, $report->get('counts.written'));
+		$this->assertSame(20, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame('derived', $report->get('roles.item.origin'));
 		$this->assertTrue(
@@ -537,7 +539,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame(['Item Details', 'Metrics'], $resolved->get('view.item.tabs'));
 		$this->assertCount(2, (array) $resolved->get('view.item.conditions'));
 		$this->assertSame(
-			['field' => 8, 'admin_view' => 2, 'admin_fields' => 2,
+			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2, 'admin_fields' => 2,
 				'admin_fields_conditions' => 1, 'admin_custom_tabs' => 1,
 				'layout' => 1, 'template' => 2, 'component_admin_views' => 1],
 			$this->tallied()
@@ -640,6 +642,7 @@ SQL;
 		);
 		$this->assertSame(
 			[
+				'joomla_component' => 1,
 				'field' => 2,
 				'admin_view' => 1,
 				'admin_fields' => 1,
@@ -835,7 +838,7 @@ SQL)->extrude();
 		$this->extruder()->path($this->modern())->component(7)->extrude();
 
 		$this->assertSame(
-			[['message' => 'Extruded 2 view(s) into 19 JCB definition(s).']],
+			[['message' => 'Extruded 2 view(s) into 20 JCB definition(s).']],
 			$this->messages()->level('success')
 		);
 		$this->assertSame(

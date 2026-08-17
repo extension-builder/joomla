@@ -94,6 +94,14 @@ final class Dispatcher
 	protected WriterInterface $component;
 
 	/**
+	 * The Component Details Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.6
+	 */
+	protected WriterInterface $details;
+
+	/**
 	 * The Layout Writer.
 	 *
 	 * @var    WriterInterface
@@ -120,6 +128,7 @@ final class Dispatcher
 	 * @param   WriterInterface  $conditions   The field conditions writer.
 	 * @param   WriterInterface  $tabs         The custom tabs writer.
 	 * @param   WriterInterface  $component    The component link writer.
+	 * @param   WriterInterface  $details      The component details writer.
 	 * @param   WriterInterface  $layout       The layout writer.
 	 * @param   WriterInterface  $template     The template writer.
 	 *
@@ -134,6 +143,7 @@ final class Dispatcher
 		WriterInterface $conditions,
 		WriterInterface $tabs,
 		WriterInterface $component,
+		WriterInterface $details,
 		WriterInterface $layout,
 		WriterInterface $template
 	)
@@ -146,6 +156,7 @@ final class Dispatcher
 		$this->conditions = $conditions;
 		$this->tabs = $tabs;
 		$this->component = $component;
+		$this->details = $details;
 		$this->layout = $layout;
 		$this->template = $template;
 	}
@@ -180,7 +191,7 @@ final class Dispatcher
 	 */
 	public function order(): array
 	{
-		$order = [];
+		$order = ['joomla_component' => $this->details];
 
 		if ($this->config->get('admin', true))
 		{

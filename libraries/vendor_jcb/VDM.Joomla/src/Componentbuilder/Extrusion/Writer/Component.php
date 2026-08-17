@@ -1,0 +1,304 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    17th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
+
+
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
+use VDM\Joomla\Interfaces\Data\ItemInterface;
+
+
+/**
+ * Fills in the JCB component record from the component's own manifest.
+ *
+ * The manifest is the component's account of itself, and it is the one artifact
+ * every Joomla component has: a component with no schema, no table class and no
+ * form XML still declares who wrote it, under what licence, at what version and
+ * what it is for. Every one of those has a column waiting for it, so leaving them
+ * empty would mean the person who ran the extrusion has to retype what the source
+ * already said.
+ *
+ * Only what the manifest actually stated is written. A column the manifest is
+ * silent about is left out of the update entirely rather than blanked, because the
+ * caller may well have filled it in before running this and an extrusion has no
+ * business erasing that.
+ *
+ * @since 6.1.6
+ */
+final class Component extends Writer
+{
+	/**
+	 * The manifest keys that map straight onto a component column.
+	 *
+	 * @var    array<string, string>
+	 * @since  6.1.6
+	 */
+	private const DIRECT = [
+		'author' => 'author',
+		'email' => 'email',
+		'website' => 'website',
+		'copyright' => 'copyright',
+		'license' => 'license'
+	];
+
+	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.6
+	 */
+	protected Source $source;
+
+	/**
+	 * The Language Resolver.
+	 *
+	 * @var    Language
+	 * @since  6.1.6
+	 */
+	protected Language $language;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param   Config         $config    The extrusion configuration.
+	 * @param   Resolved       $resolved  The resolved definition registry.
+	 * @param   ItemInterface  $item      The JCB data item writer.
+	 * @param   Report         $report    The run report registry.
+	 * @param   Source         $source    The source identity registry.
+	 * @param   Language       $language  The language constant resolver.
+	 *
+	 * @since   6.1.6
+	 */
+	public function __construct(
+		Config $config,
+		Resolved $resolved,
+		ItemInterface $item,
+		Report $report,
+		Source $source,
+		Language $language
+	)
+	{
+		parent::__construct($config, $resolved, $item, $report);
+
+		$this->source = $source;
+		$this->language = $language;
+	}
+
+	/**
+	 * The JCB table this writer persists into.
+	 *
+	 * @return  string  The table name without its prefix.
+	 * @since   6.1.6
+	 */
+	protected function table(): string
+	{
+		return 'joomla_component';
+	}
+
+	/**
+	 * Fill in what the manifest stated about the component.
+	 *
+	 * @return  int  One when the component record was updated, zero otherwise.
+	 * @since   6.1.6
+	 */
+	public function write(): int
+	{
+		$component = (int) $this->config->get('component', 0);
+
+		if ($component <= 0 || !$this->config->get('component_details', true))
+		{
+			return 0;
+		}
+
+		$definition = $this->definition();
+
+		if ($definition === [])
+		{
+			$this->report->set('component.details', 'the manifest stated nothing to fill in');
+
+			return 0;
+		}
+
+		$this->report->set('component.details', array_keys($definition));
+
+		if ($this->config->get('dryRun', false))
+		{
+			$this->report->set('dryrun.joomla_component.' . $component, true);
+			$this->report->set('counts.joomla_component', 1);
+
+			return 1;
+		}
+
+		$record = (object) (['id' => $component] + $definition);
+
+		if (!$this->item->table($this->table())->set($record, 'id'))
+		{
+			$this->report->set('failed.joomla_component.' . $component, true);
+
+			return 0;
+		}
+
+		$this->report->set('written.joomla_component.' . $component, true);
+		$this->report->set('counts.joomla_component', 1);
+
+		return 1;
+	}
+
+	/**
+	 * The columns the manifest supplied a value for.
+	 *
+	 * @return  array<string, mixed>  Column name keyed to its raw value.
+	 * @since   6.1.6
+	 */
+	public function definition(): array
+	{
+		$stated = (array) $this->source->get('manifest_data', []);
+		$definition = [];
+
+		foreach (self::DIRECT as $key => $column)
+		{
+			$value = trim((string) ($stated[$key] ?? ''));
+
+			if ($value !== '')
+			{
+				$definition[$column] = $value;
+			}
+		}
+
+		foreach ($this->names() as $column => $value)
+		{
+			$definition[$column] = $value;
+		}
+
+		$description = trim((string) ($stated['description'] ?? ''));
+
+		if ($description !== '')
+		{
+			$definition['description'] = $this->language->resolve($description);
+			$definition['short_description'] = $this->summarise($definition['description']);
+		}
+
+		$version = trim((string) $this->source->get('version', ''));
+
+		if ($version !== '')
+		{
+			$definition['component_version'] = $version;
+		}
+
+		$namespace = trim((string) ($stated['namespace'] ?? ''));
+
+		if ($namespace !== '' && str_contains($namespace, '\\'))
+		{
+			// A Joomla namespace is Vendor\Component\Name; JCB owns the second and third
+			// segments and asks only for the vendor prefix, so keeping the whole string
+			// would have the compiler generate Vendor\Component\Name\Component\Name.
+			$definition['namespace_prefix'] = strstr($namespace, '\\', true);
+			$definition['add_namespace_prefix'] = 1;
+		}
+
+		return $definition + $this->target((string) ($stated['target'] ?? ''));
+	}
+
+	/**
+	 * A one-line summary of a description that may be a page of HTML.
+	 *
+	 * A manifest description is routinely a marketing page wrapped in CDATA, and the
+	 * short description column is a single line shown beside the component. The
+	 * first sentence of the readable text is what a person would have written there
+	 * themselves, so that is what is taken.
+	 *
+	 * @param   string  $description  The full description.
+	 *
+	 * @return  string  A single line of at most 150 characters.
+	 * @since   6.1.6
+	 */
+	public function summarise(string $description): string
+	{
+		// A tag is a word boundary. Stripping it without one turns </h1><p> into a
+		// single run-on word, which is the whole of the summary ruined by markup that
+		// was never meant to be read.
+		$spaced = preg_replace('/<[^>]*>/', ' ', $description) ?? $description;
+		$text = html_entity_decode(strip_tags($spaced), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		$text = trim(preg_replace('/\\s+/', ' ', $text) ?? $text);
+
+		if ($text === '')
+		{
+			return '';
+		}
+
+		if (preg_match('/^(.{20,150}?[.!?])\\s/u', $text . ' ', $matches) === 1)
+		{
+			return trim($matches[1]);
+		}
+
+		if (function_exists('mb_strlen') && mb_strlen($text, 'UTF-8') > 150)
+		{
+			return rtrim(mb_substr($text, 0, 147, 'UTF-8')) . '...';
+		}
+
+		return strlen($text) > 150 ? rtrim(substr($text, 0, 147)) . '...' : $text;
+	}
+
+	/**
+	 * The component's own name, and the code name its tables carry.
+	 *
+	 * A manifest name is very often a language constant, and the resolved English
+	 * string is what belongs in JCB; falling back to a readable form of the constant
+	 * is still better than storing the constant itself.
+	 *
+	 * @return  array<string, string>  The name columns.
+	 * @since   6.1.6
+	 */
+	public function names(): array
+	{
+		$names = [];
+		$name = trim((string) $this->source->get('name', ''));
+		$option = trim((string) $this->source->get('code_name', ''));
+
+		if ($name !== '')
+		{
+			$resolved = $this->language->resolve($name);
+			$names['name'] = $resolved;
+			$names['system_name'] = $resolved;
+		}
+
+		if ($option !== '')
+		{
+			$names['name_code'] = preg_replace('/^com_/', '', strtolower($option)) ?? $option;
+		}
+
+		return $names;
+	}
+
+	/**
+	 * The Joomla version the manifest targets, as JCB records it.
+	 *
+	 * A manifest states its target as a decimal such as 4.0 or 6.0. JCB keeps the
+	 * major number alone, so anything that is not a whole major version is dropped
+	 * rather than rounded into a version the component never claimed.
+	 *
+	 * @param   string  $target  The manifest version attribute.
+	 *
+	 * @return  array<string, int>  The preferred version column, or an empty array.
+	 * @since   6.1.6
+	 */
+	public function target(string $target): array
+	{
+		$major = (int) strtok(trim($target), '.');
+
+		return $major >= 3 && $major <= 9 ? ['preferred_joomla_version' => $major] : [];
+	}
+}

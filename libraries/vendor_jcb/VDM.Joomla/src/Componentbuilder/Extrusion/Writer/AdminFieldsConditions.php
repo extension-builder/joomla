@@ -177,12 +177,17 @@ final class AdminFieldsConditions extends Writer
 				continue;
 			}
 
+			// A showon rule always says when to SHOW its target, so the target behaviour
+			// is show and the negation belongs on how the match is evaluated. Putting it
+			// on target_behavior instead would compile to hiding the field in exactly
+			// the cases the source component showed it.
 			$subform['addconditions' . $number] = [
 				'target_field' => $targets,
 				'match_field' => $matchGuid,
-				'target_behavior' => empty($condition['negate']) ? 1 : 2,
+				'target_behavior' => 1,
 				'target_relation' => 1,
-				'options' => implode(',', (array) ($condition['values'] ?? []))
+				'match_behavior' => empty($condition['negate']) ? 1 : 2,
+				'match_options' => implode(PHP_EOL, (array) ($condition['values'] ?? []))
 			];
 			$number++;
 		}

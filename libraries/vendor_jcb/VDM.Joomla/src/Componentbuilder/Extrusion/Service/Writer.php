@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
@@ -62,6 +63,9 @@ class Writer implements ServiceProviderInterface
 
 		$container->alias(ComponentAdminViews::class, 'Extrusion.Writer.ComponentAdminViews')
 			->share('Extrusion.Writer.ComponentAdminViews', [$this, 'getComponentAdminViews'], true);
+
+		$container->alias(Component::class, 'Extrusion.Writer.Component')
+			->share('Extrusion.Writer.Component', [$this, 'getComponent'], true);
 
 		$container->alias(LayoutWriter::class, 'Extrusion.Writer.Layout')
 			->share('Extrusion.Writer.Layout', [$this, 'getLayout'], true);
@@ -176,6 +180,26 @@ class Writer implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Component Details Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Component
+	 * @since   6.1.6
+	 */
+	public function getComponent(Container $container): Component
+	{
+		return new Component(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Language')
+		);
+	}
+
+	/**
 	 * Get the Component Admin Views Writer.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -256,6 +280,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Writer.AdminFieldsConditions'),
 			$container->get('Extrusion.Writer.AdminCustomTabs'),
 			$container->get('Extrusion.Writer.ComponentAdminViews'),
+			$container->get('Extrusion.Writer.Component'),
 			$container->get('Extrusion.Writer.Layout'),
 			$container->get('Extrusion.Writer.Template')
 		);
