@@ -1,0 +1,269 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    17th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
+
+
+use Joomla\DI\Container;
+use Joomla\DI\ServiceProviderInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language as LanguageResolver;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\ViewName;
+
+
+/**
+ * Extrusion Resolver Service Provider
+ *
+ * @since 6.1.6
+ */
+class Resolver implements ServiceProviderInterface
+{
+	/**
+	 * Registers the service provider with a DI container.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function register(Container $container)
+	{
+		$container->alias(Guid::class, 'Extrusion.Resolver.Guid')
+			->share('Extrusion.Resolver.Guid', [$this, 'getGuid'], true);
+
+		$container->alias(LanguageResolver::class, 'Extrusion.Resolver.Language')
+			->share('Extrusion.Resolver.Language', [$this, 'getLanguage'], true);
+
+		$container->alias(ViewName::class, 'Extrusion.Resolver.ViewName')
+			->share('Extrusion.Resolver.ViewName', [$this, 'getViewName'], true);
+
+		$container->alias(Fieldtype::class, 'Extrusion.Resolver.Fieldtype')
+			->share('Extrusion.Resolver.Fieldtype', [$this, 'getFieldtype'], true);
+
+		$container->alias(Precedence::class, 'Extrusion.Resolver.Precedence')
+			->share('Extrusion.Resolver.Precedence', [$this, 'getPrecedence'], true);
+
+		$container->alias(Role::class, 'Extrusion.Resolver.Role')
+			->share('Extrusion.Resolver.Role', [$this, 'getRole'], true);
+
+		$container->alias(Tab::class, 'Extrusion.Resolver.Tab')
+			->share('Extrusion.Resolver.Tab', [$this, 'getTab'], true);
+
+		$container->alias(Condition::class, 'Extrusion.Resolver.Condition')
+			->share('Extrusion.Resolver.Condition', [$this, 'getCondition'], true);
+
+		$container->alias(Relation::class, 'Extrusion.Resolver.Relation')
+			->share('Extrusion.Resolver.Relation', [$this, 'getRelation'], true);
+
+		$container->alias(FieldXml::class, 'Extrusion.Resolver.FieldXml')
+			->share('Extrusion.Resolver.FieldXml', [$this, 'getFieldXml'], true);
+
+		$container->alias(Assembler::class, 'Extrusion.Assembler')
+			->share('Extrusion.Assembler', [$this, 'getAssembler'], true);
+	}
+
+	/**
+	 * Get the identity resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Guid
+	 * @since   6.1.6
+	 */
+	public function getGuid(Container $container): Guid
+	{
+		return new Guid();
+	}
+
+	/**
+	 * Get the language resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LanguageResolver
+	 * @since   6.1.6
+	 */
+	public function getLanguage(Container $container): LanguageResolver
+	{
+		return new LanguageResolver(
+			$container->get('Extrusion.Registry.Language'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the view name resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewName
+	 * @since   6.1.6
+	 */
+	public function getViewName(Container $container): ViewName
+	{
+		return new ViewName(
+			$container->get('Extrusion.Registry.Source')
+		);
+	}
+
+	/**
+	 * Get the field type resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Fieldtype
+	 * @since   6.1.6
+	 */
+	public function getFieldtype(Container $container): Fieldtype
+	{
+		return new Fieldtype(
+			$container->get('Load'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the precedence engine.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Precedence
+	 * @since   6.1.6
+	 */
+	public function getPrecedence(Container $container): Precedence
+	{
+		return new Precedence(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Table'),
+			$container->get('Extrusion.Registry.Schema'),
+			$container->get('Extrusion.Registry.Form'),
+			$container->get('Extrusion.Resolver.Language'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the display role resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Role
+	 * @since   6.1.6
+	 */
+	public function getRole(Container $container): Role
+	{
+		return new Role(
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the tab resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Tab
+	 * @since   6.1.6
+	 */
+	public function getTab(Container $container): Tab
+	{
+		return new Tab(
+			$container->get('Extrusion.Registry.Form'),
+			$container->get('Extrusion.Resolver.Language'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the condition resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Condition
+	 * @since   6.1.6
+	 */
+	public function getCondition(Container $container): Condition
+	{
+		return new Condition(
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the relationship resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Relation
+	 * @since   6.1.6
+	 */
+	public function getRelation(Container $container): Relation
+	{
+		return new Relation(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Resolver.ViewName'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the field XML composer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  FieldXml
+	 * @since   6.1.6
+	 */
+	public function getFieldXml(Container $container): FieldXml
+	{
+		return new FieldXml(
+			$container->get('Extrusion.Resolver.Fieldtype'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the resolution assembler.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Assembler
+	 * @since   6.1.6
+	 */
+	public function getAssembler(Container $container): Assembler
+	{
+		return new Assembler(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Schema'),
+			$container->get('Extrusion.Registry.Table'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Precedence'),
+			$container->get('Extrusion.Resolver.ViewName'),
+			$container->get('Extrusion.Resolver.Role'),
+			$container->get('Extrusion.Resolver.Tab'),
+			$container->get('Extrusion.Resolver.Condition'),
+			$container->get('Extrusion.Resolver.Relation'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+}

@@ -25,7 +25,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
  * JCB's own field.xml is itself an attribute bag and the value of this reader is
  * exactly the attributes we hold no opinion about. Structure is captured in the
  * same pass: fieldsets become the tab signal, and a field nested in a
- * <fields name="x"> group records that group name.
+ * <fields name="x"> group records that group name. Both fields and fieldsets
+ * carry a zero-based order, which is their position in the document, so the
+ * source ordering survives into the definitions.
  *
  * The document is untrusted, so it is parsed as a string with libxml's internal
  * error buffer active. A malformed file therefore neither warns nor throws: it

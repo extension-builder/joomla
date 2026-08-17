@@ -1,0 +1,190 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    17th August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
+
+
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
+
+
+/**
+ * The run boundary for every piece of extrusion state.
+ *
+ * The registries are shared services, so without an explicit boundary a second
+ * extrusion in one request would inherit the first one's findings. Clearing them
+ * from one place makes that boundary impossible to forget, and keeps the entry
+ * point from having to know the full set.
+ *
+ * @since 6.1.6
+ */
+final class Scope
+{
+	/**
+	 * The Config Class.
+	 *
+	 * @var    Config
+	 * @since  6.1.6
+	 */
+	protected Config $config;
+
+	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.6
+	 */
+	protected Source $source;
+
+	/**
+	 * The Inventory Registry.
+	 *
+	 * @var    Inventory
+	 * @since  6.1.6
+	 */
+	protected Inventory $inventory;
+
+	/**
+	 * The Table Registry.
+	 *
+	 * @var    Table
+	 * @since  6.1.6
+	 */
+	protected Table $table;
+
+	/**
+	 * The Schema Registry.
+	 *
+	 * @var    Schema
+	 * @since  6.1.6
+	 */
+	protected Schema $schema;
+
+	/**
+	 * The Form Registry.
+	 *
+	 * @var    Form
+	 * @since  6.1.6
+	 */
+	protected Form $form;
+
+	/**
+	 * The Language Registry.
+	 *
+	 * @var    Language
+	 * @since  6.1.6
+	 */
+	protected Language $language;
+
+	/**
+	 * The View Registry.
+	 *
+	 * @var    View
+	 * @since  6.1.6
+	 */
+	protected View $view;
+
+	/**
+	 * The Resolved Registry.
+	 *
+	 * @var    Resolved
+	 * @since  6.1.6
+	 */
+	protected Resolved $resolved;
+
+	/**
+	 * The Report Registry.
+	 *
+	 * @var    Report
+	 * @since  6.1.6
+	 */
+	protected Report $report;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param   Config     $config     The extrusion configuration.
+	 * @param   Source     $source     The source identity registry.
+	 * @param   Inventory  $inventory  The located artifact registry.
+	 * @param   Table      $table      The table definition registry.
+	 * @param   Schema     $schema     The parsed schema registry.
+	 * @param   Form       $form       The parsed form registry.
+	 * @param   Language   $language   The language catalogue registry.
+	 * @param   View       $view       The classified view registry.
+	 * @param   Resolved   $resolved   The resolved definition registry.
+	 * @param   Report     $report     The run report registry.
+	 *
+	 * @since   6.1.6
+	 */
+	public function __construct(
+		Config $config,
+		Source $source,
+		Inventory $inventory,
+		Table $table,
+		Schema $schema,
+		Form $form,
+		Language $language,
+		View $view,
+		Resolved $resolved,
+		Report $report
+	)
+	{
+		$this->config = $config;
+		$this->source = $source;
+		$this->inventory = $inventory;
+		$this->table = $table;
+		$this->schema = $schema;
+		$this->form = $form;
+		$this->language = $language;
+		$this->view = $view;
+		$this->resolved = $resolved;
+		$this->report = $report;
+	}
+
+	/**
+	 * Clear every registry, starting a fresh run.
+	 *
+	 * The configuration is cleared too, which restores its reviewed defaults
+	 * rather than leaving it empty.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function reset(): void
+	{
+		$this->config->clear();
+
+		foreach ($this->registries() as $registry)
+		{
+			$registry->clear();
+		}
+	}
+
+	/**
+	 * Every state registry in the run, excluding the configuration.
+	 *
+	 * @return  array<string, Source|Inventory|Table|Schema|Form|Language|View|Resolved|Report>  The registries by name.
+	 * @since   6.1.6
+	 */
+	public function registries(): array
+	{
+		return [
+			'source' => $this->source,
+			'inventory' => $this->inventory,
+			'table' => $this->table,
+			'schema' => $this->schema,
+			'form' => $this->form,
+			'language' => $this->language,
+			'view' => $this->view,
+			'resolved' => $this->resolved,
+			'report' => $this->report
+		];
+	}
+}

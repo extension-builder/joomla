@@ -23,8 +23,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
  * The content is parsed from a string rather than from the path, so the parse is
  * testable without a file, and in raw mode, so Joomla's own quoting survives to
  * be undone here rather than by the ini scanner. A Joomla value is wrapped in
- * double quotes and writes an embedded quote as _QQ_, so exactly one layer of
- * quoting is stripped and _QQ_ becomes a literal double quote.
+ * double quotes and writes an embedded quote as _QQ_, so exactly one surviving
+ * layer of quoting is stripped and _QQ_ becomes a literal double quote, in that
+ * order, because a value that is only _QQ_ tokens must not be mistaken for a
+ * quoted one.
  *
  * Merging is first writer wins: a later file never replaces a constant that is
  * already present with a non-empty value, so reading the component ini before
@@ -152,6 +154,10 @@ final class Language implements ReaderInterface
 
 	/**
 	 * Resolve one raw ini value into its English string.
+	 *
+	 * The raw scanner usually removes the wrapping quotes itself, but it leaves
+	 * them in place when the value holds further quotes of its own, so the layer
+	 * is removed here only when it is still there.
 	 *
 	 * @param   string  $value  The raw scanner value.
 	 *
