@@ -148,6 +148,7 @@ final class BuilderRegistryProvider
 		'Title',
 		'UikitComp',
 		'UpdateMysql',
+		'ValidationFix',
 		'ViewsDefaultOrdering'
 	];
 
@@ -180,7 +181,8 @@ final class BuilderRegistryProvider
 		'DatabaseUninstall',
 		'DynamicButtons',
 		'ExtensionsParams',
-		'Request'
+		'Request',
+		'ValidationFix'
 	];
 
 	/**
