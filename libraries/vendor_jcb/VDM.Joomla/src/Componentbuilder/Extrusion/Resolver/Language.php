@@ -73,7 +73,10 @@ final class Language
 			return false;
 		}
 
-		return preg_match('/^[A-Z][A-Z0-9_]*$/', $value) === 1
+		// \z rather than $ on purpose: $ also matches before a trailing newline,
+		// which would make "CONSTANT\n" a constant and put that newline in a
+		// catalogue lookup and in the report path recorded for a miss.
+		return preg_match('/^[A-Z][A-Z0-9_]*\z/', $value) === 1
 			&& str_contains($value, '_');
 	}
 

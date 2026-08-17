@@ -194,6 +194,12 @@ final class Precedence implements PrecedenceInterface
 	/**
 	 * Choose the highest ranked tier that offered a usable value.
 	 *
+	 * A run may configure fewer tiers than exist, and every tier it left out
+	 * shares one rank below the configured ones. Settling that on the default
+	 * tier strength keeps a partial option from quietly inverting the tiers it
+	 * never mentioned, which would otherwise be decided by nothing more than the
+	 * order the tiers happened to be asked in.
+	 *
 	 * @param   array<string, mixed>  $tiers  Tier name keyed to its offered value.
 	 *
 	 * @return  array{value: mixed, origin: string}|null  The winning value and its origin.
@@ -203,6 +209,7 @@ final class Precedence implements PrecedenceInterface
 	{
 		$best = null;
 		$bestRank = PHP_INT_MAX;
+		$bestStrength = PHP_INT_MAX;
 
 		foreach ($tiers as $tier => $value)
 		{
@@ -211,16 +218,36 @@ final class Precedence implements PrecedenceInterface
 				continue;
 			}
 
-			$rank = $this->config->rank((string) $tier);
+			$tier = (string) $tier;
+			$rank = $this->config->rank($tier);
+			$strength = $this->strength($tier);
 
-			if ($rank < $bestRank)
+			if ($rank > $bestRank || ($rank === $bestRank && $strength >= $bestStrength))
 			{
-				$bestRank = $rank;
-				$best = ['value' => $value, 'origin' => (string) $tier];
+				continue;
 			}
+
+			$bestRank = $rank;
+			$bestStrength = $strength;
+			$best = ['value' => $value, 'origin' => $tier];
 		}
 
 		return $best;
+	}
+
+	/**
+	 * The default strength of one tier, used only to settle an equal rank.
+	 *
+	 * @param   string  $tier  The tier name.
+	 *
+	 * @return  int  The tier's default position, or one past every known tier.
+	 * @since   6.1.6
+	 */
+	protected function strength(string $tier): int
+	{
+		$position = array_search($tier, Config::TIERS, true);
+
+		return $position === false ? count(Config::TIERS) : (int) $position;
 	}
 
 	/**

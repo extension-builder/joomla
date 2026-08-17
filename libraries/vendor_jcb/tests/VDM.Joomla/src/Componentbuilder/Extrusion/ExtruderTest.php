@@ -135,6 +135,21 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame($extruder, $extruder->strict());
 		$this->assertSame($extruder, $extruder->scope('site'));
 		$this->assertSame($extruder, $extruder->limits(4, 250));
+
+		$this->assertSame(
+			'update',
+			$config->get('mode'),
+			'A setter folds and trims its value before the catalogue is consulted.'
+		);
+		$this->assertSame('skip', $config->get('onExisting'));
+		$this->assertSame('j5', $config->get('layout'));
+		$this->assertSame('off', $config->get('tableClass'));
+		$this->assertSame('af-ZA', $config->get('languageTag'));
+		$this->assertNull(
+			$this->report()->get('failed.option'),
+			'A value that only needed normalising is not a rejected value.'
+		);
+
 		$this->assertSame($extruder, $extruder->reset());
 
 		$extruder->path('/srv/com_demo')
@@ -337,6 +352,11 @@ final class ExtruderTest extends FilesystemTestCase
 			->extrude();
 
 		$this->assertTrue($first->get('completed'));
+		$this->assertSame(
+			'update',
+			$first->get('mode'),
+			'The report echoes the mode the run actually used, not the default.'
+		);
 		$this->assertSame(2, $first->get('counts.views'));
 		$this->assertTrue($first->get('written.field.' . self::STATED_GUID));
 

@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS `#__example_probe` (
 	`noted` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '{"label":"Noted Label","type":"radio"}',
 	`plain` VARCHAR(64) NOT NULL DEFAULT '' COMMENT 'plain english, not json',
 	`listed` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '["one","two"]',
+	`boxed` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '{"label":"Boxed Label","nested":{"deep":"value"},"class":"boxy"}',
 	`ghosted` VARCHAR(32) NOT NULL DEFAULT '',
 	`amounted` DECIMAL(8,4) NOT NULL,
 	`keyed` INT(11) NOT NULL DEFAULT 0,
@@ -410,6 +411,40 @@ PHP;
 	}
 
 	/**
+	 * Two tiers the option never mentioned are settled by the default order.
+	 *
+	 * Every omitted tier shares one rank, so without a deliberate tie-break the
+	 * winner would be whichever tier the resolver happened to ask first, which is
+	 * the weakest one. A partial option must not invert the tiers it never named.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTwoUnrankedTiersAreSettledByTheDefaultTierStrength(): void
+	{
+		$this->config->set('precedence', ['notes', 'xml']);
+
+		$this->assertSame(
+			$this->config->rank('derived'),
+			$this->config->rank('table')
+		);
+
+		$amounted = $this->probe('amounted');
+
+		$this->assertSame('10,2', $amounted['size']['value']);
+		$this->assertSame('table', $amounted['size']['origin']);
+		$this->assertSame('NULL', $amounted['null']['value']);
+		$this->assertSame('table', $amounted['null']['origin']);
+		$this->assertSame('8,4', $this->schema->get('table.___example_probe.column.amounted.size'));
+
+		$this->config->set('precedence', ['derived']);
+		$promoted = $this->probe('amounted');
+
+		$this->assertSame('8,4', $promoted['size']['value']);
+		$this->assertSame('derived', $promoted['size']['origin']);
+	}
+
+	/**
 	 * Single-tier properties are taken from their only source, or not at all.
 	 *
 	 * @return  void
@@ -492,6 +527,31 @@ PHP;
 		$this->assertSame($expected, $keys);
 		$this->assertSame('Listed', $listed['label']['value']);
 		$this->assertSame('derived', $listed['label']['origin']);
+	}
+
+	/**
+	 * A note whose value is not scalar is dropped, and its siblings still land.
+	 *
+	 * A property carries one value into a JCB field definition, so a nested note
+	 * has no usable meaning and must not reach the writers as an array.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testANoteWhoseValueIsNotScalarIsDroppedWithoutItsSiblings(): void
+	{
+		$boxed = $this->probe('boxed');
+
+		$this->assertSame(
+			'{"label":"Boxed Label","nested":{"deep":"value"},"class":"boxy"}',
+			$this->schema->get('table.___example_probe.column.boxed.comment')
+		);
+		$this->assertSame('Boxed Label', $boxed['label']['value']);
+		$this->assertSame('notes', $boxed['label']['origin']);
+		$this->assertSame('boxy', $boxed['class']['value']);
+		$this->assertSame('notes', $boxed['class']['origin']);
+		$this->assertArrayNotHasKey('nested', $boxed);
+		$this->assertArrayNotHasKey('deep', $boxed);
 	}
 
 	/**

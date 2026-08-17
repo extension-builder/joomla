@@ -52,8 +52,10 @@ final class Guid
 			return false;
 		}
 
+		// \z rather than $ on purpose: $ also matches before a trailing newline,
+		// which would let "<guid>\n" pass as canonical and be written as identity.
 		return preg_match(
-			'/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+			'/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i',
 			$guid
 		) === 1;
 	}

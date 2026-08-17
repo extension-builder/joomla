@@ -151,6 +151,19 @@ PHP;
 		$this->assertSame('', $parsed['later']['body']);
 		$this->assertSame(0, $parsed['later']['lines']);
 		$this->assertSame(37, $parsed['later']['line']);
+
+		// a header spread over several lines is one line of signature, because the
+		// column it is offered beside holds a name rather than a source fragment
+		$wide = (new Methods())->parse(
+			"<?php\nclass S\n{\n\tpublic function wide(\n\t\tstring \$a,\n\t\tint \$b = 2\n\t): string\n\t{\n\t\treturn \$a;\n\t}\n}"
+		);
+
+		$this->assertSame(
+			'public function wide( string $a, int $b = 2 ): string',
+			$wide['wide']['signature']
+		);
+		$this->assertSame("\treturn \$a;", $wide['wide']['body']);
+		$this->assertSame(4, $wide['wide']['line']);
 	}
 
 	/**
@@ -241,6 +254,25 @@ PHP;
 			array_keys($methods->parse(
 				"<?php\n\$x = Foo::class;\n\nclass Real\n{\n\tpublic function only(): void\n\t{\n\t}\n}"
 			))
+		);
+
+		// an anonymous class that extends carries an identifier where a name would
+		// stand, so only the new keyword in front of it tells the two apart
+		$this->assertSame(
+			['real'],
+			array_keys($methods->parse(
+				"<?php\n\$a = new class extends Base { public function inAnon(): void {} };\n\n"
+				. "class Named\n{\n\tpublic function real(): void\n\t{\n\t}\n}"
+			))
+		);
+
+		// the file's first named carrier is its subject even when it has no body,
+		// so a second declaration behind it is never read in its place
+		$this->assertSame(
+			[],
+			$methods->parse(
+				"<?php\nclass First;\n\nclass Second\n{\n\tpublic function m(): void\n\t{\n\t}\n}"
+			)
 		);
 	}
 

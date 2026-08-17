@@ -157,6 +157,106 @@ class JcbExtrusionReaderTestHostile
 PHP;
 
 	/**
+	 * A view file whose boilerplate is scattered through the PHP part.
+	 *
+	 * The guard stands behind a statement rather than in front of one, an import
+	 * follows it, and a class body holds both a trait import and a construct that
+	 * is shaped exactly like an access guard. Only the top level boilerplate is
+	 * the compiler's to regenerate.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const GUARDED = <<<'VIEW'
+<?php
+$assets = 1;
+
+// No direct access to this file
+defined('_JEXEC') or die;
+
+use Joomla\CMS\Factory;
+
+$after = 2;
+
+class Inline
+{
+	use SomeTrait;
+
+	public function go(): void
+	{
+		if (defined('X')) { exit; }
+	}
+}
+?>
+<p>tail</p>
+VIEW;
+
+	/**
+	 * A form document that is neither rooted at form nor free of name clashes.
+	 *
+	 * One field names its fieldset by attribute, one repeats a name already taken
+	 * in the same group, one carries no name at all, and two more sit inside a
+	 * subform and a fields group respectively.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const GROUPED = <<<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<field name="loose" type="text" fieldset="basic" label="LOOSE" />
+	<field type="text" label="NAMELESS" />
+	<field name="wrapper" type="subform">
+		<form>
+			<field name="loose" type="text" label="IN SUBFORM" />
+		</form>
+	</field>
+	<fields name="params">
+		<fieldset name="advanced" label="ADVANCED">
+			<field name="deep" type="text" label="DEEP" />
+		</fieldset>
+	</fields>
+</config>
+XML;
+
+	/**
+	 * A table definition map in which two fields both claim to be the title.
+	 *
+	 * It also declares a subform, a property whose value is a literal null, a
+	 * second list view, and two entries the reader has to refuse.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const TITLED = <<<'PHP'
+<?php
+class T
+{
+	protected array $tables = [
+		'example_item' => [
+			'first' => [
+				'name' => 'first',
+				'title' => true,
+				'list' => 'items',
+				'store' => NULL,
+				'fields' => [
+					'kid' => ['name' => 'kid', 'type' => 'text'],
+					'kid_two' => ['name' => 'kid_two', 'type' => 'text'],
+				],
+			],
+			'second' => [
+				'name' => 'second',
+				'title' => true,
+				'list' => 'others',
+			],
+			'broken' => 'not an array',
+		],
+		'example_empty' => [],
+	];
+}
+PHP;
+
+	/**
 	 * The run report registry.
 	 *
 	 * @var    Report
@@ -256,6 +356,32 @@ PHP;
 		);
 		$this->assertSame(['SELECT   3'], $splitter->split('SELECT /* one; two */ 3;'));
 		$this->assertSame([], $splitter->split("\xEF\xBB\xBF   ;  ;  "));
+	}
+
+	/**
+	 * A double dash only opens a comment when whitespace or the end follows it.
+	 *
+	 * MySQL's rule, which keeps an expression such as 1--2 whole. Treating every
+	 * double dash as a comment would silently truncate the statement it sits in
+	 * and take the semicolon that ends it along too.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSplitterOnlyOpensACommentOnADoubleDashWhitespaceFollows(): void
+	{
+		$splitter = new Splitter();
+
+		$this->assertSame(['SELECT 1--2'], $splitter->split('SELECT 1--2;'));
+		$this->assertSame(
+			['SELECT 3 --4', 'SELECT 5'],
+			$splitter->split("SELECT 3 --4;\nSELECT 5;")
+		);
+		$this->assertSame(['SELECT 6'], $splitter->split('SELECT 6 --'));
+		$this->assertSame(
+			["SELECT 7  \nSELECT 8"],
+			$splitter->split("SELECT 7 -- a;\nSELECT 8;")
+		);
 	}
 
 	/**
@@ -487,6 +613,42 @@ PHP;
 	}
 
 	/**
+	 * A table seeded twice keeps both statements, and a key clash is recorded.
+	 *
+	 * A batched dump seeds one table from several statements, so keeping only the
+	 * last would silently drop rows. Two table names that differ only in a
+	 * character the path sanitiser folds share one registry key, which is a
+	 * collision the run has to be told about rather than a silent overwrite.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSchemaReaderJoinsRepeatedSeedsAndRecordsAKeyCollision(): void
+	{
+		$reader = $this->schemaReader();
+		$path = $this->writeTemporaryFile('sql/batched.sql', <<<'SQL'
+CREATE TABLE `#__seeded` (`id` INT(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`));
+INSERT INTO `#__seeded` (`id`) VALUES (1);
+INSERT INTO `#__seeded` (`id`) VALUES (2);
+CREATE TABLE `#__a-b` (`id` INT(11) NOT NULL);
+CREATE TABLE `#__a_b` (`id` INT(11) NOT NULL);
+SQL);
+
+		$this->assertTrue($reader->read($path, 'install'));
+		$this->assertSame(
+			"INSERT INTO `#__seeded` (`id`) VALUES (1)\nINSERT INTO `#__seeded` (`id`) VALUES (2)",
+			$this->schema->get('seed.___seeded.sql')
+		);
+		$this->assertSame(2, $this->report->get('schema.___seeded.seed'));
+
+		$this->assertSame('___a_b', $reader->key('#__a-b'));
+		$this->assertSame('___a_b', $reader->key('#__a_b'));
+		$this->assertSame('#__a_b', $this->schema->get('table.___a_b.name'));
+		$this->assertSame('#__a-b | #__a_b', $this->report->get('schema.___a_b.collision'));
+		$this->assertFalse($this->report->exists('schema.___seeded.collision'));
+	}
+
+	/**
 	 * The whole attribute bag, the fieldsets, the options, and the order survive.
 	 *
 	 * @return  void
@@ -573,6 +735,45 @@ PHP;
 	}
 
 	/**
+	 * A subform names its group, a fieldset attribute stands in for the element.
+	 *
+	 * A name repeated inside a different group is a legitimate second field and
+	 * gets a numbered key plus a note in the report, a field with no name at all
+	 * is counted rather than stored, and a document rooted at something other
+	 * than form is read anyway with its root recorded.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testFormReaderGroupsSubformFieldsAndNumbersAGenuineNameClash(): void
+	{
+		$path = $this->writeTemporaryFile('forms/config.xml', self::GROUPED);
+		$reader = $this->formReader();
+
+		$this->assertTrue($reader->read($path, 'config'));
+		$this->assertSame(
+			['loose', 'wrapper', 'loose_2', 'deep'],
+			array_keys((array) $this->form->get('view.config.field'))
+		);
+
+		$this->assertSame('basic', $this->form->get('view.config.field.loose.fieldset'));
+		$this->assertFalse($this->form->exists('view.config.field.loose.subform'));
+
+		$this->assertSame('loose', $this->form->get('view.config.field.loose_2.name'));
+		$this->assertSame('wrapper', $this->form->get('view.config.field.loose_2.subform'));
+		$this->assertSame('IN SUBFORM', $this->form->get('view.config.field.loose_2.attribute.label'));
+		$this->assertSame('loose', $this->report->get('form.config.duplicate.loose'));
+
+		$this->assertSame('params', $this->form->get('view.config.field.deep.subform'));
+		$this->assertSame('advanced', $this->form->get('view.config.field.deep.fieldset'));
+
+		$this->assertSame(1, $this->report->get('form.config.unnamed'));
+		$this->assertSame('config', $this->report->get('form.config.root'));
+		$this->assertSame(4, $this->report->get('form.config.fields'));
+		$this->assertSame(1, $this->report->get('form.config.fieldsets'));
+	}
+
+	/**
 	 * Quotes are stripped once and the legacy quote token becomes a quote.
 	 *
 	 * @return  void
@@ -642,6 +843,35 @@ PHP;
 		$this->assertSame(3, $this->report->get('language.com_example_sys.constants'));
 		$this->assertSame(2, $this->report->get('language.com_example_sys.stored'));
 		$this->assertSame(1, $this->report->get('language.com_example_sys.kept'));
+	}
+
+	/**
+	 * An unquoted value stays the text a translator wrote.
+	 *
+	 * The ini scanner has three modes and only the raw one leaves a value alone.
+	 * The typed scanner turns an unquoted Off into the boolean false and the
+	 * normal scanner turns it into an empty string, either of which would silently
+	 * blank a language constant whose English happens to be a word ini treats as
+	 * a switch.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testLanguageReaderKeepsAnUnquotedValueAsTheTextItIs(): void
+	{
+		$reader = $this->languageReader();
+		$path = $this->writeTemporaryFile(
+			'language/en-GB/switches.ini',
+			"COM_EXAMPLE_OFF=Off\nCOM_EXAMPLE_ON=On\nCOM_EXAMPLE_NO=\"no\"\nCOM_EXAMPLE_NONE=none\n"
+		);
+
+		$this->assertTrue($reader->read($path, 'switches'));
+		$this->assertSame('Off', $this->language->get('constant.COM_EXAMPLE_OFF'));
+		$this->assertSame('On', $this->language->get('constant.COM_EXAMPLE_ON'));
+		$this->assertSame('no', $this->language->get('constant.COM_EXAMPLE_NO'));
+		$this->assertSame('none', $this->language->get('constant.COM_EXAMPLE_NONE'));
+		$this->assertSame(4, $reader->count());
+		$this->assertSame(4, $this->report->get('language.switches.stored'));
 	}
 
 	/**
@@ -722,6 +952,12 @@ PHP;
 		);
 		$this->assertNull($literal->parse('', 'tables'));
 		$this->assertSame('nothing to parse (line 1)', $literal->reason());
+
+		$this->assertSame(
+			['a' => 1],
+			$literal->parse("<?php\nclass G { protected array \$tables = ['a' => 1]; }", 'tables')
+		);
+		$this->assertNull($literal->reason());
 	}
 
 	/**
@@ -773,6 +1009,57 @@ PHP;
 		$this->assertSame(3, $this->report->get('table.fields'));
 		$this->assertSame(1, $this->report->get('table.definition.example_item.links'));
 		$this->assertSame('Example\Power\Table', $this->report->get('table.artifact'));
+	}
+
+	/**
+	 * The first claim wins the title and the list view, and a null is stored.
+	 *
+	 * JCB's own BaseTable takes the first field that declares itself, so a second
+	 * claim is a defect in the source component rather than an override: the first
+	 * stands and the clash is reported. A declared null is written to the registry
+	 * rather than skipped, because a field that says it has no store is not the
+	 * same as a field that says nothing, and the registry answers null to either
+	 * question -- so the stored map itself is what has to be inspected.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTableReaderKeepsTheFirstTitleAndListViewAndStoresADeclaredNull(): void
+	{
+		$path = $this->writeTemporaryFile('src/Titled.php', self::TITLED);
+
+		$this->assertTrue($this->tableReader()->read($path, 'Example\Power\T'));
+
+		$this->assertSame('first', $this->table->get('table.example_item.title'));
+		$this->assertSame('items', $this->table->get('table.example_item.listview'));
+		$this->assertSame('items', $this->table->get('table.example_item.list.first'));
+		$this->assertSame('others', $this->table->get('table.example_item.list.second'));
+		$this->assertSame(
+			'first, second',
+			$this->report->get('table.definition.example_item.title_collision')
+		);
+
+		$field = $this->table->toArray()['table']['example_item']['field']['first'];
+
+		$this->assertArrayHasKey('store', $field);
+		$this->assertNull($field['store']);
+		$this->assertSame(
+			['kid', 'kid_two'],
+			[$field['subfield'][0]['name'], $field['subfield'][1]['name']]
+		);
+		$this->assertSame(2, $this->report->get('table.definition.example_item.subfields'));
+
+		$this->assertFalse($this->table->exists('table.example_empty.name'));
+		$this->assertSame(
+			'no field definitions',
+			$this->report->get('table.skipped.example_empty')
+		);
+		$this->assertSame(
+			'the field definition is not an array',
+			$this->report->get('table.definition.example_item.unusable.broken')
+		);
+		$this->assertSame(2, $this->report->get('table.fields'));
+		$this->assertSame(1, $this->report->get('table.tables'));
 	}
 
 	/**
@@ -912,6 +1199,80 @@ PHP;
 			. '</div>',
 			$parts['html']
 		);
+	}
+
+	/**
+	 * A leading docblock only goes when it is the file header.
+	 *
+	 * The compiler regenerates the file docblock, so a leading docblock carrying a
+	 * header tag is discarded whatever follows it. A leading comment that carries
+	 * no such tag is documentation the author wrote about the view and survives,
+	 * because a blanket rule would eat a line of php_view on every pass.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSplitDropsAFileHeaderDocblockButKeepsAViewComment(): void
+	{
+		$split = new Split();
+		$tagged = $split->split("<?php\n/**\n * @package  Example\n */\n\$a = 1;\n?>\n<p>x</p>");
+
+		$this->assertSame('$a = 1;', $tagged['php']);
+		$this->assertStringNotContainsString('@package', $tagged['php']);
+
+		$documented = $split->split(
+			"<?php\n/**\n * What this layout renders.\n */\n\$a = 1;\n?>\n<p>x</p>"
+		);
+
+		$this->assertSame(
+			"/**\n * What this layout renders.\n */\n\$a = 1;",
+			$documented['php']
+		);
+
+		$noted = $split->split("<?php\n// what this layout renders\n\$a = 1;\n?>\n<p>x</p>");
+
+		$this->assertSame("// what this layout renders\n\$a = 1;", $noted['php']);
+	}
+
+	/**
+	 * Boilerplate goes wherever it stands, and only at the top level.
+	 *
+	 * A real template sets its assets up before the access guard and imports a
+	 * class after it, so a scan that stopped at the first statement would leave
+	 * both in php_view and the compiler would emit a duplicate import, which is a
+	 * fatal error. The removal takes each cut line's ending with it. Inside a class
+	 * body nothing is boilerplate: a trait import and a construct shaped exactly
+	 * like an access guard both belong to the view.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSplitRemovesScatteredBoilerplateWithoutTouchingAClassBody(): void
+	{
+		$parts = (new Split())->split(self::GUARDED);
+
+		$this->assertSame(
+			"\$assets = 1;\n"
+			. "\n"
+			. "\n"
+			. "\n"
+			. "\$after = 2;\n"
+			. "\n"
+			. "class Inline\n"
+			. "{\n"
+			. "\tuse SomeTrait;\n"
+			. "\n"
+			. "\tpublic function go(): void\n"
+			. "\t{\n"
+			. "\t\tif (defined('X')) { exit; }\n"
+			. "\t}\n"
+			. '}',
+			$parts['php']
+		);
+		$this->assertStringNotContainsString("defined('_JEXEC')", $parts['php']);
+		$this->assertStringNotContainsString('No direct access', $parts['php']);
+		$this->assertStringNotContainsString('use Joomla', $parts['php']);
+		$this->assertSame('<p>tail</p>', $parts['html']);
 	}
 
 	/**
@@ -1087,6 +1448,73 @@ PHP;
 	}
 
 	/**
+	 * Each view role reaches the reader that owns its JCB table.
+	 *
+	 * The layout table and the template table hold the same two columns, so a file
+	 * sent to the wrong one is stored without complaint and surfaces only as a
+	 * missing view much later. A role neither reader claims is left alone rather
+	 * than guessed at.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testDispatcherRoutesEveryViewRoleToItsOwnReader(): void
+	{
+		$inventory = new Inventory();
+		$missing = $this->temporaryPath('tmpl/item/absent.php');
+		$roles = [
+			['layouts/summary.php', ExtrusionComponentFixture::LAYOUT, 'summary', 'layout'],
+			['tmpl/item/default.php', "<?php\ndefined('_JEXEC') or die;\n?>\n<p>main</p>", 'item_default', 'main'],
+			['tmpl/item/default_extra.php', "<?php\n\$a = 1;\n?>\n<p>extra</p>", 'item_extra', 'template'],
+			['tmpl/item/stray.php', '<p>stray</p>', 'stray', 'partial']
+		];
+		$inventory->set('view_count', count($roles) + 1);
+
+		foreach ($roles as $index => [$relative, $contents, $name, $role])
+		{
+			$inventory->set('view.' . $index . '.path', $this->writeTemporaryFile($relative, $contents));
+			$inventory->set('view.' . $index . '.name', $name);
+			$inventory->set('view.' . $index . '.role', $role);
+		}
+
+		$inventory->set('view.4.path', $missing);
+		$inventory->set('view.4.name', 'absent');
+		$inventory->set('view.4.role', 'layout');
+
+		$dispatcher = new Dispatcher(
+			new Config(),
+			$inventory,
+			$this->report,
+			$this->languageReader(),
+			$this->tableReader(),
+			$this->schemaReader(),
+			$this->formReader(),
+			$this->layoutReader(),
+			$this->templateReader()
+		);
+
+		$this->assertSame(3, $dispatcher->dispatch());
+		$this->assertSame(['summary'], array_keys((array) $this->view->get('layout')));
+		$this->assertSame(
+			['item_default', 'item_extra'],
+			array_keys((array) $this->view->get('template'))
+		);
+		$this->assertSame('<p>main</p>', $this->view->get('template.item_default.template'));
+		$this->assertSame('$a = 1;', $this->view->get('template.item_extra.php_view'));
+
+		$this->assertFalse($this->view->exists('template.stray.template'));
+		$this->assertFalse($this->view->exists('layout.stray.layout'));
+		$this->assertFalse($this->report->exists('template.stray.path'));
+
+		$this->assertSame(
+			'the file could not be read',
+			$this->report->get('layout.absent.error')
+		);
+		$this->assertFalse($this->view->exists('layout.absent.name'));
+		$this->assertSame(3, $this->report->get('counts.read'));
+	}
+
+	/**
 	 * The inventory shape decides what the dispatcher believes was located.
 	 *
 	 * @return  void
@@ -1095,7 +1523,7 @@ PHP;
 	public function testDispatcherLocatedReadsTheInventoryShape(): void
 	{
 		$inventory = new Inventory();
-		$inventory->set('view_count', 4);
+		$inventory->set('view_count', 5);
 		$inventory->set('view.0.path', '/tree/layouts/summary.php');
 		$inventory->set('view.0.name', 'summary');
 		$inventory->set('view.0.role', 'layout');
@@ -1103,6 +1531,8 @@ PHP;
 		$inventory->set('view.2.path', '');
 		$inventory->set('view.2.name', 'skipped');
 		$inventory->set('view.3.name', 'no path at all');
+		$inventory->set('view.4.path', '/tree/tmpl/item/blank.php');
+		$inventory->set('view.4.name', '');
 
 		$dispatcher = new Dispatcher(
 			new Config(),
@@ -1124,6 +1554,11 @@ PHP;
 			],
 			[
 				'path' => '/tree/tmpl/item/default.php',
+				'name' => null,
+				'role' => ''
+			],
+			[
+				'path' => '/tree/tmpl/item/blank.php',
 				'name' => null,
 				'role' => ''
 			]
