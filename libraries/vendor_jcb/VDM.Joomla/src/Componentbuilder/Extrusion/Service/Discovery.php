@@ -121,6 +121,7 @@ class Discovery implements ServiceProviderInterface
 	public function getManifest(Container $container): Manifest
 	{
 		return new Manifest(
+			$container->get('Extrusion.Config'),
 			$container->get('Extrusion.Scanner'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Registry.Report')

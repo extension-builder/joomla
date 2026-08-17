@@ -165,6 +165,23 @@ final class Extruder implements ExtruderInterface
 	}
 
 	/**
+	 * Set the component code name the source tables are prefixed with.
+	 *
+	 * Supplying this outranks anything inferred from the tree, and it is what
+	 * lets a bare schema dump -- which carries no manifest -- still have its
+	 * table prefix stripped from every view name.
+	 *
+	 * @param   string  $name  The component code name, with or without com_.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function codeName(string $name): self
+	{
+		return $this->option('codeName', trim($name));
+	}
+
+	/**
 	 * Set whether this run creates a fresh set or merges into an existing one.
 	 *
 	 * @param   string  $mode  Either create or update.

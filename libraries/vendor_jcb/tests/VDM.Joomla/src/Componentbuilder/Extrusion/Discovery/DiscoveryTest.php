@@ -188,7 +188,7 @@ final class DiscoveryTest extends FilesystemTestCase
 	 */
 	private function manifest(): Manifest
 	{
-		return new Manifest($this->scanner(), $this->source, $this->report);
+		return new Manifest($this->config, $this->scanner(), $this->source, $this->report);
 	}
 
 	/**
