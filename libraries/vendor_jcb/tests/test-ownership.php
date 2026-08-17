@@ -3156,6 +3156,66 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Data/Migrator/GuidTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Abstraction/Layout.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Abstraction/Locator.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Abstraction/Writer.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Config.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Collector.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Locator/Form.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Locator/Language.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Locator/Schema.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Locator/Table.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Locator/View.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Manifest.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Scanner.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Selector.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Extruder.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtruderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Factory.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Builder.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php'
@@ -3167,6 +3227,254 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Mapping.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/ExtruderInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/LayoutInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/LocatorInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/PrecedenceInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/ReaderInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Interfaces/WriterInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Layout/Heuristic.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Layout/JoomlaFive.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Layout/JoomlaFour.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Layout/JoomlaSix.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Layout/JoomlaThree.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/LayoutContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Dispatcher.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Form.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Language.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/Literal.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/MethodMap.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/PhpMethodTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/Methods.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/PhpMethodTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Schema.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Sql/CreateTable.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Sql/Insert.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Sql/Splitter.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Table.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Layout.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Split.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Template.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Form.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Inventory.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Language.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Report.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Resolved.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Schema.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Scope.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Source.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Table.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/View.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Assembler.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/AssemblerTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Condition.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/FieldXml.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Fieldtype.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/FieldtypeTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Guid.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Language.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Precedence.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/PrecedenceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Relation.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Role.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Tab.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Text.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ViewName.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Discovery.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Extrusion.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Reader.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Registry.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Resolver.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Service/Writer.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminCustomTabs.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminFields.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminFieldsConditions.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminView.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/ComponentAdminViews.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Dispatcher.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Field.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Layout.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Template.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Factory.php' => [
 		'mode' => 'contract',

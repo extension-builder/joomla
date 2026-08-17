@@ -184,6 +184,12 @@ final class Table implements ReaderInterface
 	/**
 	 * Store one table's fields and note its summary.
 	 *
+	 * The title field and the list view are taken from the first field that
+	 * declares them, because that is what JCB's own BaseTable::title does when it
+	 * walks a table's fields. A second field claiming the title is a defect in the
+	 * source component rather than an override, so it is recorded as a collision
+	 * in the report and the first claim stands.
+	 *
 	 * @param   string                $table       The true table name.
 	 * @param   array<string, mixed>  $definition  The table's field definitions.
 	 * @param   string                $path        The file the map came from.
@@ -235,8 +241,12 @@ final class Table implements ReaderInterface
 
 			if (!empty($properties['title']))
 			{
+				if ($titles === [])
+				{
+					$this->table->set('table.' . $key . '.title', $field);
+				}
+
 				$titles[] = $field;
-				$this->table->set('table.' . $key . '.title', $field);
 			}
 
 			$list = $properties['list'] ?? null;
@@ -244,7 +254,12 @@ final class Table implements ReaderInterface
 			if (is_string($list) && $list !== '')
 			{
 				$this->table->set('table.' . $key . '.list.' . $this->key($field), $list);
-				$this->table->set('table.' . $key . '.listview', $list);
+
+				if ($lists === [])
+				{
+					$this->table->set('table.' . $key . '.listview', $list);
+				}
+
 				$lists[$list] = true;
 			}
 		}

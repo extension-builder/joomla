@@ -263,7 +263,7 @@ final class Literal
 		}
 
 		$result = [];
-		$auto = 0;
+		$auto = null;
 		$index = $this->next($tokens, $index);
 
 		while (true)
@@ -310,6 +310,8 @@ final class Literal
 					return null;
 				}
 
+				$first = $this->normalise($first);
+
 				$value = $this->value($tokens, $index, $depth);
 
 				if ($this->reason !== null)
@@ -319,15 +321,16 @@ final class Literal
 
 				$result[$first] = $value;
 
-				if (is_int($first) && $first >= $auto)
+				if (is_int($first))
 				{
-					$auto = $first + 1;
+					$auto = $this->advance($auto, $first);
 				}
 			}
 			else
 			{
-				$result[$auto] = $first;
-				$auto++;
+				$position = $auto ?? 0;
+				$result[$position] = $first;
+				$auto = $this->advance($auto, $position);
 			}
 
 			$token = $tokens[$index] ?? null;
@@ -530,6 +533,64 @@ final class Literal
 		}
 
 		return $lower === 'true';
+	}
+
+	/**
+	 * Move PHP's next-free-element counter past one integer key.
+	 *
+	 * This mirrors the engine's own counter rather than simply counting upwards,
+	 * because the position a keyless element takes depends on every integer key
+	 * declared before it. The counter has no value until the first integer key is
+	 * seen, which is why a negative key can seed it below zero.
+	 *
+	 * PHP 8.3 changed that seeding: before it, a negative key left the counter at
+	 * zero, so [-3 => 'a', 'b'] put the second element at 0, while from 8.3 on it
+	 * lands at -2. The running engine's rule is the one followed, so the parsed
+	 * array matches what that engine would itself have built.
+	 *
+	 * @param   int|null  $auto  The counter so far, or null when unseeded.
+	 * @param   int       $key   The integer key just stored.
+	 *
+	 * @return  int  The counter after the key.
+	 * @since   6.1.6
+	 */
+	private function advance(?int $auto, int $key): int
+	{
+		$next = $key + 1;
+
+		if ($auto === null)
+		{
+			return PHP_VERSION_ID >= 80300 ? $next : max(0, $next);
+		}
+
+		return max($auto, $next);
+	}
+
+	/**
+	 * Apply PHP's own array-key normalisation to one parsed key.
+	 *
+	 * PHP stores a key like '5' as the integer 5, which also moves the position
+	 * the next keyless element takes. Normalising here keeps the parsed array
+	 * identical to what PHP would have built, including that knock-on position.
+	 * Only a canonical decimal integer converts: a leading zero, a leading plus,
+	 * a negative zero, and anything that would overflow all stay strings, exactly
+	 * as PHP leaves them.
+	 *
+	 * @param   int|string  $key  The parsed key.
+	 *
+	 * @return  int|string  The normalised key.
+	 * @since   6.1.6
+	 */
+	private function normalise($key)
+	{
+		if (!is_string($key) || preg_match('/^(?:0|-?[1-9][0-9]*)$/', $key) !== 1)
+		{
+			return $key;
+		}
+
+		$number = (int) $key;
+
+		return (string) $number === $key ? $number : $key;
 	}
 
 	/**
