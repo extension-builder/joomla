@@ -36,6 +36,7 @@ final class Config extends Registry implements Registryinterface
 	private const DEFAULTS = [
 		'mode' => 'create',
 		'component' => 0,
+		'codeName' => '',
 		'onExisting' => 'update',
 		'admin' => true,
 		'site' => false,

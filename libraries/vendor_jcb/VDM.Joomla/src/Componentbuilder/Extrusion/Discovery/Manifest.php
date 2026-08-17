@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
@@ -69,6 +70,14 @@ final class Manifest
 	];
 
 	/**
+	 * The Config Class.
+	 *
+	 * @var    Config
+	 * @since  6.1.6
+	 */
+	protected Config $config;
+
+	/**
 	 * The Scanner Class.
 	 *
 	 * @var    Scanner
@@ -95,14 +104,16 @@ final class Manifest
 	/**
 	 * Constructor.
 	 *
+	 * @param   Config   $config   The extrusion configuration.
 	 * @param   Scanner  $scanner  The bounded source scanner.
 	 * @param   Source   $source   The source identity registry.
 	 * @param   Report   $report   The run report registry.
 	 *
 	 * @since   6.1.6
 	 */
-	public function __construct(Scanner $scanner, Source $source, Report $report)
+	public function __construct(Config $config, Scanner $scanner, Source $source, Report $report)
 	{
+		$this->config = $config;
 		$this->scanner = $scanner;
 		$this->source = $source;
 		$this->report = $report;
@@ -120,6 +131,7 @@ final class Manifest
 	{
 		$this->source->set('path', $root);
 
+		$supplied = $this->supplied();
 		$manifest = $this->find($root);
 
 		if ($manifest !== null)
@@ -128,6 +140,10 @@ final class Manifest
 			$this->source->set('code_name', $manifest['option']);
 			$this->source->set('name', $manifest['name']);
 			$this->source->set('version', $manifest['version']);
+		}
+		elseif ($supplied !== '')
+		{
+			$this->report->set('source.manifest', 'not found; the supplied code name was used');
 		}
 		elseif (($option = $this->guess($root)) !== null)
 		{
@@ -139,9 +155,45 @@ final class Manifest
 			$this->report->set('source.manifest', 'not found; no code name could be inferred');
 		}
 
+		if ($supplied !== '')
+		{
+			$this->source->set('code_name', $supplied);
+		}
+
 		$this->source->set('layout', $this->family($root));
 
 		return $this->source->get('code_name', '') !== '';
+	}
+
+	/**
+	 * The component code name the caller supplied, if any.
+	 *
+	 * A caller extruding into a known JCB component already knows the code name,
+	 * and knows it better than any file in the source tree does. A bare schema
+	 * dump carries no manifest at all, so without this the table prefix cannot be
+	 * stripped and every view keeps it -- which is the one thing the original
+	 * dump-driven extruder never got wrong, because the component form told it.
+	 *
+	 * @return  string  The com_ prefixed option, or an empty string.
+	 * @since   6.1.6
+	 */
+	public function supplied(): string
+	{
+		$name = strtolower(trim((string) $this->config->get('codeName', '')));
+
+		if ($name === '')
+		{
+			return '';
+		}
+
+		$name = preg_replace('/[^a-z0-9_]/', '', $name) ?? '';
+
+		if ($name === '')
+		{
+			return '';
+		}
+
+		return str_starts_with($name, 'com_') ? $name : 'com_' . $name;
 	}
 
 	/**

@@ -543,6 +543,130 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * A bare schema dump still produces views, honouring the comment notation.
+	 *
+	 * This is the capability the original dump-driven extruder had, and it must
+	 * survive: a folder holding nothing but a .sql file is a complete source. The
+	 * JSON note in a column comment stays the author's explicit instruction and
+	 * still outranks anything derived from the column itself.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testABareSchemaDumpIsACompleteSource(): void
+	{
+		$this->writeTemporaryFile('dump/only.sql', <<<'SQL'
+CREATE TABLE IF NOT EXISTS `#__demo_widget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '{"label":"Widget Name","type":"text"}',
+	`body` MEDIUMTEXT NOT NULL COMMENT '{"label":"Body Copy","type":"editor"}',
+	`rank` INT(10) NOT NULL DEFAULT 0,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL);
+
+		$report = $this->extruder()
+			->path($this->temporaryPath('dump'))
+			->component(4)
+			->codeName('com_demo')
+			->extrude();
+
+		$this->assertTrue($report->get('completed'), 'A dump alone must be enough to run.');
+		$this->assertSame(
+			['widget'],
+			$this->resolved()->get('views'),
+			'A supplied code name must strip the table prefix exactly as the dump-driven extruder did.'
+		);
+
+		$fields = (array) $this->resolved()->get('view.widget.field', []);
+
+		$this->assertSame(['name', 'body', 'rank'], array_keys($fields));
+		$this->assertSame('Widget Name', $fields['name']['label']['value']);
+		$this->assertSame('notes', $fields['name']['label']['origin']);
+		$this->assertSame('text', $fields['name']['xml_type']['value']);
+		$this->assertSame('editor', $fields['body']['xml_type']['value']);
+		$this->assertSame(
+			'Rank',
+			$fields['rank']['label']['value'],
+			'A column carrying no note still gets a readable label.'
+		);
+		$this->assertSame('derived', $fields['rank']['label']['origin']);
+	}
+
+	/**
+	 * A supplied code name outranks whatever the tree happens to declare.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testASuppliedCodeNameOutranksTheManifest(): void
+	{
+		$this->extruder()
+			->path($this->modern())
+			->component(9)
+			->codeName('override')
+			->extrude();
+
+		$this->assertSame(
+			'com_override',
+			$this->source()->get('code_name'),
+			'A bare name must be normalised and must beat the manifest.'
+		);
+	}
+
+	/**
+	 * Without a table definition class the run degrades rather than fails.
+	 *
+	 * Most components an extrusion run will meet were never built by JCB, so the
+	 * absence of that class is the normal case and not a failure. The structure
+	 * must still come across whole; what is lost is the stated truth only the
+	 * table class carries.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheRunDegradesGracefullyWithoutATableDefinitionClass(): void
+	{
+		$root = $this->modern();
+
+		$rich = $this->extruder()->path($root)->component(7)->extrude();
+		$richViews = (array) $this->resolved()->get('views', []);
+		$richRelations = count((array) $this->resolved()->get('view.item.relations', []));
+		$richTabs = (array) $this->resolved()->get('view.item.tabs', []);
+		$richFields = count((array) $this->resolved()->get('view.item.field', []));
+
+		$this->assertTrue($rich->get('completed'));
+		$this->assertGreaterThan(0, $richRelations, 'The table class is the only source of a relationship.');
+
+		$poor = $this->extruder()->reset()
+			->path($root)
+			->component(7)
+			->tableClass('off')
+			->extrude();
+		$poorViews = (array) $this->resolved()->get('views', []);
+
+		$this->assertTrue($poor->get('completed'), 'A component without a table class must still complete.');
+		$this->assertSame($richViews, $poorViews, 'The same views must be recovered either way.');
+		$this->assertSame(
+			$richFields,
+			count((array) $this->resolved()->get('view.item.field', [])),
+			'No field may be lost merely because the table class is absent.'
+		);
+		$this->assertSame(
+			[],
+			(array) $this->resolved()->get('view.item.relations', []),
+			'Relationships cannot be recovered without the table class, and must not be invented.'
+		);
+		$this->assertSame(
+			$richTabs,
+			(array) $this->resolved()->get('view.item.tabs', []),
+			'Where the form fieldsets carry the same grouping the table class stated, '
+			. 'the tabs survive its absence: a weaker source recovering the same answer '
+			. 'is the whole point of falling back rather than giving up.'
+		);
+	}
+
+	/**
 	 * Materialise the modern fixture tree, table definition class included.
 	 *
 	 * @return  string  The absolute component root.
