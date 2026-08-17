@@ -17,6 +17,7 @@ use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface as ModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchCopy as SharedModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\BatchCopy as J3ModelBatchCopy;
@@ -118,6 +119,9 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelListQuery::class, 'Architecture.Model.J3.ListQuery')
 			->share('Architecture.Model.J3.ListQuery', [$this, 'getJ3ModelListQuery'], true);
+
+		$container->alias(AliasTitleFix::class, 'Architecture.Model.AliasTitleFix')
+			->share('Architecture.Model.AliasTitleFix', [$this, 'getModelAliasTitleFix'], true);
 
 		$container->alias(ModelBatchCopy::class, 'Architecture.Model.BatchCopy')
 			->share('Architecture.Model.BatchCopy', [$this, 'getModelBatchCopy'], true);
@@ -549,6 +553,25 @@ class ArchitectureModel implements ServiceProviderInterface
 	 * @return  ModelBatchCopy
 	 * @since   6.1.7
 	 */
+	/**
+	 * Get The AliasTitleFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AliasTitleFix
+	 * @since   6.1.7
+	 */
+	public function getModelAliasTitleFix(Container $container): AliasTitleFix
+	{
+		return new AliasTitleFix(
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Title'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
 	public function getModelBatchCopy(Container $container): ModelBatchCopy
 	{
 		if (empty($this->targetVersion))
