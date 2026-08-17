@@ -20,6 +20,7 @@ use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -27,10 +28,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\View as ViewRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
@@ -62,6 +65,7 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(AdminFields::class)]
 #[CoversClass(AdminFieldsConditions::class)]
 #[CoversClass(AdminView::class)]
+#[CoversClass(Component::class)]
 #[CoversClass(ComponentAdminViews::class)]
 #[CoversClass(Dispatcher::class)]
 #[CoversClass(Field::class)]
@@ -837,18 +841,26 @@ HTML;
 			[
 				'target_field' => ['ffffffff-0000-4000-8000-0000000000c0'],
 				'match_field' => 'ffffffff-0000-4000-8000-0000000000a0',
-				'target_behavior' => 2,
+				'target_behavior' => 1,
 				'target_relation' => 1,
-				'options' => '0'
+				'match_behavior' => 2,
+				'match_options' => '0'
 			],
-			$subform['addconditions0']
+			$subform['addconditions0'],
+			'A showon rule says when to show its target, so the negation belongs on how '
+			. 'the match is evaluated and never on the target behaviour.'
 		);
 		$this->assertSame(
 			['ffffffff-0000-4000-8000-0000000000c0'],
 			$subform['addconditions1']['target_field']
 		);
 		$this->assertSame(1, $subform['addconditions1']['target_behavior']);
-		$this->assertSame('#ffffff,#000000', $subform['addconditions1']['options']);
+		$this->assertSame(1, $subform['addconditions1']['match_behavior']);
+		$this->assertSame(
+			"#ffffff\n#000000",
+			$subform['addconditions1']['match_options'],
+			'The compiler splits the options on a newline, so that is how they are stored.'
+		);
 		$this->assertSame(1, $this->report->get('counts.admin_fields_conditions'));
 
 		$this->assertSame(
@@ -1023,7 +1035,8 @@ HTML;
 		$calls = new ArrayObject();
 		$names = [
 			'field', 'admin_view', 'admin_fields', 'admin_fields_conditions',
-			'admin_custom_tabs', 'component_admin_views', 'layout', 'template'
+			'admin_custom_tabs', 'component_admin_views', 'joomla_component',
+			'layout', 'template'
 		];
 		$writers = [];
 
@@ -1041,29 +1054,38 @@ HTML;
 			$writers['admin_fields_conditions'],
 			$writers['admin_custom_tabs'],
 			$writers['component_admin_views'],
+			$writers['joomla_component'],
 			$writers['layout'],
 			$writers['template']
 		);
 		$expected = [
-			'field', 'admin_view', 'admin_fields', 'admin_fields_conditions',
-			'admin_custom_tabs', 'layout', 'template', 'component_admin_views'
+			'joomla_component', 'field', 'admin_view', 'admin_fields',
+			'admin_fields_conditions', 'admin_custom_tabs', 'layout', 'template',
+			'component_admin_views'
 		];
 
 		$this->assertSame($expected, array_keys($dispatcher->order()));
+		$this->assertSame(
+			'joomla_component',
+			array_key_first($dispatcher->order()),
+			'The component record is filled in first, because everything else belongs to it.'
+		);
 		$this->assertSame('component_admin_views', array_key_last($dispatcher->order()));
-		$this->assertSame(36, $dispatcher->dispatch());
+		$this->assertSame(45, $dispatcher->dispatch());
 		$this->assertSame($expected, $calls->getArrayCopy());
 		$this->assertSame(1, $this->report->get('written_counts.field'));
 		$this->assertSame(2, $this->report->get('written_counts.admin_view'));
 		$this->assertSame(6, $this->report->get('written_counts.component_admin_views'));
-		$this->assertSame(36, $this->report->get('counts.written'));
+		$this->assertSame(7, $this->report->get('written_counts.joomla_component'));
+		$this->assertSame(45, $this->report->get('counts.written'));
 
 		$this->config->set('admin', false);
 
 		$this->assertSame(
-			['layout', 'template'],
+			['joomla_component', 'layout', 'template'],
 			array_keys($dispatcher->order()),
-			'With the admin scope off only the shared view layers are written.'
+			'With the admin scope off the component record and the shared view layers '
+			. 'are still written.'
 		);
 	}
 
@@ -1091,11 +1113,19 @@ HTML;
 		$this->view->set('layout.summary.name', 'summary');
 		$this->view->set('layout.summary.layout', self::HTML_PART);
 
-		$this->assertSame(6, $this->dispatcher()->dispatch());
+		$this->assertSame(7, $this->dispatcher()->dispatch());
 		$this->assertSame(
-			['field', 'field', 'admin_view', 'admin_fields', 'layout', 'component_admin_views'],
+			[
+				'joomla_component', 'field', 'field', 'admin_view', 'admin_fields',
+				'layout', 'component_admin_views'
+			],
 			$this->item->sequence(),
 			'Fields must be written before the view that references them.'
+		);
+		$this->assertSame(
+			['name_code'],
+			$this->report->get('component.details'),
+			'With no manifest read, the code name is all there is to fill in.'
 		);
 		$this->assertSame(0, $this->report->get('written_counts.admin_custom_tabs'));
 		$this->assertSame(0, $this->report->get('written_counts.admin_fields_conditions'));
@@ -1103,6 +1133,203 @@ HTML;
 		$this->assertSame(1, $this->report->get('written_counts.component_admin_views'));
 		$this->assertSame([], $this->item->records('admin_custom_tabs'));
 		$this->assertSame([], $this->item->records('admin_fields_conditions'));
+	}
+
+	/**
+	 * The manifest fills in the component record, and only what it stated.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheManifestFillsInTheComponentRecord(): void
+	{
+		$this->config->set('component', 12);
+		$this->source->set('name', 'COM_DEMO');
+		$this->source->set('version', '2.4.1');
+		$this->source->set('manifest_data', [
+			'description' => '<h1>Demo</h1><p>A demo component for testing. '
+				. 'It does very little indeed.</p>',
+			'author' => 'A Person',
+			'email' => 'person@example.com',
+			'website' => 'https://example.com',
+			'copyright' => 'Copyright (C) 2026',
+			'license' => 'GNU/GPL Version 2',
+			'namespace' => 'Vendor\\Component\\Demo',
+			'target' => '5.0'
+		]);
+
+		$this->assertSame(1, $this->details()->write());
+
+		$record = $this->item->definitions('joomla_component')[0];
+
+		$this->assertSame(12, $record->id, 'The component is updated in place, keyed by id.');
+		$this->assertSame('A Person', $record->author);
+		$this->assertSame('person@example.com', $record->email);
+		$this->assertSame('https://example.com', $record->website);
+		$this->assertSame('Copyright (C) 2026', $record->copyright);
+		$this->assertSame('GNU/GPL Version 2', $record->license);
+		$this->assertSame('2.4.1', $record->component_version);
+		$this->assertSame(5, $record->preferred_joomla_version);
+		$this->assertSame(
+			'Vendor',
+			$record->namespace_prefix,
+			'JCB owns the rest of a Joomla namespace and asks only for the vendor.'
+		);
+		$this->assertSame(1, $record->add_namespace_prefix);
+		$this->assertSame(
+			'<h1>Demo</h1><p>A demo component for testing. It does very little indeed.</p>',
+			$record->description,
+			'The description is stored as the manifest gave it, markup and all, because '
+			. 'JCB renders it as the component description.'
+		);
+		$this->assertSame(
+			'Demo A demo component for testing.',
+			$record->short_description,
+			'The short description is the first sentence of the readable text.'
+		);
+		$this->assertSame(
+			self::OPTION,
+			'com_' . $record->name_code,
+			'The code name is stored without its com_ prefix.'
+		);
+		$this->assertFalse(
+			property_exists($record, 'sql'),
+			'A column the manifest said nothing about must not be blanked.'
+		);
+	}
+
+	/**
+	 * Without a component id, and with the scope off, nothing is written.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheComponentRecordIsLeftAloneWhenItCannotOrShouldNotBeTouched(): void
+	{
+		$this->source->clear('code_name');
+
+		$this->assertSame(
+			0,
+			$this->details()->write(),
+			'With no component id there is no record to fill in.'
+		);
+
+		$this->config->set('component', 12);
+
+		$this->assertSame(
+			0,
+			$this->details()->write(),
+			'A run that recovered nothing about the component writes nothing.'
+		);
+		$this->assertSame(
+			'the manifest stated nothing to fill in',
+			$this->report->get('component.details')
+		);
+
+		$this->source->set('name', 'Demo');
+		$this->config->set('component_details', false);
+
+		$this->assertSame(
+			0,
+			$this->details()->write(),
+			'The scope switch has to be able to turn this off entirely.'
+		);
+		$this->assertSame([], $this->item->records('joomla_component'));
+
+		$this->config->set('component_details', true);
+		$this->config->set('dryRun', true);
+
+		$this->assertSame(1, $this->details()->write());
+		$this->assertSame(
+			[],
+			$this->item->records('joomla_component'),
+			'A dry run reports what it would do and writes nothing.'
+		);
+		$this->assertTrue($this->report->get('dryrun.joomla_component.12'));
+	}
+
+	/**
+	 * A language constant becomes the English string it stands for.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAConstantNameBecomesItsTranslation(): void
+	{
+		$catalogue = new LanguageRegistry();
+		$catalogue->set('constant.COM_DEMO', 'Demo Shop');
+		$this->config->set('component', 3);
+		$this->source->set('name', 'COM_DEMO');
+
+		$writer = new Component(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			new Language($catalogue, $this->report)
+		);
+
+		$this->assertSame(
+			['name' => 'Demo Shop', 'system_name' => 'Demo Shop', 'name_code' => 'demo'],
+			$writer->names()
+		);
+		$this->assertSame(1, $writer->write());
+		$this->assertSame('Demo Shop', $this->item->definitions('joomla_component')[0]->name);
+	}
+
+	/**
+	 * A stated target version is kept only when it names a whole Joomla major.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testOnlyACredibleTargetVersionIsKept(): void
+	{
+		$writer = $this->details();
+
+		$this->assertSame(['preferred_joomla_version' => 5], $writer->target('5.0'));
+		$this->assertSame(['preferred_joomla_version' => 3], $writer->target(' 3.10 '));
+		$this->assertSame([], $writer->target(''));
+		$this->assertSame([], $writer->target('2.5'));
+		$this->assertSame([], $writer->target('not a version'));
+		$this->assertSame(
+			[],
+			$writer->target('12.0'),
+			'A version outside the range Joomla has ever used is not a version.'
+		);
+	}
+
+	/**
+	 * A page of marketing HTML still yields one readable line.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testALongDescriptionIsSummarisedToOneLine(): void
+	{
+		$writer = $this->details();
+
+		$this->assertSame('', $writer->summarise(''));
+		$this->assertSame('', $writer->summarise('<div><br /></div>'));
+		$this->assertSame('Short and sweet.', $writer->summarise('<p>Short and sweet.</p>'));
+		$this->assertSame(
+			'Ignored A first sentence long enough to be worth keeping.',
+			$writer->summarise(
+				"<h1>Ignored</h1>\n<p>A first sentence long enough to be worth "
+				. 'keeping. A second one that is not.</p>'
+			),
+			'Whitespace collapses and everything up to the first sentence end is kept.'
+		);
+		$this->assertSame(
+			'Ampersands &amp; entities survive as text.',
+			$writer->summarise('<p>Ampersands &amp;amp; entities survive as text.</p>')
+		);
+
+		$long = $writer->summarise(str_repeat('word ', 100));
+
+		$this->assertSame(150, strlen($long), 'A run-on with no sentence end is cut to length.');
+		$this->assertStringEndsWith('...', $long);
 	}
 
 	/**
@@ -1457,8 +1684,27 @@ HTML;
 			$this->conditions(),
 			$this->customTabs(),
 			$this->componentViews(),
+			$this->details(),
 			$this->layout(),
 			$this->template()
+		);
+	}
+
+	/**
+	 * The component details writer under test.
+	 *
+	 * @return  Component  The writer.
+	 * @since   6.1.6
+	 */
+	private function details(): Component
+	{
+		return new Component(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			new Language(new LanguageRegistry(), $this->report)
 		);
 	}
 }

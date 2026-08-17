@@ -140,6 +140,16 @@ final class Manifest
 			$this->source->set('code_name', $manifest['option']);
 			$this->source->set('name', $manifest['name']);
 			$this->source->set('version', $manifest['version']);
+
+			foreach ($manifest as $key => $value)
+			{
+				if (!in_array($key, ['path', 'option', 'name', 'version', 'typed'], true))
+				{
+					$this->source->set('manifest_data.' . $key, $value);
+				}
+			}
+
+			$this->report->set('source.manifest_typed', (bool) ($manifest['typed'] ?? false));
 		}
 		elseif ($supplied !== '')
 		{
@@ -201,7 +211,7 @@ final class Manifest
 	 *
 	 * @param   string  $root  The resolved source root.
 	 *
-	 * @return  array{path: string, option: string, name: string, version: string}|null  The manifest facts.
+	 * @return  array<string, mixed>|null  The manifest facts, or null when none was found.
 	 * @since   6.1.6
 	 */
 	public function find(string $root): ?array
@@ -226,7 +236,12 @@ final class Manifest
 
 			if ($facts !== null)
 			{
-				$candidates[] = ['facts' => $facts, 'rank' => $this->rank($root, $path, $depth)];
+				// A manifest that says type="component" outright is the component's own,
+				// and that beats any name or depth guess: it is the single line that
+				// separates the real manifest from a bundled module, plugin or template.
+				$rank = $this->rank($root, $path, $depth)
+					- (($facts['typed'] ?? false) ? 100 : 0);
+				$candidates[] = ['facts' => $facts, 'rank' => $rank];
 			}
 		}
 
@@ -327,8 +342,82 @@ final class Manifest
 			'path' => $path,
 			'option' => $option,
 			'name' => $name,
+			'typed' => $type === 'component',
 			'version' => trim((string) $xml->version)
+		] + $this->metadata($xml);
+	}
+
+	/**
+	 * Everything else the manifest states about the component.
+	 *
+	 * A manifest is the component's own account of itself: who wrote it, under what
+	 * licence, at what version, in which namespace, and what it is for. Every one of
+	 * those has a column waiting for it in #__componentbuilder_joomla_component, so
+	 * reading only the name would be throwing away the richest description of the
+	 * component that exists anywhere in its tree -- and the one part of a component
+	 * that is always present, whether or not JCB built it and whether or not it
+	 * carries a single line of SQL.
+	 *
+	 * A name element is very often a language constant rather than text; resolving
+	 * that is the language resolver's job, so the raw value is carried through
+	 * unchanged and the caller decides.
+	 *
+	 * @param   \SimpleXMLElement  $xml  The parsed manifest.
+	 *
+	 * @return  array<string, string>  The stated metadata, empty values dropped.
+	 * @since   6.1.6
+	 */
+	protected function metadata(\SimpleXMLElement $xml): array
+	{
+		$stated = [
+			'description' => trim((string) $xml->description),
+			'author' => trim((string) $xml->author),
+			'email' => trim((string) $xml->authorEmail),
+			'website' => trim((string) $xml->authorUrl),
+			'copyright' => trim((string) $xml->copyright),
+			'license' => trim((string) $xml->license),
+			'created' => trim((string) $xml->creationDate),
+			'namespace' => trim((string) $xml->namespace),
+			'target' => trim((string) ($xml['version'] ?? '')),
+			'method' => strtolower(trim((string) ($xml['method'] ?? '')))
 		];
+
+		foreach ($this->files($xml) as $key => $value)
+		{
+			$stated[$key] = $value;
+		}
+
+		return array_filter($stated, static fn (string $value): bool => $value !== '');
+	}
+
+	/**
+	 * The install and uninstall schema files the manifest points at.
+	 *
+	 * These are worth having even though the schema locator finds the install file
+	 * on its own, because the manifest names it exactly and so settles which of
+	 * several candidates the component actually runs -- and because nothing else in
+	 * the tree names the uninstall file at all.
+	 *
+	 * @param   \SimpleXMLElement  $xml  The parsed manifest.
+	 *
+	 * @return  array<string, string>  The stated relative paths.
+	 * @since   6.1.6
+	 */
+	protected function files(\SimpleXMLElement $xml): array
+	{
+		$found = [];
+
+		foreach (['install' => 'sql_install', 'uninstall' => 'sql_uninstall'] as $element => $key)
+		{
+			$file = trim((string) ($xml->{$element}->sql->file[0] ?? ''));
+
+			if ($file !== '')
+			{
+				$found[$key] = $file;
+			}
+		}
+
+		return $found;
 	}
 
 	/**

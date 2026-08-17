@@ -3596,6 +3596,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Component.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/ComponentAdminViews.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
