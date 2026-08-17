@@ -5865,8 +5865,7 @@ class Interpretation extends Fields
 	 * @deprecated 6.1.7 Use the Architecture.Controller.EximportMethod service.
 	 */
 	public function setControllerEximportMethod($nameSingleCode,
-	                                            $nameListCode
-	)
+		$nameListCode)
 	{
 		// Infusion still sets these flags directly on this helper, so they are
 		// carried over to the registries the service reads.
