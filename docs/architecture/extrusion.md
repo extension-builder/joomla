@@ -115,9 +115,13 @@ have it build the component's administrator area as JCB definitions.
 
 Property precedence, highest first:
 
-1. **SQL column comment JSON** — the author's explicit JCB notes.
-2. **Form XML attributes** — the component's real field definitions.
-3. **Derived** — SQL type, column name, and naming heuristics.
+1. **Table definition class** — if the component was built by JCB, its
+   `$tables` map is the source of truth for its whole infrastructure, and the
+   only artifact carrying relationships, per-field GUIDs, and storage
+   encoding (§3.5).
+2. **SQL column comment JSON** — the author's explicit JCB notes.
+3. **Form XML attributes** — the component's real field definitions.
+4. **Derived** — SQL type, column name, and naming heuristics.
 
 Every value carries the tier that produced it, so the run can explain itself
 and a low-confidence guess is visible rather than silent.
@@ -180,6 +184,7 @@ domain gets several small ones, each shared and each with one subject:
 | --- | --- | --- |
 | `Extrusion.Registry.Source` | source path, code name, layout family, version | Discovery |
 | `Extrusion.Registry.Inventory` | located artifacts and the tier that found each | Discovery |
+| `Extrusion.Registry.Table` | the JCB `$tables` map: relationships, GUIDs, store, tabs | Reader |
 | `Extrusion.Registry.Schema` | tables, columns, types, keys, decoded notes | Reader |
 | `Extrusion.Registry.Form` | fieldsets, fields, raw attribute bags, options | Reader |
 | `Extrusion.Registry.Language` | constant → English string catalogue | Reader |
@@ -226,35 +231,38 @@ Componentbuilder/Extrusion/
 ├── Extruder.php                    the fluent entry service
 ├── Service/
 │   ├── Extrusion.php               Extruder, Config          <- the only
-│   ├── Registry.php                the seven registries         files that
+│   ├── Registry.php                the eight registries        files that
 │   ├── Discovery.php               Scanner, Manifest, Layout    contain `new`
-│   ├── Reader.php                  Schema, Sql\*, Form, Language
+│   ├── Reader.php                  Table, Schema, Sql\*, Form, Language
 │   ├── Resolver.php                Precedence, Fieldtype, Role, …
 │   └── Writer.php                  Field, AdminView, AdminFields, …
 ├── Interfaces/
 │   ├── ExtruderInterface.php       LocatorInterface.php
 │   ├── LayoutInterface.php         SchemaReaderInterface.php
 │   ├── FormReaderInterface.php     LanguageReaderInterface.php
+│   ├── TableReaderInterface.php    RelationResolverInterface.php
 │   ├── PrecedenceInterface.php     FieldtypeMapperInterface.php
 │   └── WriterInterface.php
 ├── Registry/
-│   ├── Source.php  Inventory.php  Schema.php  Form.php
-│   └── Language.php  Resolved.php  Report.php
+│   ├── Source.php  Inventory.php  Table.php  Schema.php
+│   └── Form.php  Language.php  Resolved.php  Report.php
 ├── Discovery/
 │   ├── Scanner.php                 bounded, guarded recursive walk
 │   ├── Manifest.php                find and read com_x.xml
-│   └── Locator/{Schema,Form,Language}.php
+│   └── Locator/{Table,Schema,Form,Language}.php
 ├── Layout/
 │   ├── JoomlaThree.php  JoomlaFour.php  JoomlaFive.php  JoomlaSix.php
 │   └── Heuristic.php               content-signature fallback
 ├── Reader/
+│   ├── Table.php                   static token parse of the $tables map
 │   ├── Schema.php
 │   ├── Sql/{Splitter,CreateTable,Insert}.php
 │   ├── Form.php
 │   └── Language.php
 ├── Resolver/
 │   ├── Precedence.php  Fieldtype.php  Language.php
-│   └── ViewName.php  Role.php  Tab.php  Condition.php  FieldXml.php
+│   ├── ViewName.php  Role.php  Tab.php  Condition.php  FieldXml.php
+│   └── Relation.php                `link` -> JCB relationship definitions
 └── Writer/
     ├── Field.php  AdminView.php  AdminFields.php
     ├── AdminFieldsConditions.php  AdminCustomTabs.php
@@ -306,7 +314,7 @@ installed tree, an unzipped package, and a package that still has its top-level
 **But this map is the default placement, not a guarantee.** It is exactly right
 for anything JCB compiled and for any component following Joomla convention, and
 it will be wrong for components that did their own thing — which many do.
-Inverting `move` is therefore only tier 1 of the three-tier search in §3.5, and
+Inverting `move` is therefore only tier 1 of the three-tier search in §3.6, and
 the pipeline must never read a tier-1 miss as "this component has no schema."
 
 When the map does not answer, the search falls back to what the artifacts
@@ -319,13 +327,116 @@ input:
 | `*.sql` | a statement containing `CREATE TABLE` | the schema: tables, columns, types, keys, and the JSON notes in column comments |
 | `*.xml` | a document whose root is `<form>` containing `<field name=` | the field definitions: type, options, `showon`, validation, fieldsets |
 | `*.ini` | keys matching `COM_<CODE>_` | the language strings, so labels become English rather than constants |
+| `*.php` | a class extending a base table class and declaring a `$tables` array | the JCB table definition map — relationships, GUIDs, storage, tabs (§3.5) |
 
-A component that supplies those three can have its complete administrator area
-rebuilt regardless of where it chose to put them. The SQL alone gets a usable
-result; SQL plus form XML gets an accurate one; adding the `.ini` is what makes
-it readable rather than a wall of constants.
+A component that supplies the first three can have its complete administrator
+area rebuilt regardless of where it chose to put them. The SQL alone gets a
+usable result; SQL plus form XML gets an accurate one; adding the `.ini` is what
+makes it readable rather than a wall of constants.
 
-### 3.5 Three-tier discovery
+The fourth is different in kind: it is optional, present only on JCB-built
+components, and when it is there it outranks everything else. It is also the
+only one whose location cannot be predicted from the placement map at all, so
+it is found purely by signature.
+
+### 3.5 The Table definition class, when the component has one
+
+A component built by JCB carries something far better than a schema and a set
+of form files: a **table definition class**. JCB's own is
+[`VDM\Joomla\Componentbuilder\Table`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Table.php)
+— 15,630 lines describing 51 tables — and it extends the core
+[`VDM\Joomla\Abstraction\BaseTable`](../../libraries/vendor_jcb/VDM.Joomla/src/Abstraction/BaseTable.php),
+which supplies the accessors (`tables()`, `fields()`, `get()`, `title()`,
+`titleName()`, `exist()`) and the implicit default columns (`id`, `asset_id`,
+`published`, `created`, `ordering`, …).
+
+Its `protected array $tables` map is the source of truth for the entire
+infrastructure of that project, and it holds things **no other artifact
+carries**:
+
+```php
+'joomla_component' => [
+    'system_name' => [
+        'name'     => 'system_name',
+        'guid'     => 'acfe906b-6e61-4f94-ae66-359e4bc3e4cc',
+        'label'    => 'COM_COMPONENTBUILDER_JOOMLA_COMPONENT_SYSTEM_NAME_LABEL',
+        'type'     => 'text',
+        'title'    => true,
+        'list'     => 'joomla_components',
+        'store'    => NULL,
+        'tab_name' => 'Details',
+        'db'       => [
+            'type' => 'VARCHAR(255)', 'default' => '', 'null_switch' => 'NULL',
+            'GUID' => 'acfe906b-…', 'unique_key' => false, 'key' => true,
+        ],
+        'link'     => NULL,
+    ],
+```
+
+What that buys us, measured against the heuristics the rest of this roadmap
+would otherwise need:
+
+| Key | Replaces | Why it matters |
+| --- | --- | --- |
+| `link` | nothing — **unavailable elsewhere** | the foreign-key relationship: target `table`, `component`, `entity`, `value`, `key`. Form XML does not express this |
+| `guid` | the derived UUIDv5 of §3.12 | stable per-field identity already assigned by the source project, so re-runs match exactly |
+| `store` | nothing — **unavailable elsewhere** | `base64` / `json` / `basic_encryption`, mapping straight onto `#__componentbuilder_field.store` |
+| `title` | the `stripos($name, 'title')` guess | authoritative title field |
+| `list` | the "first five Text fields" guess | which list view the field belongs to |
+| `tab_name` | inference from XML `<fieldset>` | the intended tab grouping |
+| `db` | SQL parsing | type, default, null switch, unique/index flags |
+| `type` | the SQL-type lookup table | the real form field type |
+| `fields` | nothing | subform subfield definitions |
+
+So when this class is present it is **tier 0 — above the SQL column notes** —
+and the precedence chain becomes:
+
+1. **Table definition class** `$tables` map;
+2. SQL column comment JSON;
+3. form XML attributes;
+4. derived.
+
+`link` in particular is the reason this tier is worth building. Relationships
+are the one part of a component's design that neither the schema nor the form
+files record, and reconstructing them by guessing at column names
+(`*_id` → some table) is exactly the kind of unreliable inference this feature
+should avoid when an authoritative answer is sitting in the source tree.
+
+**Finding it is a search, not a path.** JCB's copy lives under
+`libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/`, but a different
+JCB-built component puts its own copy wherever that project's power namespace
+resolves to. `Discovery\Locator\Table` therefore matches on signature:
+
+- a `.php` file declaring a class that `extends` some base table class and
+  declares a `$tables` array property; and
+- that parent declaring `implements TableInterface`-shaped accessors
+  (`tables()`, `fields()`, `get()`, `title()`), which confirms the family and
+  yields the default-column set.
+
+Both files are wanted: the child holds the map, the parent holds the defaults
+that the map omits.
+
+**Read it statically; never include it.** The source tree is untrusted — it may
+be an unzipped upload — so `require`/`include` is not an option, and neither is
+`eval` on the extracted literal. `Reader\Table` parses with `token_get_all()`
+and accepts **only** literal tokens: strings, numbers, `[`/`]`, `=>`, `,`,
+`NULL`, `true`, `false`. Any variable, constant, concatenation, or function call
+inside the array aborts the read, records the reason in `Registry\Report`, and
+drops the run to tier 1. Reflection over an already-autoloaded class stays
+available as an explicit opt-in for the case where JCB is reading a component
+installed on the same site, but it is never the default.
+
+A component with no such class simply has no tier 0, and the pipeline proceeds
+on tiers 1–3 exactly as described below. Nothing about this tier is required
+for a non-JCB component to work.
+
+### 3.6 Three-tier discovery
+
+Two different things in this document are called tiers, and they are
+independent: **discovery tiers** are how a file is *found* (this section), while
+**precedence tiers** are which source *wins* once several describe the same
+field (§2, §3.5, §3.11). A file found at discovery tier 3 can still be the
+top-precedence source — the table definition class is exactly that case.
 
 Components do not have to obey the placement map of §3.4, so a miss there is
 normal rather than fatal. Discovery tries three tiers in order and records
@@ -337,13 +448,18 @@ which one answered in `Registry\Inventory`:
 2. **Bounded pattern scan.** `Scanner` walks the tree once with an explicit
    depth cap, file-count cap, extension allowlist, symlink refusal, and
    realpath containment check against the source root, collecting `*.sql`,
-   `*.xml`, `*.ini`. Directory names that cannot hold what we want
-   (`node_modules`, `.git`, `vendor`, `assets`) are pruned.
+   `*.xml`, `*.ini`, and `*.php`. Directory names that cannot hold what we want
+   (`node_modules`, `.git`, `assets`) are pruned — note that `vendor` cannot be
+   pruned here, because a JCB-built component's table definition class often
+   lives inside its vendored power namespace.
 3. **Content signature.** `Layout\Heuristic` classifies what tier 2 collected
    by looking inside: a `.sql` containing `CREATE TABLE`, an `.xml` whose
    document element is `<form>` and which contains `<field name=`, an `.ini`
-   whose keys match `COM_<CODE>_`. This is what makes a non-standard
-   component work.
+   whose keys match `COM_<CODE>_`, and a `.php` matching the table-class
+   signature of §3.5. This is what makes a non-standard component work.
+
+`Discovery\Locator\Table` runs only at tier 3 — its target has no predictable
+location, so there is no placement-map shortcut for it.
 
 Discovery writes an inventory and stops. Nothing is interpreted and nothing is
 written during discovery — that separation is what makes the pipeline unit
@@ -355,7 +471,7 @@ code name, version, and (through the presence of `src/`,
 lets `Resolver\ViewName` strip the table prefix, and it is also the
 language-constant prefix.
 
-### 3.6 Pure SQL reading
+### 3.7 Pure SQL reading
 
 `Reader\Sql\CreateTable` replaces `Mapping::getColumns()` with a parser that
 never touches a database. It must reproduce what MySQL was giving us for free,
@@ -378,7 +494,7 @@ That is the gate for retiring the temp-table path.
 `Reader\Sql\Insert` keeps the existing seed-data capture that feeds
 `admin_view.add_sql`, `source`, and `sql`.
 
-### 3.7 Form XML reading
+### 3.8 Form XML reading
 
 `Reader\Form` walks one `forms/<view>.xml` into `Registry\Form`, keeping each
 field's raw attribute bag verbatim — not a curated subset — plus child
@@ -396,7 +512,7 @@ Field-to-column matching is by `name` against the parsed columns. Unmatched
 form fields and unmatched columns both land in `Registry\Report` — those two
 lists are the most useful diagnostic the feature can produce.
 
-### 3.8 Language resolution
+### 3.9 Language resolution
 
 `Reader\Language` reads the `en-GB` `.ini` files with
 `parse_ini_string($content, false, INI_SCANNER_RAW)` — from a string, so it is
@@ -408,7 +524,7 @@ through that catalogue. On a miss the constant is kept verbatim and recorded as
 unresolved. It runs over `label`, `description`, `hint`, `message`, `<option>`
 bodies, `<fieldset label>`, and note field content.
 
-### 3.9 Field type mapping is data, not a hardcoded array
+### 3.10 Field type mapping is data, not a hardcoded array
 
 `#__componentbuilder_fieldtype.properties` is a JSON object whose
 `properties0` entry is the `type` property, and **its `example` is the Joomla
@@ -438,22 +554,28 @@ the XML `type`, with three policies that the data forces:
 `Mapping::$dataTypes` (SQL type → field type) survives only as the last tier,
 for columns with no form field at all.
 
-### 3.10 The precedence engine
+### 3.11 The precedence engine
 
 `Resolver\Precedence` is the heart of the feature and the cheapest thing to
-test. For each column it reads three registry paths — the decoded notes under
+test. For each column it reads four registry paths — the table map entry under
+`table.<table>.field.<name>`, the decoded notes under
 `schema.…column.<name>.notes`, the matched form field under
 `form.<view>.field.<name>`, and the raw column metadata — and writes, per
 property, both a value and its origin:
 
 ```
 resolved.<view>.field.<name>.<property>.value
-resolved.<view>.field.<name>.<property>.origin    notes | xml | derived
+resolved.<view>.field.<name>.<property>.origin   table | notes | xml | derived
 ```
+
+Some properties exist at only one tier, and those need no contest: `link`,
+`store`, and the per-field `guid` come from `table` or not at all, while
+`showon` conditions come from `xml` or not at all. Precedence only arbitrates
+where two tiers both have an answer.
 
 Nothing else in the pipeline decides precedence, and the report is generated
 straight from the origin distribution. The tier order is itself an option
-(§3.12), so an author whose notes have gone stale can promote XML above them.
+(§3.13), so an author whose notes have gone stale can promote XML above them.
 
 `Resolver\FieldXml` then composes the JCB `field.xml` attribute string by
 passing the resolved settings into
@@ -461,24 +583,36 @@ passing the resolved settings into
 `Builder` makes, but with the full resolved attribute bag instead of six
 hardcoded keys.
 
-### 3.11 Writing
+### 3.12 Writing
 
 Writers take `VDM\Joomla\Data\{Item,Insert,Update}` as injected dependencies
 and set `guid`. No writer calls `db->insertObject()`.
 
 They are also idempotent, which requires a source-to-definition identity the
-current code has none of. Proposal: a deterministic UUIDv5-style GUID from a
-fixed namespace plus `component code name + table name [+ column name]`.
+current code has none of. Identity comes from the best available source:
+
+1. **The table map's own `guid`**, when tier 0 supplied one. This is the ideal
+   case — the source project already assigned a stable per-field identity, so a
+   re-run matches exactly and, for a component that came out of JCB in the
+   first place, the extruded definition can line up with the original.
+2. **A deterministic UUIDv5-style GUID** from a fixed namespace plus
+   `component code name + table name [+ column name]`, for everything else.
+
 `Data\Guid::getGuid()` is v4 random and stays the generator for genuinely new
-records; extruded records get the derived GUID, so a second run over the same
-source updates in place instead of producing another `(dynamic build)` set.
-The alternative — matching on `name` — collides across components and is not
-viable.
+records; extruded records take one of the two identities above, so a second run
+over the same source updates in place instead of producing another
+`(dynamic build)` set. The alternative — matching on `name` — collides across
+components and is not viable.
 
 Writers, in dependency order: `Field` → `AdminView` → `AdminFields` →
 `AdminFieldsConditions` → `AdminCustomTabs` → `ComponentAdminViews`.
 
-### 3.12 Entry point and options
+Two tier-0-only values write straight through: `store` onto
+`#__componentbuilder_field.store`, and `tab_name` onto the tab structures
+instead of the fieldset inference. How `link` should land is the one mapping
+still open — see §6.
+
+### 3.13 Entry point and options
 
 `Extruder` is the single entry service: resolved from the container, fluent,
 with a terminal `extrude()`. There is no request object to construct, so there
@@ -495,7 +629,7 @@ $report = Extrusion\Factory::_('Extruder')
     ->mode('update')
     ->layout('auto')
     ->languageTag('en-GB')
-    ->precedence(['notes', 'xml', 'derived'])
+    ->precedence(['table', 'notes', 'xml', 'derived'])
     ->onExisting('update')
     ->tabs(true)
     ->conditions(true)
@@ -505,7 +639,7 @@ $report = Extrusion\Factory::_('Extruder')
 
 Each setter validates and writes into the shared `Config`, which every
 downstream service receives by injection. `reset()` clears `Config` and all
-seven registries and is the run boundary; `extrude()` returns
+eight registries and is the run boundary; `extrude()` returns
 `Registry\Report`.
 
 The option catalogue, which is the part worth getting right up front:
@@ -524,10 +658,11 @@ The option catalogue, which is the part worth getting right up front:
 | --- | --- | --- |
 | `admin` | `true` | Administrator views and fields |
 | `site` | `false` | Site views (future extension) |
-| `tabs` | `true` | Derive tabs from XML fieldsets |
+| `tabs` | `true` | Derive tabs from `tab_name`, else from XML fieldsets |
 | `conditions` | `true` | Derive field conditions from `showon` |
 | `language` | `true` | Resolve constants to English strings |
 | `translations` | `false` | Also import other language packs into `language_translation` |
+| `relations` | `true` | Import `link` relationships when a table class supplies them |
 | `code` | `false` | PHP custom-code extrusion (phase 4) |
 | `include` / `exclude` | `[]` | Table or view name filters |
 
@@ -535,7 +670,8 @@ The option catalogue, which is the part worth getting right up front:
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `precedence` | `['notes','xml','derived']` | Tier order; reorderable |
+| `precedence` | `['table','notes','xml','derived']` | Tier order; reorderable |
+| `tableClass` | `auto` | `auto`, `off`, or an explicit path to the table definition class |
 | `layout` | `auto` | `auto`, `j3`, `j4`, `j5`, `j6` |
 | `languageTag` | `en-GB` | Which translation supplies the strings |
 
@@ -574,14 +710,15 @@ Touches: tests only.
 
 `Config`, `Factory`, `Service/{Extrusion,Registry,Discovery}.php`,
 `Registry\{Source,Inventory,Report}`, `Discovery\{Scanner,Manifest}`,
-`Discovery\Locator\{Schema,Form,Language}`,
+`Discovery\Locator\{Table,Schema,Form,Language}`,
 `Layout\{JoomlaThree,JoomlaFour,JoomlaFive,JoomlaSix,Heuristic}`, `Extruder`
 with its fluent setters and `reset()`, and the matching interfaces.
 
 Deliverable: given a path, a report naming the schema file, the per-view form
-XMLs, the language files, the detected layout family, the component code name,
-and which discovery tier found each. No interpretation, no writes, no database
-— entirely unit testable against fixture trees.
+XMLs, the language files, the table definition class if the component has one,
+the detected layout family, the component code name, and which discovery tier
+found each. No interpretation, no writes, and no database — entirely unit
+testable against fixture trees.
 
 This phase carries the containment work: realpath checks, symlink refusal,
 depth/count caps, and the traversal, absolute-path, mixed-separator, and
@@ -593,8 +730,14 @@ request.
 
 ### Phase 2 — pure readers
 
-`Reader\Schema`, `Reader\Sql\{Splitter,CreateTable,Insert}`, `Reader\Form`,
-`Reader\Language`, `Registry\{Schema,Form,Language}`, `Service/Reader.php`.
+`Reader\Table`, `Reader\Schema`, `Reader\Sql\{Splitter,CreateTable,Insert}`,
+`Reader\Form`, `Reader\Language`, `Registry\{Table,Schema,Form,Language}`,
+`Service/Reader.php`.
+
+`Reader\Table` carries its own gate: a literal-only token parser, with tests
+proving that a `$tables` array containing anything non-literal is refused
+rather than partially trusted, and that no file from the source tree is ever
+included or evaluated.
 
 Deliverable: inventory → populated registries, with the live-DDL temp table
 gone. Gate: column-metadata parity against the temp-table implementation over
@@ -603,11 +746,13 @@ gone. Gate: column-metadata parity against the temp-table implementation over
 ### Phase 3 — resolve and build the administrator area
 
 `Resolver\{Precedence,Fieldtype,Language,ViewName,Role,Tab,Condition,FieldXml}`,
-`Writer\*`, `Registry\Resolved`, `Service/{Resolver,Writer}.php`.
+`Resolver\Relation`, `Writer\*`, `Registry\Resolved`,
+`Service/{Resolver,Writer}.php`.
 
 Deliverable: the feature. Point at a component folder, get views and fields
-with XML-sourced types and attributes, real English labels, fieldset-derived
-tabs, `showon`-derived conditions, GUIDs, component linkage, a working
+with table-map or XML-sourced types and attributes, real English labels, tabs,
+`showon`-derived conditions, `link`-derived relationships and `store` settings
+where a table class supplied them, GUIDs, component linkage, a working
 `dryRun`, and an idempotent second run. Fix the `array_search()` list-flag
 defect here and retire it from the defect ledger.
 
@@ -659,16 +804,23 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
 
 ## 6. Open decisions
 
-1. **Where does the folder path come from?** A text field, a server-relative
+1. **How does `link` land in JCB?** A table-map relationship names a target
+   `table`, `component`, `entity`, `value`, and `key`. JCB can express that as a
+   generated custom field type querying the linked view, as a `dynamic_get`, or
+   through `#__componentbuilder_admin_fields_relations`. Picking the right
+   target — and what to do when the linked view is not itself part of this
+   extrusion — is the main open design question in phase 3, and the reason
+   `Resolver\Relation` is listed separately from the other resolvers.
+2. **Where does the folder path come from?** A text field, a server-relative
    browse, or a `#__componentbuilder_server` entry. Affects `Config` only, but
    the containment rules depend on the answer.
-2. **Do we import site views and modules in the same pass?** The
+3. **Do we import site views and modules in the same pass?** The
    administrator area is the stated first objective; the `site` scope option
    is reserved so this becomes an extension rather than a rewrite.
-3. **Language: import or resolve only?** Resolving to English strings is
+4. **Language: import or resolve only?** Resolving to English strings is
    required; the `translations` option covers the wider import if wanted.
-4. **`mode` default.** `create` is the safer default, but most real use is
+5. **`mode` default.** `create` is the safer default, but most real use is
    probably `update` against an existing component definition.
-5. **Collision override table for field types.** `Text`/`Tel` is the only
+6. **Collision override table for field types.** `Text`/`Tel` is the only
    collision in the seeded data today; whether that table is code or a new
    `fieldtype` column is worth deciding before phase 3.
