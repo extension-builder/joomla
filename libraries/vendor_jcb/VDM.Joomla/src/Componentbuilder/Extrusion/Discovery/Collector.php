@@ -198,7 +198,7 @@ final class Collector
 			return false;
 		}
 
-		$this->source->set('tag', (string) $this->config->get('languageTag', 'en-GB'));
+		$this->identify();
 		$this->manifest->establish($root);
 
 		foreach ($this->locators() as $locator)
@@ -207,6 +207,33 @@ final class Collector
 		}
 
 		return $this->assess();
+	}
+
+	/**
+	 * Establish the identity that needs no source tree.
+	 *
+	 * A pasted schema dump has no root to search and no manifest to read, but the
+	 * caller supplying it already knows the component it belongs to. Stripping the
+	 * table prefix depends entirely on knowing that name, so a dump-only run has to
+	 * be able to establish this much without a folder — it is the one thing the
+	 * original dump-driven extruder never got wrong, because the component form
+	 * told it.
+	 *
+	 * @return  bool  True when a component code name is known.
+	 * @since   6.1.6
+	 */
+	public function identify(): bool
+	{
+		$this->source->set('tag', (string) $this->config->get('languageTag', 'en-GB'));
+
+		$supplied = $this->manifest->supplied();
+
+		if ($supplied !== '')
+		{
+			$this->source->set('code_name', $supplied);
+		}
+
+		return $supplied !== '';
 	}
 
 	/**

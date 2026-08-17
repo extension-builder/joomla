@@ -605,6 +605,75 @@ SQL);
 	}
 
 	/**
+	 * Dump text alone runs the whole engine, exactly as a folder does.
+	 *
+	 * This is the seam the component form has always used, and it is now the same
+	 * engine a folder goes through. It has no tree to search and no manifest to
+	 * read, so everything it recovers comes from the dump itself plus the code name
+	 * the caller supplies.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testDumpTextAloneIsACompleteSource(): void
+	{
+		$dump = <<<'SQL'
+CREATE TABLE IF NOT EXISTS `#__demo_widget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '{"label":"Widget Name","type":"text"}',
+	`body` MEDIUMTEXT NOT NULL COMMENT '{"label":"Body Copy","type":"editor"}',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL;
+
+		$report = $this->extruder()->dump($dump)->component(6)->codeName('demo')->extrude();
+
+		$this->assertTrue($report->get('completed'), 'A dump with no path at all must run.');
+		$this->assertSame(
+			['widget'],
+			$this->resolved()->get('views'),
+			'The supplied code name is the only thing that can strip the table prefix.'
+		);
+		$this->assertSame(
+			'Widget Name',
+			$this->resolved()->get('view.widget.field.name.label.value')
+		);
+		$this->assertSame(
+			[
+				'field' => 2,
+				'admin_view' => 1,
+				'admin_fields' => 1,
+				'admin_fields_conditions' => 0,
+				'admin_custom_tabs' => 0,
+				'layout' => 0,
+				'template' => 0,
+				'component_admin_views' => 1
+			],
+			(array) $report->get('written_counts'),
+			'The dump path runs every writer a folder does; the ones with no source '
+			. 'to draw on simply write nothing.'
+		);
+		$this->assertSame(
+			6,
+			$this->item->definitions('component_admin_views')[0]->joomla_component
+		);
+
+		$this->extruder()->reset()->dump($dump)->component(6)->extrude();
+
+		$this->assertSame(
+			['demo_widget'],
+			$this->resolved()->get('views'),
+			'Without a code name the prefix has nowhere to go but into the view name.'
+		);
+		$this->assertContains(
+			'No component code name was given with the dump, so the table prefix stays '
+			. 'in every view name.',
+			array_column($this->messages()->level('warning'), 'message'),
+			'A run that could not strip the prefix has to say so.'
+		);
+	}
+
+	/**
 	 * A supplied code name outranks whatever the tree happens to declare.
 	 *
 	 * @return  void

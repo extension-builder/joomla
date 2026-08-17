@@ -1061,6 +1061,15 @@ completes, it simply has nobody to show its messages to.
 public entry the dump path needs: the same parser `read()` uses on a file,
 handed text instead of a path. One parser, two ways in.
 
+**`Discovery\Collector::identify()`** is the other half. Discovery establishes the
+component identity while walking a tree, and a dump has no tree — but stripping
+the table prefix depends entirely on knowing the code name, and getting that
+right is the one thing the original dump-driven extruder never got wrong, because
+the form told it. `identify()` establishes the identity that needs no tree, and
+`collect()` calls it before searching, so a folder run and a dump run agree about
+where identity comes from. A dump with no code name still runs; it warns that
+every view name keeps its prefix.
+
 ### 8.2 The message bus
 
 `Registry\Message` is a `VDM\Joomla\Abstraction\Registry` leaf, exclusive to
