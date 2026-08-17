@@ -13222,37 +13222,22 @@ class Interpretation extends Fields
 		return CFactory::_('Placeholder')->update_($fix);
 	}
 
+	/**
+	 * Add the selection translation loop to a list model.
+	 *
+	 * @param   string  $views      The list view code name.
+	 * @param   string  $Component  Unused, kept for the legacy signature.
+	 * @param   string  $tab        Extra indentation of the generated lines.
+	 *
+	 * @return  string  The generated loop.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.SelectionTranslation service.
+	 */
 	public function setSelectionTranslationFix($views, $Component, $tab = '')
 	{
-		// add the fix if this view has the need for it
-		$fix = '';
-		if (CFactory::_('Compiler.Builder.Selection.Translation')->exists($views))
-		{
-			$fix .= PHP_EOL . PHP_EOL . Indent::_(1) . $tab . Indent::_(1)
-				. "//" . Line::_(__Line__, __Class__)
-				. " set selection value to a translatable value";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(1) . "if ("
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$items))";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(1) . "{";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(2)
-				. "foreach (\$items as \$nr => &\$item)";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(2) . "{";
-			foreach (CFactory::_('Compiler.Builder.Selection.Translation')->
-				get($views) as $name => $values)
-			{
-				$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(3) . "//"
-					. Line::_(__Line__, __Class__) . " convert " . $name;
-				$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(3)
-					. "\$item->" . $name
-					. " = \$this->selectionTranslation(\$item->" . $name . ", '"
-					. $name . "');";
-			}
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(2) . "}";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(1) . "}"
-				. PHP_EOL;
-		}
-
-		return $fix;
+		return CFactory::_('Architecture.Model.SelectionTranslation')
+			->get($views, (string) $tab);
 	}
 
 	public function setSelectionTranslationFixFunc($views, $Component)

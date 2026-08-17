@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SelectionTranslation;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\AllowEditInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AllowEdit as SharedModelAllowEdit;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\AllowEdit as J3ModelAllowEdit;
@@ -60,6 +61,9 @@ class ArchitectureModel implements ServiceProviderInterface
 	 */
 	public function register(Container $container)
 	{
+		$container->alias(SelectionTranslation::class, 'Architecture.Model.SelectionTranslation')
+			->share('Architecture.Model.SelectionTranslation', [$this, 'getModelSelectionTranslation'], true);
+
 		$container->alias(CustomQuery::class, 'Architecture.Model.CustomQuery')
 			->share('Architecture.Model.CustomQuery', [$this, 'getModelCustomQuery'], true);
 
@@ -116,6 +120,21 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3CheckInNow::class, 'Architecture.Model.J3.CheckInNow')
 			->share('Architecture.Model.J3.CheckInNow', [$this, 'getJ3CheckInNow'], true);
+	}
+
+	/**
+	 * Get The Model SelectionTranslation Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SelectionTranslation
+	 * @since   6.1.7
+	 */
+	public function getModelSelectionTranslation(Container $container): SelectionTranslation
+	{
+		return new SelectionTranslation(
+			$container->get('Compiler.Builder.Selection.Translation')
+		);
 	}
 
 	/**

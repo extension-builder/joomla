@@ -780,6 +780,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedLinkedViewListBodyTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/SelectionTranslation.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelSelectionTranslationTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/CustomQuery.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelCustomQueryTest.php'
