@@ -199,6 +199,8 @@ final class Scanner
 
 				if (is_link($path))
 				{
+					$this->report->set('skipped.symlink.' . md5($path), $path);
+
 					continue;
 				}
 
@@ -227,7 +229,7 @@ final class Scanner
 				{
 					$this->report->set('skipped.maxfiles', $maxFiles);
 
-					return $found;
+					break 2;
 				}
 
 				if ($wanted !== [] && !isset($wanted[strtolower(pathinfo($path, PATHINFO_EXTENSION))]))

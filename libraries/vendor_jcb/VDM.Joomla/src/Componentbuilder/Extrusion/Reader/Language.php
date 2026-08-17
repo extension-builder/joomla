@@ -21,12 +21,13 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
  * Reads one language ini file into the Language registry.
  *
  * The content is parsed from a string rather than from the path, so the parse is
- * testable without a file, and in raw mode, so Joomla's own quoting survives to
- * be undone here rather than by the ini scanner. A Joomla value is wrapped in
- * double quotes and writes an embedded quote as _QQ_, so exactly one surviving
- * layer of quoting is stripped and _QQ_ becomes a literal double quote, in that
- * order, because a value that is only _QQ_ tokens must not be mistaken for a
- * quoted one.
+ * testable without a file, and in raw mode, so Joomla's own escaping survives to
+ * be undone here rather than by the ini scanner. The raw scanner removes the
+ * quotes that wrap a value but leaves an escaped quote alone, so an embedded
+ * quote reaches this reader either as \" from a modern file or as the legacy
+ * _QQ_ token, and both become a literal double quote. Nothing else is stripped:
+ * a quote that survives the scanner is content, as is any whitespace inside the
+ * quotes, and both are kept exactly as Joomla's own language loader keeps them.
  *
  * Merging is first writer wins: a later file never replaces a constant that is
  * already present with a non-empty value, so reading the component ini before
@@ -38,12 +39,23 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 final class Language implements ReaderInterface
 {
 	/**
-	 * The Joomla token that stands in for an embedded double quote.
+	 * The legacy Joomla token that stands in for an embedded double quote.
 	 *
 	 * @var    string
 	 * @since  6.1.6
 	 */
 	private const QUOTE = '_QQ_';
+
+	/**
+	 * The escape a modern Joomla ini file uses for an embedded double quote.
+	 *
+	 * The raw ini scanner deliberately leaves an escape untouched, so the file
+	 * still holds a backslash and a quote when the value reaches this reader.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const ESCAPE = '\\"';
 
 	/**
 	 * The Language Registry.
@@ -155,9 +167,11 @@ final class Language implements ReaderInterface
 	/**
 	 * Resolve one raw ini value into its English string.
 	 *
-	 * The raw scanner usually removes the wrapping quotes itself, but it leaves
-	 * them in place when the value holds further quotes of its own, so the layer
-	 * is removed here only when it is still there.
+	 * The raw scanner has already removed the quotes that wrapped the value and
+	 * has already trimmed an unquoted one, so only the escapes are left to undo.
+	 * A quote or a space that reaches this method is therefore part of the string
+	 * and is kept: stripping another layer would silently eat the content of a
+	 * value that genuinely opens and closes with a quote.
 	 *
 	 * @param   string  $value  The raw scanner value.
 	 *
@@ -166,14 +180,7 @@ final class Language implements ReaderInterface
 	 */
 	public function value(string $value): string
 	{
-		$value = trim($value);
-
-		if (strlen($value) > 1 && str_starts_with($value, '"') && str_ends_with($value, '"'))
-		{
-			$value = substr($value, 1, -1);
-		}
-
-		return str_replace(self::QUOTE, '"', $value);
+		return str_replace([self::ESCAPE, self::QUOTE], '"', $value);
 	}
 
 	/**

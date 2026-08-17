@@ -97,6 +97,9 @@ final class Config extends Registry implements Registryinterface
 	/**
 	 * Constructor.
 	 *
+	 * Options handed in survive; the reviewed defaults only fill what is absent,
+	 * so a run may be configured up front without the defaults erasing it again.
+	 *
 	 * @param   mixed        $data       Optional data to load into the registry.
 	 * @param   string|null  $separator  The path separator.
 	 *
@@ -106,7 +109,7 @@ final class Config extends Registry implements Registryinterface
 	{
 		parent::__construct($data, $separator);
 
-		$this->defaults();
+		$this->seed(false);
 	}
 
 	/**
@@ -117,12 +120,7 @@ final class Config extends Registry implements Registryinterface
 	 */
 	public function defaults(): self
 	{
-		foreach (self::DEFAULTS as $key => $value)
-		{
-			$this->set($key, $value);
-		}
-
-		return $this;
+		return $this->seed(true);
 	}
 
 	/**
@@ -214,9 +212,12 @@ final class Config extends Registry implements Registryinterface
 	 */
 	public function extrudable(string $column): bool
 	{
-		$skip = (array) $this->get('skipColumns', self::BOILERPLATE);
+		$skip = array_map(
+			static fn ($name): string => strtolower(trim((string) $name)),
+			(array) $this->get('skipColumns', self::BOILERPLATE)
+		);
 
-		return !in_array(strtolower(trim($column)), array_map('strtolower', $skip), true);
+		return !in_array(strtolower(trim($column)), $skip, true);
 	}
 
 	/**
@@ -233,5 +234,30 @@ final class Config extends Registry implements Registryinterface
 		$rank = array_search($tier, $order, true);
 
 		return $rank === false ? count(self::TIERS) + 1 : (int) $rank;
+	}
+
+	/**
+	 * Write the reviewed defaults into the registry.
+	 *
+	 * An option is treated as absent when it holds no value at all, so a null
+	 * carried in from loaded data still falls back to its reviewed default and
+	 * every catalogued option is guaranteed to be usable.
+	 *
+	 * @param   bool  $overwrite  True to reset present options, false to only fill the gaps.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	private function seed(bool $overwrite): self
+	{
+		foreach (self::DEFAULTS as $key => $value)
+		{
+			if ($overwrite || !$this->exists($key))
+			{
+				$this->set($key, $value);
+			}
+		}
+
+		return $this;
 	}
 }

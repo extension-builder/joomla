@@ -99,6 +99,25 @@ final class Split
 	];
 
 	/**
+	 * The compound token texts that open a bracket closed by the bare character.
+	 *
+	 * Two constructs do not open their bracket as the bare character: one form of
+	 * string interpolation writes ${ and an attribute writes #[. Both of them
+	 * still close with a plain } or ], so counting the text alone decrements a
+	 * depth that was never incremented and misreports the nesting of everything
+	 * standing behind them. That is how a trait import inside a class body, and a
+	 * halting check inside a function, came to look like top-level boilerplate and
+	 * were cut. The other interpolation form opens as a bare { and needs no entry.
+	 *
+	 * @var    array<string, array<string>>
+	 * @since  6.1.6
+	 */
+	private const OPENERS = [
+		'{' => ['${'],
+		'[' => ['#[']
+	];
+
+	/**
 	 * How many masking passes may run before the scan gives up.
 	 *
 	 * Masking one tag can reveal a later line comment that the tokeniser had
@@ -422,7 +441,7 @@ final class Split
 				continue;
 			}
 
-			if ($token['text'] === '{')
+			if ($this->opens($token, '{'))
 			{
 				$depth++;
 				$notice = null;
@@ -649,7 +668,7 @@ final class Split
 				return null;
 			}
 
-			if ($token['text'] === '(' || $token['text'] === '[' || $token['text'] === '{')
+			if ($this->opens($token, '(') || $this->opens($token, '[') || $this->opens($token, '{'))
 			{
 				$depth++;
 
@@ -738,7 +757,7 @@ final class Split
 				return null;
 			}
 
-			if ($token['text'] === $open)
+			if ($this->opens($token, $open))
 			{
 				$depth++;
 
@@ -757,6 +776,29 @@ final class Split
 		}
 
 		return null;
+	}
+
+	/**
+	 * Whether one token opens a given bracket.
+	 *
+	 * The compound openers are matched by their text rather than by their token
+	 * id, so no scan depends on a token constant the language may retire.
+	 *
+	 * @param   array{id: int, text: string, offset: int}  $token  The token.
+	 * @param   string                                    $open   The opening character.
+	 *
+	 * @return  bool  True when the token opens that bracket.
+	 * @since   6.1.6
+	 */
+	protected function opens(array $token, string $open): bool
+	{
+		if ($token['text'] === $open)
+		{
+			return true;
+		}
+
+		return isset(self::OPENERS[$open])
+			&& in_array($token['text'], self::OPENERS[$open], true);
 	}
 
 	/**

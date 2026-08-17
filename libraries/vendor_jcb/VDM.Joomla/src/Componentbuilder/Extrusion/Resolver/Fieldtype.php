@@ -191,7 +191,14 @@ final class Fieldtype
 			return $custom ? $this->fallback($type) : null;
 		}
 
-		if (isset($catalogue[$key]) && $this->scoped($key))
+		if (!$this->scoped($key))
+		{
+			$this->report->set('scoped.fieldtype.' . $this->segment($key), $type);
+
+			return $custom ? $this->fallback($type) : null;
+		}
+
+		if (isset($catalogue[$key]))
 		{
 			return $catalogue[$key];
 		}
@@ -201,7 +208,7 @@ final class Fieldtype
 			return $this->named[$key];
 		}
 
-		$this->report->set('unmapped.fieldtype.' . preg_replace('/[^A-Za-z0-9_]/', '_', $key), $type);
+		$this->report->set('unmapped.fieldtype.' . $this->segment($key), $type);
 
 		return $custom ? $this->fallback($type) : null;
 	}
@@ -361,7 +368,23 @@ final class Fieldtype
 	}
 
 	/**
+	 * Sanitise one registry path segment.
+	 *
+	 * @param   string  $value  The raw value.
+	 *
+	 * @return  string  A segment safe to use in a dotted registry path.
+	 * @since   6.1.6
+	 */
+	protected function segment(string $value): string
+	{
+		return preg_replace('/[^A-Za-z0-9_]/', '_', $value) ?? $value;
+	}
+
+	/**
 	 * Whether one XML type is in scope for the detected target major.
+	 *
+	 * A type that is out of scope must not be reachable by its field type name
+	 * either, or a Joomla 3 component would still resolve a subform.
 	 *
 	 * @param   string  $xmlType  The lower-case XML type.
 	 *

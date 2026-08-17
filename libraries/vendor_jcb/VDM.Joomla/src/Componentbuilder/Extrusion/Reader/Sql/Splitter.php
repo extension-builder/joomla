@@ -27,7 +27,20 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
 final class Splitter
 {
 	/**
+	 * The UTF-8 byte order mark.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const BOM = "\xEF\xBB\xBF";
+
+	/**
 	 * Split a SQL dump into its statements.
+	 *
+	 * A byte order mark is dropped first. It is invisible in an editor but it
+	 * sits ahead of the dump's first statement, where it would leave that one
+	 * statement unrecognisable to the statement parsers and so silently lose
+	 * whatever it declares.
 	 *
 	 * @param   string  $sql  The complete SQL dump.
 	 *
@@ -38,6 +51,7 @@ final class Splitter
 	{
 		$statements = [];
 		$buffer = '';
+		$sql = $this->mark($sql);
 		$length = strlen($sql);
 		$index = 0;
 
@@ -86,6 +100,19 @@ final class Splitter
 		$this->collect($statements, $buffer);
 
 		return $statements;
+	}
+
+	/**
+	 * Remove a leading byte order mark from a dump.
+	 *
+	 * @param   string  $sql  The complete SQL dump.
+	 *
+	 * @return  string  The dump without its byte order mark.
+	 * @since   6.1.6
+	 */
+	private function mark(string $sql): string
+	{
+		return strncmp($sql, self::BOM, 3) === 0 ? substr($sql, 3) : $sql;
 	}
 
 	/**

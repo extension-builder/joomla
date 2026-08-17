@@ -31,8 +31,9 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Php;
  * compiled unless its switch is on, so the phase must set the switch as well as
  * the body, and the extrusion design is explicit that it leaves the switches
  * off: a candidate is offered, never silently enabled. And not every php_*
- * column has one -- php_model and php_controller are always compiled -- which
- * is why the lookup answers null rather than guessing a name by prefixing.
+ * column has one -- php_model and php_controller, and their _list siblings, are
+ * always compiled -- which is why the lookup answers null rather than guessing a
+ * name by prefixing.
  *
  * @since 6.1.6
  */
@@ -44,6 +45,12 @@ final class MethodMap
 	 * The keys are the methods as Joomla declares them, so the map reads the way
 	 * the source does. Lookups are case insensitive, so the casing here is for
 	 * the reader's benefit rather than the machine's.
+	 *
+	 * Two keys share php_document because the view method that column is compiled
+	 * into was renamed: JCB writes it into _prepareDocument for Joomla 4 and 5 and
+	 * wrote it into setDocument for Joomla 3, and a tree offered for extrusion may
+	 * be of either vintage. There is no method named document, so naming the
+	 * column's own suffix here would map nothing.
 	 *
 	 * @var    array<string, string>
 	 * @since  6.1.6
@@ -62,7 +69,8 @@ final class MethodMap
 		'publish' => 'php_before_publish',
 		'delete' => 'php_before_delete',
 		'cancel' => 'php_before_cancel',
-		'document' => 'php_document'
+		'_prepareDocument' => 'php_document',
+		'setDocument' => 'php_document'
 	];
 
 	/**

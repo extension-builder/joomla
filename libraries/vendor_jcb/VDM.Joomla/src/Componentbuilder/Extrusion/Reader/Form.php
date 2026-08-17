@@ -263,12 +263,12 @@ final class Form implements ReaderInterface
 
 		$key = $this->identity($view, $name, $subform);
 		$path = 'view.' . $view . '.field.' . $key;
-		$group = $fieldset === '' ? $this->key($this->attribute($element, 'fieldset')) : $fieldset;
+		$group = $this->group($element, $fieldset);
 		$order = (int) $this->form->get($path . '.order', $this->total($view, 'field'));
 
 		$this->form->set($path . '.name', $name);
 		$this->form->set($path . '.type', $this->attribute($element, 'type'));
-		$this->form->set($path . '.fieldset', $group === 'unknown' ? '' : $group);
+		$this->form->set($path . '.fieldset', $group);
 		$this->form->set($path . '.order', $order);
 
 		if ($subform !== null && $subform !== '')
@@ -284,6 +284,33 @@ final class Form implements ReaderInterface
 		$this->options($element, $path);
 
 		return $key;
+	}
+
+	/**
+	 * Resolve which fieldset one field belongs to.
+	 *
+	 * An enclosing <fieldset> wins, because that is the structure the document
+	 * actually declares, and a fieldset= attribute is the fallback for the flat
+	 * form layout that declares no enclosing element. A field that names neither
+	 * belongs to no fieldset, which is recorded as an empty string rather than as
+	 * the placeholder a sanitised empty name would produce.
+	 *
+	 * @param   SimpleXMLElement  $element   The field element.
+	 * @param   string            $fieldset  The enclosing fieldset key, or an empty string.
+	 *
+	 * @return  string  The fieldset key, or an empty string.
+	 * @since   6.1.6
+	 */
+	protected function group(SimpleXMLElement $element, string $fieldset): string
+	{
+		if ($fieldset !== '')
+		{
+			return $fieldset;
+		}
+
+		$name = $this->attribute($element, 'fieldset');
+
+		return $name === '' ? '' : $this->key($name);
 	}
 
 	/**

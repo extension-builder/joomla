@@ -81,6 +81,13 @@ final class Heuristic
 	/**
 	 * Whether a PHP file is a JCB table definition class.
 	 *
+	 * This test decides family membership, not usability. Both array syntaxes and
+	 * any modifier or type in front of the property therefore match, because
+	 * whether the map can actually be trusted is the literal-only reader's
+	 * decision. Narrowing this to the short syntax would make a long-form class
+	 * silently invisible to discovery instead of visibly refused, which costs the
+	 * run the one thing it could have reported: why the class was rejected.
+	 *
 	 * @param   string  $content  The complete file content.
 	 *
 	 * @return  bool  True when the file declares a tables map on a child class.
@@ -93,7 +100,10 @@ final class Heuristic
 			return false;
 		}
 
-		return preg_match('/(?:protected|public|private)\s+(?:array\s+)?\$tables\s*=\s*\[/', $content) === 1;
+		return preg_match(
+			'/(?:protected|public|private)[\s\w\\\\?|]*\$tables\s*=\s*(?:\[|array\s*\()/',
+			$content
+		) === 1;
 	}
 
 	/**
