@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryOtherName;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
@@ -48,59 +49,157 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Keep the four-version, 30-family renderer matrix complete.
+	 * Keep every renderer family to the targets whose code really differs.
+	 *
+	 * A family earns a class under a `Joomla*` namespace only where the
+	 * generated code diverges from the rest. Families whose rendering is
+	 * identical across a run of targets keep one class in the root of their
+	 * concern folder, and the targets that share it must not carry a class
+	 * of their own.
 	 *
 	 * @return  void
 	 * @since   6.1.6
-	 * @since   6.1.7  The ComHelperClass/ExcelMethods and Menu/CustomView families joined the matrix.
+	 * @since   6.1.7  Families collapsed to the targets that actually diverge.
 	 */
-	public function testArchitectureContainsEveryVersionedRendererFamily(): void
+	public function testEveryFamilyOnlyCoversTheTargetsThatDiffer(): void
 	{
+		$all = ['JoomlaThree', 'JoomlaFour', 'JoomlaFive', 'JoomlaSix'];
+		$legacy = ['JoomlaThree'];
+
+		// family => the targets that carry their own class
 		$families = [
-			'AdminView/AddModalToolBar',
-			'AdminView/AddToolBar',
-			'AdminViews/AddToolBar',
-			'AdminViews/DisplayMethod',
-			'AdminViews/ListHead',
-			'AdminViews/ViewBody',
-			'ComHelperClass/CreateUser',
-			'ComHelperClass/ExcelMethods',
-			'Controller/AllowAdd',
-			'Controller/AllowEdit',
-			'Controller/AllowEditViews',
-			'CustomAdminView/AddToolBar',
-			'CustomAdminViews/AddToolBar',
-			'CustomView/DisplayMethod',
-			'Dashboard/View',
-			'Menu/CustomView',
-			'Model/AllowEdit',
-			'Model/CanDelete',
-			'Model/CanEditState',
-			'Model/CheckInNow',
-			'Module/Dispatcher',
-			'Module/Helper',
-			'Module/Library',
-			'Module/MainXML',
-			'Module/Provider',
-			'Module/Template',
-			'Plugin/Extension',
-			'Plugin/MainXML',
-			'Plugin/Provider',
-			'SiteView/AddToolBar',
+			'AdminView/AddModalToolBar' => $all,
+			'AdminView/AddToolBar' => $all,
+			'AdminViews/AddToolBar' => $all,
+			'AdminViews/DisplayMethod' => $legacy,
+			'AdminViews/ListHead' => $legacy,
+			'AdminViews/ViewBody' => $legacy,
+			'ComHelperClass/CreateUser' => $all,
+			'ComHelperClass/ExcelMethods' => $legacy,
+			'Controller/AllowAdd' => $all,
+			'Controller/AllowEdit' => $all,
+			'Controller/AllowEditViews' => $all,
+			'CustomAdminView/AddToolBar' => $all,
+			'CustomAdminViews/AddToolBar' => $all,
+			'CustomView/DisplayMethod' => ['JoomlaThree', 'JoomlaFour'],
+			'Dashboard/View' => $all,
+			'Menu/CustomView' => $legacy,
+			'Model/AllowEdit' => $legacy,
+			'Model/CanDelete' => $all,
+			'Model/CanEditState' => $all,
+			'Model/CheckInNow' => $all,
+			'Module/Dispatcher' => $all,
+			'Module/Helper' => $all,
+			'Module/Library' => $all,
+			'Module/MainXML' => $all,
+			'Module/Provider' => $all,
+			'Module/Template' => $all,
+			'Plugin/Extension' => $all,
+			'Plugin/MainXML' => $all,
+			'Plugin/Provider' => $all,
+			'SiteView/AddToolBar' => $all,
 		];
 
 		$this->assertCount(30, $families);
 
-		foreach (self::versions() as [$version])
+		foreach ($families as $family => $diverging)
 		{
-			foreach ($families as $family)
+			foreach ($all as $version)
 			{
-				$this->assertTrue(
-					class_exists($this->rendererClass($version, $family)),
-					$version . '/' . $family . ' is missing.'
+				$class = $this->rendererClass($version, $family);
+
+				if (in_array($version, $diverging, true))
+				{
+					$this->assertTrue(
+						class_exists($class),
+						$version . '/' . $family . ' is missing.'
+					);
+
+					continue;
+				}
+
+				$this->assertFalse(
+					class_exists($class),
+					$version . '/' . $family . ' does not differ and must not exist.'
 				);
 			}
+
+			if ($diverging === $all)
+			{
+				continue;
+			}
+
+			$this->assertTrue(
+				class_exists($this->sharedClass($family)),
+				$family . ' has no shared implementation.'
+			);
 		}
+	}
+
+	/**
+	 * No target class may exist only to inherit a shared implementation.
+	 *
+	 * An empty subclass adds a name without adding behaviour, which is what
+	 * the shared root class already provides. This guards the whole
+	 * Architecture tree, not only the families listed above.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testNoTargetClassIsAnEmptySubclass(): void
+	{
+		$root = dirname(
+			(string) (new \ReflectionClass(DisplayMethod::class))->getFileName(),
+			2
+		);
+		$empty = [];
+
+		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive', 'JoomlaSix'] as $version)
+		{
+			$files = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator(
+					$root . '/' . $version,
+					\FilesystemIterator::SKIP_DOTS
+				)
+			);
+
+			foreach ($files as $file)
+			{
+				if ($file->getExtension() !== 'php')
+				{
+					continue;
+				}
+
+				$concern = substr(
+					$file->getPathname(),
+					strlen($root . '/' . $version . '/'),
+					-4
+				);
+				$class = $this->rendererClass($version, $concern);
+
+				if (!class_exists($class))
+				{
+					continue;
+				}
+
+				$reflection = new \ReflectionClass($class);
+
+				// a class that inherits everything and declares nothing of
+				// its own is the shared implementation under another name
+				if ($reflection->getParentClass() !== false
+					&& $this->declaresNothing($reflection))
+				{
+					$empty[] = $version . '/' . $concern;
+				}
+			}
+		}
+
+		$this->assertSame(
+			[],
+			$empty,
+			'Move these to the root of their concern folder: '
+				. implode(', ', $empty)
+		);
 	}
 
 	/**
@@ -376,7 +475,8 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			->willReturn("\t\tCUSTOM_MODEL_EDIT;");
 
 		$subject = $this->renderer(
-			$this->rendererClass($version, 'Model/AllowEdit'),
+			// only Joomla 3 checks the edit state the legacy way
+			$this->targetClass($version, 'Model\\AllowEdit', ['JoomlaThree']),
 			[
 				'dispenser' => $dispenser,
 				'category' => new Category(),
@@ -416,5 +516,58 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	{
 		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
 			. $version . '\\' . str_replace('/', '\\', $family);
+	}
+
+	/**
+	 * Build the shared class name of a family.
+	 *
+	 * @param   string  $family  Concern path below Architecture.
+	 *
+	 * @return  class-string
+	 * @since   6.1.7
+	 */
+	private function sharedClass(string $family): string
+	{
+		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
+			. str_replace('/', '\\', $family);
+	}
+
+	/**
+	 * Check whether a class declares no member of its own.
+	 *
+	 * @param   \ReflectionClass<object>  $reflection  The class to inspect.
+	 *
+	 * @return  bool  True when every member comes from an ancestor.
+	 * @since   6.1.7
+	 */
+	private function declaresNothing(\ReflectionClass $reflection): bool
+	{
+		$name = $reflection->getName();
+
+		foreach ($reflection->getMethods() as $method)
+		{
+			if ($method->getDeclaringClass()->getName() === $name)
+			{
+				return false;
+			}
+		}
+
+		foreach ($reflection->getProperties() as $property)
+		{
+			if ($property->getDeclaringClass()->getName() === $name)
+			{
+				return false;
+			}
+		}
+
+		foreach ($reflection->getReflectionConstants() as $constant)
+		{
+			if ($constant->getDeclaringClass()->getName() === $name)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

@@ -20,9 +20,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\ComHelperClass\
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\ComHelperClass\CreateUser as J4CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\CreateUser as J3CreateUser;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\ExcelMethodsInterface;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\ComHelperClass\ExcelMethods as J6ExcelMethods;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\ComHelperClass\ExcelMethods as J5ExcelMethods;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\ComHelperClass\ExcelMethods as J4ExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\ExcelMethods as SharedExcelMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\ExcelMethods as J3ExcelMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
@@ -89,14 +87,8 @@ class ArchitectureComponent implements ServiceProviderInterface
 		$container->alias(ExcelMethodsInterface::class, 'Architecture.ComHelperClass.ExcelMethods')
 			->share('Architecture.ComHelperClass.ExcelMethods', [$this, 'getExcelMethods'], true);
 
-		$container->alias(J6ExcelMethods::class, 'Architecture.ComHelperClass.J6.ExcelMethods')
-			->share('Architecture.ComHelperClass.J6.ExcelMethods', [$this, 'getJ6ExcelMethods'], true);
-
-		$container->alias(J5ExcelMethods::class, 'Architecture.ComHelperClass.J5.ExcelMethods')
-			->share('Architecture.ComHelperClass.J5.ExcelMethods', [$this, 'getJ5ExcelMethods'], true);
-
-		$container->alias(J4ExcelMethods::class, 'Architecture.ComHelperClass.J4.ExcelMethods')
-			->share('Architecture.ComHelperClass.J4.ExcelMethods', [$this, 'getJ4ExcelMethods'], true);
+		$container->alias(SharedExcelMethods::class, 'Architecture.ComHelperClass.Shared.ExcelMethods')
+			->share('Architecture.ComHelperClass.Shared.ExcelMethods', [$this, 'getSharedExcelMethods'], true);
 
 		$container->alias(J3ExcelMethods::class, 'Architecture.ComHelperClass.J3.ExcelMethods')
 			->share('Architecture.ComHelperClass.J3.ExcelMethods', [$this, 'getJ3ExcelMethods'], true);
@@ -274,52 +266,26 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.ComHelperClass.J' . $this->targetVersion . '.ExcelMethods');
+		// only Joomla 3 resolves the active user the legacy way
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.ComHelperClass.J3.ExcelMethods');
+		}
+
+		return $container->get('Architecture.ComHelperClass.Shared.ExcelMethods');
 	}
 
 	/**
-	 * Get The ExcelMethods Class.
+	 * Get The ComHelperClass ExcelMethods Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6ExcelMethods
+	 * @return  SharedExcelMethods
 	 * @since   6.1.7
 	 */
-	public function getJ6ExcelMethods(Container $container): J6ExcelMethods
+	public function getSharedExcelMethods(Container $container): SharedExcelMethods
 	{
-		return new J6ExcelMethods(
-			$container->get('Config'),
-			$container->get('Compiler.Builder.Content.One')
-		);
-	}
-
-	/**
-	 * Get The ExcelMethods Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5ExcelMethods
-	 * @since   6.1.7
-	 */
-	public function getJ5ExcelMethods(Container $container): J5ExcelMethods
-	{
-		return new J5ExcelMethods(
-			$container->get('Config'),
-			$container->get('Compiler.Builder.Content.One')
-		);
-	}
-
-	/**
-	 * Get The ExcelMethods Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4ExcelMethods
-	 * @since   6.1.7
-	 */
-	public function getJ4ExcelMethods(Container $container): J4ExcelMethods
-	{
-		return new J4ExcelMethods(
+		return new SharedExcelMethods(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Content.One')
 		);

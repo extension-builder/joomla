@@ -15,9 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\AllowEditInterface;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\AllowEdit as J6ModelAllowEdit;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Model\AllowEdit as J5ModelAllowEdit;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Model\AllowEdit as J4ModelAllowEdit;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AllowEdit as SharedModelAllowEdit;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\AllowEdit as J3ModelAllowEdit;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\CanDeleteInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\CanDelete as J6ModelCanDelete;
@@ -64,14 +62,8 @@ class ArchitectureModel implements ServiceProviderInterface
 		$container->alias(J3ModelAllowEdit::class, 'Architecture.Model.J3.AllowEdit')
 			->share('Architecture.Model.J3.AllowEdit', [$this, 'getJ3ModelAllowEdit'], true);
 
-		$container->alias(J4ModelAllowEdit::class, 'Architecture.Model.J4.AllowEdit')
-			->share('Architecture.Model.J4.AllowEdit', [$this, 'getJ4ModelAllowEdit'], true);
-
-		$container->alias(J5ModelAllowEdit::class, 'Architecture.Model.J5.AllowEdit')
-			->share('Architecture.Model.J5.AllowEdit', [$this, 'getJ5ModelAllowEdit'], true);
-
-		$container->alias(J6ModelAllowEdit::class, 'Architecture.Model.J6.AllowEdit')
-			->share('Architecture.Model.J6.AllowEdit', [$this, 'getJ6ModelAllowEdit'], true);
+		$container->alias(SharedModelAllowEdit::class, 'Architecture.Model.Shared.AllowEdit')
+			->share('Architecture.Model.Shared.AllowEdit', [$this, 'getSharedModelAllowEdit'], true);
 
 		$container->alias(AllowEditInterface::class, 'Architecture.Model.AllowEdit')
 			->share('Architecture.Model.AllowEdit', [$this, 'getModelAllowEdit'], true);
@@ -137,58 +129,26 @@ class ArchitectureModel implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.Model.J' . $this->targetVersion . '.AllowEdit');
+		// only Joomla 3 checks the edit state the legacy way
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.AllowEdit');
+		}
+
+		return $container->get('Architecture.Model.Shared.AllowEdit');
 	}
 
 	/**
-	 * Get The AllowEdit Class.
+	 * Get The AllowEdit Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6ModelAllowEdit
-	 * @since   5.1.4
+	 * @return  SharedModelAllowEdit
+	 * @since   6.1.7
 	 */
-	public function getJ6ModelAllowEdit(Container $container): J6ModelAllowEdit
+	public function getSharedModelAllowEdit(Container $container): SharedModelAllowEdit
 	{
-		return new J6ModelAllowEdit(
-			$container->get('Config'),
-			$container->get('Compiler.Creator.Permission'),
-			$container->get('Customcode.Dispenser'),
-			$container->get('Compiler.Builder.Category'),
-			$container->get('Compiler.Builder.Category.Other.Name')
-		);
-	}
-
-	/**
-	 * Get The AllowEdit Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5ModelAllowEdit
-	 * @since   5.1.4
-	 */
-	public function getJ5ModelAllowEdit(Container $container): J5ModelAllowEdit
-	{
-		return new J5ModelAllowEdit(
-			$container->get('Config'),
-			$container->get('Compiler.Creator.Permission'),
-			$container->get('Customcode.Dispenser'),
-			$container->get('Compiler.Builder.Category'),
-			$container->get('Compiler.Builder.Category.Other.Name')
-		);
-	}
-
-	/**
-	 * Get The AllowEdit Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4ModelAllowEdit
-	 * @since   5.1.4
-	 */
-	public function getJ4ModelAllowEdit(Container $container): J4ModelAllowEdit
-	{
-		return new J4ModelAllowEdit(
+		return new SharedModelAllowEdit(
 			$container->get('Config'),
 			$container->get('Compiler.Creator.Permission'),
 			$container->get('Customcode.Dispenser'),
@@ -449,4 +409,3 @@ class ArchitectureModel implements ServiceProviderInterface
 		return new J3CheckInNow();
 	}
 }
-

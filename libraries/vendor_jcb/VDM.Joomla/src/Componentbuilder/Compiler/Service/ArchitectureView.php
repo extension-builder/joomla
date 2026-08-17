@@ -57,29 +57,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as Adm
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ViewBody as J6AdminViewsViewBody;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ViewBody as J5AdminViewsViewBody;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\ViewBody as J4AdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as SharedAdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ViewBody as J3AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ListHead as J6AdminViewsListHead;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ListHead as J5AdminViewsListHead;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\ListHead as J4AdminViewsListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as SharedAdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListHead as J3AdminViewsListHead;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\DisplayMethod as J6AdminViewsDisplayMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\DisplayMethod as J5AdminViewsDisplayMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\DisplayMethod as J4AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod as SharedAdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\DisplayMethod as J3AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface as CustomViewDisplayMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\DisplayMethod as J6CustomViewDisplayMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\CustomView\DisplayMethod as J5CustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod as SharedCustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\DisplayMethod as J4CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Menu\CustomView as J6MenuCustomView;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Menu\CustomView as J5MenuCustomView;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Menu\CustomView as J4MenuCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedMenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
 
 
@@ -243,14 +234,8 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(AdminViewsViewBody::class, 'Architecture.AdminViews.ViewBody')
 			->share('Architecture.AdminViews.ViewBody', [$this, 'getAdminViewsViewBody'], true);
 
-		$container->alias(J6AdminViewsViewBody::class, 'Architecture.AdminViews.J6.ViewBody')
-			->share('Architecture.AdminViews.J6.ViewBody', [$this, 'getJ6AdminViewsViewBody'], true);
-
-		$container->alias(J5AdminViewsViewBody::class, 'Architecture.AdminViews.J5.ViewBody')
-			->share('Architecture.AdminViews.J5.ViewBody', [$this, 'getJ5AdminViewsViewBody'], true);
-
-		$container->alias(J4AdminViewsViewBody::class, 'Architecture.AdminViews.J4.ViewBody')
-			->share('Architecture.AdminViews.J4.ViewBody', [$this, 'getJ4AdminViewsViewBody'], true);
+		$container->alias(SharedAdminViewsViewBody::class, 'Architecture.AdminViews.Shared.ViewBody')
+			->share('Architecture.AdminViews.Shared.ViewBody', [$this, 'getSharedAdminViewsViewBody'], true);
 
 		$container->alias(J3AdminViewsViewBody::class, 'Architecture.AdminViews.J3.ViewBody')
 			->share('Architecture.AdminViews.J3.ViewBody', [$this, 'getJ3AdminViewsViewBody'], true);
@@ -258,14 +243,8 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(AdminViewsListHead::class, 'Architecture.AdminViews.ListHead')
 			->share('Architecture.AdminViews.ListHead', [$this, 'getAdminViewsListHead'], true);
 
-		$container->alias(J6AdminViewsListHead::class, 'Architecture.AdminViews.J6.ListHead')
-			->share('Architecture.AdminViews.J6.ListHead', [$this, 'getJ6AdminViewsListHead'], true);
-
-		$container->alias(J5AdminViewsListHead::class, 'Architecture.AdminViews.J5.ListHead')
-			->share('Architecture.AdminViews.J5.ListHead', [$this, 'getJ5AdminViewsListHead'], true);
-
-		$container->alias(J4AdminViewsListHead::class, 'Architecture.AdminViews.J4.ListHead')
-			->share('Architecture.AdminViews.J4.ListHead', [$this, 'getJ4AdminViewsListHead'], true);
+		$container->alias(SharedAdminViewsListHead::class, 'Architecture.AdminViews.Shared.ListHead')
+			->share('Architecture.AdminViews.Shared.ListHead', [$this, 'getSharedAdminViewsListHead'], true);
 
 		$container->alias(J3AdminViewsListHead::class, 'Architecture.AdminViews.J3.ListHead')
 			->share('Architecture.AdminViews.J3.ListHead', [$this, 'getJ3AdminViewsListHead'], true);
@@ -273,14 +252,8 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(AdminViewsDisplayMethod::class, 'Architecture.AdminViews.DisplayMethod')
 			->share('Architecture.AdminViews.DisplayMethod', [$this, 'getAdminViewsDisplayMethod'], true);
 
-		$container->alias(J6AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J6.DisplayMethod')
-			->share('Architecture.AdminViews.J6.DisplayMethod', [$this, 'getJ6AdminViewsDisplayMethod'], true);
-
-		$container->alias(J5AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J5.DisplayMethod')
-			->share('Architecture.AdminViews.J5.DisplayMethod', [$this, 'getJ5AdminViewsDisplayMethod'], true);
-
-		$container->alias(J4AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J4.DisplayMethod')
-			->share('Architecture.AdminViews.J4.DisplayMethod', [$this, 'getJ4AdminViewsDisplayMethod'], true);
+		$container->alias(SharedAdminViewsDisplayMethod::class, 'Architecture.AdminViews.Shared.DisplayMethod')
+			->share('Architecture.AdminViews.Shared.DisplayMethod', [$this, 'getSharedAdminViewsDisplayMethod'], true);
 
 		$container->alias(J3AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J3.DisplayMethod')
 			->share('Architecture.AdminViews.J3.DisplayMethod', [$this, 'getJ3AdminViewsDisplayMethod'], true);
@@ -288,11 +261,8 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(CustomViewDisplayMethod::class, 'Architecture.CustomView.DisplayMethod')
 			->share('Architecture.CustomView.DisplayMethod', [$this, 'getCustomViewDisplayMethod'], true);
 
-		$container->alias(J6CustomViewDisplayMethod::class, 'Architecture.CustomView.J6.DisplayMethod')
-			->share('Architecture.CustomView.J6.DisplayMethod', [$this, 'getJ6CustomViewDisplayMethod'], true);
-
-		$container->alias(J5CustomViewDisplayMethod::class, 'Architecture.CustomView.J5.DisplayMethod')
-			->share('Architecture.CustomView.J5.DisplayMethod', [$this, 'getJ5CustomViewDisplayMethod'], true);
+		$container->alias(SharedCustomViewDisplayMethod::class, 'Architecture.CustomView.Shared.DisplayMethod')
+			->share('Architecture.CustomView.Shared.DisplayMethod', [$this, 'getSharedCustomViewDisplayMethod'], true);
 
 		$container->alias(J4CustomViewDisplayMethod::class, 'Architecture.CustomView.J4.DisplayMethod')
 			->share('Architecture.CustomView.J4.DisplayMethod', [$this, 'getJ4CustomViewDisplayMethod'], true);
@@ -306,14 +276,8 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(MenuCustomViewInterface::class, 'Architecture.Menu.CustomView')
 			->share('Architecture.Menu.CustomView', [$this, 'getMenuCustomView'], true);
 
-		$container->alias(J6MenuCustomView::class, 'Architecture.Menu.J6.CustomView')
-			->share('Architecture.Menu.J6.CustomView', [$this, 'getJ6MenuCustomView'], true);
-
-		$container->alias(J5MenuCustomView::class, 'Architecture.Menu.J5.CustomView')
-			->share('Architecture.Menu.J5.CustomView', [$this, 'getJ5MenuCustomView'], true);
-
-		$container->alias(J4MenuCustomView::class, 'Architecture.Menu.J4.CustomView')
-			->share('Architecture.Menu.J4.CustomView', [$this, 'getJ4MenuCustomView'], true);
+		$container->alias(SharedMenuCustomView::class, 'Architecture.Menu.Shared.CustomView')
+			->share('Architecture.Menu.Shared.CustomView', [$this, 'getSharedMenuCustomView'], true);
 
 		$container->alias(J3MenuCustomView::class, 'Architecture.Menu.J3.CustomView')
 			->share('Architecture.Menu.J3.CustomView', [$this, 'getJ3MenuCustomView'], true);
@@ -1096,56 +1060,26 @@ class ArchitectureView implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.AdminViews.J' . $this->targetVersion . '.ViewBody');
+		// only Joomla 3 opens a different container and batch modal
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.ViewBody');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.ViewBody');
 	}
 
 	/**
-	 * Get The AdminViews ViewBody Class.
+	 * Get The AdminViews ViewBody Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6AdminViewsViewBody
+	 * @return  SharedAdminViewsViewBody
 	 * @since   6.1.7
 	 */
-	public function getJ6AdminViewsViewBody(Container $container): J6AdminViewsViewBody
+	public function getSharedAdminViewsViewBody(Container $container): SharedAdminViewsViewBody
 	{
-		return new J6AdminViewsViewBody(
-			$container->get('Config'),
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Templatelayout.Data'),
-			$container->get('Event')
-		);
-	}
-
-	/**
-	 * Get The AdminViews ViewBody Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5AdminViewsViewBody
-	 * @since   6.1.7
-	 */
-	public function getJ5AdminViewsViewBody(Container $container): J5AdminViewsViewBody
-	{
-		return new J5AdminViewsViewBody(
-			$container->get('Config'),
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Templatelayout.Data'),
-			$container->get('Event')
-		);
-	}
-
-	/**
-	 * Get The AdminViews ViewBody Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4AdminViewsViewBody
-	 * @since   6.1.7
-	 */
-	public function getJ4AdminViewsViewBody(Container $container): J4AdminViewsViewBody
-	{
-		return new J4AdminViewsViewBody(
+		return new SharedAdminViewsViewBody(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
 			$container->get('Templatelayout.Data'),
@@ -1186,62 +1120,26 @@ class ArchitectureView implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.AdminViews.J' . $this->targetVersion . '.ListHead');
+		// only Joomla 3 guards its sorting differently
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.ListHead');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.ListHead');
 	}
 
 	/**
-	 * Get The AdminViews ListHead Class.
+	 * Get The AdminViews ListHead Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6AdminViewsListHead
+	 * @return  SharedAdminViewsListHead
 	 * @since   6.1.7
 	 */
-	public function getJ6AdminViewsListHead(Container $container): J6AdminViewsListHead
+	public function getSharedAdminViewsListHead(Container $container): SharedAdminViewsListHead
 	{
-		return new J6AdminViewsListHead(
-			$container->get('Config'),
-			$container->get('Language'),
-			$container->get('Compiler.Builder.Lists'),
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Compiler.Builder.Field.Names'),
-			$container->get('Compiler.Builder.List.Head.Override'),
-			$container->get('Compiler.Builder.List.Column.Number')
-		);
-	}
-
-	/**
-	 * Get The AdminViews ListHead Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5AdminViewsListHead
-	 * @since   6.1.7
-	 */
-	public function getJ5AdminViewsListHead(Container $container): J5AdminViewsListHead
-	{
-		return new J5AdminViewsListHead(
-			$container->get('Config'),
-			$container->get('Language'),
-			$container->get('Compiler.Builder.Lists'),
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Compiler.Builder.Field.Names'),
-			$container->get('Compiler.Builder.List.Head.Override'),
-			$container->get('Compiler.Builder.List.Column.Number')
-		);
-	}
-
-	/**
-	 * Get The AdminViews ListHead Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4AdminViewsListHead
-	 * @since   6.1.7
-	 */
-	public function getJ4AdminViewsListHead(Container $container): J4AdminViewsListHead
-	{
-		return new J4AdminViewsListHead(
+		return new SharedAdminViewsListHead(
 			$container->get('Config'),
 			$container->get('Language'),
 			$container->get('Compiler.Builder.Lists'),
@@ -1288,52 +1186,26 @@ class ArchitectureView implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.AdminViews.J' . $this->targetVersion . '.DisplayMethod');
+		// only Joomla 3 renders a different filter form
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.DisplayMethod');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.DisplayMethod');
 	}
 
 	/**
-	 * Get The AdminViews DisplayMethod Class.
+	 * Get The AdminViews DisplayMethod Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6AdminViewsDisplayMethod
+	 * @return  SharedAdminViewsDisplayMethod
 	 * @since   6.1.7
 	 */
-	public function getJ6AdminViewsDisplayMethod(Container $container): J6AdminViewsDisplayMethod
+	public function getSharedAdminViewsDisplayMethod(Container $container): SharedAdminViewsDisplayMethod
 	{
-		return new J6AdminViewsDisplayMethod(
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Adminview.DefaultOrdering')
-		);
-	}
-
-	/**
-	 * Get The AdminViews DisplayMethod Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5AdminViewsDisplayMethod
-	 * @since   6.1.7
-	 */
-	public function getJ5AdminViewsDisplayMethod(Container $container): J5AdminViewsDisplayMethod
-	{
-		return new J5AdminViewsDisplayMethod(
-			$container->get('Compiler.Builder.Admin.Filter.Type'),
-			$container->get('Adminview.DefaultOrdering')
-		);
-	}
-
-	/**
-	 * Get The AdminViews DisplayMethod Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4AdminViewsDisplayMethod
-	 * @since   6.1.7
-	 */
-	public function getJ4AdminViewsDisplayMethod(Container $container): J4AdminViewsDisplayMethod
-	{
-		return new J4AdminViewsDisplayMethod(
+		return new SharedAdminViewsDisplayMethod(
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
 			$container->get('Adminview.DefaultOrdering')
 		);
@@ -1370,36 +1242,31 @@ class ArchitectureView implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.CustomView.J' . $this->targetVersion . '.DisplayMethod');
+		// Joomla 3 and 4 still dispatch plugin events the legacy way
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.CustomView.J3.DisplayMethod');
+		}
+
+		if ((int) $this->targetVersion === 4)
+		{
+			return $container->get('Architecture.CustomView.J4.DisplayMethod');
+		}
+
+		return $container->get('Architecture.CustomView.Shared.DisplayMethod');
 	}
 
 	/**
-	 * Get The CustomView DisplayMethod Class.
+	 * Get The CustomView DisplayMethod Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6CustomViewDisplayMethod
+	 * @return  SharedCustomViewDisplayMethod
 	 * @since   6.1.7
 	 */
-	public function getJ6CustomViewDisplayMethod(Container $container): J6CustomViewDisplayMethod
+	public function getSharedCustomViewDisplayMethod(Container $container): SharedCustomViewDisplayMethod
 	{
-		return new J6CustomViewDisplayMethod(
-			$container->get('Config'),
-			$container->get('Placeholder')
-		);
-	}
-
-	/**
-	 * Get The CustomView DisplayMethod Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5CustomViewDisplayMethod
-	 * @since   6.1.7
-	 */
-	public function getJ5CustomViewDisplayMethod(Container $container): J5CustomViewDisplayMethod
-	{
-		return new J5CustomViewDisplayMethod(
+		return new SharedCustomViewDisplayMethod(
 			$container->get('Config'),
 			$container->get('Placeholder')
 		);
@@ -1469,60 +1336,26 @@ class ArchitectureView implements ServiceProviderInterface
 			$this->targetVersion = $container->get('Config')->joomla_version;
 		}
 
-		return $container->get('Architecture.Menu.J' . $this->targetVersion . '.CustomView');
+		// only Joomla 3 uses unprefixed path attributes
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Menu.J3.CustomView');
+		}
+
+		return $container->get('Architecture.Menu.Shared.CustomView');
 	}
 
 	/**
-	 * Get The Menu CustomView Class.
+	 * Get The Menu CustomView Class shared by every remaining target.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
-	 * @return  J6MenuCustomView
+	 * @return  SharedMenuCustomView
 	 * @since   6.1.7
 	 */
-	public function getJ6MenuCustomView(Container $container): J6MenuCustomView
+	public function getSharedMenuCustomView(Container $container): SharedMenuCustomView
 	{
-		return new J6MenuCustomView(
-			$container->get('Config'),
-			$container->get('Language'),
-			$container->get('Compiler.Builder.Content.One'),
-			$container->get('Compiler.Builder.Frontend.Params'),
-			$container->get('Compiler.Builder.Request'),
-			$container->get('Utilities.Structure')
-		);
-	}
-
-	/**
-	 * Get The Menu CustomView Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J5MenuCustomView
-	 * @since   6.1.7
-	 */
-	public function getJ5MenuCustomView(Container $container): J5MenuCustomView
-	{
-		return new J5MenuCustomView(
-			$container->get('Config'),
-			$container->get('Language'),
-			$container->get('Compiler.Builder.Content.One'),
-			$container->get('Compiler.Builder.Frontend.Params'),
-			$container->get('Compiler.Builder.Request'),
-			$container->get('Utilities.Structure')
-		);
-	}
-
-	/**
-	 * Get The Menu CustomView Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J4MenuCustomView
-	 * @since   6.1.7
-	 */
-	public function getJ4MenuCustomView(Container $container): J4MenuCustomView
-	{
-		return new J4MenuCustomView(
+		return new SharedMenuCustomView(
 			$container->get('Config'),
 			$container->get('Language'),
 			$container->get('Compiler.Builder.Content.One'),

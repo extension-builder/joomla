@@ -828,25 +828,9 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminViews/DisplayMethod.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminViews/ListHead.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminViews/ViewBody.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewBodyRendererTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/ComHelperClass/ExcelMethods.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
@@ -871,18 +855,6 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Dashboard/View.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/CustomView/DisplayMethod.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Menu/CustomView.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Model/AllowEdit.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/Model/CanDelete.php' => [
 		'mode' => 'contract',
@@ -948,25 +920,9 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminViews/DisplayMethod.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminViews/ListHead.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminViews/ViewBody.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewBodyRendererTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/ComHelperClass/ExcelMethods.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
@@ -995,14 +951,6 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/CustomView/DisplayMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Menu/CustomView.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Model/AllowEdit.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/Model/CanDelete.php' => [
 		'mode' => 'contract',
@@ -1068,25 +1016,9 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/DisplayMethod.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/ListHead.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/ViewBody.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewBodyRendererTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/ComHelperClass/ExcelMethods.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedExcelHelperRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Controller/AllowAdd.php' => [
 		'mode' => 'contract',
@@ -1111,18 +1043,6 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Dashboard/View.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedToolbarDashboardRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/CustomView/DisplayMethod.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Menu/CustomView.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMenuRendererTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/AllowEdit.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/CanDelete.php' => [
 		'mode' => 'contract',

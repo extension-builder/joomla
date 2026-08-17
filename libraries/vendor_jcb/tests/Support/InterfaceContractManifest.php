@@ -54,23 +54,23 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\DisplayMethodInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/DisplayMethodInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => 'cb69ab83c5441369b9799425f179897e8af23d8682ad8a121b0ff3a23c197d97',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'eb28ca382f354578e9b14ae35e7641e0a63fbddbf81701cb8653a6caafb11a9b',
 			'signature_hash' => '50bb884ac24f8d42ea4cf6eb416779b176a214863d647105b70e367b5b05a29f'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\ListHeadInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ListHeadInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => '02e09153c584d06f4ab3c873bc8b867b59f6e6a0f2271dee402fedbd1cc4dfb5',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'b34d9dc9fb950e9fb68f71a09a11fa306f2b82d5889efc2febcff205513dd088',
 			'signature_hash' => 'e91441e3d05b795f6fcfa445d824058473c4aafe129bc800616ad3cd83ede517'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\ViewBodyInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ViewBodyInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => 'dc800360f43a8ac31290c19712345fb18127c55853b241105b1337df00a40602',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '1592c2d9cd0cedb211f250b1ea5a904d0dce94481fd57d67d12457628d5c7e2d',
 			'signature_hash' => '8a9f89a192ce427c1bcf1a1bb71d17653caa8ba165accaa74dffd08a48cdcb8b'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\CreateUserInterface' => [
@@ -82,9 +82,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\ExcelMethodsInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/ExcelMethodsInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => '979ef488f5cb94020dd059b31d09963bbe0915e928ff8747a4591e298160ea7f',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '90fe0368faa63872c53853a362d52ee41e7554d89321dc58a89c4551d55e7b1b',
 			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AllowAddInterface' => [
@@ -117,9 +117,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\CustomView\\DisplayMethodInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/CustomView/DisplayMethodInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => '33966be9a857fef5e16ffdd32631c9bbc3d38ec11a72126e02d52c879207fca9',
+			'implementations' => 3,
+			'concrete' => 3,
+			'implementation_hash' => '0ae5cf031d2afdfcf6dbd4ba369039b00ab78a109aeb926a1d10de78a5ea39e5',
 			'signature_hash' => '40572d240d841a80e907a386ff0be2cb0734fc7895eb1a8d8fd8c135d4b72db5'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Dashboard\\ViewInterface' => [
@@ -131,16 +131,16 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Menu\\CustomViewInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Menu/CustomViewInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => '4d3489b3cde8ef07e3ef273909da12d6e5eb55fa994e9083cd571a3b041a828f',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '1debb5c11db64515624cd425c90756dd600a8a6b28ff1f87f48b28b4c254d24b',
 			'signature_hash' => 'e634946193b7824d22820d442104ddd7c52763347937c99b3bf95359b267abd4'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Model\\AllowEditInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Model/AllowEditInterface.php',
-			'implementations' => 5,
-			'concrete' => 5,
-			'implementation_hash' => 'b240cc1ed177913bea0df9372e62801dd3039d1e6060ffa99a9ca9446357dded',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '37862342bf7af389346d349ea67a1763c08d9347216459f6cf32a139aa433952',
 			'signature_hash' => 'e91441e3d05b795f6fcfa445d824058473c4aafe129bc800616ad3cd83ede517'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Model\\CanDeleteInterface' => [

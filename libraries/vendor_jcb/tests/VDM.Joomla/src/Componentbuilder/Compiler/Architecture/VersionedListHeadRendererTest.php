@@ -353,8 +353,8 @@ final class VersionedListHeadRendererTest extends ArchitectureTestCase
 	): object
 	{
 		return $this->renderer(
-			'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-				. $version . '\\AdminViews\\ListHead',
+			// only Joomla 3 keeps its own sorting guard
+			$this->targetClass($version, 'AdminViews\\ListHead', ['JoomlaThree']),
 			[
 				'lists' => $lists,
 				'listcolumnnumber' => $columns ?? new ListColumnNumber(),

@@ -208,7 +208,9 @@ final class VersionedExcelHelperRendererTest extends ArchitectureTestCase
 	 */
 	private function rendererClass(string $version): string
 	{
-		return 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-			. $version . '\\ComHelperClass\\ExcelMethods';
+		// only Joomla 3 resolves the active user the legacy way
+		return $this->targetClass(
+			$version, 'ComHelperClass\\ExcelMethods', ['JoomlaThree']
+		);
 	}
 }

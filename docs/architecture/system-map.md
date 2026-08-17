@@ -152,13 +152,70 @@ The existing tree repeatedly applies locality of purpose:
 | belongs to the compiler broadly | directly under `Componentbuilder/Compiler` or a broad compiler domain | `Compiler\Initializer`, `Compiler\Placeholder` |
 | serves one compiler concern | in the corresponding concern folder | `Compiler\Customcode\Extractor`, `Compiler\Extension\Files\Updater` |
 | emits one kind of generated architecture | under `Compiler/Architecture/<objective>` | model, controller, view, dashboard, module, or plugin generators |
-| differs by compile target | in `JoomlaThree`, `JoomlaFour`, `JoomlaFive`, and `JoomlaSix` below the closest common domain | `Architecture/JoomlaFive/AdminView/AddToolBar` |
+| differs by compile target | in `JoomlaThree`, `JoomlaFour`, `JoomlaFive`, or `JoomlaSix` below the closest common domain — but only for the targets that actually differ | `Architecture/JoomlaFive/AdminView/AddToolBar` |
+| renders the same for every compile target | in the root of its concern folder, with no `Joomla*` class at all | `Architecture/Layout/View` |
 | is state collected for later compilation | in a focused class under `Compiler/Builder` and registered as a shared service | `Builder\PermissionAction` |
 | synchronizes one entity with repositories | under `Componentbuilder/Package/<Entity>` with service, Remote Config, resolver, or Readme concerns | `Package/AdminView/Remote/Config` |
 
 Do not choose a destination from the method name alone. Trace its callers,
 state reads/writes, generated artifact, version axis, and collaborators. The
 closest stable objective shared by that whole cluster determines placement.
+
+### A target class must earn its existence
+
+The `Joomla*` namespaces exist to remove `if ($version == 3)` branches from
+rendering code, not to give every target a name. A target only earns a class
+where the code it generates actually differs from the other targets. Read the
+legacy method first: a `joomla_version` branch inside it names exactly which
+targets diverge, and those are the only ones that get a class.
+
+Everything else shares one implementation in the root of the concern folder:
+
+- **All four targets differ** — four classes under `JoomlaThree`,
+  `JoomlaFour`, `JoomlaFive`, and `JoomlaSix`, and no root class.
+  `Architecture/*/Dashboard/View` is this shape.
+- **Some targets differ** — a class for each diverging target, extending a
+  shared implementation in the root of the concern folder. The targets that
+  share that rendering get no class of their own.
+  `Architecture/AdminViews/ListHead` is this shape: only `JoomlaThree`
+  guards its sorting differently, so `JoomlaThree/AdminViews/ListHead`
+  extends it and Joomla 4, 5, and 6 use the root class directly.
+- **No target differs** — one class in the root of the concern folder and no
+  `Joomla*` namespace involved at all. `Architecture/Layout/View` is this
+  shape.
+
+A class whose body is empty because it only extends a shared implementation is
+the anti-pattern this rule removes: it adds a name without adding behaviour.
+[`VersionedPermissionRendererTest`](../../libraries/vendor_jcb/tests/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php)
+enforces both halves — it lists which targets each family covers, and it fails
+on any class under a `Joomla*` namespace that declares no member of its own.
+
+The service provider follows the same shape. A family whose targets all differ
+keeps the plain `'…J' . $this->targetVersion . '…'` selector. A collapsed
+family names its diverging targets and falls through to a `Shared` key:
+
+```php
+public function getAdminViewsListHead(Container $container): AdminViewsListHead
+{
+    if (empty($this->targetVersion))
+    {
+        $this->targetVersion = $container->get('Config')->joomla_version;
+    }
+
+    // only Joomla 3 guards its sorting differently
+    if ((int) $this->targetVersion === 3)
+    {
+        return $container->get('Architecture.AdminViews.J3.ListHead');
+    }
+
+    return $container->get('Architecture.AdminViews.Shared.ListHead');
+}
+```
+
+The stable alias consumers call never changes, so which targets share a
+rendering stays an internal detail of the provider. When a future Joomla
+release does diverge, add its class and one branch — do not reintroduce the
+empty siblings.
 
 ## Data Migrator boundary
 

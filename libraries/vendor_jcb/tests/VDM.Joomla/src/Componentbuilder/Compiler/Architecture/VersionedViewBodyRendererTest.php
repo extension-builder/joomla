@@ -344,8 +344,8 @@ final class VersionedViewBodyRendererTest extends ArchitectureTestCase
 		}
 
 		return $this->renderer(
-			'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
-				. $version . '\\AdminViews\\ViewBody',
+			// only Joomla 3 keeps its own container and batch modal
+			$this->targetClass($version, 'AdminViews\\ViewBody', ['JoomlaThree']),
 			[
 				'adminfiltertype' => $filterType ?? new AdminFilterType(),
 				'templatelayoutdata' => $layout,
