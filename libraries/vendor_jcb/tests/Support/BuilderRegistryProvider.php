@@ -130,6 +130,7 @@ final class BuilderRegistryProvider
 		'ScriptMediaSwitch',
 		'ScriptUserSwitch',
 		'Search',
+		'SecondRunAdmin',
 		'SelectionTranslation',
 		'SiteDecrypt',
 		'SiteDynamicGet',
