@@ -17,6 +17,9 @@ use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface as ModelGetForm;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetForm as SharedModelGetForm;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\GetForm as J3ModelGetForm;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface as ModelItemsMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsMethod as SharedModelItemsMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemsMethod as J3ModelItemsMethod;
@@ -109,6 +112,15 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelListQuery::class, 'Architecture.Model.J3.ListQuery')
 			->share('Architecture.Model.J3.ListQuery', [$this, 'getJ3ModelListQuery'], true);
+
+		$container->alias(ModelGetForm::class, 'Architecture.Model.GetForm')
+			->share('Architecture.Model.GetForm', [$this, 'getModelGetForm'], true);
+
+		$container->alias(SharedModelGetForm::class, 'Architecture.Model.Shared.GetForm')
+			->share('Architecture.Model.Shared.GetForm', [$this, 'getSharedModelGetForm'], true);
+
+		$container->alias(J3ModelGetForm::class, 'Architecture.Model.J3.GetForm')
+			->share('Architecture.Model.J3.GetForm', [$this, 'getJ3ModelGetForm'], true);
 
 		$container->alias(ModelItemsMethod::class, 'Architecture.Model.ItemsMethod')
 			->share('Architecture.Model.ItemsMethod', [$this, 'getModelItemsMethod'], true);
@@ -494,6 +506,68 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Content.One'),
 			$container->get('Compiler.Builder.Views.Default.Ordering'),
 			$container->get('Compiler.Builder.Eximport.View')
+		);
+	}
+
+	/**
+	 * Get The GetForm Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelGetForm
+	 * @since   6.1.7
+	 */
+	public function getModelGetForm(Container $container): ModelGetForm
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes the current user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.GetForm');
+		}
+
+		return $container->get('Architecture.Model.Shared.GetForm');
+	}
+
+	/**
+	 * Get The GetForm Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelGetForm
+	 * @since   6.1.7
+	 */
+	public function getSharedModelGetForm(Container $container): SharedModelGetForm
+	{
+		return new SharedModelGetForm(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Field.Groups'),
+			$container->get('Compiler.Builder.Permission.Fields')
+		);
+	}
+
+	/**
+	 * Get The GetForm Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelGetForm
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelGetForm(Container $container): J3ModelGetForm
+	{
+		return new J3ModelGetForm(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Field.Groups'),
+			$container->get('Compiler.Builder.Permission.Fields')
 		);
 	}
 

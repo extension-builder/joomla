@@ -70,9 +70,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '83cbc21493bb2ebc699aeb3036074b3a773d961316d7e218106566658257d037'
 		]];
 		yield 'architecture model' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel::class, [
-			'aliases' => 33,
-			'services' => 33,
-			'hash' => 'c5cd24891ad47e750ae9ecc608fbd69b13567dc2e374e7d352d1836e214ec2ec'
+			'aliases' => 36,
+			'services' => 36,
+			'hash' => '0dc1fb5bcce5916e881bea39b26413660abd9c4b94e66fe06ef70a96549595d3'
 		]];
 		yield 'architecture module' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModule::class, [
 			'aliases' => 30,
