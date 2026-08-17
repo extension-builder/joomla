@@ -73,7 +73,7 @@ final class ProviderAliasContractTest extends TestCase
 	 */
 	public function testManifestContainsEveryProviderInterfaceAlias(): void
 	{
-		$this->assertCount(45, iterator_to_array(self::aliasContracts()));
+		$this->assertCount(47, iterator_to_array(self::aliasContracts()));
 	}
 
 	/**
@@ -98,6 +98,11 @@ final class ProviderAliasContractTest extends TestCase
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\AddToolBarInterface::class,
 			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
 			'Architecture.AdminViews.AddToolBar'
+		];
+		yield 'Architecture.AdminViews.DisplayMethod' => [
+			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface::class,
+			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
+			'Architecture.AdminViews.DisplayMethod'
 		];
 		yield 'Architecture.ComHelperClass.CreateUser' => [
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\CreateUserInterface::class,
@@ -133,6 +138,11 @@ final class ProviderAliasContractTest extends TestCase
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomAdmin\AddToolBarInterface::class,
 			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
 			'Architecture.CustomAdminViews.AddToolBar'
+		];
+		yield 'Architecture.CustomView.DisplayMethod' => [
+			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface::class,
+			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
+			'Architecture.CustomView.DisplayMethod'
 		];
 		yield 'Architecture.Dashboard.View' => [
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Dashboard\ViewInterface::class,

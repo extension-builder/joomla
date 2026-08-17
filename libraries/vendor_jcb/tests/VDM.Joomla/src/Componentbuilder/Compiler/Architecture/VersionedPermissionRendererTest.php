@@ -48,7 +48,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Keep the four-version, 26-family renderer matrix complete.
+	 * Keep the four-version, 28-family renderer matrix complete.
 	 *
 	 * @return  void
 	 * @since   6.1.6
@@ -60,6 +60,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminView/AddModalToolBar',
 			'AdminView/AddToolBar',
 			'AdminViews/AddToolBar',
+			'AdminViews/DisplayMethod',
 			'ComHelperClass/CreateUser',
 			'ComHelperClass/ExcelMethods',
 			'Controller/AllowAdd',
@@ -67,6 +68,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Controller/AllowEditViews',
 			'CustomAdminView/AddToolBar',
 			'CustomAdminViews/AddToolBar',
+			'CustomView/DisplayMethod',
 			'Dashboard/View',
 			'Menu/CustomView',
 			'Model/AllowEdit',
@@ -85,7 +87,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar',
 		];
 
-		$this->assertCount(26, $families);
+		$this->assertCount(28, $families);
 
 		foreach (self::versions() as [$version])
 		{

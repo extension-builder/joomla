@@ -52,6 +52,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '3a0a0a5b80c4cc7bbe12507b49c295c4d47557a0e23ae1e630d3c36f96fb8a5e',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\DisplayMethodInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/DisplayMethodInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => 'cb69ab83c5441369b9799425f179897e8af23d8682ad8a121b0ff3a23c197d97',
+			'signature_hash' => '50bb884ac24f8d42ea4cf6eb416779b176a214863d647105b70e367b5b05a29f'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\CreateUserInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/CreateUserInterface.php',
 			'implementations' => 4,
@@ -93,6 +100,13 @@ final class InterfaceContractManifest
 			'concrete' => 8,
 			'implementation_hash' => '47c07dd2c5d852633eabb61da9b59ec73bb1981d6617c00122d242d2c7ef0122',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
+		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\CustomView\\DisplayMethodInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/CustomView/DisplayMethodInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => '33966be9a857fef5e16ffdd32631c9bbc3d38ec11a72126e02d52c879207fca9',
+			'signature_hash' => '40572d240d841a80e907a386ff0be2cb0734fc7895eb1a8d8fd8c135d4b72db5'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Dashboard\\ViewInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Dashboard/ViewInterface.php',
