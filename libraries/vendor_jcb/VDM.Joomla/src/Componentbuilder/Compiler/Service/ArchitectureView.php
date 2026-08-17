@@ -81,6 +81,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\Vie
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as SharedAdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListHead as J3AdminViewsListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldFile as AdminViewsFilterFieldFile;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface as AdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListBody as SharedAdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListBody as J3AdminViewsListBody;
@@ -327,6 +328,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsListHead::class, 'Architecture.AdminViews.J3.ListHead')
 			->share('Architecture.AdminViews.J3.ListHead', [$this, 'getJ3AdminViewsListHead'], true);
+
+		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
+			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
 
 		$container->alias(AdminViewsListBody::class, 'Architecture.AdminViews.ListBody')
 			->share('Architecture.AdminViews.ListBody', [$this, 'getAdminViewsListBody'], true);
@@ -1704,6 +1708,22 @@ class ArchitectureView implements ServiceProviderInterface
 		}
 
 		return $container->get('Architecture.AdminViews.Shared.ListBody');
+	}
+
+	/**
+	 * Get The AdminViews FilterFieldFile Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsFilterFieldFile
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsFilterFieldFile(Container $container): AdminViewsFilterFieldFile
+	{
+		return new AdminViewsFilterFieldFile(
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Utilities.Structure')
+		);
 	}
 
 	/**
