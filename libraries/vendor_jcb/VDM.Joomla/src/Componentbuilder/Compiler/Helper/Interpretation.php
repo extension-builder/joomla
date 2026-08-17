@@ -535,6 +535,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.CustomView.DisplayMethod')->get($view);
 	}
 
+	/**
+	 * Set the prepare document method of a view.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated prepare document method.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setPrepareDocument(&$view)
 	{
 		// fix just incase we missed it somewhere
@@ -6082,6 +6091,15 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * Build the site system language files of the component.
+	 *
+	 * @param   string  $componentName  The component name.
+	 *
+	 * @return  bool  True when a language target was built.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setLangSiteSys(string $componentName): bool
 	{
 		// Trigger Event: jcb_ce_onBeforeBuildSiteSysLang
@@ -6133,6 +6151,13 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * Build the admin system language files of the component.
+	 *
+	 * @return  bool  True when a language target was built.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setLangAdminSys(): bool
 	{
 		// Trigger Event: jcb_ce_onBeforeBuildAdminSysLang
@@ -6225,6 +6250,8 @@ class Interpretation extends Fields
 	 * @param   string  $nameListCode
 	 *
 	 * @return string
+	 *
+	 * @since   3.2.0
 	 */
 	public function setListBody($nameSingleCode, $nameListCode)
 	{
@@ -6421,6 +6448,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string  The list field class
 	 *
+	 * @since   3.2.0
 	 */
 	protected function getListFieldClass($name, $nameListCode, $default = '')
 	{
@@ -6435,6 +6463,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string of the custom admin view buttons
 	 *
+	 * @since   3.2.0
 	 */
 	protected function getCustomAdminViewButtons($nameListCode, $ref = '')
 	{
@@ -6449,6 +6478,8 @@ class Interpretation extends Fields
 	 * @param   string  $nameListCode
 	 *
 	 * @return string
+	 *
+	 * @since   3.2.0
 	 */
 	public function setDefaultViewsBody(string $nameSingleCode, string $nameListCode): string
 	{
@@ -6463,6 +6494,8 @@ class Interpretation extends Fields
 	 * @param   string  $nameListCode
 	 *
 	 * @return string
+	 *
+	 * @since   3.2.0
 	 */
 	public function setModalViewsBody(string $nameSingleCode, string $nameListCode): string
 	{
@@ -6535,6 +6568,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string   The array
 	 *
+	 * @since   3.2.0
 	 */
 	public function getTabLayoutFieldsArray($nameSingleCode)
 	{
@@ -7520,6 +7554,17 @@ class Interpretation extends Fields
 		return $tabs;
 	}
 
+	/**
+	 * Add the custom tabs of a view.
+	 *
+	 * @param   int     $nr           The tab number to start from.
+	 * @param   string  $name_single  The single view name.
+	 * @param   string  $target       The build target of the view.
+	 *
+	 * @return  string  The generated custom tabs.
+	 *
+	 * @since   3.2.0
+	 */
 	protected function addCustomTabs($nr, $name_single, $target)
 	{
 		// check if this view is having custom tabs
