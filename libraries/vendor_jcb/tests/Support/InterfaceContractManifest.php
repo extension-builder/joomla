@@ -59,6 +59,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => 'cb69ab83c5441369b9799425f179897e8af23d8682ad8a121b0ff3a23c197d97',
 			'signature_hash' => '50bb884ac24f8d42ea4cf6eb416779b176a214863d647105b70e367b5b05a29f'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\ListHeadInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ListHeadInterface.php',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => '02e09153c584d06f4ab3c873bc8b867b59f6e6a0f2271dee402fedbd1cc4dfb5',
+			'signature_hash' => 'e91441e3d05b795f6fcfa445d824058473c4aafe129bc800616ad3cd83ede517'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\CreateUserInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/CreateUserInterface.php',
 			'implementations' => 4,

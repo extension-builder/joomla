@@ -736,6 +736,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListHead.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListItem.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SharedArchitectureRendererTest.php'
@@ -815,6 +819,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminViews/DisplayMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminViews/ListHead.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
@@ -928,6 +936,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminViews/ListHead.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -1040,6 +1052,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/ListHead.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'
@@ -1151,6 +1167,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminViews/DisplayMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminViews/ListHead.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/ComHelperClass/CreateUser.php' => [
 		'mode' => 'contract',
@@ -1487,6 +1507,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/LibraryManager.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/ListColumnNumber.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/ListFieldClass.php' => [
 		'mode' => 'contract',
@@ -2169,6 +2193,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/DisplayMethodInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ListHeadInterface.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
