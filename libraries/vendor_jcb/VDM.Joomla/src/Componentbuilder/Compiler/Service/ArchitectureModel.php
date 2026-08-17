@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStri
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsStringFix as SharedModelItemsStringFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemsStringFix as J3ModelItemsStringFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SelectionTranslation;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SelectionTranslationMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\AllowEditInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AllowEdit as SharedModelAllowEdit;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\AllowEdit as J3ModelAllowEdit;
@@ -65,6 +66,9 @@ class ArchitectureModel implements ServiceProviderInterface
 	 */
 	public function register(Container $container)
 	{
+		$container->alias(SelectionTranslationMethod::class, 'Architecture.Model.SelectionTranslationMethod')
+			->share('Architecture.Model.SelectionTranslationMethod', [$this, 'getModelSelectionTranslationMethod'], true);
+
 		$container->alias(SelectionTranslation::class, 'Architecture.Model.SelectionTranslation')
 			->share('Architecture.Model.SelectionTranslation', [$this, 'getModelSelectionTranslation'], true);
 
@@ -136,6 +140,21 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3CheckInNow::class, 'Architecture.Model.J3.CheckInNow')
 			->share('Architecture.Model.J3.CheckInNow', [$this, 'getJ3CheckInNow'], true);
+	}
+
+	/**
+	 * Get The Model SelectionTranslationMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SelectionTranslationMethod
+	 * @since   6.1.7
+	 */
+	public function getModelSelectionTranslationMethod(Container $container): SelectionTranslationMethod
+	{
+		return new SelectionTranslationMethod(
+			$container->get('Compiler.Builder.Selection.Translation')
+		);
 	}
 
 	/**
