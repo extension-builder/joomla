@@ -1,0 +1,647 @@
+{
+  "checkStatmentLicenseLocked": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 3
+      }
+    ]
+  },
+  "getCustomAdminViewButtons": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/ListLink.php",
+        "matched": 5
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/AdminViews/ListItem/Link.php"
+    ]
+  },
+  "getEditBodyLinkedAdminViewsTabs": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/EditBody.php",
+        "matched": 2
+      }
+    ]
+  },
+  "getEditBodyPublishMetaTabs": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/EditBody.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminView/EditBody.php",
+        "matched": 2
+      }
+    ]
+  },
+  "getEditBodyTabs": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/EditBody.php",
+        "matched": 1
+      }
+    ]
+  },
+  "getFilterFieldCode": {
+    "fingerprints": 1,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListQuery.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/Model/ListQuery.php",
+        "matched": 1
+      }
+    ]
+  },
+  "getStoredIdCodeMulti": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListQuery.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/Model/FilterQuery.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/Model/ListQuery.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/Model/SearchQuery.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setAdminViewDisplayMethod": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/DisplayMethod.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/DisplayMethod.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setAdminViewMenu": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Menu/AdminView.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/Menu/CustomView.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setAliasTitleFix": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/AliasTitleFix.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Model/BatchCopy.php"
+    ]
+  },
+  "setBatchCopy": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/BatchCopy.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Model/BatchMove.php"
+    ]
+  },
+  "setBatchMove": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/BatchMove.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Model/BatchCopy.php"
+    ]
+  },
+  "setBoolLicenseLock": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 5
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/ComHelperClass/CryptKey.php"
+    ]
+  },
+  "setCustomQuery": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/CustomQuery.php",
+        "matched": 4
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/AdminViews/FilterFieldHelper.php",
+      "Architecture/LinkedView/ListQuery.php",
+      "Architecture/Model/ListQuery.php"
+    ]
+  },
+  "setCustomViewDisplayMethod": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/CustomView/DisplayMethod.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/CustomView/DisplayMethod.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setCustomViewForm": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/EditBody.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/AdminViews/ViewBody.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setCustomViewMenu": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Menu/CustomView.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/Menu/CustomView.php",
+        "matched": 4
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/JoomlaThree/Module/MainXML.php",
+      "Architecture/JoomlaThree/Plugin/MainXML.php",
+      "Architecture/Menu/AdminView.php"
+    ]
+  },
+  "setCustomViewSubmitButtonScript": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/FadeInEffect.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/AdminViews/ViewBody.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/CustomButtons.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setDashboardIcons": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/Dashboard/Icons.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setDefaultViewsBody": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/ViewBody.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setDocumentCustomJS": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/CustomButtons.php",
+        "matched": 2
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/AdminView/FootableScripts.php",
+      "Architecture/JoomlaThree/AdminView/FootableScripts.php"
+    ]
+  },
+  "setEditBody": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/EditBody.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminView/EditBody.php",
+        "matched": 1
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/AdminViews/ViewBody.php"
+    ]
+  },
+  "setFadeInEfect": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/FadeInEffect.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setFilterFieldHelper": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/FilterFieldHelper.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setFootableScripts": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/FootableScripts.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setGetCryptKey": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/ComHelperClass/CryptKey.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setGetItemsMethodStringFix": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/ItemsStringFix.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setGetItemsModelMethod": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/ItemsMethod.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/LinkedView/ListQuery.php",
+      "Architecture/Model/ListQuery.php"
+    ]
+  },
+  "setHelperExelMethods": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/ComHelperClass/ExcelMethods.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setHelperLicenseLock": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/ComHelperClass/CryptKey.php"
+    ]
+  },
+  "setJavaScriptFile": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Menu/CustomView.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/JoomlaThree/Module/MainXML.php",
+        "matched": 1
+      },
+      {
+        "class": "Architecture/JoomlaThree/Plugin/MainXML.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setJmodelAdminGetForm": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/GetForm.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setLinkedView": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/Builder.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setListBody": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/ListBody.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setListBodyLinked": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListBody.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setListHead": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/ListHead.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/ListHead.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setListHeadLinked": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListHead.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setListQuery": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListQuery.php",
+        "matched": 3
+      },
+      {
+        "class": "Architecture/Model/ListQuery.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setListQueryLinked": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/LinkedView/ListQuery.php",
+        "matched": 6
+      },
+      {
+        "class": "Architecture/Model/ListQuery.php",
+        "matched": 5
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Model/ItemsMethod.php"
+    ]
+  },
+  "setLockLicense": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setLockLicensePer": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setMethodGetItem": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/ItemsStringFix.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setMethodItemSave": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/ItemSave.php",
+        "matched": 3
+      }
+    ]
+  },
+  "setModalViewsBody": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/ViewBody.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setModelFieldRelation": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/FieldRelation.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setMultiFilterQuery": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/FilterQuery.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/LinkedView/ListQuery.php",
+      "Architecture/Model/ListQuery.php",
+      "Architecture/Model/SearchQuery.php"
+    ]
+  },
+  "setPermissionAccessFields": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/GetForm.php",
+        "matched": 3
+      }
+    ]
+  },
+  "setPermissionEditFields": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/GetForm.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setPermissionViewFields": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/GetForm.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setSearchQuery": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/SearchQuery.php",
+        "matched": 4
+      }
+    ]
+  },
+  "setSelectionTranslationFix": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/SelectionTranslation.php",
+        "matched": 3
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/LinkedView/ListQuery.php",
+      "Architecture/Model/ItemsStringFix.php"
+    ]
+  },
+  "setSelectionTranslationFixFunc": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/SelectionTranslationMethod.php",
+        "matched": 4
+      }
+    ]
+  },
+  "setSingleFilterQuery": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/FilterQuery.php",
+        "matched": 2
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/LinkedView/ListQuery.php",
+      "Architecture/Model/ListQuery.php",
+      "Architecture/Model/SearchQuery.php"
+    ]
+  },
+  "setUikitHelperMethods": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/ComHelperClass/UikitMethods.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setUserPermissionCheckAccess": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/LicenseLock.php",
+        "matched": 1
+      }
+    ]
+  },
+  "setWHMCSCryption": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/Whmcs.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setupFrontendParamFields": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Menu/CustomView.php",
+        "matched": 2
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/JoomlaFive/Module/MainXML.php",
+      "Architecture/JoomlaSix/Module/MainXML.php"
+    ]
+  }
+}
