@@ -5853,177 +5853,35 @@ class Interpretation extends Fields
 			->get($nameSingleCode, $nameListCode, $config);
 	}
 
+	/**
+	 * Build the exportData and importData methods of an admin list controller.
+	 *
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $nameListCode    The list view code name.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Controller.EximportMethod service.
+	 */
 	public function setControllerEximportMethod($nameSingleCode,
 	                                            $nameListCode
 	)
 	{
-		$method = '';
-		if (isset($this->eximportView[$nameListCode])
-			&& $this->eximportView[$nameListCode])
+		// Infusion still sets these flags directly on this helper, so they are
+		// carried over to the registries the service reads.
+		foreach ($this->eximportView as $view => $active)
 		{
-			$method = [];
-
-			// add the export method
-			$method[] = PHP_EOL . PHP_EOL . Indent::_(1)
-				. "public function exportData()";
-			$method[] = Indent::_(1) . "{";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Check for request forgeries";
-			$method[] = Indent::_(2) . "Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::checkToken() or die(Text:"
-				. ":_('JINVALID_TOKEN'));";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if export is allowed for this user.";
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
-			}
-			else
-			{
-				$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
-			}
-			$method[] = Indent::_(2) . "if (\$user->authorise('"
-				. $nameSingleCode . ".export', 'com_"
-				. CFactory::_('Config')->component_code_name
-				. "') && \$user->authorise('core.export', 'com_"
-				. CFactory::_('Config')->component_code_name . "'))";
-			$method[] = Indent::_(2) . "{";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Get the input";
-			$method[] = Indent::_(3)
-				. "\$input = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;";
-			$method[] = Indent::_(3)
-				. "\$pks = \$input->post->get('cid', array(), 'array');";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Sanitize the input";
-			$method[] = Indent::_(3) . "\$pks = ArrayHelper::toInteger(\$pks);";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Get the model";
-			$method[] = Indent::_(3) . "\$model = \$this->getModel('"
-				. StringHelper::safe($nameListCode, 'F')
-				. "');";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " get the data to export";
-			$method[] = Indent::_(3)
-				. "\$data = \$model->getExportData(\$pks);";
-			$method[] = Indent::_(3) . "if ("
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$data))";
-			$method[] = Indent::_(3) . "{";
-			$method[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " now set the data to the spreadsheet";
-			$method[] = Indent::_(4) . "\$date = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDate();";
-			$method[] = Indent::_(4) . CFactory::_('Compiler.Builder.Content.One')->get('Component') . "Helper::xls(\$data,'"
-				. StringHelper::safe($nameListCode, 'F')
-				. "_'.\$date->format('jS_F_Y'),'"
-				. StringHelper::safe($nameListCode, 'Ww')
-				. " exported ('.\$date->format('jS F, Y').')','"
-				. StringHelper::safe($nameListCode, 'w')
-				. "');";
-			$method[] = Indent::_(3) . "}";
-			$method[] = Indent::_(2) . "}";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Redirect to the list screen with error.";
-			$method[] = Indent::_(2) . "\$message = Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-				. CFactory::_('Config')->lang_prefix . "_EXPORT_FAILED');";
-			$method[] = Indent::_(2)
-				. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameListCode
-				. "', false), \$message, 'error');";
-			$method[] = Indent::_(2) . "return;";
-			$method[] = Indent::_(1) . "}";
-
-			// add the import method
-			$method[] = PHP_EOL . PHP_EOL . Indent::_(1)
-				. "public function importData()";
-			$method[] = Indent::_(1) . "{";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Check for request forgeries";
-			$method[] = Indent::_(2) . "Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::checkToken() or die(Text:"
-				. ":_('JINVALID_TOKEN'));";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if import is allowed for this user.";
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
-			}
-			else
-			{
-				$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
-			}
-			$method[] = Indent::_(2) . "if (\$user->authorise('"
-				. $nameSingleCode . ".import', 'com_"
-				. CFactory::_('Config')->component_code_name
-				. "') && \$user->authorise('core.import', 'com_"
-				. CFactory::_('Config')->component_code_name . "'))";
-			$method[] = Indent::_(2) . "{";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Get the import model";
-			$method[] = Indent::_(3) . "\$model = \$this->getModel('"
-				. StringHelper::safe($nameListCode, 'F')
-				. "');";
-			$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " get the headers to import";
-			$method[] = Indent::_(3)
-				. "\$headers = \$model->getExImPortHeaders();";
-			$method[] = Indent::_(3) . "if ("
-				. "Super_" . "__91004529_94a9_4590_b842_e7c6b624ecf5___Power::check(\$headers))";
-			$method[] = Indent::_(3) . "{";
-			$method[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " Load headers to session.";
-			$method[] = Indent::_(4) . "\$session = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();";
-			$method[] = Indent::_(4) . "\$headers = json_encode(\$headers);";
-			$method[] = Indent::_(4) . "\$session->set('" . $nameSingleCode
-				. "_VDM_IMPORTHEADERS', \$headers);";
-			$method[] = Indent::_(4) . "\$session->set('backto_VDM_IMPORT', '"
-				. $nameListCode . "');";
-			$method[] = Indent::_(4)
-				. "\$session->set('dataType_VDM_IMPORTINTO', '"
-				. $nameSingleCode . "');";
-			$method[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " Redirect to import view.";
-			// add to lang array
-			$selectImportFileNote = CFactory::_('Config')->lang_prefix
-				. "_IMPORT_SELECT_FILE_FOR_"
-				. StringHelper::safe($nameListCode, 'U');
-			CFactory::_('Language')->set(
-				CFactory::_('Config')->lang_target, $selectImportFileNote,
-				'Select the file to import data to ' . $nameListCode . '.'
-			);
-			$method[] = Indent::_(4) . "\$message = Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-				. $selectImportFileNote . "');";
-			// if this view has custom script it must have as custom import (model, veiw, controller)
-			if (isset($this->importCustomScripts[$nameListCode])
-				&& $this->importCustomScripts[$nameListCode])
-			{
-				$method[] = Indent::_(4)
-					. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-					. CFactory::_('Config')->component_code_name . "&view=import_"
-					. $nameListCode . "', false), \$message);";
-			}
-			else
-			{
-				$method[] = Indent::_(4)
-					. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-					. CFactory::_('Config')->component_code_name
-					. "&view=import', false), \$message);";
-			}
-			$method[] = Indent::_(4) . "return;";
-			$method[] = Indent::_(3) . "}";
-			$method[] = Indent::_(2) . "}";
-			$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Redirect to the list screen with error.";
-			$method[] = Indent::_(2) . "\$message = Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-				. CFactory::_('Config')->lang_prefix . "_IMPORT_FAILED');";
-			$method[] = Indent::_(2)
-				. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameListCode
-				. "', false), \$message, 'error');";
-			$method[] = Indent::_(2) . "return;";
-			$method[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $method);
+			CFactory::_('Compiler.Builder.Eximport.View')->set($view, $active);
 		}
 
-		return $method;
+		foreach ($this->importCustomScripts as $view => $active)
+		{
+			CFactory::_('Compiler.Builder.Import.Custom.Scripts')->set($view, $active);
+		}
+
+		return CFactory::_('Architecture.Controller.EximportMethod')
+			->get($nameSingleCode, $nameListCode);
 	}
 
 	public function setExportButton($nameSingleCode, $nameListCode)

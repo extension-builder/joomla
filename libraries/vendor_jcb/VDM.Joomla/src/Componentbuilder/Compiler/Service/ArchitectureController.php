@@ -31,6 +31,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Controller\Allo
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\AllowEditViews as J3ControllerAllowEditViews;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface as ControllerEximportMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\EximportMethod as SharedControllerEximportMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\EximportMethod as J3ControllerEximportMethod;
 /**
  * Architecture Controller Service Provider
  * 
@@ -100,6 +103,15 @@ class ArchitectureController implements ServiceProviderInterface
 
 		$container->alias(J3ControllerAllowEditViews::class, 'Architecture.Controller.J3.AllowEditViews')
 			->share('Architecture.Controller.J3.AllowEditViews', [$this, 'getJ3ControllerAllowEditViews'], true);
+
+		$container->alias(ControllerEximportMethod::class, 'Architecture.Controller.EximportMethod')
+			->share('Architecture.Controller.EximportMethod', [$this, 'getControllerEximportMethod'], true);
+
+		$container->alias(SharedControllerEximportMethod::class, 'Architecture.Controller.Shared.EximportMethod')
+			->share('Architecture.Controller.Shared.EximportMethod', [$this, 'getSharedControllerEximportMethod'], true);
+
+		$container->alias(J3ControllerEximportMethod::class, 'Architecture.Controller.J3.EximportMethod')
+			->share('Architecture.Controller.J3.EximportMethod', [$this, 'getJ3ControllerEximportMethod'], true);
 	}
 
 	/**
@@ -369,6 +381,68 @@ class ArchitectureController implements ServiceProviderInterface
 			$container->get('Customcode.Dispenser'),
 			$container->get('Compiler.Builder.Category'),
 			$container->get('Compiler.Builder.Category.Other.Name')
+		);
+	}
+
+	/**
+	 * Get The EximportMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ControllerEximportMethod
+	 * @since   6.1.7
+	 */
+	public function getControllerEximportMethod(Container $container): ControllerEximportMethod
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes the current user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Controller.J3.EximportMethod');
+		}
+
+		return $container->get('Architecture.Controller.Shared.EximportMethod');
+	}
+
+	/**
+	 * Get The EximportMethod Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedControllerEximportMethod
+	 * @since   6.1.7
+	 */
+	public function getSharedControllerEximportMethod(Container $container): SharedControllerEximportMethod
+	{
+		return new SharedControllerEximportMethod(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Eximport.View'),
+			$container->get('Compiler.Builder.Import.Custom.Scripts')
+		);
+	}
+
+	/**
+	 * Get The EximportMethod Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ControllerEximportMethod
+	 * @since   6.1.7
+	 */
+	public function getJ3ControllerEximportMethod(Container $container): J3ControllerEximportMethod
+	{
+		return new J3ControllerEximportMethod(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Eximport.View'),
+			$container->get('Compiler.Builder.Import.Custom.Scripts')
 		);
 	}
 }
