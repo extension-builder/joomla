@@ -3544,6 +3544,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Prefix.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Text.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'

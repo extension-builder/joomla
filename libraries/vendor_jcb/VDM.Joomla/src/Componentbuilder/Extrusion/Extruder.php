@@ -19,7 +19,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher as WriterDispatcher;
 
 
@@ -112,6 +114,22 @@ final class Extruder implements ExtruderInterface
 	protected SchemaReader $schema;
 
 	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.6
+	 */
+	protected Source $source;
+
+	/**
+	 * The Prefix Resolver.
+	 *
+	 * @var    Prefix
+	 * @since  6.1.6
+	 */
+	protected Prefix $prefix;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -123,6 +141,8 @@ final class Extruder implements ExtruderInterface
 	 * @param   Report            $report     The run report registry.
 	 * @param   Message           $message    The message bus.
 	 * @param   SchemaReader      $schema     The schema reader.
+	 * @param   Source            $source     The source identity registry.
+	 * @param   Prefix            $prefix     The table-name prefix resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -135,7 +155,9 @@ final class Extruder implements ExtruderInterface
 		WriterDispatcher $writers,
 		Report $report,
 		Message $message,
-		SchemaReader $schema
+		SchemaReader $schema,
+		Source $source,
+		Prefix $prefix
 	)
 	{
 		$this->config = $config;
@@ -147,6 +169,8 @@ final class Extruder implements ExtruderInterface
 		$this->report = $report;
 		$this->message = $message;
 		$this->schema = $schema;
+		$this->source = $source;
+		$this->prefix = $prefix;
 	}
 
 	/**
@@ -439,18 +463,11 @@ final class Extruder implements ExtruderInterface
 
 		if ($path === '')
 		{
-			// No tree was given, so identity cannot be discovered; the caller's own
-			// code name is all there is, and the table prefix depends on it.
-			if (!$this->collector->identify())
-			{
-				$this->message->warning(
-					'No component code name was given with the dump, so the table prefix '
-					. 'stays in every view name.'
-				);
-			}
+			$this->collector->identify();
 		}
 
 		$this->report->set('counts.artifacts', $this->readers->dispatch());
+		$this->identity();
 		$views = $this->assembler->assemble();
 		$this->report->set('counts.views', $views);
 
@@ -465,6 +482,55 @@ final class Extruder implements ExtruderInterface
 		$this->achieved($views, $written);
 
 		return $this->finish(true);
+	}
+
+	/**
+	 * Settle the component identity once every table name is known.
+	 *
+	 * A manifest or a caller who names the component outranks everything, and this
+	 * runs after them so it can never overrule either. What it covers is the case
+	 * neither can: a bare dump, or a folder with no readable manifest. Joomla's own
+	 * convention has a component prefix every table it owns, so the tables state
+	 * their component in the part they all share, and a name recovered that way is
+	 * a great deal better than leaving the prefix in every view name.
+	 *
+	 * Whether the source came out of JCB is recorded here too. It changes nothing
+	 * about how the run proceeds — every tier degrades on its own terms — but it is
+	 * the single most useful thing to know when reading a report, because a JCB
+	 * source has a table definition class to be found and a hand-built one never
+	 * will.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	protected function identity(): void
+	{
+		$this->report->set('source.jcb_built', $this->prefix->jcb());
+
+		if ((string) $this->source->get('code_name', '') !== '')
+		{
+			return;
+		}
+
+		$option = $this->prefix->option();
+
+		if ($option === '')
+		{
+			$this->message->warning(
+				'The component name could not be established, and the table names do '
+				. 'not share a prefix that would imply it, so every view name keeps '
+				. 'whatever prefix its table had.'
+			);
+
+			return;
+		}
+
+		$this->source->set('code_name', $option);
+		$this->report->set('source.manifest', 'not found; code name inferred from the table names');
+		$this->message->notice(
+			'No component name was given, so it was taken from the part every table '
+			. 'name shares: ' . $option . '.'
+		);
 	}
 
 	/**

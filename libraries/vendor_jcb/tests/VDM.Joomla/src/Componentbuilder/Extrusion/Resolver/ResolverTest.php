@@ -22,12 +22,15 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form as FormRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as Catalogue;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema as SchemaRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table as TableRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
@@ -50,6 +53,7 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(FieldXml::class)]
 #[CoversClass(Guid::class)]
 #[CoversClass(Language::class)]
+#[CoversClass(Prefix::class)]
 #[CoversClass(Relation::class)]
 #[CoversClass(Role::class)]
 #[CoversClass(Tab::class)]
@@ -787,6 +791,7 @@ final class ResolverTest extends TestCase
 				'column' => 'category',
 				'table' => '#__demo_category',
 				'view' => 'category',
+				'views' => 'categories',
 				'entity' => 'category',
 				'value' => 'title',
 				'key' => 'guid',
@@ -813,6 +818,7 @@ final class ResolverTest extends TestCase
 				'column' => 'cat',
 				'table' => '#__demo_category',
 				'view' => 'category',
+				'views' => 'categories',
 				'entity' => '',
 				'value' => 'name',
 				'key' => 'id',
@@ -1279,5 +1285,100 @@ final class ResolverTest extends TestCase
 		}
 
 		return $columns;
+	}
+	/**
+	 * The tables state their own component in the part their names share.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testPrefixTakesTheSharedPartAtAnUnderscoreBoundary(): void
+	{
+		$schema = new SchemaRegistry();
+		$table = new TableRegistry();
+		$report = new Report();
+		$prefix = new Prefix($schema, $table, $report);
+
+		$this->assertSame('', $prefix->shared([]), 'Nothing cannot imply a prefix.');
+		$this->assertSame(
+			'',
+			$prefix->shared(['demo_widget']),
+			'One table is equally well all prefix or all view, so it testifies to nothing.'
+		);
+		$this->assertSame('demo', $prefix->shared(['demo_widget', 'demo_gadget']));
+		$this->assertSame(
+			'demo',
+			$prefix->shared(['demo_widget', 'demo_widget_note']),
+			'A shared segment that is the whole of the shorter name cannot be a prefix, '
+			. 'or the shorter table would be left with no view name at all.'
+		);
+		$this->assertSame(
+			'',
+			$prefix->shared(['widget', 'gadget']),
+			'Names sharing no leading segment share no prefix.'
+		);
+		$this->assertSame(
+			'',
+			$prefix->shared(['foo_a', 'bar_b']),
+			'A shared first character is not a shared segment.'
+		);
+		$this->assertSame(
+			'my_shop',
+			$prefix->shared(['my_shop_order', 'my_shop_invoice', 'my_shop_order_line'])
+		);
+	}
+
+	/**
+	 * The option is read off the registries, and JCB's own markers are recognised.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testPrefixReadsTheRegistriesAndRecognisesAJcbSource(): void
+	{
+		$schema = new SchemaRegistry();
+		$table = new TableRegistry();
+		$report = new Report();
+		$prefix = new Prefix($schema, $table, $report);
+
+		$this->assertSame('', $prefix->option(), 'An empty run implies no component.');
+		$this->assertFalse($prefix->jcb());
+
+		$schema->set('table.demo_widget.name', '#__demo_widget');
+		$schema->set('table.demo_widget.column.id.name', 'id');
+		$schema->set('table.demo_gadget.name', '#__demo_gadget');
+		$schema->set('table.demo_gadget.column.id.name', 'id');
+
+		$this->assertSame(['demo_widget', 'demo_gadget'], $prefix->names());
+		$this->assertSame('com_demo', $prefix->option());
+		$this->assertSame('demo', $report->get('source.prefix'));
+		$this->assertFalse(
+			$prefix->jcb(),
+			'Tables with no guid column are not something JCB generated.'
+		);
+		$this->assertSame(
+			'no; 0 of 2 tables carry a guid column',
+			$report->get('source.jcb')
+		);
+
+		$schema->set('table.demo_widget.column.guid.name', 'guid');
+		$schema->set('table.demo_gadget.column.guid.name', 'guid');
+
+		$this->assertTrue($prefix->jcb());
+		$this->assertSame('every table carries a guid column', $report->get('source.jcb'));
+
+		$table->set('table.demo_widget.name', 'demo_widget');
+
+		$this->assertTrue($prefix->jcb());
+		$this->assertSame(
+			'a table definition class was found',
+			$report->get('source.jcb'),
+			'A table definition class settles it outright; nothing else writes one.'
+		);
+		$this->assertSame(
+			['demo_widget', 'demo_gadget'],
+			$prefix->names(),
+			'A table both registries describe is one table, counted once.'
+		);
 	}
 }
