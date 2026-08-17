@@ -52,6 +52,16 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\ItemCo
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\Link;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkAuthority;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLogic;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\DisplayMethod as J6AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\DisplayMethod as J5AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\DisplayMethod as J4AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\DisplayMethod as J3AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface as CustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\DisplayMethod as J6CustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\CustomView\DisplayMethod as J5CustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\DisplayMethod as J4CustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Menu\CustomView as J6MenuCustomView;
@@ -207,6 +217,36 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkLogic::class, 'Architecture.AdminViews.ListItem.LinkLogic')
 			->share('Architecture.AdminViews.ListItem.LinkLogic', [$this, 'getAdminViewsListItemLinkLogic'], true);
+
+		$container->alias(AdminViewsDisplayMethod::class, 'Architecture.AdminViews.DisplayMethod')
+			->share('Architecture.AdminViews.DisplayMethod', [$this, 'getAdminViewsDisplayMethod'], true);
+
+		$container->alias(J6AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J6.DisplayMethod')
+			->share('Architecture.AdminViews.J6.DisplayMethod', [$this, 'getJ6AdminViewsDisplayMethod'], true);
+
+		$container->alias(J5AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J5.DisplayMethod')
+			->share('Architecture.AdminViews.J5.DisplayMethod', [$this, 'getJ5AdminViewsDisplayMethod'], true);
+
+		$container->alias(J4AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J4.DisplayMethod')
+			->share('Architecture.AdminViews.J4.DisplayMethod', [$this, 'getJ4AdminViewsDisplayMethod'], true);
+
+		$container->alias(J3AdminViewsDisplayMethod::class, 'Architecture.AdminViews.J3.DisplayMethod')
+			->share('Architecture.AdminViews.J3.DisplayMethod', [$this, 'getJ3AdminViewsDisplayMethod'], true);
+
+		$container->alias(CustomViewDisplayMethod::class, 'Architecture.CustomView.DisplayMethod')
+			->share('Architecture.CustomView.DisplayMethod', [$this, 'getCustomViewDisplayMethod'], true);
+
+		$container->alias(J6CustomViewDisplayMethod::class, 'Architecture.CustomView.J6.DisplayMethod')
+			->share('Architecture.CustomView.J6.DisplayMethod', [$this, 'getJ6CustomViewDisplayMethod'], true);
+
+		$container->alias(J5CustomViewDisplayMethod::class, 'Architecture.CustomView.J5.DisplayMethod')
+			->share('Architecture.CustomView.J5.DisplayMethod', [$this, 'getJ5CustomViewDisplayMethod'], true);
+
+		$container->alias(J4CustomViewDisplayMethod::class, 'Architecture.CustomView.J4.DisplayMethod')
+			->share('Architecture.CustomView.J4.DisplayMethod', [$this, 'getJ4CustomViewDisplayMethod'], true);
+
+		$container->alias(J3CustomViewDisplayMethod::class, 'Architecture.CustomView.J3.DisplayMethod')
+			->share('Architecture.CustomView.J3.DisplayMethod', [$this, 'getJ3CustomViewDisplayMethod'], true);
 
 		$container->alias(MenuAdminView::class, 'Architecture.Menu.AdminView')
 			->share('Architecture.Menu.AdminView', [$this, 'getMenuAdminView'], true);
@@ -929,6 +969,170 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new LinkLogic(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AdminViews DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsDisplayMethod(Container $container): AdminViewsDisplayMethod
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.AdminViews.J' . $this->targetVersion . '.DisplayMethod');
+	}
+
+	/**
+	 * Get The AdminViews DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6AdminViewsDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ6AdminViewsDisplayMethod(Container $container): J6AdminViewsDisplayMethod
+	{
+		return new J6AdminViewsDisplayMethod(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The AdminViews DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5AdminViewsDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ5AdminViewsDisplayMethod(Container $container): J5AdminViewsDisplayMethod
+	{
+		return new J5AdminViewsDisplayMethod(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The AdminViews DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4AdminViewsDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ4AdminViewsDisplayMethod(Container $container): J4AdminViewsDisplayMethod
+	{
+		return new J4AdminViewsDisplayMethod(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The AdminViews DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsDisplayMethod(Container $container): J3AdminViewsDisplayMethod
+	{
+		return new J3AdminViewsDisplayMethod(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The CustomView DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getCustomViewDisplayMethod(Container $container): CustomViewDisplayMethod
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.CustomView.J' . $this->targetVersion . '.DisplayMethod');
+	}
+
+	/**
+	 * Get The CustomView DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6CustomViewDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ6CustomViewDisplayMethod(Container $container): J6CustomViewDisplayMethod
+	{
+		return new J6CustomViewDisplayMethod(
+			$container->get('Config'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The CustomView DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5CustomViewDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ5CustomViewDisplayMethod(Container $container): J5CustomViewDisplayMethod
+	{
+		return new J5CustomViewDisplayMethod(
+			$container->get('Config'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The CustomView DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4CustomViewDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ4CustomViewDisplayMethod(Container $container): J4CustomViewDisplayMethod
+	{
+		return new J4CustomViewDisplayMethod(
+			$container->get('Config'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The CustomView DisplayMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3CustomViewDisplayMethod
+	 * @since   6.1.7
+	 */
+	public function getJ3CustomViewDisplayMethod(Container $container): J3CustomViewDisplayMethod
+	{
+		return new J3CustomViewDisplayMethod(
+			$container->get('Config'),
+			$container->get('Placeholder')
 		);
 	}
 
