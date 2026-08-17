@@ -13166,60 +13166,22 @@ class Interpretation extends Fields
 		return $script . $forEachStart . $fix;
 	}
 
+	/**
+	 * Get the relation statement of one field.
+	 *
+	 * @param   array   $item          The field definition.
+	 * @param   string  $nameListCode  The list view code name.
+	 * @param   string  $tab           Extra indentation of the generated lines.
+	 *
+	 * @return  string  The generated statement.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.FieldRelation service.
+	 */
 	protected function setModelFieldRelation($item, $nameListCode, $tab)
 	{
-		$fix = '';
-		// set fields
-		$field_placeholders = [];
-
-		// set list field name
-		$field_placeholders['$item->{' . (int) $item['id'] . '}'] = '$item->' . $item['code'];
-		$field_placeholders['$item->{' . (string) $item['guid'] . '}'] = '$item->' . $item['code'];
-		$field_array[] = '$item->' . $item['code'];
-
-		// load joint field names
-		if (isset($item['joinfields'])
-			&& ArrayHelper::check(
-				$item['joinfields']
-			))
-		{
-			foreach ($item['joinfields'] as $join)
-			{
-				$join_id = CFactory::_('Compiler.Builder.List.Join')->get($nameListCode . '.' . (string) $join . '.id', 0);
-				$join_string = '$item->' . CFactory::_('Compiler.Builder.List.Join')->get($nameListCode . '.' . (string) $join . '.code', 'error');
-
-				$field_placeholders['$item->{' . (int) $join_id . '}'] = $join_string;
-				$field_placeholders['$item->{' . $join . '}'] = $join_string;
-				$field_array[] = $join_string;
-			}
-		}
-
-		// set based on join_type
-		if ((int) $item['join_type'] === 2)
-		{
-			// code
-			$code = (array) explode(
-				PHP_EOL, str_replace(
-					array_keys($field_placeholders), array_values($field_placeholders), (string) $item['set']
-				)
-			);
-			$fix  .= PHP_EOL . Indent::_(1) . $tab . Indent::_(3) . implode(
-					PHP_EOL . Indent::_(1) . $tab . Indent::_(3), $code
-				);
-		}
-		else
-		{
-			// concatenate
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(3) . "//"
-				. Line::_(__Line__, __Class__) . " concatenate these fields";
-			$fix .= PHP_EOL . Indent::_(1) . $tab . Indent::_(3) . "\$item->"
-				. $item['code'] . ' = ' . implode(
-					" . '" . str_replace("'", '&apos;', (string) $item['set']) . "' . ",
-					$field_array
-				) . ';';
-		}
-
-		return CFactory::_('Placeholder')->update_($fix);
+		return CFactory::_('Architecture.Model.FieldRelation')
+			->get((array) $item, (string) $nameListCode, (string) $tab);
 	}
 
 	/**
