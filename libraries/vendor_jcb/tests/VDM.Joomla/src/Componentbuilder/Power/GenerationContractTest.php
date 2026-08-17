@@ -13,7 +13,6 @@ namespace VDM\Joomla\Tests\Componentbuilder\Power;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Power\Generator;
@@ -30,7 +29,10 @@ use VDM\Tests\Support\CompilerUtilityTestCase;
 
 
 /**
- * Power parsing, discovery, and generated dependency-injection contracts.
+ * Power discovery and generated dependency-injection contracts.
+ *
+ * Structural parsing itself is owned by ParserTest; the parser appears here
+ * only as the real collaborator the discovery and generation paths run on.
  *
  * @since  6.1.6
  */
@@ -41,80 +43,11 @@ use VDM\Tests\Support\CompilerUtilityTestCase;
 #[CoversClass(Search::class)]
 #[CoversClass(ServiceProvider::class)]
 #[CoversClass(ServiceProviderBuilder::class)]
-#[CoversClass(Parser::class)]
 #[CoversClass(Plantuml::class)]
 #[UsesClass(Indent::class)]
+#[UsesClass(Parser::class)]
 final class GenerationContractTest extends CompilerUtilityTestCase
 {
-	/**
-	 * Protect structured parsing of properties, methods, types, versions, and bodies.
-	 *
-	 * @return  void
-	 * @since   6.1.6
-	 */
-	public function testParserExtractsClassMetadataAndSupportingSections(): void
-	{
-		$subject = new Parser();
-		$code = <<<'PHP'
-<?php
-/** License text */
-namespace Demo;
-
-use Alpha\One;
-use Beta\Two as Two;
-
-final class Widget
-{
-	use FirstTrait, SecondTrait;
-
-	/** Property docs */
-	protected ?string $name = 'demo';
-
-	/**
-	 * Run.
-	 * @param int $count Count.
-	 * @return string
-	 * @since 2.3.4
-	 */
-	final public function run(int $count = 2): string
-	{
-		return 'done';
-	}
-}
-PHP;
-		$parsed = $subject->code($code);
-
-		$this->assertSame('$name', $parsed['properties'][0]['name']);
-		$this->assertSame('protected', $parsed['properties'][0]['access']);
-		$this->assertSame('?string', $parsed['properties'][0]['type']);
-		$this->assertSame("'demo'", $parsed['properties'][0]['default']);
-		$this->assertSame('Property docs', $parsed['properties'][0]['comment']);
-		$this->assertSame('run', $parsed['methods'][0]['name']);
-		$this->assertTrue($parsed['methods'][0]['final']);
-		$this->assertSame('string', $parsed['methods'][0]['return_type']);
-		$this->assertSame('2.3.4', $parsed['methods'][0]['since']);
-		$this->assertSame(['name' => '$count', 'type' => 'int', 'default' => '2'], $parsed['methods'][0]['arguments']['$count']);
-		$this->assertSame("\n\t\treturn 'done';\n\t", $parsed['methods'][0]['body']);
-		$this->assertSame('* License text', $subject->getClassLicense($code));
-		$this->assertSame(['use Alpha\\One;', 'use Beta\\Two as Two;'], $subject->getUseStatements($code));
-		$this->assertSame(['FirstTrait', 'SecondTrait'], $subject->getTraits($subject->getClassCode($code)));
-	}
-
-	/**
-	 * Record standard static-property modifier ordering as an intended parser input.
-	 *
-	 * @return  void
-	 * @since   6.1.6
-	 */
-	#[Group('known-defect')]
-	public function testParserRecognizesStandardStaticTypedPropertyOrdering(): void
-	{
-		$parsed = (new Parser())->code('class Demo { protected static ?string $name = null; }');
-
-		$this->assertSame('$name', $parsed['properties'][0]['name']);
-		$this->assertTrue($parsed['properties'][0]['static']);
-	}
-
 	/**
 	 * Protect exact generated property, constructor, docblock, and reset output.
 	 *
