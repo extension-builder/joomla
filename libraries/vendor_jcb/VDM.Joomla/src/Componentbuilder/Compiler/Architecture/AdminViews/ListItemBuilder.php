@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ListJoin;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListItemBuilderInterface;
 
 
 /**
@@ -26,7 +27,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
  * 
  * @since 5.1.5
  */
-final class ListItemBuilder
+final class ListItemBuilder implements ListItemBuilderInterface
 {
 	/**
 	 * The Placeholder Class.
@@ -410,4 +411,3 @@ final class ListItemBuilder
 			. $output . PHP_EOL . Indent::_(3) . '</div>';
 	}
 }
-
