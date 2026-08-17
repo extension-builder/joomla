@@ -180,6 +180,14 @@ class Interpretation extends Fields
 	protected $customAdminViewListLink = [];
 
 	/**
+	 * Custom Admin View List Id
+	 *
+	 * @var    array
+	 * @since  6.1.7
+	 */
+	protected $customAdminViewListId = [];
+
+	/**
 	 * load Tracker of fields to fix
 	 *
 	 * @var    array
@@ -6165,69 +6173,49 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * set the custom admin view list links
+	 *
+	 * @param   array   $view
+	 * @param   string  $nameListCode
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminViews.ListLink service.
+	 */
 	public function setCustomAdminViewListLink($view, $nameListCode)
 	{
-		if (CFactory::_('Component')->isArray('custom_admin_views'))
+		CFactory::_('Architecture.AdminViews.ListLink')
+			->set($view, $nameListCode);
+
+		// keep the legacy public state in step with the focused builders
+		$this->syncCustomAdminState($nameListCode);
+	}
+
+	/**
+	 * copy the custom admin builder state onto the legacy helper properties
+	 *
+	 * @param   string  $nameListCode
+	 *
+	 * @return  void
+	 *
+	 * @since   6.1.7
+	 * @deprecated 6.1.7 Read the Compiler.Builder.Custom.Admin.* registries.
+	 */
+	protected function syncCustomAdminState($nameListCode)
+	{
+		$links = CFactory::_('Compiler.Builder.Custom.Admin.View.List.Link')
+			->get($nameListCode);
+		if ($links !== null)
 		{
-			foreach (CFactory::_('Component')->get('custom_admin_views') as $custom_admin_view)
-			{
-				if (isset($custom_admin_view['adminviews'])
-					&& ArrayHelper::check(
-						$custom_admin_view['adminviews']
-					))
-				{
-					foreach ($custom_admin_view['adminviews'] as $adminview)
-					{
-						if (isset($view['adminview'])
-							&& $view['adminview'] == $adminview)
-						{
-							// set the needed keys
-							$setId = false;
-							if (ArrayHelper::check(
-								$custom_admin_view['settings']->main_get->filter
-							))
-							{
-								foreach (
-									$custom_admin_view['settings']->main_get->filter
-									as $filter
-								)
-								{
-									if ($filter['filter_type'] == 1
-										|| '$id' == $filter['state_key'])
-									{
-										$setId = true;
-									}
-								}
-							}
-							// set the needed array values
-							$set = array(
-								'icon' => $custom_admin_view['icomoon'],
-								'link' => $custom_admin_view['settings']->code,
-								'NAME' => $custom_admin_view['settings']->CODE,
-								'name' => $custom_admin_view['settings']->name);
-							// only load to list if it has id filter
-							if ($setId)
-							{
-								// now load it to the global object for items list
-								$this->customAdminViewListLink[$nameListCode][]
-									= $set;
-								// add to set id for list view if needed
-								$this->customAdminViewListId[$custom_admin_view['settings']->code]
-									= true;
-							}
-							else
-							{
-								// now load it to the global object for tool bar
-								CFactory::_('Compiler.Builder.Dynamic.Buttons')->add($nameListCode, $set);
-							}
-							// log that it has been added already
-							$this->customAdminAdded[$custom_admin_view['settings']->code]
-								= $adminview;
-						}
-					}
-				}
-			}
+			$this->customAdminViewListLink[$nameListCode] = $links;
 		}
+
+		$this->customAdminViewListId = CFactory::_('Compiler.Builder.Custom.Admin.View.List.Id')
+			->allActive();
+		$this->customAdminAdded = CFactory::_('Compiler.Builder.Custom.Admin.Added')
+			->allActive();
 	}
 
 	/**
@@ -6450,46 +6438,8 @@ class Interpretation extends Fields
 	 */
 	protected function getCustomAdminViewButtons($nameListCode, $ref = '')
 	{
-		$customAdminViewButton = '';
-		// check if custom links should be added to this list views
-		if (isset($this->customAdminViewListLink[$nameListCode])
-			&& ArrayHelper::check(
-				$this->customAdminViewListLink[$nameListCode]
-			))
-		{
-			// start building the links
-			$customAdminViewButton .= PHP_EOL . Indent::_(3)
-				. '<div class="btn-group">';
-			foreach (
-				$this->customAdminViewListLink[$nameListCode] as
-				$customLinkView
-			)
-			{
-				$customAdminViewButton .= PHP_EOL . Indent::_(3)
-					. "<?php if (\$canDo->get('" . $customLinkView['link']
-					. ".access')): ?>";
-				$customAdminViewButton .= PHP_EOL . Indent::_(4)
-					. '<a class="hasTooltip btn btn-mini" href="index.php?option=com_'
-					. CFactory::_('Config')->component_code_name . '&view='
-					. $customLinkView['link'] . '&id=<?php echo $item->id; ?>'
-					. $ref . '" title="<?php echo Joomla__'.'_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_(' . "'COM_"
-					. CFactory::_('Compiler.Builder.Content.One')->get('COMPONENT') . '_' . $customLinkView['NAME'] . "'"
-					. '); ?>" ><span class="icon-' . $customLinkView['icon']
-					. '"></span></a>';
-				$customAdminViewButton .= PHP_EOL . Indent::_(3)
-					. "<?php else: ?>";
-				$customAdminViewButton .= PHP_EOL . Indent::_(4)
-					. '<a class="hasTooltip btn btn-mini disabled" href="#" title="<?php echo Text:'
-					. ':_(' . "'COM_" . CFactory::_('Compiler.Builder.Content.One')->get('COMPONENT') . '_' . $customLinkView['NAME']
-					. "'" . '); ?>"><span class="icon-'
-					. $customLinkView['icon'] . '"></span></a>';
-				$customAdminViewButton .= PHP_EOL . Indent::_(3)
-					. "<?php endif; ?>";
-			}
-			$customAdminViewButton .= PHP_EOL . Indent::_(3) . '</div>';
-		}
-
-		return $customAdminViewButton;
+		return CFactory::_('Architecture.AdminViews.ListLink')
+			->getButtons($nameListCode, $ref);
 	}
 
 	/**

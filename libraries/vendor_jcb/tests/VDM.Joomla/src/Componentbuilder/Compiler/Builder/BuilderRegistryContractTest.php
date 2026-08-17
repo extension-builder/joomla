@@ -60,7 +60,7 @@ final class BuilderRegistryContractTest extends TestCase
 		sort($actual, SORT_STRING);
 		sort($expected, SORT_STRING);
 
-		$this->assertCount(108, $actual);
+		$this->assertCount(112, $actual);
 		$this->assertSame($expected, $actual);
 		$this->assertSame($expected, array_values(array_unique($expected)));
 	}

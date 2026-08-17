@@ -31,6 +31,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Contributors;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAlias;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminAdded;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminViewListId;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminViewListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomFieldLinks;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomForm;
@@ -135,6 +138,15 @@ class BuilderAJ implements ServiceProviderInterface
 
 		$container->alias(CustomAlias::class, 'Compiler.Builder.Custom.Alias')
 			->share('Compiler.Builder.Custom.Alias', [$this, 'getCustomAlias'], true);
+
+		$container->alias(CustomAdminAdded::class, 'Compiler.Builder.Custom.Admin.Added')
+			->share('Compiler.Builder.Custom.Admin.Added', [$this, 'getCustomAdminAdded'], true);
+
+		$container->alias(CustomAdminViewListId::class, 'Compiler.Builder.Custom.Admin.View.List.Id')
+			->share('Compiler.Builder.Custom.Admin.View.List.Id', [$this, 'getCustomAdminViewListId'], true);
+
+		$container->alias(CustomAdminViewListLink::class, 'Compiler.Builder.Custom.Admin.View.List.Link')
+			->share('Compiler.Builder.Custom.Admin.View.List.Link', [$this, 'getCustomAdminViewListLink'], true);
 
 		$container->alias(CustomField::class, 'Compiler.Builder.Custom.Field')
 			->share('Compiler.Builder.Custom.Field', [$this, 'getCustomField'], true);
@@ -917,5 +929,42 @@ class BuilderAJ implements ServiceProviderInterface
 	{
 		return new JsonString();
 	}
-}
+	/**
+	 * Get The CustomAdminAdded Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminAdded
+	 * @since   6.1.7
+	 */
+	public function getCustomAdminAdded(Container $container): CustomAdminAdded
+	{
+		return new CustomAdminAdded();
+	}
 
+	/**
+	 * Get The CustomAdminViewListId Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminViewListId
+	 * @since   6.1.7
+	 */
+	public function getCustomAdminViewListId(Container $container): CustomAdminViewListId
+	{
+		return new CustomAdminViewListId();
+	}
+
+	/**
+	 * Get The CustomAdminViewListLink Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminViewListLink
+	 * @since   6.1.7
+	 */
+	public function getCustomAdminViewListLink(Container $container): CustomAdminViewListLink
+	{
+		return new CustomAdminViewListLink();
+	}
+}

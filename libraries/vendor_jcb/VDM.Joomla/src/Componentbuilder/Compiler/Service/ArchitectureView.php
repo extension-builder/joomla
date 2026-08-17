@@ -53,6 +53,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\Link;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkAuthority;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLogic;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ListHead as J6AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ListHead as J5AdminViewsListHead;
@@ -222,6 +223,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkLogic::class, 'Architecture.AdminViews.ListItem.LinkLogic')
 			->share('Architecture.AdminViews.ListItem.LinkLogic', [$this, 'getAdminViewsListItemLinkLogic'], true);
+
+		$container->alias(AdminViewsListLink::class, 'Architecture.AdminViews.ListLink')
+			->share('Architecture.AdminViews.ListLink', [$this, 'getAdminViewsListLink'], true);
 
 		$container->alias(AdminViewsListHead::class, 'Architecture.AdminViews.ListHead')
 			->share('Architecture.AdminViews.ListHead', [$this, 'getAdminViewsListHead'], true);
@@ -989,6 +993,27 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new LinkLogic(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ListLink Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsListLink
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsListLink(Container $container): AdminViewsListLink
+	{
+		return new AdminViewsListLink(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Custom.Admin.View.List.Link'),
+			$container->get('Compiler.Builder.Custom.Admin.View.List.Id'),
+			$container->get('Compiler.Builder.Custom.Admin.Added'),
+			$container->get('Compiler.Builder.Dynamic.Buttons')
 		);
 	}
 

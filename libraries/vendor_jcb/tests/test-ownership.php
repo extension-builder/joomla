@@ -740,6 +740,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListHeadRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListLink.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListLinkTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListItem.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SharedArchitectureRendererTest.php'
@@ -1343,6 +1347,18 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/Contributors.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/CustomAdminAdded.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListLinkTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/CustomAdminViewListId.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListLinkTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/CustomAdminViewListLink.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListLinkTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/CustomAlias.php' => [
 		'mode' => 'contract',
