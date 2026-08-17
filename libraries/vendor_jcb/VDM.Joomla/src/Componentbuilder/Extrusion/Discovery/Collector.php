@@ -32,6 +32,14 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 final class Collector
 {
 	/**
+	 * The artifacts only an administrator folder ever holds.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	private const ADMIN_ONLY = ['sql', 'access.xml', 'config.xml'];
+
+	/**
 	 * The Config Class.
 	 *
 	 * @var    Config
@@ -231,7 +239,8 @@ final class Collector
 				continue;
 			}
 
-			$usable[] = ['root' => $root, 'scope' => (string) ($requested['scope'] ?? '')];
+			$scope = (string) ($requested['scope'] ?? '');
+			$usable[] = ['root' => $root, 'scope' => $scope === '' ? $this->half($root) : $scope];
 		}
 
 		if ($usable === [])
@@ -256,6 +265,50 @@ final class Collector
 		$this->report->set('source.roots', array_column($usable, 'root'));
 
 		return $this->assess();
+	}
+
+	/**
+	 * Which half of a component one root is, when it is only one half.
+	 *
+	 * A root holding admin or site directories is the whole component and needs no
+	 * answer -- the two halves are separate directories there and cannot be confused.
+	 * A root holding neither is itself one of them, and then it has to be named,
+	 * because both placement families match such a root directly and the tree alone
+	 * cannot say which it is.
+	 *
+	 * The tell has to be something only an administrator folder ever has. Forms are
+	 * not it -- a site folder carries forms too, and treating them as the marker read
+	 * getbible's site folder as its administrator half. The install schema, the
+	 * access rules and the component configuration are administrator only.
+	 *
+	 * @param   string  $root  The resolved source root.
+	 *
+	 * @return  string  Either admin, site, or an empty string for a whole component.
+	 * @since   6.1.6
+	 */
+	public function half(string $root): string
+	{
+		foreach (['admin', 'administrator', 'site'] as $directory)
+		{
+			if ($this->scanner->resolve($root, $directory) !== null)
+			{
+				return '';
+			}
+		}
+
+		foreach (self::ADMIN_ONLY as $marker)
+		{
+			if ($this->scanner->resolve($root, $marker) !== null)
+			{
+				$this->report->set('source.half.' . md5($root), 'admin, by its ' . $marker);
+
+				return 'admin';
+			}
+		}
+
+		$this->report->set('source.half.' . md5($root), 'site, by having no administrator part');
+
+		return 'site';
 	}
 
 	/**
