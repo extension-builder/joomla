@@ -128,7 +128,87 @@ the resolved English string enters JCB.
 
 ## 3. Proposed architecture
 
-### 3.1 Bounded context, not an inheritance chain
+### 3.1 Container rules
+
+These are binding on every class in this roadmap, and they come before the
+domain design because they determine its shape.
+
+1. **Everything is resolved from the container.** A consumer never constructs
+   a collaborator. It receives it, or it asks the container for it.
+2. **`new` appears only inside `Service/*.php` providers.** The providers *are*
+   the container's own construction code — "the containerized initialization of
+   anything must still come from the codebase of the container." No `new` in a
+   reader, resolver, writer, orchestrator, registry, or call site.
+3. **`Factory::_()` only at the outermost entry seam.** Per AGENTS.md, static
+   factory resolution is a composition entry point, not something new classes
+   add. The interface layer, console command, or API controller resolves the
+   one entry service; every class below it takes typed constructor
+   dependencies injected by its provider.
+4. **A service that needs no constructor arguments is still resolved from the
+   container.** It gets an alias and a `share(..., true)` registration like
+   any other, so it can gain a dependency later without touching a caller.
+5. **No per-item value objects.** Anything else would mean a `new` per column,
+   per field, and per fieldset — hundreds per run.
+
+Rule 5 is the one with real design consequences, and JCB already provides the
+answer.
+
+### 3.2 State lives in focused registries, not in value objects
+
+The placement rule from `Compiler/Builder` is a **focused, path-addressed
+registry, shared in the container**, declared as an empty final class over the
+existing abstraction:
+
+```php
+final class Schema extends Registry implements Registryinterface
+{
+}
+```
+
+`VDM\Joomla\Abstraction\Registry` already supplies fluent
+`set()`/`add()`/`get()`/`remove()`/`exists()` over dotted paths and returns
+`self`. So a parsed column becomes a path, not an object:
+
+```php
+$this->schema->set("table.{$table}.column.{$name}.type", $type);
+```
+
+AGENTS.md forbids collecting unrelated state in one global registry, so the
+domain gets several small ones, each shared and each with one subject:
+
+| Registry service | Holds | Written by |
+| --- | --- | --- |
+| `Extrusion.Registry.Source` | source path, code name, layout family, version | Discovery |
+| `Extrusion.Registry.Inventory` | located artifacts and the tier that found each | Discovery |
+| `Extrusion.Registry.Schema` | tables, columns, types, keys, decoded notes | Reader |
+| `Extrusion.Registry.Form` | fieldsets, fields, raw attribute bags, options | Reader |
+| `Extrusion.Registry.Language` | constant → English string catalogue | Reader |
+| `Extrusion.Registry.Resolved` | final per-field values, each with its origin | Resolver |
+| `Extrusion.Registry.Report` | matched, unmatched, guessed, skipped, unresolved | all |
+
+Indicative paths:
+
+```
+source.code_name                                  = 'com_example'
+source.layout                                     = 'JoomlaFour'
+inventory.form.item.path                          = '…/admin/forms/item.xml'
+inventory.form.item.tier                          = 'profile'
+schema.table.example_item.column.name.type        = 'VARCHAR'
+schema.table.example_item.column.name.notes.type  = 'Text'
+form.item.field.name.attribute.label              = 'COM_EXAMPLE_ITEM_NAME_LABEL'
+language.COM_EXAMPLE_ITEM_NAME_LABEL              = 'Name'
+resolved.item.field.name.label.value              = 'Name'
+resolved.item.field.name.label.origin             = 'xml'
+report.unmatched.column.example_item.legacy_flag  = 'no form field'
+```
+
+Because a registry is shared and mutable, **`reset()` is the run boundary.**
+Every registry is cleared at the start of a run, so a second extrusion in the
+same request cannot inherit the first one's state. This is the same hazard
+AGENTS.md records for the Package factory, handled explicitly rather than left
+to chance.
+
+### 3.3 Bounded context, not an inheritance chain
 
 Placement rule, from `Search`, `Fieldtype`, `File`, and `Power`: a domain gets
 an abstract `Factory` extending `VDM\Joomla\Abstraction\Factory`, a `Config`,
@@ -142,30 +222,29 @@ delegate.
 ```
 Componentbuilder/Extrusion/
 ├── Factory.php                     abstract, extends Abstraction\Factory
-├── Config.php                      source path, target major, options, caps
-├── Extruder.php                    public orchestrator (the "entry class")
+├── Config.php                      extends Abstraction\ComponentConfig
+├── Extruder.php                    the fluent entry service
 ├── Service/
-│   ├── Extrusion.php               Extruder, Config
-│   ├── Discovery.php               Scanner, Manifest, Layout, Locators
+│   ├── Extrusion.php               Extruder, Config          <- the only
+│   ├── Registry.php                the seven registries         files that
+│   ├── Discovery.php               Scanner, Manifest, Layout    contain `new`
 │   ├── Reader.php                  Schema, Sql\*, Form, Language
-│   ├── Resolver.php                Precedence, Fieldtype, Language, Role, …
+│   ├── Resolver.php                Precedence, Fieldtype, Role, …
 │   └── Writer.php                  Field, AdminView, AdminFields, …
 ├── Interfaces/
-│   ├── LocatorInterface.php
-│   ├── LayoutInterface.php
-│   ├── SchemaReaderInterface.php
-│   ├── FormReaderInterface.php
-│   ├── LanguageReaderInterface.php
-│   ├── PrecedenceInterface.php
-│   ├── FieldtypeMapperInterface.php
+│   ├── ExtruderInterface.php       LocatorInterface.php
+│   ├── LayoutInterface.php         SchemaReaderInterface.php
+│   ├── FormReaderInterface.php     LanguageReaderInterface.php
+│   ├── PrecedenceInterface.php     FieldtypeMapperInterface.php
 │   └── WriterInterface.php
+├── Registry/
+│   ├── Source.php  Inventory.php  Schema.php  Form.php
+│   └── Language.php  Resolved.php  Report.php
 ├── Discovery/
 │   ├── Scanner.php                 bounded, guarded recursive walk
 │   ├── Manifest.php                find and read com_x.xml
-│   ├── Inventory.php               resolved artifact set + provenance
 │   └── Locator/{Schema,Form,Language}.php
 ├── Layout/
-│   ├── Profile.php                 relative candidate paths per artifact kind
 │   ├── JoomlaThree.php  JoomlaFour.php  JoomlaFive.php  JoomlaSix.php
 │   └── Heuristic.php               content-signature fallback
 ├── Reader/
@@ -173,29 +252,33 @@ Componentbuilder/Extrusion/
 │   ├── Sql/{Splitter,CreateTable,Insert}.php
 │   ├── Form.php
 │   └── Language.php
-├── Model/
-│   ├── Source.php  Table.php  Column.php
-│   ├── Fieldset.php  FormField.php
-│   └── ViewDefinition.php  FieldDefinition.php  Value.php
 ├── Resolver/
 │   ├── Precedence.php  Fieldtype.php  Language.php
-│   ├── ViewName.php  Role.php  Tab.php  Condition.php  FieldXml.php
-├── Writer/
-│   ├── Field.php  AdminView.php  AdminFields.php
-│   ├── AdminFieldsConditions.php  AdminCustomTabs.php
-│   └── ComponentAdminViews.php
-└── Result/
-    ├── Report.php                  found / resolved / guessed / skipped
-    └── Message.php
+│   └── ViewName.php  Role.php  Tab.php  Condition.php  FieldXml.php
+└── Writer/
+    ├── Field.php  AdminView.php  AdminFields.php
+    ├── AdminFieldsConditions.php  AdminCustomTabs.php
+    └── ComponentAdminViews.php
 ```
 
-### 3.2 Invert JCB's own structure knowledge
+`Layout\*` implementations are selected in the provider, never by a consumer
+conditional, and all four version keys are registered per the AGENTS.md rule
+even though J5 and J6 are thin variants of J4 today.
 
-JCB already holds the authoritative per-version layout in
-`admin/compiler/joomla_3/settings.json` and `admin/compiler/joomla_4/settings.json`:
-a `create` folder tree and a `move` map of `template file → { path, newName,
-type }`. Reversing that map — rather than hardcoding paths — is the honest way
-to know where a component keeps things:
+### 3.4 Invert the compiler's own placement map
+
+We do not have to invent knowledge of where a component keeps its files. **The
+compiler already carries that map, and it is the same map that put the files
+there in the first place:**
+
+- [`admin/compiler/joomla_3/settings.json`](../../admin/compiler/joomla_3/settings.json)
+- [`admin/compiler/joomla_4/settings.json`](../../admin/compiler/joomla_4/settings.json)
+  (also serving J5 and J6)
+
+Each holds two objects: `create`, the folder tree the compiler makes, and
+`move`, a map of `template file → { path, newName, type }` describing where
+every generated artifact is written. Inverting `move` gives the read locations
+directly, which is why no path in the table below is hand-written:
 
 | Artifact | J3 (`joomla_3` move map) | J4/J5/J6 (`joomla_4` move map) |
 | --- | --- | --- |
@@ -212,47 +295,67 @@ to know where a component keeps things:
 | Validation rules | `admin/models/rules/*.php` | `admin/src/Rule/<Key>Rule.php` |
 | Language | `admin/language/en-GB/en-GB.com_x.ini` | `admin/language/en-GB/com_x.ini` |
 
-`Layout\Profile` also carries the build-root to installed-root translation the
-`move` map's `c0mp0n3nt/` prefix implies: `admin` → `administrator/components/com_x`,
+Those are the compiler's build-folder paths, so each `Layout\*` service also
+carries the build-root to installed-root translation the `move` map's
+`c0mp0n3nt/` prefix implies: `admin` → `administrator/components/com_x`,
 `site` → `components/com_x`, `media` → `media/com_x`, `api` →
-`api/components/com_x`. That single indirection lets the same profile match an
-installed tree, an unzipped package, and a package that still has its
-top-level `admin/` and `site/` folders.
+`api/components/com_x`. That single indirection lets one layout service match an
+installed tree, an unzipped package, and a package that still has its top-level
+`admin/` and `site/` folders.
 
-Per the AGENTS.md four-key rule, all of `JoomlaThree`, `JoomlaFour`,
-`JoomlaFive`, and `JoomlaSix` are registered even though J5 and J6 are thin
-variants of J4 today. Selection happens in the provider, not in consumers, and
-the target major is validated against the supported catalogue before a
-version-dispatched service is resolved.
+**But this map is the default placement, not a guarantee.** It is exactly right
+for anything JCB compiled and for any component following Joomla convention, and
+it will be wrong for components that did their own thing — which many do.
+Inverting `move` is therefore only tier 1 of the three-tier search in §3.5, and
+the pipeline must never read a tier-1 miss as "this component has no schema."
 
-### 3.3 Three-tier discovery
+When the map does not answer, the search falls back to what the artifacts
+intrinsically are. This is why the file kind matters more than its location, and
+these three kinds — in this order of importance — are the whole minimum viable
+input:
 
-Components do not have to obey the layout. Discovery therefore tries, in
-order, and records which tier answered:
+| Kind | What we are actually looking for | Why it is critical |
+| --- | --- | --- |
+| `*.sql` | a statement containing `CREATE TABLE` | the schema: tables, columns, types, keys, and the JSON notes in column comments |
+| `*.xml` | a document whose root is `<form>` containing `<field name=` | the field definitions: type, options, `showon`, validation, fieldsets |
+| `*.ini` | keys matching `COM_<CODE>_` | the language strings, so labels become English rather than constants |
 
-1. **Profile lookup.** Ask each candidate `Layout\*` profile for its relative
-   paths. Cheap, exact, and how a well-behaved component resolves.
+A component that supplies those three can have its complete administrator area
+rebuilt regardless of where it chose to put them. The SQL alone gets a usable
+result; SQL plus form XML gets an accurate one; adding the `.ini` is what makes
+it readable rather than a wall of constants.
+
+### 3.5 Three-tier discovery
+
+Components do not have to obey the placement map of §3.4, so a miss there is
+normal rather than fatal. Discovery tries three tiers in order and records
+which one answered in `Registry\Inventory`:
+
+1. **Placement map.** Ask the selected `Layout\*` service for the inverted
+   `move` paths. Cheap, exact, and how any JCB-compiled or convention-following
+   component resolves.
 2. **Bounded pattern scan.** `Scanner` walks the tree once with an explicit
    depth cap, file-count cap, extension allowlist, symlink refusal, and
    realpath containment check against the source root, collecting `*.sql`,
    `*.xml`, `*.ini`. Directory names that cannot hold what we want
-   (`node_modules`, `.git`, `vendor`, `assets`, `media/js`) are pruned.
-3. **Content signature.** Classify what tier 2 collected by looking inside: a
-   `.sql` containing `CREATE TABLE`, an `.xml` whose document element is
-   `<form>` and which contains `<field name=`, an `.ini` whose keys match
-   `COM_<CODE>_`. This is what makes a non-standard component work.
+   (`node_modules`, `.git`, `vendor`, `assets`) are pruned.
+3. **Content signature.** `Layout\Heuristic` classifies what tier 2 collected
+   by looking inside: a `.sql` containing `CREATE TABLE`, an `.xml` whose
+   document element is `<form>` and which contains `<field name=`, an `.ini`
+   whose keys match `COM_<CODE>_`. This is what makes a non-standard
+   component work.
 
-Discovery produces an `Inventory` and stops. Nothing is interpreted and
-nothing is written during discovery — that separation is what makes the whole
-pipeline unit testable against fixture trees.
+Discovery writes an inventory and stops. Nothing is interpreted and nothing is
+written during discovery — that separation is what makes the pipeline unit
+testable against fixture trees.
 
-The `Manifest` reader supplies the rest of the identity: `com_x.xml` gives the
-component code name, version, and (through `<extension … method>` plus the
-presence of `src/`, `services/provider.php`, or `tmpl/`) the layout family.
-The code name is what lets `Resolver\ViewName` strip the table prefix, and it
-is also the language-constant prefix.
+`Manifest` supplies the rest of the identity: `com_x.xml` gives the component
+code name, version, and (through the presence of `src/`,
+`services/provider.php`, or `tmpl/`) the layout family. The code name is what
+lets `Resolver\ViewName` strip the table prefix, and it is also the
+language-constant prefix.
 
-### 3.4 Pure SQL reading
+### 3.6 Pure SQL reading
 
 `Reader\Sql\CreateTable` replaces `Mapping::getColumns()` with a parser that
 never touches a database. It must reproduce what MySQL was giving us for free,
@@ -275,40 +378,37 @@ That is the gate for retiring the temp-table path.
 `Reader\Sql\Insert` keeps the existing seed-data capture that feeds
 `admin_view.add_sql`, `source`, and `sql`.
 
-### 3.5 Form XML reading
+### 3.7 Form XML reading
 
-`Reader\Form` turns one `forms/<view>.xml` into an ordered list of
-`Model\Fieldset` each holding `Model\FormField` objects. Per field it keeps
-the raw attribute bag verbatim — not a curated subset — plus child `<option>`
-elements, because JCB's `field.xml` is itself an attribute bag and the whole
-point is to carry across attributes we do not have opinions about.
+`Reader\Form` walks one `forms/<view>.xml` into `Registry\Form`, keeping each
+field's raw attribute bag verbatim — not a curated subset — plus child
+`<option>` elements, because JCB's `field.xml` is itself an attribute bag and
+the whole point is to carry across attributes we hold no opinion about.
 
-Two structural signals matter beyond the fields themselves and are worth
-capturing in the same pass:
+Two structural signals matter beyond the fields themselves and are captured in
+the same pass:
 
 - `<fieldset name label>` → JCB tabs (`admin_view.addtabs`,
   `#__componentbuilder_admin_custom_tabs.tabs`);
 - `showon="a:1[AND]b:2"` → `#__componentbuilder_admin_fields_conditions.addconditions`.
 
-Field-to-column matching is by `name` against the parsed table columns.
-Unmatched form fields (no column) and unmatched columns (no form field) are
-both recorded in the report — those two lists are the most useful diagnostic
-the feature can produce.
+Field-to-column matching is by `name` against the parsed columns. Unmatched
+form fields and unmatched columns both land in `Registry\Report` — those two
+lists are the most useful diagnostic the feature can produce.
 
-### 3.6 Language resolution
+### 3.8 Language resolution
 
 `Reader\Language` reads the `en-GB` `.ini` files with
 `parse_ini_string($content, false, INI_SCANNER_RAW)` — from a string, so it is
 testable, and raw, so Joomla's `_QQ_`/quoting survives — and merges
 `com_x.ini` with `com_x.sys.ini` (J3: the `en-GB.`-prefixed names).
 
-`Resolver\Language` then resolves any value matching
-`/^[A-Z][A-Z0-9_]*$/` through that catalogue. On a miss the constant is kept
-verbatim and recorded as unresolved. It runs over `label`, `description`,
-`hint`, `message`, `<option>` bodies, `<fieldset label>`, and note field
-content.
+`Resolver\Language` then resolves any value matching `/^[A-Z][A-Z0-9_]*$/`
+through that catalogue. On a miss the constant is kept verbatim and recorded as
+unresolved. It runs over `label`, `description`, `hint`, `message`, `<option>`
+bodies, `<fieldset label>`, and note field content.
 
-### 3.7 Field type mapping is data, not a hardcoded array
+### 3.9 Field type mapping is data, not a hardcoded array
 
 `#__componentbuilder_fieldtype.properties` is a JSON object whose
 `properties0` entry is the `type` property, and **its `example` is the Joomla
@@ -338,19 +438,22 @@ the XML `type`, with three policies that the data forces:
 `Mapping::$dataTypes` (SQL type → field type) survives only as the last tier,
 for columns with no form field at all.
 
-### 3.8 The precedence engine
+### 3.10 The precedence engine
 
 `Resolver\Precedence` is the heart of the feature and the cheapest thing to
-test. It takes, per column:
+test. For each column it reads three registry paths — the decoded notes under
+`schema.…column.<name>.notes`, the matched form field under
+`form.<view>.field.<name>`, and the raw column metadata — and writes, per
+property, both a value and its origin:
 
-- `?object $notes` — decoded JSON from the SQL comment;
-- `?Model\FormField $form` — the matched XML field;
-- `Model\Column $column` — the parsed SQL column;
+```
+resolved.<view>.field.<name>.<property>.value
+resolved.<view>.field.<name>.<property>.origin    notes | xml | derived
+```
 
-and returns a `Model\FieldDefinition` in which each property is a
-`Model\Value` carrying `value` and `origin` (`notes` | `xml` | `derived`).
-Nothing else in the pipeline decides precedence, and the `Report` is generated
-straight from the origin distribution.
+Nothing else in the pipeline decides precedence, and the report is generated
+straight from the origin distribution. The tier order is itself an option
+(§3.12), so an author whose notes have gone stale can promote XML above them.
 
 `Resolver\FieldXml` then composes the JCB `field.xml` attribute string by
 passing the resolved settings into
@@ -358,44 +461,103 @@ passing the resolved settings into
 `Builder` makes, but with the full resolved attribute bag instead of six
 hardcoded keys.
 
-### 3.9 Writing
+### 3.11 Writing
 
-Writers use `VDM\Joomla\Data\{Item,Insert,Update}` and set `guid`. They are
-also idempotent, which requires a source-to-definition identity the current
-code has none of.
+Writers take `VDM\Joomla\Data\{Item,Insert,Update}` as injected dependencies
+and set `guid`. No writer calls `db->insertObject()`.
 
-Proposal: a deterministic UUIDv5-style GUID from a fixed namespace plus
-`component code name + table name [+ column name]`. `Data\Guid::getGuid()` is
-v4 random and stays the generator for genuinely new records; extruded records
-get the derived GUID so a second run over the same source updates in place
-instead of producing another `(dynamic build)` set. The alternative — matching
-on `name` — collides across components and is not viable.
+They are also idempotent, which requires a source-to-definition identity the
+current code has none of. Proposal: a deterministic UUIDv5-style GUID from a
+fixed namespace plus `component code name + table name [+ column name]`.
+`Data\Guid::getGuid()` is v4 random and stays the generator for genuinely new
+records; extruded records get the derived GUID, so a second run over the same
+source updates in place instead of producing another `(dynamic build)` set.
+The alternative — matching on `name` — collides across components and is not
+viable.
 
 Writers, in dependency order: `Field` → `AdminView` → `AdminFields` →
-`AdminFieldsConditions` → `AdminCustomTabs` → `ComponentAdminViews`. Assets
-continue through the existing helper.
+`AdminFieldsConditions` → `AdminCustomTabs` → `ComponentAdminViews`.
 
-### 3.10 API shape
+### 3.12 Entry point and options
+
+`Extruder` is the single entry service: resolved from the container, fluent,
+with a terminal `extrude()`. There is no request object to construct, so there
+is nothing to `new`. This follows the established fluent pattern in
+`Import\Status::table()`, `File\Manager::table()`, and
+`Abstraction\Remote\Config::table()`, each of which returns `self`.
 
 ```php
-$report = Extrusion\Factory::_('Extruder')->extrude(
-    new Extrusion\Model\Request(
-        path: '/…/administrator/components/com_example',
-        componentId: 42,
-        options: ['overwrite' => false]
-    )
-);
+// the one permitted static resolution: the outermost entry seam
+$report = Extrusion\Factory::_('Extruder')
+    ->reset()
+    ->path('/var/www/html/administrator/components/com_example')
+    ->component(42)
+    ->mode('update')
+    ->layout('auto')
+    ->languageTag('en-GB')
+    ->precedence(['notes', 'xml', 'derived'])
+    ->onExisting('update')
+    ->tabs(true)
+    ->conditions(true)
+    ->dryRun(false)
+    ->extrude();
 ```
 
-- one public method, an explicit request object, a `Result\Report` return;
-- no work in constructors;
-- no `enqueueMessage()` below the orchestrator — parsers return messages in
-  the report and only the outermost caller enqueues;
-- resolvable from the interface layer, the console, or a future API without
-  change.
+Each setter validates and writes into the shared `Config`, which every
+downstream service receives by injection. `reset()` clears `Config` and all
+seven registries and is the run boundary; `extrude()` returns
+`Registry\Report`.
+
+The option catalogue, which is the part worth getting right up front:
+
+**Intent**
+
+| Option | Values | Default | Meaning |
+| --- | --- | --- | --- |
+| `mode` | `create`, `update` | `create` | Build a fresh definition set, or merge into what the component already has |
+| `component` | int | — | Target JCB component id |
+| `onExisting` | `skip`, `update`, `replace` | `update` | What to do when a derived GUID already exists |
+
+**Scope**
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `admin` | `true` | Administrator views and fields |
+| `site` | `false` | Site views (future extension) |
+| `tabs` | `true` | Derive tabs from XML fieldsets |
+| `conditions` | `true` | Derive field conditions from `showon` |
+| `language` | `true` | Resolve constants to English strings |
+| `translations` | `false` | Also import other language packs into `language_translation` |
+| `code` | `false` | PHP custom-code extrusion (phase 4) |
+| `include` / `exclude` | `[]` | Table or view name filters |
+
+**Interpretation**
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `precedence` | `['notes','xml','derived']` | Tier order; reorderable |
+| `layout` | `auto` | `auto`, `j3`, `j4`, `j5`, `j6` |
+| `languageTag` | `en-GB` | Which translation supplies the strings |
+
+**Safety**
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `dryRun` | `false` | Produce the report, write nothing |
+| `strict` | `false` | Fail on unresolved constants or unknown field types instead of degrading |
+| `depth` / `maxFiles` | `12` / `20000` | Scan caps |
+
+`dryRun` deserves emphasis: this feature writes to the definition tables that
+every future compile depends on, so being able to see the full report before
+committing anything is the difference between a safe feature and a risky one.
+
+No parser or resolver calls `enqueueMessage()`. They write to
+`Registry\Report`, and only the entry-seam caller surfaces messages. That is
+what makes the same services usable from the interface, the console, and a
+future API without change.
 
 The legacy `new Extrusion($data)` call in `Joomla_componentModel::save()` is
-left untouched until the interface session wires the new entry point.
+left untouched until the interface session wires this entry point.
 
 ## 4. Phases
 
@@ -410,42 +572,44 @@ Touches: tests only.
 
 ### Phase 1 — folder in, inventory out
 
-`Config`, `Factory`, `Service/Extrusion.php`, `Service/Discovery.php`,
-`Discovery\{Scanner,Manifest,Inventory}`, `Discovery\Locator\{Schema,Form,Language}`,
-`Layout\{Profile,JoomlaThree,JoomlaFour,JoomlaFive,JoomlaSix,Heuristic}`,
-`Model\Source`, `Result\{Report,Message}`, and the matching interfaces.
+`Config`, `Factory`, `Service/{Extrusion,Registry,Discovery}.php`,
+`Registry\{Source,Inventory,Report}`, `Discovery\{Scanner,Manifest}`,
+`Discovery\Locator\{Schema,Form,Language}`,
+`Layout\{JoomlaThree,JoomlaFour,JoomlaFive,JoomlaSix,Heuristic}`, `Extruder`
+with its fluent setters and `reset()`, and the matching interfaces.
 
 Deliverable: given a path, a report naming the schema file, the per-view form
 XMLs, the language files, the detected layout family, the component code name,
 and which discovery tier found each. No interpretation, no writes, no database
 — entirely unit testable against fixture trees.
 
-This phase is where the containment work lives: realpath checks, symlink
-refusal, depth/count caps, and the traversal, absolute-path, mixed-separator,
-and symlink test cases that AGENTS.md already requires of remote file
-operations.
+This phase carries the containment work: realpath checks, symlink refusal,
+depth/count caps, and the traversal, absolute-path, mixed-separator, and
+symlink test cases AGENTS.md already requires of remote file operations.
+
+It also carries a provider test proving every service resolves from the
+container and that `reset()` fully clears state between two runs in one
+request.
 
 ### Phase 2 — pure readers
 
 `Reader\Schema`, `Reader\Sql\{Splitter,CreateTable,Insert}`, `Reader\Form`,
-`Reader\Language`, `Model\{Table,Column,Fieldset,FormField}`,
-`Service/Reader.php`.
+`Reader\Language`, `Registry\{Schema,Form,Language}`, `Service/Reader.php`.
 
-Deliverable: inventory → structured data, with the live-DDL temp table gone.
-Gate: column-metadata parity against the temp-table implementation over
+Deliverable: inventory → populated registries, with the live-DDL temp table
+gone. Gate: column-metadata parity against the temp-table implementation over
 `admin/sql/install.mysql.utf8.sql`.
 
 ### Phase 3 — resolve and build the administrator area
 
 `Resolver\{Precedence,Fieldtype,Language,ViewName,Role,Tab,Condition,FieldXml}`,
-`Writer\*`, `Model\{FieldDefinition,ViewDefinition,Value}`, `Extruder`,
-`Service/{Resolver,Writer}.php`.
+`Writer\*`, `Registry\Resolved`, `Service/{Resolver,Writer}.php`.
 
 Deliverable: the feature. Point at a component folder, get views and fields
 with XML-sourced types and attributes, real English labels, fieldset-derived
-tabs, `showon`-derived conditions, GUIDs, component linkage, and an idempotent
-second run. Fix the `array_search()` list-flag defect here and retire it from
-the defect ledger.
+tabs, `showon`-derived conditions, GUIDs, component linkage, a working
+`dryRun`, and an idempotent second run. Fix the `array_search()` list-flag
+defect here and retire it from the defect ledger.
 
 ### Phase 4 — code extrusion
 
@@ -482,7 +646,9 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
   object. They can be built and tested in full isolation, which is the main
   argument for the discovery/reading/resolution split.
 - Phase 3 is the only phase that writes, and every write goes through
-  `Data\*`. No new `db->insertObject()` calls.
+  injected `Data\*` services.
+- `new` must appear in no file outside `Extrusion/Service/*.php`. This is
+  cheap to enforce mechanically and worth a guard in the test project.
 - Each new production declaration takes its `test-ownership.php` entry in the
   same change. Nothing enters `coverage-baseline.php`.
 - `php bin/check-php-style.php --base=<merge-base>` and
@@ -497,16 +663,12 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
    browse, or a `#__componentbuilder_server` entry. Affects `Config` only, but
    the containment rules depend on the answer.
 2. **Do we import site views and modules in the same pass?** The
-   administrator area is the stated first objective; the same inventory
-   already sees `site/` and would make the extension later rather than a
-   rewrite.
+   administrator area is the stated first objective; the `site` scope option
+   is reserved so this becomes an extension rather than a rewrite.
 3. **Language: import or resolve only?** Resolving to English strings is
-   required. Additionally populating `#__componentbuilder_language_translation`
-   from the component's other language packs is a cheap add-on with real
-   value, but it is scope.
-4. **Existing-component behavior.** Merge into the current definitions,
-   replace them, or refuse and require an empty component. The idempotency
-   design supports merge; the policy is a product decision.
+   required; the `translations` option covers the wider import if wanted.
+4. **`mode` default.** `create` is the safer default, but most real use is
+   probably `update` against an existing component definition.
 5. **Collision override table for field types.** `Text`/`Tel` is the only
    collision in the seeded data today; whether that table is code or a new
    `fieldtype` column is worth deciding before phase 3.
