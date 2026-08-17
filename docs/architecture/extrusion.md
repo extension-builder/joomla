@@ -503,7 +503,7 @@ which is the only real cost of this change:
   `Mapping::getKeyStatus()` survives.
 
 Parity is provable: run both implementations over JCB's own
-`admin/sql/install.mysql.utf8.sql` (53 tables) and diff the column metadata.
+`admin/sql/install.mysql.utf8.sql` (52 tables) and diff the column metadata.
 That is the gate for retiring the temp-table path.
 
 `Reader\Sql\Insert` keeps the existing seed-data capture that feeds
@@ -1015,6 +1015,12 @@ Two further notes for whoever continues this:
   switches. Extruding them produced duplicate, unusable field definitions. The
   skip list is a `Config` option so a component with a genuinely meaningful
   `params` column can keep it.
+- **A default of `0` is now reported where the legacy path reported nothing.**
+  `Helper\Mapping` guarded its default with `!empty()`, so `DEFAULT 0` became an
+  empty string — an `empty('0')` artifact rather than an intention. The parser
+  reports `'0'`, which is the truthful metadata and which `Writer\Field` maps to
+  a catalogue default rather than an `Other` value. Anyone building a parity gate
+  against the legacy output should expect this one deliberate divergence.
 - **`Locator\Table` runs only at discovery tier 3, and that is correct.** Its
   target has no predictable location, so there is no placement-map shortcut —
   yet what it finds outranks every other source. A file found by the weakest
