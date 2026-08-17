@@ -259,6 +259,37 @@ PHP;
 	}
 
 	/**
+	 * Read a variadic argument's type, and a zero default as the value it is.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testParserReadsVariadicTypesAndZeroDefaults(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	private function join(string ...$parts): bool
+	{
+		return true;
+	}
+
+	public function update(string $string, int $debug = 0, ?array $extra = null): string
+	{
+		return $string;
+	}
+}
+PHP;
+		$methods = (new Parser())->code($code)['methods'];
+
+		$this->assertSame('string', $methods[0]['arguments']['$parts']['type']);
+		$this->assertNull($methods[0]['arguments']['$parts']['default']);
+		$this->assertSame('int', $methods[1]['arguments']['$debug']['type']);
+		$this->assertSame('0', $methods[1]['arguments']['$debug']['default']);
+		$this->assertSame('null', $methods[1]['arguments']['$extra']['default']);
+	}
+	/**
 	 * Keep property names and defaults that span underscores and nested arrays.
 	 *
 	 * @return  void

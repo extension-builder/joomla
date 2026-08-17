@@ -653,7 +653,7 @@ final class Parser
 			$signature = $eqPos === false ? $argument : substr($argument, 0, $eqPos);
 			$default = $eqPos === false ? null : $this->flatten(substr($argument, $eqPos + 1));
 
-			if (preg_match('/(?:(' . self::TYPE . ')\s+)?&?\s*\$(\w+)/', $signature, $arg_matches))
+			if (preg_match('/(?:(' . self::TYPE . ')\s+)?&?\s*(?:\.\.\.)?\s*\$(\w+)/', $signature, $arg_matches))
 			{
 				$type = $arg_matches[1] ?: null;
 				$name = $arg_matches[2] ?: null;
@@ -767,7 +767,7 @@ final class Parser
 			$mergedArguments[$name] = [
 				'name' => $name,
 				'type' => $declarationInfo['type'] ?: $argTypesFromComments[$name] ?? null,
-				'default' => $declarationInfo['default'] ?: null,
+				'default' => $declarationInfo['default'] ?? null,
 			];
 		}
 
