@@ -159,6 +159,15 @@
       "Architecture/ComHelperClass/CryptKey.php"
     ]
   },
+  "setControllerEximportMethod": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Controller/EximportMethod.php",
+        "matched": 6
+      }
+    ]
+  },
   "setCustomQuery": {
     "fingerprints": 6,
     "moved_into": [

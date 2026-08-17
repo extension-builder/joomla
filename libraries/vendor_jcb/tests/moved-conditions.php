@@ -61,6 +61,30 @@ return [
 			=> 'evaluated twice on values that cannot change between the two points, so it is read once into $hasSides',
 		'elseif(3==$footable_version)'
 			=> 'the branch above it was a version branch, so this became the leading if',
+		'if($current_version)'
+			=> 'the variable was renamed to $currentVersion when the method moved',
+		'if(($data=$this->getLayoutOverride($nameSingleCode,$layoutName))'
+			=> 'the helper was renamed to getOverride once the class no longer needed the concern in the name',
+		'if(($_customTabHTML=$this->addCustomTabs('
+			=> 'the tabs are built once into a registry now, so this reads what addCustomTabs used to return',
+		'if(S->exists($nameSingleCode))'
+			=> 'the whole body sat inside this guard, so it became an early return on !exists',
+		'if(S->exists($nameListCode))'
+			=> 'the whole body sat inside this guard, so it became an early return on !exists',
+		'if(S->set($addTrashHelper,$nameListCode))'
+			=> 'the guard was written once in each of two sibling view bodies, and the shared class writes it once',
+		'if(CFactory::_("Compiler.Builder.Items.Method.{$action_}.String")->exists($nameSingleCode))'
+			=> 'the service name built from $action_ became injected registries and a map over the only two values the caller sets',
+		"if(CFactory::_('Compiler.Builder.Model.'.ucfirst(\$cryptionType).'.Field')->"
+			=> 'the service name built from $cryptionType became injected registries and a map over the cryption types the config carries',
+		"if(CFactory::_('Compiler.Builder.Model.'.ucfirst(\$cryptionType).'.Field.Initiator')->"
+			=> 'the service name built from $cryptionType became injected registries and a map over the cryption types the config carries',
+		"elseif(CFactory::_('Compiler.Builder.Model.'.ucfirst(\$cryptionType).'.Field.Initiator')->"
+			=> 'the service name built from $cryptionType became injected registries and a map over the cryption types the config carries',
+		'if(isset($this->eximportView[$nameListCode])'
+			=> 'the array became a Registry, so isset() && truthy is the truthiness of get()',
+		'if(isset($this->importCustomScripts[$nameListCode])'
+			=> 'the array became a Registry, so isset() && truthy is the truthiness of get()',
 	],
 	// conditions the classes carry that no legacy helper had
 	'arrived' => [
@@ -106,5 +130,23 @@ return [
 			=> 'the dynamic service name became injected registries and a map over the only two values the caller sets',
 		'if($customAdminAdded!==null)'
 			=> 'lets the caller hand over state the compiler filled earlier, and gates no generated output',
+		'if($currentVersion)'
+			=> 'the renamed variable of the same check',
+		'if(($data=$this->getOverride($nameSingleCode,$layoutName))'
+			=> 'the renamed helper of the same check',
+		'if(($_customTabHTML=S->get('
+			=> 'reads the registry the tabs are built into, where the legacy called the builder and read its return',
+		'if(ArrayHelper::check($queued))'
+			=> 'shim plumbing that carries the builder queue back onto the legacy public property, and gates no generated output',
+		'if($this->itemsMethodString($action_)->exists($nameSingleCode))'
+			=> 'the map that replaced the service name built from $action_',
+		'if(S->'
+			=> 'the map that replaced the service name built from $cryptionType',
+		'elseif(S->'
+			=> 'the map that replaced the service name built from $cryptionType',
+		'if(!S->get($nameListCode))'
+			=> 'the whole body sat inside the eximport guard, so it became an early return on a falsy Registry read',
+		'if(S->get($nameListCode))'
+			=> 'the Registry read that replaced isset() && truthy on the array it succeeded',
 	],
 ];
