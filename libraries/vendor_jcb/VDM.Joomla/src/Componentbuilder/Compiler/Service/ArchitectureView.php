@@ -81,6 +81,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\Vie
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as SharedAdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListHead as J3AdminViewsListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface as AdminViewsListBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListBody as SharedAdminViewsListBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListBody as J3AdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod as SharedAdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\DisplayMethod as J3AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface as CustomViewDisplayMethod;
@@ -324,6 +327,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsListHead::class, 'Architecture.AdminViews.J3.ListHead')
 			->share('Architecture.AdminViews.J3.ListHead', [$this, 'getJ3AdminViewsListHead'], true);
+
+		$container->alias(AdminViewsListBody::class, 'Architecture.AdminViews.ListBody')
+			->share('Architecture.AdminViews.ListBody', [$this, 'getAdminViewsListBody'], true);
+
+		$container->alias(SharedAdminViewsListBody::class, 'Architecture.AdminViews.Shared.ListBody')
+			->share('Architecture.AdminViews.Shared.ListBody', [$this, 'getSharedAdminViewsListBody'], true);
+
+		$container->alias(J3AdminViewsListBody::class, 'Architecture.AdminViews.J3.ListBody')
+			->share('Architecture.AdminViews.J3.ListBody', [$this, 'getJ3AdminViewsListBody'], true);
 
 		$container->alias(AdminViewsDisplayMethod::class, 'Architecture.AdminViews.DisplayMethod')
 			->share('Architecture.AdminViews.DisplayMethod', [$this, 'getAdminViewsDisplayMethod'], true);
@@ -1666,6 +1678,73 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Field.Names'),
 			$container->get('Compiler.Builder.List.Head.Override'),
 			$container->get('Compiler.Builder.List.Column.Number')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ListBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsListBody
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsListBody(Container $container): AdminViewsListBody
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 loads the checked out user from the global factory
+		// and carries no modal guard on its permission tests
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.ListBody');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.ListBody');
+	}
+
+	/**
+	 * Get The AdminViews ListBody Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsListBody
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsListBody(Container $container): SharedAdminViewsListBody
+	{
+		return new SharedAdminViewsListBody(
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Compiler.Builder.Lists'),
+			$container->get('Architecture.AdminViews.ListItemBuilder'),
+			$container->get('Architecture.AdminViews.ListLink'),
+			$container->get('Compiler.Builder.List.Field.Class'),
+			$container->get('Compiler.Builder.Do.Not.Escape'),
+			$container->get('Compiler.Builder.Field.Names')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ListBody Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsListBody
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsListBody(Container $container): J3AdminViewsListBody
+	{
+		return new J3AdminViewsListBody(
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Compiler.Builder.Lists'),
+			$container->get('Architecture.AdminViews.ListItemBuilder'),
+			$container->get('Architecture.AdminViews.ListLink'),
+			$container->get('Compiler.Builder.List.Field.Class'),
+			$container->get('Compiler.Builder.Do.Not.Escape'),
+			$container->get('Compiler.Builder.Field.Names')
 		);
 	}
 
