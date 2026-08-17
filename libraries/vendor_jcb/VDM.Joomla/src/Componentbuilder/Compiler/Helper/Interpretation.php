@@ -12560,81 +12560,21 @@ class Interpretation extends Fields
 			->get($views, (string) $tab);
 	}
 
+	/**
+	 * Add the selection translation method to a list model.
+	 *
+	 * @param   string  $views      The list view code name.
+	 * @param   string  $Component  Unused, kept for the legacy signature.
+	 *
+	 * @return  string  The generated method.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Model.SelectionTranslationMethod service.
+	 */
 	public function setSelectionTranslationFixFunc($views, $Component)
 	{
-		// add the fix if this view has the need for it
-		$fix = '';
-		if (CFactory::_('Compiler.Builder.Selection.Translation')->exists($views))
-		{
-			$fix .= PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * Method to convert selection values to translatable string.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1) . " * @return  string   The translatable string.";
-			$fix .= PHP_EOL . Indent::_(1) . " */";
-			$fix .= PHP_EOL . Indent::_(1)
-				. "public function selectionTranslation(\$value,\$name)";
-			$fix .= PHP_EOL . Indent::_(1) . "{";
-			foreach (CFactory::_('Compiler.Builder.Selection.Translation')->
-				get($views) as $name => $values)
-			{
-				if (ArrayHelper::check($values))
-				{
-					$fix     .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Array of " . $name . " language strings";
-					$fix     .= PHP_EOL . Indent::_(2) . "if (\$name === '"
-						. $name . "')";
-					$fix     .= PHP_EOL . Indent::_(2) . "{";
-					$fix     .= PHP_EOL . Indent::_(3) . "\$" . $name
-						. "Array = array(";
-					$counter = 0;
-					foreach ($values as $value => $translang)
-					{
-						// only add quotes to strings
-						if (StringHelper::check($value))
-						{
-							$key = "'" . $value . "'";
-						}
-						else
-						{
-							if ($value == '')
-							{
-								$value = 0;
-							}
-							$key = $value;
-						}
-						if ($counter == 0)
-						{
-							$fix .= PHP_EOL . Indent::_(4) . $key . " => '"
-								. $translang . "'";
-						}
-						else
-						{
-							$fix .= "," . PHP_EOL . Indent::_(4) . $key
-								. " => '" . $translang . "'";
-						}
-						$counter++;
-					}
-					$fix .= PHP_EOL . Indent::_(3) . ");";
-					$fix .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Now check if value is found in this array";
-					$fix .= PHP_EOL . Indent::_(3) . "if (isset(\$" . $name
-						. "Array[\$value]) && "
-						. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$" . $name . "Array[\$value]))";
-					$fix .= PHP_EOL . Indent::_(3) . "{";
-					$fix .= PHP_EOL . Indent::_(4) . "return \$" . $name
-						. "Array[\$value];";
-					$fix .= PHP_EOL . Indent::_(3) . "}";
-					$fix .= PHP_EOL . Indent::_(2) . "}";
-				}
-			}
-			$fix .= PHP_EOL . Indent::_(2) . "return \$value;";
-			$fix .= PHP_EOL . Indent::_(1) . "}";
-		}
-
-		return $fix;
+		return CFactory::_('Architecture.Model.SelectionTranslationMethod')
+			->get($views);
 	}
 
 	public function setRouterCase($viewsCodeName)
