@@ -55,6 +55,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLo
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields as AdminViewTabLayoutFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as SharedAdminViewsViewBody;
@@ -224,6 +226,12 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewFadeInEffect::class, 'Architecture.AdminView.FadeInEffect')
 			->share('Architecture.AdminView.FadeInEffect', [$this, 'getAdminViewFadeInEffect'], true);
+
+		$container->alias(AdminViewCustomTabs::class, 'Architecture.AdminView.CustomTabs')
+			->share('Architecture.AdminView.CustomTabs', [$this, 'getAdminViewCustomTabs'], true);
+
+		$container->alias(AdminViewTabLayoutFields::class, 'Architecture.AdminView.TabLayoutFields')
+			->share('Architecture.AdminView.TabLayoutFields', [$this, 'getAdminViewTabLayoutFields'], true);
 
 		$container->alias(LayoutView::class, 'Architecture.Layout.View')
 			->share('Architecture.Layout.View', [$this, 'getLayoutView'], true);
@@ -1000,6 +1008,36 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewFadeInEffect(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AdminView CustomTabs Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewCustomTabs
+	 * @since   6.1.7
+	 */
+	public function getAdminViewCustomTabs(Container $container): AdminViewCustomTabs
+	{
+		return new AdminViewCustomTabs(
+			$container->get('Compiler.Builder.Custom.Tabs')
+		);
+	}
+
+	/**
+	 * Get The AdminView TabLayoutFields Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewTabLayoutFields
+	 * @since   6.1.7
+	 */
+	public function getAdminViewTabLayoutFields(Container $container): AdminViewTabLayoutFields
+	{
+		return new AdminViewTabLayoutFields(
+			$container->get('Compiler.Builder.Layout')
 		);
 	}
 
