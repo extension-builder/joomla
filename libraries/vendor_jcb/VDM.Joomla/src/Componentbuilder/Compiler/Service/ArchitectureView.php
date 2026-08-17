@@ -57,6 +57,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as Adm
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead as LinkedViewListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface as LinkedViewListBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListBody as SharedLinkedViewListBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListBody as J3LinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface as AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface as AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedAdminViewFootableScripts;
@@ -239,6 +242,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkedViewListHead::class, 'Architecture.LinkedView.ListHead')
 			->share('Architecture.LinkedView.ListHead', [$this, 'getLinkedViewListHead'], true);
+
+		$container->alias(LinkedViewListBody::class, 'Architecture.LinkedView.ListBody')
+			->share('Architecture.LinkedView.ListBody', [$this, 'getLinkedViewListBody'], true);
+
+		$container->alias(SharedLinkedViewListBody::class, 'Architecture.LinkedView.Shared.ListBody')
+			->share('Architecture.LinkedView.Shared.ListBody', [$this, 'getSharedLinkedViewListBody'], true);
+
+		$container->alias(J3LinkedViewListBody::class, 'Architecture.LinkedView.J3.ListBody')
+			->share('Architecture.LinkedView.J3.ListBody', [$this, 'getJ3LinkedViewListBody'], true);
 
 		$container->alias(AdminViewEditBody::class, 'Architecture.AdminView.EditBody')
 			->share('Architecture.AdminView.EditBody', [$this, 'getAdminViewEditBody'], true);
@@ -1070,6 +1082,70 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Lists'),
 			$container->get('Compiler.Creator.Permission'),
 			$container->get('Compiler.Builder.List.Head.Override'),
+			$container->get('Compiler.Builder.Field.Names')
+		);
+	}
+
+	/**
+	 * Get The LinkedView ListBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LinkedViewListBody
+	 * @since   6.1.7
+	 */
+	public function getLinkedViewListBody(Container $container): LinkedViewListBody
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 loads the checked out user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.LinkedView.J3.ListBody');
+		}
+
+		return $container->get('Architecture.LinkedView.Shared.ListBody');
+	}
+
+	/**
+	 * Get The LinkedView ListBody Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedLinkedViewListBody
+	 * @since   6.1.7
+	 */
+	public function getSharedLinkedViewListBody(Container $container): SharedLinkedViewListBody
+	{
+		return new SharedLinkedViewListBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Lists'),
+			$container->get('Architecture.AdminViews.ListItemBuilder'),
+			$container->get('Architecture.AdminViews.ListLink'),
+			$container->get('Compiler.Builder.Do.Not.Escape'),
+			$container->get('Compiler.Builder.Field.Names')
+		);
+	}
+
+	/**
+	 * Get The LinkedView ListBody Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3LinkedViewListBody
+	 * @since   6.1.7
+	 */
+	public function getJ3LinkedViewListBody(Container $container): J3LinkedViewListBody
+	{
+		return new J3LinkedViewListBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Lists'),
+			$container->get('Architecture.AdminViews.ListItemBuilder'),
+			$container->get('Architecture.AdminViews.ListLink'),
+			$container->get('Compiler.Builder.Do.Not.Escape'),
 			$container->get('Compiler.Builder.Field.Names')
 		);
 	}

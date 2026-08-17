@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminViewListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DynamicButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListLinkInterface;
 
 
 /**
@@ -33,7 +34,7 @@ use VDM\Joomla\Utilities\ArrayHelper;
  *
  * @since  6.1.7
  */
-final class ListLink
+final class ListLink implements ListLinkInterface
 {
 	/**
 	 * The Config Class.
