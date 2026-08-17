@@ -92,6 +92,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Model/CanDelete' => $all,
 			'Model/CanEditState' => $all,
 			'Model/CheckInNow' => $all,
+			'Model/GetForm' => $legacy,
 			'Model/ItemsMethod' => $legacy,
 			'Model/ItemsStringFix' => $legacy,
 			'Model/ListQuery' => $legacy,
@@ -110,7 +111,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(40, $families);
+		$this->assertCount(41, $families);
 
 		foreach ($families as $family => $diverging)
 		{
