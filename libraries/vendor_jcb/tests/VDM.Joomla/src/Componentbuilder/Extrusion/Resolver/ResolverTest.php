@@ -166,6 +166,12 @@ final class ResolverTest extends TestCase
 		$this->assertFalse($guid->valid('b7d0f1a2-3c64-4f18-9a5e-2f7c8d1b6e3'), 'A short group is junk.');
 		$this->assertFalse($guid->valid('g7d0f1a2-3c64-4f18-9a5e-2f7c8d1b6e30'), 'Only hex is a GUID.');
 		$this->assertFalse($guid->valid('not-a-guid'));
+		$this->assertFalse(
+			$guid->valid("b7d0f1a2-3c64-4f18-9a5e-2f7c8d1b6e30\n"),
+			'A trailing newline is not part of an identity.'
+		);
+		$this->assertFalse($guid->valid('b7d0f1a2-3c64-4f18-9a5e-2f7c8d1b6e30 '));
+		$this->assertFalse($guid->valid(' b7d0f1a2-3c64-4f18-9a5e-2f7c8d1b6e30'));
 		$this->assertFalse($guid->valid(''));
 		$this->assertFalse($guid->valid(null));
 		$this->assertFalse($guid->valid(12345));
@@ -233,6 +239,12 @@ final class ResolverTest extends TestCase
 			'A supplied GUID is kept, lower cased.'
 		);
 		$this->assertSame(self::DERIVED_GUID, $derived);
+		$this->assertSame(
+			$derived,
+			$guid->prefer(self::SUPPLIED_GUID . "\n", self::DERIVED_PARTS),
+			'A GUID carrying stray whitespace must never be written as identity: '
+			. 'the same source would then insert again instead of updating.'
+		);
 		$this->assertSame($derived, $guid->prefer('junk', self::DERIVED_PARTS));
 		$this->assertSame($derived, $guid->prefer('', self::DERIVED_PARTS));
 		$this->assertSame($derived, $guid->prefer(null, self::DERIVED_PARTS));
@@ -260,6 +272,10 @@ final class ResolverTest extends TestCase
 			'A single word without an underscore is a label shouted, not a constant.'
 		);
 		$this->assertFalse($language->isConstant('COM_X Y'));
+		$this->assertFalse(
+			$language->isConstant("COM_X_Y\n"),
+			'A token with trailing whitespace is not a bare constant.'
+		);
 		$this->assertFalse($language->isConstant('_LEADING'));
 		$this->assertFalse($language->isConstant(''));
 		$this->assertFalse($language->isConstant(42));
@@ -298,6 +314,12 @@ final class ResolverTest extends TestCase
 		$this->assertSame('Plain text', $language->resolve('Plain text'));
 		$this->assertSame('', $language->resolve(4321));
 		$this->assertSame('fallback', $language->resolve(null, 'fallback'));
+		$this->assertSame("COM_DEMO_ITEM_NAME_LABEL\n", $language->resolve("COM_DEMO_ITEM_NAME_LABEL\n"));
+		$this->assertFalse(
+			$report->exists("unresolved.language.COM_DEMO_ITEM_NAME_LABEL\n"),
+			'A value that only looks like a constant must not put raw whitespace '
+			. 'into a report path.'
+		);
 	}
 
 	/**
