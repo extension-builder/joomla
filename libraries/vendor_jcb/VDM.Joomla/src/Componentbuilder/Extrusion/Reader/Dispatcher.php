@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -105,6 +106,14 @@ final class Dispatcher
 	protected TemplateReader $template;
 
 	/**
+	 * The Site View Reader.
+	 *
+	 * @var    SiteViewReader
+	 * @since  6.1.6
+	 */
+	protected SiteViewReader $siteview;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config           $config     The extrusion configuration.
@@ -128,7 +137,8 @@ final class Dispatcher
 		ReaderInterface $schema,
 		ReaderInterface $form,
 		LayoutReader $layout,
-		TemplateReader $template
+		TemplateReader $template,
+		SiteViewReader $siteview
 	)
 	{
 		$this->config = $config;
@@ -140,6 +150,7 @@ final class Dispatcher
 		$this->form = $form;
 		$this->layout = $layout;
 		$this->template = $template;
+		$this->siteview = $siteview;
 	}
 
 	/**
@@ -254,12 +265,21 @@ final class Dispatcher
 
 			if ($role === 'main')
 			{
-				// A view's own default.php is not a reusable JCB template. JCB generates
-				// the list and edit templates of an admin view itself, and a site view
-				// keeps its body in its own default column, so storing it as a template
-				// would duplicate it under a name nothing refers to. It is recorded here
-				// so a reader of the report can see it was found and deliberately passed
-				// over, rather than wonder where it went.
+				// On the site side a view's default template is the site view itself: JCB
+				// keeps its body in the view's own default column, so this is where a front
+				// end view comes from. On the administrator side the same file is compiled
+				// from the view's field set, so it is generated output belonging to nothing
+				// and is recorded as passed over rather than read.
+				if (($entry['scope'] ?? '') === 'site')
+				{
+					$read += $this->siteview->read(
+						$entry['path'],
+						$entry['view'] ?? null
+					) ? 1 : 0;
+
+					continue;
+				}
+
 				$this->skipped('main', $entry['path']);
 			}
 		}
@@ -290,10 +310,13 @@ final class Dispatcher
 			}
 
 			$name = $this->inventory->get($kind . '.' . $index . '.name');
+			$view = $this->inventory->get($kind . '.' . $index . '.view');
 			$entries[] = [
 				'path' => $path,
 				'name' => is_string($name) && $name !== '' ? $name : null,
-				'role' => (string) $this->inventory->get($kind . '.' . $index . '.role', '')
+				'role' => (string) $this->inventory->get($kind . '.' . $index . '.role', ''),
+				'scope' => (string) $this->inventory->get($kind . '.' . $index . '.scope', ''),
+				'view' => is_string($view) && $view !== '' ? $view : null
 			];
 		}
 

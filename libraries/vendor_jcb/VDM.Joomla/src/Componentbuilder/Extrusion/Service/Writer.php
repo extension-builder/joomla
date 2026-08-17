@@ -20,6 +20,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentSiteViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout as LayoutWriter;
@@ -66,6 +68,12 @@ class Writer implements ServiceProviderInterface
 
 		$container->alias(Component::class, 'Extrusion.Writer.Component')
 			->share('Extrusion.Writer.Component', [$this, 'getComponent'], true);
+
+		$container->alias(SiteView::class, 'Extrusion.Writer.SiteView')
+			->share('Extrusion.Writer.SiteView', [$this, 'getSiteView'], true);
+
+		$container->alias(ComponentSiteViews::class, 'Extrusion.Writer.ComponentSiteViews')
+			->share('Extrusion.Writer.ComponentSiteViews', [$this, 'getComponentSiteViews'], true);
 
 		$container->alias(LayoutWriter::class, 'Extrusion.Writer.Layout')
 			->share('Extrusion.Writer.Layout', [$this, 'getLayout'], true);
@@ -180,6 +188,47 @@ class Writer implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Site View Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteView
+	 * @since   6.1.6
+	 */
+	public function getSiteView(Container $container): SiteView
+	{
+		return new SiteView(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Source')
+		);
+	}
+
+	/**
+	 * Get the Component Site Views Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentSiteViews
+	 * @since   6.1.6
+	 */
+	public function getComponentSiteViews(Container $container): ComponentSiteViews
+	{
+		return new ComponentSiteViews(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Source')
+		);
+	}
+
+	/**
 	 * Get the Component Details Writer.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -282,7 +331,9 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Writer.ComponentAdminViews'),
 			$container->get('Extrusion.Writer.Component'),
 			$container->get('Extrusion.Writer.Layout'),
-			$container->get('Extrusion.Writer.Template')
+			$container->get('Extrusion.Writer.Template'),
+			$container->get('Extrusion.Writer.SiteView'),
+			$container->get('Extrusion.Writer.ComponentSiteViews')
 		);
 	}
 }

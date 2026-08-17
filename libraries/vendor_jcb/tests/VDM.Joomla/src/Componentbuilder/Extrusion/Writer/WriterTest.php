@@ -35,6 +35,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentSiteViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout;
@@ -67,6 +69,8 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(AdminView::class)]
 #[CoversClass(Component::class)]
 #[CoversClass(ComponentAdminViews::class)]
+#[CoversClass(ComponentSiteViews::class)]
+#[CoversClass(SiteView::class)]
 #[CoversClass(Dispatcher::class)]
 #[CoversClass(Field::class)]
 #[CoversClass(Layout::class)]
@@ -1036,7 +1040,7 @@ HTML;
 		$names = [
 			'field', 'admin_view', 'admin_fields', 'admin_fields_conditions',
 			'admin_custom_tabs', 'component_admin_views', 'joomla_component',
-			'layout', 'template'
+			'layout', 'template', 'site_view', 'component_site_views'
 		];
 		$writers = [];
 
@@ -1056,12 +1060,14 @@ HTML;
 			$writers['component_admin_views'],
 			$writers['joomla_component'],
 			$writers['layout'],
-			$writers['template']
+			$writers['template'],
+			$writers['site_view'],
+			$writers['component_site_views']
 		);
 		$expected = [
 			'joomla_component', 'field', 'admin_view', 'admin_fields',
 			'admin_fields_conditions', 'admin_custom_tabs', 'layout', 'template',
-			'component_admin_views'
+			'site_view', 'component_site_views', 'component_admin_views'
 		];
 
 		$this->assertSame($expected, array_keys($dispatcher->order()));
@@ -1071,18 +1077,18 @@ HTML;
 			'The component record is filled in first, because everything else belongs to it.'
 		);
 		$this->assertSame('component_admin_views', array_key_last($dispatcher->order()));
-		$this->assertSame(45, $dispatcher->dispatch());
+		$this->assertSame(66, $dispatcher->dispatch());
 		$this->assertSame($expected, $calls->getArrayCopy());
 		$this->assertSame(1, $this->report->get('written_counts.field'));
 		$this->assertSame(2, $this->report->get('written_counts.admin_view'));
 		$this->assertSame(6, $this->report->get('written_counts.component_admin_views'));
 		$this->assertSame(7, $this->report->get('written_counts.joomla_component'));
-		$this->assertSame(45, $this->report->get('counts.written'));
+		$this->assertSame(66, $this->report->get('counts.written'));
 
 		$this->config->set('admin', false);
 
 		$this->assertSame(
-			['joomla_component', 'layout', 'template'],
+			['joomla_component', 'layout', 'template', 'site_view', 'component_site_views'],
 			array_keys($dispatcher->order()),
 			'With the admin scope off the component record and the shared view layers '
 			. 'are still written.'
@@ -1686,7 +1692,46 @@ HTML;
 			$this->componentViews(),
 			$this->details(),
 			$this->layout(),
-			$this->template()
+			$this->template(),
+			$this->siteView(),
+			$this->componentSiteViews()
+		);
+	}
+
+	/**
+	 * The site view writer under test.
+	 *
+	 * @return  SiteView  The writer.
+	 * @since   6.1.6
+	 */
+	private function siteView(): SiteView
+	{
+		return new SiteView(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->view,
+			$this->guid,
+			$this->source
+		);
+	}
+
+	/**
+	 * The component site views writer under test.
+	 *
+	 * @return  ComponentSiteViews  The writer.
+	 * @since   6.1.6
+	 */
+	private function componentSiteViews(): ComponentSiteViews
+	{
+		return new ComponentSiteViews(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->guid,
+			$this->source
 		);
 	}
 
@@ -1706,5 +1751,106 @@ HTML;
 			$this->source,
 			new Language(new LanguageRegistry(), $this->report)
 		);
+	}
+	/**
+	 * A recovered site view is written whole and linked to the component.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSiteViewsAreWrittenAndLinkedToTheComponent(): void
+	{
+		$this->config->set('component', 9);
+		$this->view->set('site_view.app.name', 'app');
+		$this->view->set('site_view.app.codename', 'app');
+		$this->view->set('site_view.app.context', 'app');
+		$this->view->set('site_view.app.system_name', 'App');
+		$this->view->set('site_view.app.description', 'App');
+		$this->view->set('site_view.app.default', '<h1>App</h1>');
+		$this->view->set('site_view.app.php_view', '$a = 1;');
+		$this->view->set('site_view.app.add_php_view', 1);
+		$this->view->set('site_view.tag.name', 'tag');
+		$this->view->set('site_view.tag.default', '<p>Tag</p>');
+
+		$this->assertSame(2, $this->siteView()->write());
+
+		$app = $this->item->definitions('site_view')[0];
+
+		$this->assertSame('app', $app->name);
+		$this->assertSame('app', $app->codename);
+		$this->assertSame('app', $app->context);
+		$this->assertSame('App', $app->system_name);
+		$this->assertSame('<h1>App</h1>', $app->default);
+		$this->assertSame('$a = 1;', $app->php_view);
+		$this->assertSame(1, $app->add_php_view);
+		$this->assertSame(1, $app->published);
+		$this->assertSame(
+			(new Guid())->derive([self::OPTION, 'site_view', 'app']),
+			$app->guid
+		);
+		$this->assertSame(2, $this->report->get('counts.site_view'));
+		$this->assertStringContainsString(
+			'cannot be turned back into a dynamic get',
+			(string) $this->report->get('site_view.without_get'),
+			'A view with no recoverable data source has to say so.'
+		);
+
+		$this->assertSame(2, $this->componentSiteViews()->write());
+
+		$link = $this->item->definitions('component_site_views')[0];
+		$subform = $this->decode($link->addsite_views);
+
+		$this->assertSame(9, $link->joomla_component);
+		$this->assertSame(['addsite_views0', 'addsite_views1'], array_keys($subform));
+		$this->assertSame($app->guid, $subform['addsite_views0']['siteview']);
+		$this->assertSame(
+			1,
+			$subform['addsite_views0']['default_view'],
+			'A component with no default front end view has no reachable front end.'
+		);
+		$this->assertSame(0, $subform['addsite_views1']['default_view']);
+		$this->assertSame('app', $this->report->get('site_view.default'));
+		$this->assertSame(2, $this->report->get('counts.component_site_views'));
+	}
+
+	/**
+	 * Nothing is written when there is nothing to write or nowhere to link it.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testSiteViewsAreSkippedWhenThereIsNothingToWriteOrLink(): void
+	{
+		$this->assertSame(
+			0,
+			$this->siteView()->write(),
+			'A source with no site folder yields no site view.'
+		);
+		$this->assertSame(
+			0,
+			$this->componentSiteViews()->write(),
+			'With no site view recovered there is nothing to link.'
+		);
+		$this->assertNull($this->report->get('failed.component_site_views.no_component'));
+
+		$this->view->set('site_view.app.name', 'app');
+		$this->view->set('site_view.app.default', '<h1>App</h1>');
+		$this->config->set('siteViews', false);
+
+		$this->assertSame(
+			0,
+			$this->siteView()->write(),
+			'The scope switch has to be able to turn site views off entirely.'
+		);
+
+		$this->config->set('siteViews', true);
+		$this->siteView()->write();
+
+		$this->assertSame(
+			0,
+			$this->componentSiteViews()->write(),
+			'A view cannot be linked to a component the run was never given.'
+		);
+		$this->assertTrue($this->report->get('failed.component_site_views.no_component'));
 	}
 }

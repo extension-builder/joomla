@@ -102,6 +102,22 @@ final class Dispatcher
 	protected WriterInterface $details;
 
 	/**
+	 * The Site View Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.6
+	 */
+	protected WriterInterface $siteview;
+
+	/**
+	 * The Component Site Views Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.6
+	 */
+	protected WriterInterface $sitelink;
+
+	/**
 	 * The Layout Writer.
 	 *
 	 * @var    WriterInterface
@@ -129,6 +145,8 @@ final class Dispatcher
 	 * @param   WriterInterface  $tabs         The custom tabs writer.
 	 * @param   WriterInterface  $component    The component link writer.
 	 * @param   WriterInterface  $details      The component details writer.
+	 * @param   WriterInterface  $siteview     The site view writer.
+	 * @param   WriterInterface  $sitelink     The component site views writer.
 	 * @param   WriterInterface  $layout       The layout writer.
 	 * @param   WriterInterface  $template     The template writer.
 	 *
@@ -145,7 +163,9 @@ final class Dispatcher
 		WriterInterface $component,
 		WriterInterface $details,
 		WriterInterface $layout,
-		WriterInterface $template
+		WriterInterface $template,
+		WriterInterface $siteview,
+		WriterInterface $sitelink
 	)
 	{
 		$this->config = $config;
@@ -159,6 +179,8 @@ final class Dispatcher
 		$this->details = $details;
 		$this->layout = $layout;
 		$this->template = $template;
+		$this->siteview = $siteview;
+		$this->sitelink = $sitelink;
 	}
 
 	/**
@@ -204,6 +226,8 @@ final class Dispatcher
 
 		$order['layout'] = $this->layout;
 		$order['template'] = $this->template;
+		$order['site_view'] = $this->siteview;
+		$order['component_site_views'] = $this->sitelink;
 
 		if ($this->config->get('admin', true))
 		{

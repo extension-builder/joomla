@@ -91,24 +91,41 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	}
 
 	/**
-	 * The row id the default catalogue gives one JCB field type.
+	 * The guid the default catalogue gives one JCB field type.
+	 *
+	 * A real fieldtype row is identified by its guid and nothing else -- the numeric
+	 * id is install specific, and field.fieldtype is a VARCHAR(36) holding the guid.
+	 * The served guids are derived from the row id so they stay stable and readable.
 	 *
 	 * @param   string  $name  The JCB field type name.
 	 *
-	 * @return  int  The row id, or 0 when the type is not served.
+	 * @return  string  The guid, or an empty string when the type is not served.
 	 * @since   6.1.6
 	 */
-	public static function identity(string $name): int
+	public static function identity(string $name): string
 	{
 		foreach (self::TYPES as $type)
 		{
 			if (strcasecmp($type['name'], $name) === 0)
 			{
-				return $type['id'];
+				return self::guid($type['id']);
 			}
 		}
 
-		return 0;
+		return '';
+	}
+
+	/**
+	 * The guid this fixture serves for one row id.
+	 *
+	 * @param   int  $id  The row id.
+	 *
+	 * @return  string  A stable well formed guid.
+	 * @since   6.1.6
+	 */
+	public static function guid(int $id): string
+	{
+		return sprintf('%08d-0000-4000-8000-000000000000', $id);
 	}
 
 	/**
@@ -162,6 +179,7 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 		{
 			$rows[] = (object) [
 				'id' => $type['id'],
+				'guid' => self::guid($type['id']),
 				'name' => $type['name'],
 				'properties' => json_encode($this->properties($type['type']))
 			];

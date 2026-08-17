@@ -433,6 +433,8 @@ final class ExtruderTest extends FilesystemTestCase
 				'admin_custom_tabs' => 1,
 				'layout' => 1,
 				'template' => 1,
+				'site_view' => 0,
+				'component_site_views' => 0,
 				'component_admin_views' => 2
 			],
 			(array) $report->get('written_counts')
@@ -651,6 +653,8 @@ SQL;
 				'admin_custom_tabs' => 0,
 				'layout' => 0,
 				'template' => 0,
+				'site_view' => 0,
+				'component_site_views' => 0,
 				'component_admin_views' => 1
 			],
 			(array) $report->get('written_counts'),

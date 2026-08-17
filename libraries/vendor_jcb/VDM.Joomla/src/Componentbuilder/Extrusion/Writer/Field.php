@@ -186,6 +186,14 @@ final class Field extends Writer
 			? $this->fieldtype->resolve($type)
 			: $this->fieldtype->fallback($type);
 
+		if ($link === [])
+		{
+			// Two field types can answer to one XML type because one is a narrower kind
+			// of the other, and the field's own validation says which was meant.
+			$narrower = $this->fieldtype->discriminate($type, $this->attributes($properties));
+			$fieldtype = $narrower ?? $fieldtype;
+		}
+
 		if ($fieldtype === null)
 		{
 			$this->report->set('failed.field.unresolved_type.' . $this->key($column), $type);
@@ -209,10 +217,26 @@ final class Field extends Writer
 		$size = (string) $this->value($properties, 'size', '');
 		$default = (string) $this->value($properties, 'default', '');
 
+		$identity = trim((string) ($fieldtype['guid'] ?? ''));
+
+		if ($identity === '')
+		{
+			// field.fieldtype is a VARCHAR(36) holding the field type's own guid, which is
+			// the only identity that survives being moved between installs. A numeric id
+			// written there compiles to nothing, so a catalogue row with no guid is a
+			// failure to resolve rather than something to write around.
+			$this->report->set(
+				'failed.field.unidentified_type.' . $this->key($column),
+				$fieldtype['name'] ?? $type
+			);
+
+			return false;
+		}
+
 		$definition = new \stdClass();
 		$definition->guid = $guid;
 		$definition->name = $label;
-		$definition->fieldtype = $fieldtype['id'];
+		$definition->fieldtype = $identity;
 		$definition->datatype = (string) $this->value($properties, 'datatype', 'TEXT');
 		$definition->indexes = (int) $this->value($properties, 'key', 0);
 		$definition->null_switch = (string) $this->value($properties, 'null', 'NULL');
@@ -244,6 +268,31 @@ final class Field extends Writer
 		);
 
 		return true;
+	}
+
+	/**
+	 * The attributes a resolved field states, flattened for comparison.
+	 *
+	 * @param   array<string, mixed>  $properties  The resolved properties.
+	 *
+	 * @return  array<string, mixed>  Attribute name keyed to its value.
+	 * @since   6.1.6
+	 */
+	protected function attributes(array $properties): array
+	{
+		$attributes = (array) ($this->value($properties, 'attributes', []) ?? []);
+
+		foreach (['validate', 'filter'] as $name)
+		{
+			$value = $this->value($properties, $name);
+
+			if ($value !== null)
+			{
+				$attributes[$name] = $value;
+			}
+		}
+
+		return $attributes;
 	}
 
 	/**
