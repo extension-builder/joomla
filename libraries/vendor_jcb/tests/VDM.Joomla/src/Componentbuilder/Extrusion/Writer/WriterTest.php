@@ -850,6 +850,51 @@ HTML;
 		$this->assertSame(1, $subform['addconditions1']['target_behavior']);
 		$this->assertSame('#ffffff,#000000', $subform['addconditions1']['options']);
 		$this->assertSame(1, $this->report->get('counts.admin_fields_conditions'));
+
+		$this->assertSame(
+			'its match field was not extruded as a field',
+			$this->report->get('dropped.condition.item.phantom'),
+			'A dropped dependency must be named in the report, not lost quietly.'
+		);
+		$this->assertSame(
+			'the target field was not extruded as a field',
+			$this->report->get('dropped.condition.item.ghost'),
+			'An unresolvable target must be named in the report too.'
+		);
+	}
+
+	/**
+	 * A dependency on a column Joomla manages itself is reported, not lost.
+	 *
+	 * A real component routinely writes showon="access:1". JCB generates access
+	 * from its own switch rather than as an extruded field, so the dependency has
+	 * nothing to point at and has to be dropped. Dropping it silently would lose
+	 * part of the source component with nothing to show for it, which is exactly
+	 * what the getbible component exposed across three of its twelve views.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testADependencyOnABoilerplateColumnIsReported(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.conditions', [
+			['match' => 'access', 'targets' => ['counter'], 'values' => ['1'], 'negate' => false]
+		]);
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->seedWritten('item', 'counter', 'ffffffff-0000-4000-8000-0000000000c0');
+
+		$this->assertSame(
+			0,
+			$this->conditions()->write(),
+			'Nothing can be written when the only dependency has no match field.'
+		);
+		$this->assertSame([], $this->item->records());
+		$this->assertSame(
+			'its match field was not extruded as a field',
+			$this->report->get('dropped.condition.item.access'),
+			'The lost dependency must be visible in the report.'
+		);
 	}
 
 	/**
