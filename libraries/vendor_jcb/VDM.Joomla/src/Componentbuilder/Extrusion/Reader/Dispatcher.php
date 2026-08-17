@@ -251,6 +251,16 @@ final class Dispatcher
 
 			if ($role === 'template')
 			{
+				// JCB has no administrator templates. Everything in an administrator
+				// view's own folder is written by the compiler from that view's fields,
+				// so nothing there was ever a record and reading it would invent one.
+				if (($entry['scope'] ?? '') === 'admin')
+				{
+					$this->skipped('admin_template', $entry['path']);
+
+					continue;
+				}
+
 				if (!$this->config->templatable((string) $entry['name']))
 				{
 					$this->skipped('generated', $entry['path']);

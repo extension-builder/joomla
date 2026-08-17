@@ -390,7 +390,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue($second->get('completed'));
 		$this->assertSame('create', $second->get('mode'));
 		$this->assertSame(2, $second->get('counts.views'));
-		$this->assertSame(5, $second->get('counts.artifacts'));
+		$this->assertSame(4, $second->get('counts.artifacts'));
 		$this->assertSame('com_legacy', $source->get('code_name'));
 		$this->assertSame('J3', $source->get('layout'));
 		$this->assertNull(
@@ -423,7 +423,7 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertTrue($report->get('completed'));
 		$this->assertFalse($report->get('dry_run'));
-		$this->assertSame(6, $report->get('counts.artifacts'));
+		$this->assertSame(5, $report->get('counts.artifacts'));
 		$this->assertSame(2, $report->get('counts.views'));
 		$this->assertSame(
 			[
@@ -434,19 +434,19 @@ final class ExtruderTest extends FilesystemTestCase
 				'admin_fields_conditions' => 1,
 				'admin_custom_tabs' => 1,
 				'layout' => 1,
-				'template' => 1,
+				'template' => 0,
 				'site_view' => 0,
 				'component_site_views' => 0,
 				'component_admin_views' => 2
 			],
 			(array) $report->get('written_counts')
 		);
-		$this->assertSame(19, $report->get('counts.written'));
+		$this->assertSame(18, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame(
 			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2,
 				'admin_fields' => 2, 'admin_fields_conditions' => 1,
-				'admin_custom_tabs' => 1, 'layout' => 1, 'template' => 1,
+				'admin_custom_tabs' => 1, 'layout' => 1,
 				'component_admin_views' => 1],
 			$this->tallied()
 		);
@@ -492,9 +492,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertStringContainsString('<div class="example-layout">', $layout->layout);
 		$this->assertNotSame(base64_encode($layout->php_view), $layout->php_view);
 		$this->assertSame(
-			['extra'],
-			array_column($this->item->definitions('template'), 'name'),
-			'A template keeps its own JCB code name; the view own default.php is not one.'
+			[],
+			$this->item->definitions('template'),
+			'JCB has no administrator templates; the compiler writes them all.'
 		);
 
 		$seeded = $this->item->definition(
@@ -527,9 +527,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue($report->get('completed'));
 		$this->assertSame('J3', $this->source()->get('layout'));
 		$this->assertSame('com_legacy', $this->source()->get('code_name'));
-		$this->assertSame(5, $report->get('counts.artifacts'));
+		$this->assertSame(4, $report->get('counts.artifacts'));
 		$this->assertSame(2, $report->get('counts.views'));
-		$this->assertSame(19, $report->get('counts.written'));
+		$this->assertSame(18, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame('derived', $report->get('roles.item.origin'));
 		$this->assertTrue(
@@ -546,13 +546,13 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame(
 			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2, 'admin_fields' => 2,
 				'admin_fields_conditions' => 1, 'admin_custom_tabs' => 1,
-				'layout' => 1, 'template' => 1, 'component_admin_views' => 1],
+				'layout' => 1, 'component_admin_views' => 1],
 			$this->tallied()
 		);
 		$this->assertSame(
-			['extra'],
+			[],
 			array_column($this->item->definitions('template'), 'name'),
-			'The Joomla 3 view folder holds its templates one level deeper.'
+			'JCB has no administrator templates, on the legacy layout either.'
 		);
 		$this->assertStringContainsString(
 			'$total = count($displayData);',
@@ -845,7 +845,7 @@ SQL)->extrude();
 		$this->extruder()->path($this->modern())->component(7)->extrude();
 
 		$this->assertSame(
-			[['message' => 'Extruded 2 view(s) into 19 JCB definition(s).']],
+			[['message' => 'Extruded 2 view(s) into 18 JCB definition(s).']],
 			$this->messages()->level('success')
 		);
 		$this->assertSame(

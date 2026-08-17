@@ -1893,4 +1893,41 @@ SQL);
 			$this->report->get('site_view.bare.error')
 		);
 	}
+	/**
+	 * A front end view that edits a record is passed over, not half extruded.
+	 *
+	 * Such a view is an administrator view moved to the front: recovering it means
+	 * recovering the model and field set behind it, which is a different job. Writing
+	 * it as a site view would compile into a form with nothing in it.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAFrontEndEditViewIsNotExtrudedAsASiteView(): void
+	{
+		$reader = $this->siteViewReader();
+
+		$this->assertTrue($reader->editing('<?php echo $this->form->renderField("name"); ?>'));
+		$this->assertTrue($reader->editing('<form name="adminForm" method="post">'));
+		$this->assertTrue($reader->editing("<form name='adminForm'>"));
+		$this->assertTrue($reader->editing("<?php echo HTMLHelper::_('form.token'); ?>"));
+		$this->assertFalse($reader->editing('<h1>Just content</h1>'));
+		$this->assertFalse(
+			$reader->editing('<?php echo $this->item->name; ?>'),
+			'Displaying a record is not editing one.'
+		);
+
+		$edit = $this->writeTemporaryFile(
+			'site/tmpl/submit/default.php',
+			"<?php\ndefined('_JEXEC') or die;\n?>\n"
+			. '<form name="adminForm"><?php echo $this->form->renderField(\'name\'); ?></form>'
+		);
+
+		$this->assertFalse($reader->read($edit, 'submit'));
+		$this->assertFalse($this->view->exists('site_view.submit.name'));
+		$this->assertStringContainsString(
+			'a front end view that edits a record',
+			(string) $this->report->get('site_view.submit.skipped')
+		);
+	}
 }
