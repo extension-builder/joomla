@@ -54,6 +54,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkAu
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLogic;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ViewBody as J6AdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ViewBody as J5AdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\ViewBody as J4AdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ViewBody as J3AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ListHead as J6AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\ListHead as J5AdminViewsListHead;
@@ -226,6 +231,21 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsListLink::class, 'Architecture.AdminViews.ListLink')
 			->share('Architecture.AdminViews.ListLink', [$this, 'getAdminViewsListLink'], true);
+
+		$container->alias(AdminViewsViewBody::class, 'Architecture.AdminViews.ViewBody')
+			->share('Architecture.AdminViews.ViewBody', [$this, 'getAdminViewsViewBody'], true);
+
+		$container->alias(J6AdminViewsViewBody::class, 'Architecture.AdminViews.J6.ViewBody')
+			->share('Architecture.AdminViews.J6.ViewBody', [$this, 'getJ6AdminViewsViewBody'], true);
+
+		$container->alias(J5AdminViewsViewBody::class, 'Architecture.AdminViews.J5.ViewBody')
+			->share('Architecture.AdminViews.J5.ViewBody', [$this, 'getJ5AdminViewsViewBody'], true);
+
+		$container->alias(J4AdminViewsViewBody::class, 'Architecture.AdminViews.J4.ViewBody')
+			->share('Architecture.AdminViews.J4.ViewBody', [$this, 'getJ4AdminViewsViewBody'], true);
+
+		$container->alias(J3AdminViewsViewBody::class, 'Architecture.AdminViews.J3.ViewBody')
+			->share('Architecture.AdminViews.J3.ViewBody', [$this, 'getJ3AdminViewsViewBody'], true);
 
 		$container->alias(AdminViewsListHead::class, 'Architecture.AdminViews.ListHead')
 			->share('Architecture.AdminViews.ListHead', [$this, 'getAdminViewsListHead'], true);
@@ -1014,6 +1034,96 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Custom.Admin.View.List.Id'),
 			$container->get('Compiler.Builder.Custom.Admin.Added'),
 			$container->get('Compiler.Builder.Dynamic.Buttons')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ViewBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsViewBody
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsViewBody(Container $container): AdminViewsViewBody
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.AdminViews.J' . $this->targetVersion . '.ViewBody');
+	}
+
+	/**
+	 * Get The AdminViews ViewBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6AdminViewsViewBody
+	 * @since   6.1.7
+	 */
+	public function getJ6AdminViewsViewBody(Container $container): J6AdminViewsViewBody
+	{
+		return new J6AdminViewsViewBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ViewBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5AdminViewsViewBody
+	 * @since   6.1.7
+	 */
+	public function getJ5AdminViewsViewBody(Container $container): J5AdminViewsViewBody
+	{
+		return new J5AdminViewsViewBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ViewBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4AdminViewsViewBody
+	 * @since   6.1.7
+	 */
+	public function getJ4AdminViewsViewBody(Container $container): J4AdminViewsViewBody
+	{
+		return new J4AdminViewsViewBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ViewBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsViewBody
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsViewBody(Container $container): J3AdminViewsViewBody
+	{
+		return new J3AdminViewsViewBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Event')
 		);
 	}
 
