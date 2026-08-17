@@ -42,7 +42,7 @@ understood before changing the legacy helper chain.
    the present baseline to unit, contract, golden-output, and integration tests.
 11. [Source inventory](source-inventory.md) — a compact map of the relevant
    folders, service families, versioned implementations, and sibling libraries.
-11. [Extrusion engine](extrusion.md) — the reverse direction: the current SQL
+12. [Extrusion engine](extrusion.md) — the reverse direction: the current SQL
    dump contract and the proposed roadmap for extruding an existing component's
    source tree into JCB definitions.
 
