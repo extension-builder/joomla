@@ -108,6 +108,14 @@ final class Scope
 	protected Report $report;
 
 	/**
+	 * The Message Bus.
+	 *
+	 * @var    Message
+	 * @since  6.1.6
+	 */
+	protected Message $message;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config     $config     The extrusion configuration.
@@ -120,6 +128,7 @@ final class Scope
 	 * @param   View       $view       The classified view registry.
 	 * @param   Resolved   $resolved   The resolved definition registry.
 	 * @param   Report     $report     The run report registry.
+	 * @param   Message    $message    The message bus.
 	 *
 	 * @since   6.1.6
 	 */
@@ -133,7 +142,8 @@ final class Scope
 		Language $language,
 		View $view,
 		Resolved $resolved,
-		Report $report
+		Report $report,
+		Message $message
 	)
 	{
 		$this->config = $config;
@@ -146,6 +156,7 @@ final class Scope
 		$this->view = $view;
 		$this->resolved = $resolved;
 		$this->report = $report;
+		$this->message = $message;
 	}
 
 	/**
@@ -170,7 +181,7 @@ final class Scope
 	/**
 	 * Every state registry in the run, excluding the configuration.
 	 *
-	 * @return  array<string, Source|Inventory|Table|Schema|Form|Language|View|Resolved|Report>  The registries by name.
+	 * @return  array<string, Source|Inventory|Table|Schema|Form|Language|View|Resolved|Report|Message>  The registries by name.
 	 * @since   6.1.6
 	 */
 	public function registries(): array
@@ -184,7 +195,8 @@ final class Scope
 			'language' => $this->language,
 			'view' => $this->view,
 			'resolved' => $this->resolved,
-			'report' => $this->report
+			'report' => $this->report,
+			'message' => $this->message
 		];
 	}
 }

@@ -88,7 +88,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 	 * @since  6.1.6
 	 */
 	private const CONTRACTS = [
-		'ExtruderInterface' => ['reset', 'path', 'extrude'],
+		'ExtruderInterface' => ['reset', 'path', 'dump', 'extrude', 'messages'],
 		'LayoutInterface' => ['version', 'kinds', 'candidates', 'roots'],
 		'LocatorInterface' => ['kind', 'locate'],
 		'PrecedenceInterface' => ['resolve'],
@@ -125,9 +125,9 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => '3a198de224a88564b42e2a4deedf2ee460b0902849b7d4127592a0b253af0185'
 		]];
 		yield 'registry' => [Registry::class, [
-			'aliases' => 11,
-			'services' => 11,
-			'hash' => '26120d8b37fd135480b047a5b5b0abd03101ae9f56c68ed19d0ee56ee5e05230'
+			'aliases' => 12,
+			'services' => 12,
+			'hash' => '158fa6b9cf4d9602144338bb61f48e5f0f1177520a03920390d54ad61c02428a'
 		]];
 		yield 'discovery' => [Discovery::class, [
 			'aliases' => 14,
@@ -224,7 +224,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			}
 		}
 
-		$this->assertSame(62, $namespaced);
+		$this->assertSame(63, $namespaced);
 	}
 
 	/**

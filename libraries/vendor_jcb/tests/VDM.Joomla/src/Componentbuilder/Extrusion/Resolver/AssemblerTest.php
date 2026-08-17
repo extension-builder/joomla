@@ -837,4 +837,46 @@ PHP;
 		$this->assertSame([], (array) $this->resolved->get('view.item.relations'));
 		$this->assertNull($this->report->get('relations.item'));
 	}
+
+	/**
+	 * A stated list name outranks the English guess, and the guess still covers.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAStatedListNameOutranksTheDerivedPlural(): void
+	{
+		$this->table->set('table.example_item.listview', 'People');
+		$this->assembler->assemble();
+
+		$this->assertSame(
+			'people',
+			$this->resolved->get('view.item.name_list'),
+			'A list name the table class states must be used as it stands.'
+		);
+		$this->assertSame(
+			'people | items',
+			$this->report->get('origin.name_list.item'),
+			'A stated name that disagrees with the guess must be named in the report.'
+		);
+		$this->assertSame(
+			'categories',
+			$this->resolved->get('view.category.name_list'),
+			'A table no definition class describes still falls back to the plural.'
+		);
+		$this->assertNull(
+			$this->report->get('origin.name_list.tag'),
+			'A stated name that agrees with the guess is not worth reporting.'
+		);
+
+		$this->restate();
+		$this->table->set('table.example_item.listview', '  ');
+		$this->assembler->assemble();
+
+		$this->assertSame(
+			'items',
+			$this->resolved->get('view.item.name_list'),
+			'An empty stated name is no answer, so the plural has to cover for it.'
+		);
+	}
 }

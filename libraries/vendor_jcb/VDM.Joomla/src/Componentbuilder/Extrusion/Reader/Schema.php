@@ -120,6 +120,33 @@ final class Schema implements ReaderInterface
 			return false;
 		}
 
+		return $this->parse($sql, $path, $name);
+	}
+
+	/**
+	 * Parse a schema straight from its text.
+	 *
+	 * This is what lets a pasted dump be a complete source in its own right. The
+	 * dump-driven extrusion the component form offers and the folder-driven
+	 * extrusion both land here, so there is one parser and one set of results
+	 * rather than two engines that agree only by coincidence.
+	 *
+	 * @param   string       $sql     The schema text.
+	 * @param   string       $origin  Where the text came from, used in the report.
+	 * @param   string|null  $name    Optional artifact name.
+	 *
+	 * @return  bool  True when at least one table was understood.
+	 * @since   6.1.6
+	 */
+	public function parse(string $sql, string $origin = 'dump', ?string $name = null): bool
+	{
+		if (trim($sql) === '')
+		{
+			$this->report->set('schema.empty.' . $this->key($origin), true);
+
+			return false;
+		}
+
 		$tables = 0;
 
 		foreach ($this->splitter->split($sql) as $statement)
@@ -128,7 +155,7 @@ final class Schema implements ReaderInterface
 
 			if ($table !== null)
 			{
-				$this->table($table, $path, $name);
+				$this->table($table, $origin, $name);
 				$tables++;
 
 				continue;

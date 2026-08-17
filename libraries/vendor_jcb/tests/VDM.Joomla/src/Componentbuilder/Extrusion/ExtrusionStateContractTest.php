@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -166,7 +167,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$config = new Config();
 
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(23, $config);
+		$this->assertCount(24, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertSame(0, $config->get('component'));
 		$this->assertSame('update', $config->get('onExisting'));
@@ -216,14 +217,14 @@ final class ExtrusionStateContractTest extends TestCase
 
 		$this->assertSame('update', $config->get('mode'));
 		$this->assertSame('value', $config->get('custom'));
-		$this->assertCount(24, $config);
+		$this->assertCount(25, $config);
 
 		$cleared = $config->clear();
 
 		$this->assertSame($config, $cleared);
 		$this->assertNotSame([], $config->toArray());
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(23, $config);
+		$this->assertCount(24, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertFalse($config->get('dryRun'));
 		$this->assertSame(Config::TIERS, $config->get('precedence'));
@@ -261,7 +262,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('update', $config->get('onExisting'));
 		$this->assertSame(20000, $config->get('maxFiles'));
 		$this->assertSame(Config::BOILERPLATE, $config->get('skipColumns'));
-		$this->assertCount(24, $config);
+		$this->assertCount(25, $config);
 
 		$this->assertSame(0, $config->rank('xml'), 'the configured precedence must drive the ranks.');
 		$this->assertSame(5, $config->rank('table'));
@@ -288,7 +289,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertFalse($fromString->selected('note'));
 		$this->assertTrue($fromString->selected('article'));
 		$this->assertSame('en-GB', $fromString->get('languageTag'));
-		$this->assertCount(23, $fromString);
+		$this->assertCount(24, $fromString);
 
 		$fromObject = new Config((object) ['strict' => true, 'tableClass' => 'off']);
 
@@ -296,7 +297,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('off', $fromObject->get('tableClass'));
 		$this->assertTrue($fromObject->get('admin'));
 		$this->assertSame(Config::TIERS, $fromObject->get('precedence'));
-		$this->assertCount(23, $fromObject);
+		$this->assertCount(24, $fromObject);
 
 		$fromNulls = new Config(['layout' => null, 'depth' => null, 'skipColumns' => null]);
 
@@ -337,7 +338,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'defaults() must leave keys outside the catalogue in place.'
 		);
 		$this->assertTrue($config->exists('custom'));
-		$this->assertCount(24, $config);
+		$this->assertCount(25, $config);
 
 		$config->clear();
 
@@ -345,7 +346,7 @@ final class ExtrusionStateContractTest extends TestCase
 			$config->exists('custom'),
 			'clear() must drop keys outside the catalogue.'
 		);
-		$this->assertCount(23, $config);
+		$this->assertCount(24, $config);
 	}
 
 	/**
@@ -525,21 +526,24 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * The scope must expose exactly the nine state registries, keyed by name.
+	 * The scope must expose exactly the ten state registries, keyed by name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheNineStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheTenStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(9, $exposed);
+		$this->assertCount(10, $exposed);
 		$this->assertSame(
-			['source', 'inventory', 'table', 'schema', 'form', 'language', 'view', 'resolved', 'report'],
+			[
+				'source', 'inventory', 'table', 'schema', 'form',
+				'language', 'view', 'resolved', 'report', 'message'
+			],
 			array_keys($exposed)
 		);
 		$this->assertSame(array_keys($registries), array_keys($exposed));
@@ -605,7 +609,99 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * A fresh set of the nine state registries, in constructor order.
+	 * The message bus gathers plain data at levels and never formats anything.
+	 *
+	 * The bus is what a caller reads to answer "what did this run achieve", so its
+	 * shape is a contract: levels in reading order, no duplicates, and no markup.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheMessageBusGathersLevelledPlainData(): void
+	{
+		$bus = new Message();
+
+		$this->assertSame([], $bus->all());
+		$this->assertSame(0, $bus->total());
+		$this->assertFalse($bus->failed());
+
+		$this->assertSame($bus, $bus->success('Extruded 3 views.'));
+		$bus->notice('No table definition class was found.')
+			->warning('No language file was found.', 'en-GB')
+			->error('Nothing described a table.', '/tmp/empty');
+
+		$this->assertTrue($bus->failed());
+		$this->assertSame(4, $bus->total());
+		$this->assertSame(1, $bus->total(Message::WARNING));
+		$this->assertSame(
+			[Message::ERROR, Message::WARNING, Message::NOTICE, Message::SUCCESS],
+			array_keys($bus->all()),
+			'Levels must come back in reading order, worst first.'
+		);
+		$this->assertSame(
+			[['message' => 'No language file was found.', 'subject' => 'en-GB']],
+			$bus->level(Message::WARNING)
+		);
+		$this->assertSame(
+			[['message' => 'Extruded 3 views.']],
+			$bus->level(Message::SUCCESS),
+			'A message with no subject must not invent one.'
+		);
+
+		foreach ($bus->all() as $messages)
+		{
+			foreach ($messages as $entry)
+			{
+				$this->assertArrayHasKey('message', $entry);
+				$this->assertDoesNotMatchRegularExpression(
+					'/<[a-z]/i',
+					$entry['message'],
+					'The bus gathers messages; formatting belongs to the caller.'
+				);
+			}
+		}
+	}
+
+	/**
+	 * The bus refuses empties, de-duplicates, and falls back to notice.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheMessageBusRefusesEmptiesAndDuplicates(): void
+	{
+		$bus = new Message();
+
+		$bus->record(Message::WARNING, '   ');
+		$bus->success('');
+
+		$this->assertSame(0, $bus->total(), 'An empty message is not a message.');
+
+		$bus->warning('Same thing.');
+		$bus->warning('Same thing.');
+		$bus->warning('Same thing.', 'a subject');
+
+		$this->assertSame(
+			2,
+			$bus->total(Message::WARNING),
+			'A repeat is dropped, but the same text about a different subject is not.'
+		);
+
+		$bus->record('not-a-level', 'Where does this go?');
+
+		$this->assertSame(
+			[['message' => 'Where does this go?']],
+			$bus->level(Message::NOTICE),
+			'An unknown level must fall back rather than be lost.'
+		);
+
+		$this->assertSame([], $bus->level('nonsense'));
+		$this->assertSame($bus, $bus->clear());
+		$this->assertSame(0, $bus->total());
+	}
+
+	/**
+	 * A fresh set of the ten state registries, in constructor order.
 	 *
 	 * @return  array<string, Registry>  The registries keyed by scope name.
 	 * @since   6.1.6
@@ -621,7 +717,8 @@ final class ExtrusionStateContractTest extends TestCase
 			'language' => new Language(),
 			'view' => new View(),
 			'resolved' => new Resolved(),
-			'report' => new Report()
+			'report' => new Report(),
+			'message' => new Message()
 		];
 	}
 
@@ -697,6 +794,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'mode' => 'create',
 			'component' => 0,
 			'codeName' => '',
+			'dump' => '',
 			'onExisting' => 'update',
 			'admin' => true,
 			'site' => false,

@@ -325,6 +325,7 @@ class Discovery implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Inventory'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Message'),
 			$container->get('Extrusion.Locator.Schema'),
 			$container->get('Extrusion.Locator.Form'),
 			$container->get('Extrusion.Locator.Language'),
