@@ -35,9 +35,12 @@ understood before changing the legacy helper chain.
    `Fields`, `Interpretation`, and `Infusion`.
 8. [Helper method inventory](helper-method-inventory.md) — the exact remaining
    API, hidden dynamic calls, state, version branches, events, and dependencies.
-9. [Testing and conformance strategy](testing-strategy.md) — a staged path from
+9. [Admin view extraction records](adminview-extraction-records.md) — the
+   pre-coding records, version axes, and latent defects for the admin-view
+   clusters still inside the legacy helper.
+10. [Testing and conformance strategy](testing-strategy.md) — a staged path from
    the present baseline to unit, contract, golden-output, and integration tests.
-10. [Source inventory](source-inventory.md) — a compact map of the relevant
+11. [Source inventory](source-inventory.md) — a compact map of the relevant
    folders, service families, versioned implementations, and sibling libraries.
 11. [Extrusion engine](extrusion.md) — the reverse direction: the current SQL
    dump contract and the proposed roadmap for extruding an existing component's
