@@ -86,6 +86,9 @@ const DECIDING = [
 	T_ISSET, T_EMPTY, T_UNSET, T_IS_IDENTICAL, T_IS_NOT_IDENTICAL,
 	T_IS_EQUAL, T_IS_NOT_EQUAL, T_COALESCE, T_INSTANCEOF,
 	T_IS_SMALLER_OR_EQUAL, T_IS_GREATER_OR_EQUAL, T_THROW,
+	// a bare truthiness guard carries no operator at all, and adding one
+	// where the legacy had none is exactly what this guard is here to catch
+	T_IF, T_ELSEIF, T_SWITCH, T_CASE,
 ];
 
 /**
