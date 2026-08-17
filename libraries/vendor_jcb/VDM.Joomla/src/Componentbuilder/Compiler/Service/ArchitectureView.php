@@ -82,6 +82,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\List
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as SharedAdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListHead as J3AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldFile as AdminViewsFilterFieldFile;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface as AdminViewsFilterFieldHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldHelper as SharedAdminViewsFilterFieldHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterFieldHelper as J3AdminViewsFilterFieldHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface as AdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListBody as SharedAdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListBody as J3AdminViewsListBody;
@@ -331,6 +334,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
+
+		$container->alias(AdminViewsFilterFieldHelper::class, 'Architecture.AdminViews.FilterFieldHelper')
+			->share('Architecture.AdminViews.FilterFieldHelper', [$this, 'getAdminViewsFilterFieldHelper'], true);
+
+		$container->alias(SharedAdminViewsFilterFieldHelper::class, 'Architecture.AdminViews.Shared.FilterFieldHelper')
+			->share('Architecture.AdminViews.Shared.FilterFieldHelper', [$this, 'getSharedAdminViewsFilterFieldHelper'], true);
+
+		$container->alias(J3AdminViewsFilterFieldHelper::class, 'Architecture.AdminViews.J3.FilterFieldHelper')
+			->share('Architecture.AdminViews.J3.FilterFieldHelper', [$this, 'getJ3AdminViewsFilterFieldHelper'], true);
 
 		$container->alias(AdminViewsListBody::class, 'Architecture.AdminViews.ListBody')
 			->share('Architecture.AdminViews.ListBody', [$this, 'getAdminViewsListBody'], true);
@@ -1723,6 +1735,72 @@ class ArchitectureView implements ServiceProviderInterface
 		return new AdminViewsFilterFieldFile(
 			$container->get('Compiler.Builder.Content.Multi'),
 			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The AdminViews FilterFieldHelper Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsFilterFieldHelper
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsFilterFieldHelper(Container $container): AdminViewsFilterFieldHelper
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes its database and user from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.FilterFieldHelper');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.FilterFieldHelper');
+	}
+
+	/**
+	 * Get The AdminViews FilterFieldHelper Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsFilterFieldHelper
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsFilterFieldHelper(Container $container): SharedAdminViewsFilterFieldHelper
+	{
+		return new SharedAdminViewsFilterFieldHelper(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Selection.Translation'),
+			$container->get('Architecture.Field.CustomFieldCode'),
+			$container->get('Architecture.AdminViews.FilterFieldFile'),
+			$container->get('Application')
+		);
+	}
+
+	/**
+	 * Get The AdminViews FilterFieldHelper Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsFilterFieldHelper
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsFilterFieldHelper(Container $container): J3AdminViewsFilterFieldHelper
+	{
+		return new J3AdminViewsFilterFieldHelper(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Selection.Translation'),
+			$container->get('Architecture.Field.CustomFieldCode'),
+			$container->get('Architecture.AdminViews.FilterFieldFile'),
+			$container->get('Application')
 		);
 	}
 

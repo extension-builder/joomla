@@ -74,6 +74,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminView/FootableScripts' => $legacy,
 			'AdminViews/AddToolBar' => $all,
 			'AdminViews/DisplayMethod' => $legacy,
+			'AdminViews/FilterFieldHelper' => $legacy,
 			'AdminViews/ListBody' => $legacy,
 			'AdminViews/ListHead' => $legacy,
 			'AdminViews/ViewBody' => $legacy,
@@ -109,7 +110,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(39, $families);
+		$this->assertCount(40, $families);
 
 		foreach ($families as $family => $diverging)
 		{
