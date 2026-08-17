@@ -54,6 +54,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Request;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Router;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ScriptMediaSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ScriptUserSwitch;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\SecondRunAdmin;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Search;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SelectionTranslation;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SiteDecrypt;
@@ -212,6 +213,9 @@ class BuilderLZ implements ServiceProviderInterface
 
 		$container->alias(Search::class, 'Compiler.Builder.Search')
 			->share('Compiler.Builder.Search', [$this, 'getSearch'], true);
+
+		$container->alias(SecondRunAdmin::class, 'Compiler.Builder.Second.Run.Admin')
+			->share('Compiler.Builder.Second.Run.Admin', [$this, 'getSecondRunAdmin'], true);
 
 		$container->alias(SelectionTranslation::class, 'Compiler.Builder.Selection.Translation')
 			->share('Compiler.Builder.Selection.Translation', [$this, 'getSelectionTranslation'], true);
@@ -780,6 +784,19 @@ class BuilderLZ implements ServiceProviderInterface
 	public function getSearch(Container $container): Search
 	{
 		return new Search();
+	}
+
+	/**
+	 * Get The SecondRunAdmin Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SecondRunAdmin
+	 * @since 6.1.7
+	 */
+	public function getSecondRunAdmin(Container $container): SecondRunAdmin
+	{
+		return new SecondRunAdmin();
 	}
 
 	/**

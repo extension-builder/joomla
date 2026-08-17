@@ -56,6 +56,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Disp
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface as AdminViewEditBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\EditBody as SharedAdminViewEditBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\EditBody as J3AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields as AdminViewTabLayoutFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
@@ -229,6 +232,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewCustomTabs::class, 'Architecture.AdminView.CustomTabs')
 			->share('Architecture.AdminView.CustomTabs', [$this, 'getAdminViewCustomTabs'], true);
+
+		$container->alias(AdminViewEditBody::class, 'Architecture.AdminView.EditBody')
+			->share('Architecture.AdminView.EditBody', [$this, 'getAdminViewEditBody'], true);
+
+		$container->alias(SharedAdminViewEditBody::class, 'Architecture.AdminView.Shared.EditBody')
+			->share('Architecture.AdminView.Shared.EditBody', [$this, 'getSharedAdminViewEditBody'], true);
+
+		$container->alias(J3AdminViewEditBody::class, 'Architecture.AdminView.J3.EditBody')
+			->share('Architecture.AdminView.J3.EditBody', [$this, 'getJ3AdminViewEditBody'], true);
 
 		$container->alias(AdminViewTabLayoutFields::class, 'Architecture.AdminView.TabLayoutFields')
 			->share('Architecture.AdminView.TabLayoutFields', [$this, 'getAdminViewTabLayoutFields'], true);
@@ -1023,6 +1035,90 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewCustomTabs(
 			$container->get('Compiler.Builder.Custom.Tabs')
+		);
+	}
+
+	/**
+	 * Get The AdminView EditBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewEditBody
+	 * @since   6.1.7
+	 */
+	public function getAdminViewEditBody(Container $container): AdminViewEditBody
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 lays the edit view out with the Bootstrap 2 grid
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminView.J3.EditBody');
+		}
+
+		return $container->get('Architecture.AdminView.Shared.EditBody');
+	}
+
+	/**
+	 * Get The AdminView EditBody Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewEditBody
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewEditBody(Container $container): SharedAdminViewEditBody
+	{
+		return new SharedAdminViewEditBody(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Adminview.Data'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Architecture.Layout.View'),
+			$container->get('Architecture.AdminView.CustomTabs'),
+			$container->get('Compiler.Builder.Layout'),
+			$container->get('Compiler.Builder.Tab.Counter'),
+			$container->get('Compiler.Builder.Second.Run.Admin'),
+			$container->get('Compiler.Builder.New.Publishing.Fields'),
+			$container->get('Compiler.Builder.Moved.Publishing.Fields'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Has.Permissions'),
+			$container->get('Application')
+		);
+	}
+
+	/**
+	 * Get The AdminView EditBody Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewEditBody
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewEditBody(Container $container): J3AdminViewEditBody
+	{
+		return new J3AdminViewEditBody(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Adminview.Data'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Architecture.Layout.View'),
+			$container->get('Architecture.AdminView.CustomTabs'),
+			$container->get('Compiler.Builder.Layout'),
+			$container->get('Compiler.Builder.Tab.Counter'),
+			$container->get('Compiler.Builder.Second.Run.Admin'),
+			$container->get('Compiler.Builder.New.Publishing.Fields'),
+			$container->get('Compiler.Builder.Moved.Publishing.Fields'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Has.Permissions'),
+			$container->get('Application')
 		);
 	}
 
