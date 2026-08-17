@@ -68,18 +68,83 @@ the comparison count means something was added or lost.
 Only create a `Joomla*` class where the generated code actually differs. See
 [system-map.md](system-map.md) — "A target class must earn its existence".
 
-## How this is checked
+## How this is enforced
 
-`tests/bin/refactor/semantics.php` compares the comparison tokens of a legacy method
-family against the classes it became:
+`tests/bin/check-moved-conditions.php` runs in CI beside the style and ownership
+guards. It pairs every condition that leaves a legacy helper with one that
+arrives in the tree, and fails the build on anything that does not pair up:
+
+```
+php bin/check-moved-conditions.php --base=<sha> [--head=<sha>]
+```
+
+It reduces each deciding line to its shape — whitespace, comments and the route
+to a service removed — and counts those shapes per file at both ends of the
+range. Counting files rather than diff lines means reindenting, rewrapping and
+line-ending changes cannot look like a condition moving. It skips the range
+entirely when no legacy helper changed.
+
+Two things need no explanation, because they are the sanctioned collapse: a line
+that only compares the Joomla version being compiled for, and the target
+selector in the service provider that replaces it. Everything else must be
+recorded in [`tests/moved-conditions.php`](../../libraries/vendor_jcb/tests/moved-conditions.php)
+with the reason it still decides the same thing.
+
+That ledger is the audit trail. It is short on purpose: 37 entries cover every
+place in the whole effort where moved code reads differently from the legacy,
+and each one names why. Adding an entry is a claim you have to be able to
+defend in review, which is the point — the guard cannot tell a safe rewrite from
+an unsafe one, but it can make sure nobody performs one silently.
+
+Both failure modes it exists for are covered:
+
+```
+- A condition arrived that the legacy helper never had: &&!empty($filter['custom']['table'])
+- A condition left the legacy helper and did not arrive: &&isset($filter['custom']['table'])
+```
+
+```
+- A condition arrived that the legacy helper never had: thrownew\RuntimeException('nocustomfields');
+```
+
+### What the audit found
+
+The whole effort was replayed through this check, commit by commit, before the
+guard was wired in. Every difference fell into one of these, and none of them
+changed what makes a method act:
+
+- a version branch collapsing into a class per target, and the selector that
+  replaces it
+- a guard that wrapped a whole method body becoming an early return, so `!== null`
+  reads `=== null` and `> 0` reads `<= 0`
+- `isset($array[$key])` becoming a `Registry` read, which returns null for a key
+  that was never set
+- `isset($this->prop)` becoming `!== null` on a declared nullable property
+- a service name built from a value becoming injected services and a map over
+  the values the caller can actually set
+- a variable or helper renamed on the way out
+- a condition evaluated twice on values that cannot change in between, read once
+
+Nothing was tightened, nothing was dropped, and nothing raises where the legacy
+was silent.
+
+The type declarations were audited separately, since a signature narrower than
+its callers fails the same way a new guard does. Every shim was paired with the
+service method it delegates to, and every call site that feeds a shim from a
+`Registry` read was checked by hand. No parameter can be reached with a value
+the legacy tolerated: the one method whose caller passes a registry read into a
+`$Component` parameter is still untyped, and the one shim that forwards a
+value which used to default to null casts it on the way through.
+
+### Digging into one method
+
+`tests/bin/refactor/semantics.php` compares the comparison tokens of a legacy
+method family against the classes it became, which is the finer-grained view
+when the guard reports something and you want to know where it came from:
 
 ```
 php semantics.php <legacy.php> <method> [<method>…] <class.php> [<variant.php>…]
 ```
-
-`isset`, `empty`, `unset`, `===`, `!==`, `==`, `!=`, `??` and `instanceof` must
-match, except for `==`/`!=` decreases that correspond to collapsed version
-branches.
 
 **Pass the whole legacy family, not one method.** A class usually absorbs
 protected helpers that never had a shim. Comparing a five-method class against

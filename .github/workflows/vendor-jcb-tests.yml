@@ -83,10 +83,12 @@ jobs:
             git diff --check "$base_sha...HEAD"
             php bin/check-php-style.php --base="$base_sha"
             php bin/check-test-ownership.php --base="$base_sha"
+            php bin/check-moved-conditions.php --base="$base_sha"
           else
             git show --check --format= HEAD
             php bin/check-php-style.php
             php bin/check-test-ownership.php
+            php bin/check-moved-conditions.php
           fi
 
       - name: Resolve Composer cache directory
