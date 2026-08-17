@@ -709,6 +709,57 @@ HTML;
 	}
 
 	/**
+	 * Nothing may be attached to an administrator view that was never written.
+	 *
+	 * Every writer below hands JCB an admin_view column. If the view write failed
+	 * or was skipped, that column can only be empty, and an empty foreign key is
+	 * worse than no row: it is a definition JCB will load and cannot resolve. All
+	 * three must therefore stand down together, and resume together once the view
+	 * really has an identity.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testDependentWritersRefuseAViewThatWasNeverWritten(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'name', ['xml_type' => 'text'], 1);
+		$this->seedField('item', 'counter', ['xml_type' => 'list'], 2);
+		$this->resolved->set('view.item.roles', [
+			'name' => ['title' => true, 'list' => true, 'order' => 0],
+			'counter' => ['title' => false, 'list' => true, 'order' => 1]
+		]);
+		$this->resolved->set('view.item.conditions', [
+			['match' => 'name', 'targets' => ['counter'], 'values' => ['1'], 'negate' => false]
+		]);
+		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-0000000000d0');
+		$this->seedWritten('item', 'counter', 'ffffffff-0000-4000-8000-0000000000e0');
+
+		$this->assertSame(0, $this->adminFields()->write());
+		$this->assertSame(0, $this->conditions()->write());
+		$this->assertSame(0, $this->customTabs()->write());
+		$this->assertSame(
+			[],
+			$this->item->records(),
+			'A definition whose admin_view column would be empty must never be written.'
+		);
+
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+
+		$this->assertSame(1, $this->adminFields()->write());
+		$this->assertSame(1, $this->conditions()->write());
+		$this->assertSame(1, $this->customTabs()->write());
+		$this->assertSame(
+			['admin_fields', 'admin_fields_conditions', 'admin_custom_tabs'],
+			$this->item->sequence()
+		);
+		$this->assertSame(
+			[self::VIEW_GUID, self::VIEW_GUID, self::VIEW_GUID],
+			array_column(array_column($this->item->records(), 'item'), 'admin_view')
+		);
+	}
+
+	/**
 	 * A view whose form declared no dependency writes no conditions at all.
 	 *
 	 * @return  void

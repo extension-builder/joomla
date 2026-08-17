@@ -206,9 +206,16 @@ final class Assembler
 				continue;
 			}
 
-			$view = $this->one($canonical, $entry);
+			$view = $this->viewname->single($entry['name']);
 
-			if ($view !== null && !in_array($view, $views, true))
+			if (in_array($view, $views, true))
+			{
+				$this->report->set('skipped.duplicate.' . $canonical, $entry['name']);
+
+				continue;
+			}
+
+			if ($this->one($canonical, $entry, $view) !== null)
 			{
 				$views[] = $view;
 			}
@@ -222,6 +229,12 @@ final class Assembler
 
 	/**
 	 * Every source table both registries know about.
+	 *
+	 * A schema names its tables in full while a table definition class is free to
+	 * key the same table by the view it serves, which is what JCB itself does. The
+	 * two therefore join on the canonical table identity where they can, and on
+	 * the view name where they cannot, because a table that fails to join is not
+	 * merely poorer: it becomes a second table competing for one view name.
 	 *
 	 * @return  array<string, array{name: string, schema: string, table: string}>  Canonical identity to its registry keys.
 	 * @since   6.1.6
@@ -257,6 +270,11 @@ final class Assembler
 					continue;
 				}
 
+				if ($which === 'table' && !isset($tables[$canonical]))
+				{
+					$canonical = $this->sameView($tables, $name) ?? $canonical;
+				}
+
 				if (!isset($tables[$canonical]))
 				{
 					$tables[$canonical] = ['name' => $name, 'schema' => '', 'table' => ''];
@@ -275,18 +293,47 @@ final class Assembler
 	}
 
 	/**
+	 * The identity of an already collected table that serves the same view.
+	 *
+	 * @param   array<string, array{name: string, schema: string, table: string}>  $tables  The tables collected so far.
+	 * @param   string                                                             $name    The raw table name to place.
+	 *
+	 * @return  string|null  The canonical identity to join, or null when none serves that view.
+	 * @since   6.1.6
+	 */
+	protected function sameView(array $tables, string $name): ?string
+	{
+		$view = $this->viewname->single($name);
+
+		if ($view === '')
+		{
+			return null;
+		}
+
+		foreach ($tables as $canonical => $entry)
+		{
+			if ($entry['table'] === '' && $this->viewname->single($entry['name']) === $view)
+			{
+				return $canonical;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Assemble one table into a view definition.
 	 *
 	 * @param   string                                            $canonical  The canonical table identity.
 	 * @param   array{name: string, schema: string, table: string}  $entry      The table's registry keys.
+	 * @param   string                                            $view       The view name this table carries.
 	 *
 	 * @return  string|null  The view name, or null when nothing usable was found.
 	 * @since   6.1.6
 	 */
-	protected function one(string $canonical, array $entry): ?string
+	protected function one(string $canonical, array $entry, string $view): ?string
 	{
 		$name = $entry['name'];
-		$view = $this->viewname->single($name);
 		$fields = [];
 
 		foreach ($this->columns($entry) as $column)

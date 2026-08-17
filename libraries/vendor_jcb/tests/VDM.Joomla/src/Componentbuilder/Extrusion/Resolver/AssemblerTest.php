@@ -133,6 +133,71 @@ class ExtraTable extends BaseTable implements TableInterface
 PHP;
 
 	/**
+	 * A table definition class keyed the way JCB keys its own.
+	 *
+	 * JCB names each entry of its table map after the view it serves, not after
+	 * the table it describes, so this class never mentions the component prefix
+	 * the schema uses. It still describes the same table.
+	 *
+	 * @var    string
+	 * @since  6.1.6
+	 */
+	private const VIEW_KEYED_TABLE_CLASS = <<<'PHP'
+<?php
+namespace Example\Power;
+
+use VDM\Joomla\Abstraction\BaseTable;
+use VDM\Joomla\Interfaces\TableInterface;
+
+class ViewKeyedTable extends BaseTable implements TableInterface
+{
+	protected array $tables = [
+		'item' => [
+			'counter' => [
+				'name' => 'counter',
+				'guid' => 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+				'label' => 'COM_EXAMPLE_ITEM_COUNTER_LABEL',
+				'type' => 'list',
+				'title' => false,
+				'list' => 'items',
+				'store' => 'json',
+				'tab_name' => 'Metrics',
+				'db' => [
+					'type' => 'INT(10) unsigned',
+					'default' => '0',
+					'null_switch' => 'NOT NULL',
+				],
+				'link' => [
+					'type' => 1,
+					'table' => '#__example_category',
+					'component' => 'com_example',
+					'entity' => 'category',
+					'value' => 'title',
+					'key' => 'id',
+				],
+			],
+			'nickname' => [
+				'name' => 'nickname',
+				'guid' => 'eeeeeeee-ffff-4000-8111-222222222222',
+				'label' => 'Nickname',
+				'type' => 'text',
+				'title' => false,
+				'list' => 'items',
+				'store' => NULL,
+				'tab_name' => 'Metrics',
+				'db' => [
+					'type' => 'VARCHAR(32)',
+					'default' => '',
+					'null_switch' => 'NOT NULL',
+				],
+				'link' => NULL,
+			],
+		],
+	];
+}
+PHP;
+
+	/**
 	 * The materialised source files, keyed by their role in the tree.
 	 *
 	 * @var    array<string, string>
@@ -243,6 +308,9 @@ PHP;
 			'extra' => $this->writeTemporaryFile(
 				'com_example/admin/src/ExtraTable.php', self::EXTRA_TABLE_CLASS
 			),
+			'viewKeyed' => $this->writeTemporaryFile(
+				'com_example/admin/src/ViewKeyedTable.php', self::VIEW_KEYED_TABLE_CLASS
+			),
 			'form' => $this->writeTemporaryFile(
 				'com_example/admin/forms/item.xml', ExtrusionComponentFixture::FORM
 			),
@@ -260,10 +328,12 @@ PHP;
 	 * The registries are shared services, so a second assembly inside one test
 	 * has to start from a clean boundary or it would inherit the first one.
 	 *
+	 * @param   array<string>  $classes  Which table definition classes the tree offers.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	private function restate(): void
+	private function restate(array $classes = ['table', 'extra']): void
 	{
 		$this->config = new Config();
 		$this->schema = new SchemaRegistry();
@@ -276,7 +346,7 @@ PHP;
 
 		$this->source->set('code_name', 'com_example');
 
-		$this->read();
+		$this->read($classes);
 
 		$text = new Text();
 		$language = new Language($this->catalogue, $this->report);
@@ -311,10 +381,12 @@ PHP;
 	/**
 	 * Read every materialised artifact with the readers the pipeline uses.
 	 *
+	 * @param   array<string>  $classes  Which table definition classes the tree offers.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	private function read(): void
+	private function read(array $classes): void
 	{
 		$schema = new SchemaReader(
 			$this->schema, new Splitter(), new CreateTable(), new Insert(), $this->report
@@ -323,8 +395,12 @@ PHP;
 
 		$this->assertTrue($schema->read($this->paths['schema']));
 		$this->assertTrue($schema->read($this->paths['boilerplate']));
-		$this->assertTrue($table->read($this->paths['table']));
-		$this->assertTrue($table->read($this->paths['extra']));
+
+		foreach ($classes as $class)
+		{
+			$this->assertTrue($table->read($this->paths[$class]));
+		}
+
 		$this->assertTrue((new FormReader($this->form, $this->report))->read($this->paths['form']));
 		$this->assertTrue(
 			(new LanguageReader($this->catalogue, $this->report))->read($this->paths['language'])
@@ -632,6 +708,91 @@ PHP;
 
 		$this->assertSame(['title' => 1, 'note' => 1], $this->indexes('category'));
 		$this->assertSame(['code' => 1], $this->indexes('tag'));
+	}
+
+	/**
+	 * A table class keyed by view name still joins the schema table it describes.
+	 *
+	 * JCB keys its own table map by view name, so the canonical table identity
+	 * cannot join the two tiers on such a source. Failing to join is not merely a
+	 * poorer view: the class becomes a second table competing for the same view
+	 * name, which is why the top tier's own facts are asserted here.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testATableClassKeyedByViewNameJoinsTheSchemaTableItDescribes(): void
+	{
+		$this->restate(['viewKeyed']);
+
+		$this->assertSame('item', $this->table->get('table.item.name'));
+		$this->assertFalse($this->table->exists('table.example_item'));
+		$this->assertSame(
+			['name' => '#__example_item', 'schema' => '___example_item', 'table' => 'item'],
+			$this->assembler->tables()['example_item']
+		);
+		$this->assertSame(
+			['example_item', 'example_category', 'example_boiler'],
+			array_keys($this->assembler->tables())
+		);
+
+		$this->assertSame(2, $this->assembler->assemble());
+		$this->assertSame(['item', 'category'], (array) $this->resolved->get('views'));
+		$this->assertSame('#__example_item', $this->resolved->get('view.item.table'));
+		$this->assertSame('example_item', $this->resolved->get('view.item.key'));
+		$this->assertNull($this->report->get('skipped.duplicate'));
+
+		$this->assertSame(
+			['name', 'alias', 'description', 'colour', 'amount', 'counter', 'nickname'],
+			array_keys((array) $this->resolved->get('view.item.field'))
+		);
+		$this->assertSame('json', $this->resolved->get('view.item.field.counter.store.value'));
+		$this->assertSame('table', $this->resolved->get('view.item.field.counter.store.origin'));
+		$this->assertSame(
+			'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+			$this->resolved->get('view.item.field.counter.guid.value')
+		);
+		$this->assertSame(
+			['Item Details', 'Metrics'],
+			(array) $this->resolved->get('view.item.tabs')
+		);
+		$this->assertSame(
+			'#__example_category',
+			$this->resolved->get('view.item.relations.0.table')
+		);
+		$this->assertTrue($this->resolved->get('view.item.relations.0.local'));
+	}
+
+	/**
+	 * Two tables claiming one view name keep the first and record the second.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testASecondTableClaimingTheSameViewNameIsRecordedAndNotAssembled(): void
+	{
+		$this->restate(['table', 'extra', 'viewKeyed']);
+
+		$tables = $this->assembler->tables();
+
+		$this->assertSame('example_item', $tables['example_item']['table']);
+		$this->assertSame(
+			['name' => 'item', 'schema' => '', 'table' => 'item'],
+			$tables['item']
+		);
+
+		$this->assertSame(3, $this->assembler->assemble());
+		$this->assertSame(['item', 'category', 'tag'], (array) $this->resolved->get('views'));
+		$this->assertSame('item', $this->report->get('skipped.duplicate.item'));
+
+		$this->assertSame('#__example_item', $this->resolved->get('view.item.table'));
+		$this->assertSame('example_item', $this->resolved->get('view.item.key'));
+		$this->assertFalse($this->resolved->exists('view.item.field.nickname'));
+		$this->assertSame(
+			['Item Details', 'Metrics', 'Extra Data'],
+			(array) $this->resolved->get('view.item.tabs')
+		);
+		$this->assertCount(1, (array) $this->resolved->get('view.item.relations'));
 	}
 
 	/**
