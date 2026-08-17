@@ -17,6 +17,9 @@ use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface as ModelItemsMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsMethod as SharedModelItemsMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemsMethod as J3ModelItemsMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ListQueryInterface as ModelListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ListQuery as SharedModelListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ListQuery as J3ModelListQuery;
@@ -106,6 +109,15 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelListQuery::class, 'Architecture.Model.J3.ListQuery')
 			->share('Architecture.Model.J3.ListQuery', [$this, 'getJ3ModelListQuery'], true);
+
+		$container->alias(ModelItemsMethod::class, 'Architecture.Model.ItemsMethod')
+			->share('Architecture.Model.ItemsMethod', [$this, 'getModelItemsMethod'], true);
+
+		$container->alias(SharedModelItemsMethod::class, 'Architecture.Model.Shared.ItemsMethod')
+			->share('Architecture.Model.Shared.ItemsMethod', [$this, 'getSharedModelItemsMethod'], true);
+
+		$container->alias(J3ModelItemsMethod::class, 'Architecture.Model.J3.ItemsMethod')
+			->share('Architecture.Model.J3.ItemsMethod', [$this, 'getJ3ModelItemsMethod'], true);
 
 		$container->alias(J3ModelAllowEdit::class, 'Architecture.Model.J3.AllowEdit')
 			->share('Architecture.Model.J3.AllowEdit', [$this, 'getJ3ModelAllowEdit'], true);
@@ -408,6 +420,80 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Content.One'),
 			$container->get('Compiler.Builder.Field.Names'),
 			$container->get('Compiler.Builder.Views.Default.Ordering')
+		);
+	}
+
+	/**
+	 * Get The ItemsMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelItemsMethod
+	 * @since   6.1.7
+	 */
+	public function getModelItemsMethod(Container $container): ModelItemsMethod
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes its user and database from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.ItemsMethod');
+		}
+
+		return $container->get('Architecture.Model.Shared.ItemsMethod');
+	}
+
+	/**
+	 * Get The ItemsMethod Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelItemsMethod
+	 * @since   6.1.7
+	 */
+	public function getSharedModelItemsMethod(Container $container): SharedModelItemsMethod
+	{
+		return new SharedModelItemsMethod(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Placeholder'),
+			$container->get('Field.Database.Name'),
+			$container->get('Architecture.Model.CustomQuery'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Views.Default.Ordering'),
+			$container->get('Compiler.Builder.Eximport.View')
+		);
+	}
+
+	/**
+	 * Get The ItemsMethod Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelItemsMethod
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelItemsMethod(Container $container): J3ModelItemsMethod
+	{
+		return new J3ModelItemsMethod(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Placeholder'),
+			$container->get('Field.Database.Name'),
+			$container->get('Architecture.Model.CustomQuery'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Views.Default.Ordering'),
+			$container->get('Compiler.Builder.Eximport.View')
 		);
 	}
 

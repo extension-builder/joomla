@@ -14,7 +14,6 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
@@ -54,10 +53,7 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 	 */
 	public static function workingDatabaseHelperVersions(): array
 	{
-		$versions = self::versions();
-		unset($versions['Joomla 4']);
-
-		return $versions;
+		return self::versions();
 	}
 
 	/**
@@ -140,12 +136,16 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Document the missing Indent import on Joomla 4's database-aware path.
+	 * Joomla 4 indents the database-aware trait it prepends.
+	 *
+	 * The target class called the indentation utility without importing it,
+	 * which resolved a nonexistent class in its own namespace and fatalled on
+	 * every database-aware Joomla 4 module.
 	 *
 	 * @return  void
 	 * @since   6.1.6
+	 * @since   6.1.7  The missing import was added, so this now guards it.
 	 */
-	#[Group('known-defect')]
 	public function testJoomlaFourModuleHelperCanAddDatabaseAwareTrait(): void
 	{
 		$subject = $this->renderer(
