@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Extruder;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -287,8 +288,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertFalse($report->get('dry_run'));
 		$this->assertSame('create', $report->get('mode'));
 		$this->assertSame(
-			'no component source root was set',
-			$report->get('failed.path')
+			[['message' => 'No component source root and no schema dump were given.']],
+			$this->messages()->level('error'),
+			'A run with nothing to work on must say so on the bus.'
 		);
 		$this->assertNull($report->get('counts.artifacts'));
 		$this->assertSame([], $this->item->records());
@@ -312,10 +314,14 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertFalse($report->get('completed'));
 		$this->assertSame(
-			'no schema or table definition class was found',
-			$report->get('failed.discovery')
+			[[
+				'message' => 'No schema, table definition class or form XML was found, so there is '
+					. 'nothing to describe any field with.',
+				'subject' => $bare . '/com_bare'
+			]],
+			$this->messages()->level('error'),
+			'The bus must name what was missing and where.'
 		);
-		$this->assertNull($report->get('failed.root'));
 		$this->assertNull($report->get('counts.views'));
 		$this->assertSame([], $this->item->records());
 
@@ -327,8 +333,13 @@ final class ExtruderTest extends FilesystemTestCase
 			(string) $report->get('failed.root')
 		);
 		$this->assertSame(
-			'no schema or table definition class was found',
-			$report->get('failed.discovery')
+			[[
+				'message' => 'The given component source is not a readable directory, so '
+					. 'nothing could be read from it.',
+				'subject' => $bare . '/com_missing'
+			]],
+			$this->messages()->level('error'),
+			'An unusable root must speak on the bus, not only in the report.'
 		);
 		$this->assertSame([], $this->item->records());
 	}
@@ -667,6 +678,72 @@ SQL);
 	}
 
 	/**
+	 * A run that lost something says so, and a run that lost nothing stays quiet.
+	 *
+	 * A partial result that reports itself as an unqualified success is the one
+	 * outcome this engine must never produce, because the caller would have no
+	 * reason to look at the fields it now has to finish by hand.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testWhatTheRunCouldNotCarryOverIsNamedOnTheBus(): void
+	{
+		$this->extruder()->path($this->modern())->component(7)->extrude();
+
+		$this->assertSame(
+			[['message' => 'Extruded 2 view(s) into 19 JCB definition(s).']],
+			$this->messages()->level('success')
+		);
+		$this->assertSame(
+			[],
+			$this->messages()->level('notice'),
+			'A source that gave everything has no shortfall to report.'
+		);
+
+		$this->writeTemporaryFile('thin/only.sql', <<<'SQL'
+CREATE TABLE IF NOT EXISTS `#__thin_gadget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`tagger` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '{"label":"Tagger","type":"mytags"}',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `#__thin_boiler` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`published` TINYINT(1) NOT NULL DEFAULT 1,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL);
+
+		$report = $this->extruder()->reset()
+			->path($this->temporaryPath('thin'))
+			->component(5)
+			->codeName('com_thin')
+			->extrude();
+
+		$this->assertTrue($report->get('completed'));
+		$this->assertSame(['gadget'], $this->resolved()->get('views'));
+
+		$notices = array_column($this->messages()->level('notice'), 'message', 'subject');
+
+		$this->assertSame(
+			'1 field type(s) had no JCB equivalent and were extruded as a custom field, '
+			. 'so their options have to be set by hand.',
+			$notices['unmapped.fieldtype'] ?? null
+		);
+		$this->assertSame(
+			'1 table(s) described no extrudable field and became no view.',
+			$notices['skipped.empty'] ?? null
+		);
+		$this->assertContains(
+			'No JCB table definition class was found, which is normal for a component '
+			. 'JCB did not build. Relationships, storage encodings and stated field roles '
+			. 'cannot be recovered from anything else.',
+			array_column($this->messages()->level('notice'), 'message'),
+			'The thinner source must also account for the tier it never had.'
+		);
+	}
+
+	/**
 	 * Materialise the modern fixture tree, table definition class included.
 	 *
 	 * @return  string  The absolute component root.
@@ -765,6 +842,17 @@ SQL);
 	private function config(): Config
 	{
 		return $this->container->get('Extrusion.Config');
+	}
+
+	/**
+	 * The shared message bus.
+	 *
+	 * @return  Message  The message bus.
+	 * @since   6.1.6
+	 */
+	private function messages(): Message
+	{
+		return $this->container->get('Extrusion.Registry.Message');
 	}
 
 	/**

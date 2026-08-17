@@ -3340,15 +3340,7 @@ return [
 		'mode' => 'provider',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Builder.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Extrusion.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Mapping.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php'
 	],
@@ -3461,6 +3453,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Language.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Message.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
 	],

@@ -293,6 +293,49 @@ final class Assembler
 	}
 
 	/**
+	 * The list view name for one table.
+	 *
+	 * The single name always comes from the table name with the component prefix
+	 * removed, but the plural has no such source and is otherwise only ever an
+	 * English guess. A JCB table definition class states the list name outright for
+	 * every field it describes, so when that tier is present the guess is not needed
+	 * and must not be preferred: a stated "people" would otherwise be overwritten
+	 * with "persons". Which of the two answered is recorded, because a stated name
+	 * that disagrees with the guess is the interesting case.
+	 *
+	 * @param   array{name: string, schema: string, table: string}  $entry  The table's registry keys.
+	 * @param   string                                             $view   The single view name.
+	 *
+	 * @return  string  The plural view name.
+	 * @since   6.1.6
+	 */
+	protected function listName(array $entry, string $view): string
+	{
+		$derived = $this->viewname->plural($view);
+
+		if ($entry['table'] === '')
+		{
+			return $derived;
+		}
+
+		$stated = $this->table->get('table.' . $entry['table'] . '.listview');
+
+		if (!is_string($stated) || trim($stated) === '')
+		{
+			return $derived;
+		}
+
+		$stated = strtolower(trim($stated));
+
+		if ($stated !== $derived)
+		{
+			$this->report->set('origin.name_list.' . $this->precedence->key($view), $stated . ' | ' . $derived);
+		}
+
+		return $stated;
+	}
+
+	/**
 	 * The identity of an already collected table that serves the same view.
 	 *
 	 * @param   array<string, array{name: string, schema: string, table: string}>  $tables  The tables collected so far.
@@ -383,7 +426,7 @@ final class Assembler
 		}
 
 		$this->resolved->set($path . '.name_single', $view);
-		$this->resolved->set($path . '.name_list', $this->viewname->plural($view));
+		$this->resolved->set($path . '.name_list', $this->listName($entry, $view));
 		$this->resolved->set($path . '.system_name', $this->viewname->title($view));
 		$this->resolved->set($path . '.table', $name);
 		$this->resolved->set($path . '.key', $canonical);

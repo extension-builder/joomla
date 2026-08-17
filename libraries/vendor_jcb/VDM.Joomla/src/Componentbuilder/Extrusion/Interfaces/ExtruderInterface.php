@@ -46,6 +46,24 @@ interface ExtruderInterface
 	public function path(string $path): self;
 
 	/**
+	 * Supply a schema dump as text instead of pointing at a folder.
+	 *
+	 * @param   string  $sql  The schema text.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function dump(string $sql): self;
+
+	/**
+	 * Everything the run has to say, ready for a caller to present.
+	 *
+	 * @return  array<string, array<int, array{message: string, subject?: string}>>  The messages by level.
+	 * @since   6.1.6
+	 */
+	public function messages(): array;
+
+	/**
 	 * Run the extrusion and return its report.
 	 *
 	 * @return  Report  What was found, resolved, written, and skipped.

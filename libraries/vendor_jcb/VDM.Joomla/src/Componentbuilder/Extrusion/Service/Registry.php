@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -79,6 +80,9 @@ class Registry implements ServiceProviderInterface
 
 		$container->alias(Report::class, 'Extrusion.Registry.Report')
 			->share('Extrusion.Registry.Report', [$this, 'getReport'], true);
+
+		$container->alias(Message::class, 'Extrusion.Registry.Message')
+			->share('Extrusion.Registry.Message', [$this, 'getMessage'], true);
 	}
 
 	/**
@@ -114,7 +118,8 @@ class Registry implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Language'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Registry.Resolved'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Message')
 		);
 	}
 
@@ -220,6 +225,19 @@ class Registry implements ServiceProviderInterface
 	public function getResolved(Container $container): Resolved
 	{
 		return new Resolved();
+	}
+
+	/**
+	 * Get the Message Bus.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Message
+	 * @since   6.1.6
+	 */
+	public function getMessage(Container $container): Message
+	{
+		return new Message();
 	}
 
 	/**

@@ -37,6 +37,7 @@ final class Config extends Registry implements Registryinterface
 		'mode' => 'create',
 		'component' => 0,
 		'codeName' => '',
+		'dump' => '',
 		'onExisting' => 'update',
 		'admin' => true,
 		'site' => false,

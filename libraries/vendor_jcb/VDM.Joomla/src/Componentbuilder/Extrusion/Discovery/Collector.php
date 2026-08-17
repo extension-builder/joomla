@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
@@ -79,6 +80,14 @@ final class Collector
 	protected Report $report;
 
 	/**
+	 * The Message Bus.
+	 *
+	 * @var    Message
+	 * @since  6.1.6
+	 */
+	protected Message $message;
+
+	/**
 	 * The Schema Locator.
 	 *
 	 * @var    LocatorInterface
@@ -127,6 +136,7 @@ final class Collector
 	 * @param   Inventory         $inventory  The located artifact registry.
 	 * @param   Source            $source     The source identity registry.
 	 * @param   Report            $report     The run report registry.
+	 * @param   Message           $message    The message bus.
 	 * @param   LocatorInterface  $schema     The schema locator.
 	 * @param   LocatorInterface  $form       The form locator.
 	 * @param   LocatorInterface  $language   The language locator.
@@ -142,6 +152,7 @@ final class Collector
 		Inventory $inventory,
 		Source $source,
 		Report $report,
+		Message $message,
 		LocatorInterface $schema,
 		LocatorInterface $form,
 		LocatorInterface $language,
@@ -155,6 +166,7 @@ final class Collector
 		$this->inventory = $inventory;
 		$this->source = $source;
 		$this->report = $report;
+		$this->message = $message;
 		$this->schema = $schema;
 		$this->form = $form;
 		$this->language = $language;
@@ -177,6 +189,11 @@ final class Collector
 		if ($root === null)
 		{
 			$this->report->set('failed.root', 'not a readable directory: ' . $path);
+			$this->message->error(
+				'The given component source is not a readable directory, so nothing '
+				. 'could be read from it.',
+				$path
+			);
 
 			return false;
 		}
@@ -189,8 +206,85 @@ final class Collector
 			$this->store($locator);
 		}
 
-		return $this->inventory->exists('schema.0.path')
-			|| $this->inventory->exists('table_class.0.path');
+		return $this->assess();
+	}
+
+	/**
+	 * Judge what the source gave us and say so.
+	 *
+	 * An extrusion works with whatever it finds. A missing artifact makes the
+	 * outcome thinner, not impossible, so only the complete absence of anything
+	 * describing fields is fatal. Everything else is a warning the caller can show,
+	 * which is how a run explains a modest result instead of appearing to succeed
+	 * completely.
+	 *
+	 * @return  bool  True when at least one field-bearing source was found.
+	 * @since   6.1.6
+	 */
+	protected function assess(): bool
+	{
+		$found = [];
+
+		foreach (['schema', 'table_class', 'form', 'language', 'view'] as $kind)
+		{
+			$count = (int) $this->inventory->get($kind . '_count', 0);
+			$found[$kind] = $count;
+			$this->report->set('found.' . $kind, $count);
+		}
+
+		if ($found['schema'] === 0 && $found['table_class'] === 0 && $found['form'] === 0)
+		{
+			$this->message->error(
+				'No schema, table definition class or form XML was found, so there is '
+				. 'nothing to describe any field with.',
+				(string) $this->source->get('path', '')
+			);
+
+			return false;
+		}
+
+		if ($found['schema'] === 0)
+		{
+			$this->message->warning(
+				'No install schema was found, so column types, sizes and defaults '
+				. 'cannot be recovered and will be derived from the form instead.'
+			);
+		}
+
+		if ($found['table_class'] === 0)
+		{
+			$this->message->notice(
+				'No JCB table definition class was found, which is normal for a '
+				. 'component JCB did not build. Relationships, storage encodings and '
+				. 'stated field roles cannot be recovered from anything else.'
+			);
+		}
+
+		if ($found['form'] === 0)
+		{
+			$this->message->warning(
+				'No form XML was found, so field types, options and dependencies '
+				. 'cannot be recovered and will be derived from the column types.'
+			);
+		}
+
+		if ($found['language'] === 0)
+		{
+			$this->message->warning(
+				'No language file was found, so labels will be derived from column '
+				. 'names rather than read as real text.'
+			);
+		}
+
+		if ($found['view'] === 0)
+		{
+			$this->message->notice(
+				'No templates or layouts were found, so only the administrator data '
+				. 'structure will be extruded.'
+			);
+		}
+
+		return true;
 	}
 
 	/**

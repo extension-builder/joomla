@@ -4,13 +4,14 @@ This document records the current Extrusion contract and the implementation
 roadmap for pointing JCB at a component folder on disk and extruding its
 administrator area into JCB definitions.
 
-**Implementation status:** phases 0 through 5 are implemented under
-`Componentbuilder/Extrusion` — 77 classes covering discovery, reading,
-resolution, writing and code extraction. What remains is the graphical
-interface and the retirement of the legacy `Helper` stack (§4, phase 6), both
-of which need `admin/**` and therefore a separate, explicitly authorised
-change. Section 7 records what the working implementation proved and the
-places where reality differed from this design.
+**Implementation status:** phases 0 through 4 and phase 6 are implemented under
+`Componentbuilder/Extrusion`, and phase 5 has its parsers (`Reader\Php\*`) but
+no caller yet. There is now one engine: `Helper\Mapping` and `Helper\Builder`
+are deleted, and `Helper\Extrusion` is a thin delegate that hands the pasted
+dump to the same `Extruder` a folder goes through (§8). What remains is the
+graphical interface, which needs `admin/**` and therefore a separate, explicitly
+authorised change. Sections 7 and 8 record what the working implementation
+proved and the places where reality differed from this design.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
@@ -25,6 +26,12 @@ service API.
 
 ## 1. Current contract
 
+This section records the contract **as it stood before the engine was built**.
+`Helper\Mapping` and `Helper\Builder` no longer exist, so their behaviour is
+described here rather than linked. It is kept because every design decision in
+§2 and §3 is a response to something in it, and because anyone comparing old
+output against new needs to know what the old output was.
+
 ### 1.1 Composition
 
 Three classes in one linear inheritance chain, all doing their work in
@@ -32,18 +39,18 @@ constructors:
 
 | Class | Lines | Responsibility |
 | --- | --- | --- |
-| [`Helper\Mapping`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Mapping.php) | 561 | Read `buildcompsql`, split it, parse `CREATE TABLE`/`INSERT INTO`, build `$this->map` |
-| [`Helper\Builder`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Builder.php) | 347 | Write `#__componentbuilder_field`, `admin_view`, `admin_fields` rows |
-| [`Helper\Extrusion`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/Helper/Extrusion.php) | 103 | Link created views into `#__componentbuilder_component_admin_views` |
+| `Helper\Mapping` (deleted) | 561 | Read `buildcompsql`, split it, parse `CREATE TABLE`/`INSERT INTO`, build `$this->map` |
+| `Helper\Builder` (deleted) | 347 | Write `#__componentbuilder_field`, `admin_view`, `admin_fields` rows |
+| `Helper\Extrusion` (now a delegate, §8.1) | 103 | Link created views into `#__componentbuilder_component_admin_views` |
 
 `Extrusion extends Builder extends Mapping`. There is no factory, no service
 provider, no interface, and no injected dependency. `Factory::getApplication()`
 and `Factory::getDbo()` are reached directly, and every failure path is an
 `enqueueMessage()` from inside a parser.
 
-Ownership: one test,
+Ownership was one test,
 [`ExtrusionContractTest`](../../libraries/vendor_jcb/tests/VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionContractTest.php),
-covers all three classes.
+covering all three classes; it now owns the delegate alone.
 [`review-findings.md`](review-findings.md) already records that this stack
 "should not be used as a pattern for compiler extraction, API work, or a new
 service."
@@ -818,8 +825,10 @@ No parser or resolver calls `enqueueMessage()`. They write to
 what makes the same services usable from the interface, the console, and a
 future API without change.
 
-The legacy `new Extrusion($data)` call in `Joomla_componentModel::save()` is
-left untouched until the interface session wires this entry point.
+The `new Extrusion($data)` call in `Joomla_componentModel::save()` is left
+untouched — it needs no change, because `Helper\Extrusion` now delegates to this
+engine behind the same signature (§8.1). Wiring a second entry point for a whole
+local component folder is interface work and belongs to the `admin/**` session.
 
 ## 4. Phases
 
@@ -925,10 +934,10 @@ the interface session.
 
 ### Phase 6 — retire the legacy stack
 
-Wire the interface to `Extruder`, reduce `Helper\{Mapping,Builder,Extrusion}`
-to delegates, migrate `ExtrusionContractTest` ownership onto the new classes,
-and remove the wrappers only when no reference remains — the same sequencing
-the [helper refactoring playbook](helper-refactoring.md) prescribes.
+Done, ahead of the interface work; see §8. `Helper\Extrusion` became a delegate
+over `Extruder`, `Helper\{Mapping,Builder}` were deleted once no reference
+remained, and `ExtrusionContractTest` moved onto the delegate — the same
+sequencing the [helper refactoring playbook](helper-refactoring.md) prescribes.
 
 ## 5. Sequencing notes
 
@@ -1026,3 +1035,72 @@ Two further notes for whoever continues this:
   yet what it finds outranks every other source. A file found by the weakest
   discovery tier can still be the strongest precedence tier; the two axes are
   independent, which is why §3.6 states them separately.
+
+## 8. One engine, two entry points
+
+The design above treated the folder path as the new feature and the pasted dump
+as the thing it would eventually replace. That was wrong: the dump is a source
+like any other, only a thinner one. Both entry points now run the same
+`Extruder`, so an improvement to a reader or a resolver reaches both, and the
+two can no longer disagree about the same dump.
+
+### 8.1 The seam
+
+`Helper\Extrusion` is what `Joomla_componentModel::save()` has always
+constructed, so its `__construct(&$data)` signature is unchanged. It does three
+things and nothing else: clear `buildcomp`/`buildcompsql` out of the data so a
+pasted dump is never persisted, resolve `Extruder` from the container and run it,
+and surface the message bus through `enqueueMessage()`. It holds no parser and no
+writer.
+
+That makes it the only file in the engine permitted to speak to the Joomla
+application, and it does so defensively — a run without an application still
+completes, it simply has nobody to show its messages to.
+
+**`Reader\Schema::parse(string $sql, string $origin, ?string $name)`** is the
+public entry the dump path needs: the same parser `read()` uses on a file,
+handed text instead of a path. One parser, two ways in.
+
+### 8.2 The message bus
+
+`Registry\Message` is a `VDM\Joomla\Abstraction\Registry` leaf, exclusive to
+extrusion, holding four levels: `error`, `warning`, `notice`, `success`. It
+**gathers** messages; it formats nothing and knows nothing about HTML, so the
+same run can be presented by the component form, a console command, or the
+future dashboard.
+
+`record()` is the appending method rather than `add()`, because the registry it
+extends already defines `add()` for appending to a path — reusing that name is a
+fatal signature clash, not an override.
+
+`all()` returns the levels worst-first in reading order, which is the order a
+caller wants to display. The report registry remains the detailed, machine-shaped
+record; the bus is the human-shaped one. Both are read from the same run.
+
+### 8.3 Working with whatever it gets
+
+`Discovery\Collector::assess()` is what makes "it doesn't break, it just tells
+you what it could achieve" true. Only the complete absence of a schema **and** a
+table class **and** form XML is fatal, because nothing then describes a field.
+Every other absence is a warning or a notice naming what that tier would have
+contributed and what will be derived in its place.
+
+`Extruder::shortfalls()` does the same for what was lost *during* a run rather
+than missing before it: unmapped field types, fields that could never be typed,
+unresolved language constants, tables that yielded no view, and `showon` rules
+whose match field JCB manages itself. Every one of those is already recorded by
+the reader or writer that hit it; this is the single place that turns the notable
+ones into something the caller can show. A run that quietly loses a custom field
+type and reports unqualified success is the one outcome this engine must never
+produce, because nobody would then know which fields still need finishing by
+hand.
+
+### 8.4 Stated beats guessed, again
+
+The single view name is the table name with the component prefix removed, which
+is reliable. The plural has no such source and was an English guess. A JCB table
+definition class states the list name outright for every field it describes, so
+`Resolver\Assembler::listName()` prefers it and reports any disagreement: a
+stated `people` must not be overwritten with `persons`. This is the same lesson
+as §2's precedence order, applied to a place the original design had not noticed
+it applied.

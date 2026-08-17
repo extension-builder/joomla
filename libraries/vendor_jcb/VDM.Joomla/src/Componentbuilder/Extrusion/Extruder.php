@@ -15,6 +15,8 @@ namespace VDM\Joomla\Componentbuilder\Extrusion;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher as ReaderDispatcher;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
@@ -94,6 +96,22 @@ final class Extruder implements ExtruderInterface
 	protected Report $report;
 
 	/**
+	 * The Message Bus.
+	 *
+	 * @var    Message
+	 * @since  6.1.6
+	 */
+	protected Message $message;
+
+	/**
+	 * The Schema Reader, for a dump supplied as text.
+	 *
+	 * @var    SchemaReader
+	 * @since  6.1.6
+	 */
+	protected SchemaReader $schema;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -103,6 +121,8 @@ final class Extruder implements ExtruderInterface
 	 * @param   Assembler         $assembler  The resolution assembler.
 	 * @param   WriterDispatcher  $writers    The writer dispatcher.
 	 * @param   Report            $report     The run report registry.
+	 * @param   Message           $message    The message bus.
+	 * @param   SchemaReader      $schema     The schema reader.
 	 *
 	 * @since   6.1.6
 	 */
@@ -113,7 +133,9 @@ final class Extruder implements ExtruderInterface
 		ReaderDispatcher $readers,
 		Assembler $assembler,
 		WriterDispatcher $writers,
-		Report $report
+		Report $report,
+		Message $message,
+		SchemaReader $schema
 	)
 	{
 		$this->config = $config;
@@ -123,6 +145,8 @@ final class Extruder implements ExtruderInterface
 		$this->assembler = $assembler;
 		$this->writers = $writers;
 		$this->report = $report;
+		$this->message = $message;
+		$this->schema = $schema;
 	}
 
 	/**
@@ -149,6 +173,27 @@ final class Extruder implements ExtruderInterface
 	public function path(string $path): self
 	{
 		return $this->option('path', $path);
+	}
+
+	/**
+	 * Supply a schema dump as text instead of pointing at a folder.
+	 *
+	 * This is the original extrusion: paste a dump, get views and fields, with the
+	 * JSON note in a column comment still the author's explicit instruction. It runs
+	 * through the same readers, resolvers and writers as a folder does, so the two
+	 * entry points cannot drift apart.
+	 *
+	 * A dump and a folder can be given together, in which case the folder's own
+	 * artifacts refine what the dump described.
+	 *
+	 * @param   string  $sql  The schema text.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function dump(string $sql): self
+	{
+		return $this->option('dump', $sql);
 	}
 
 	/**
@@ -369,26 +414,150 @@ final class Extruder implements ExtruderInterface
 	public function extrude(): Report
 	{
 		$path = (string) $this->config->get('path', '');
+		$dump = (string) $this->config->get('dump', '');
 
-		if ($path === '')
+		if ($path === '' && $dump === '')
 		{
-			$this->report->set('failed.path', 'no component source root was set');
+			$this->message->error('No component source root and no schema dump were given.');
 
 			return $this->finish(false);
 		}
 
-		if (!$this->collector->collect($path))
-		{
-			$this->report->set('failed.discovery', 'no schema or table definition class was found');
+		$parsed = $dump !== '' && $this->schema->parse($dump);
 
+		if ($dump !== '' && !$parsed)
+		{
+			$this->message->error('The supplied schema dump declared no table.');
+		}
+
+		$located = $path !== '' && $this->collector->collect($path);
+
+		if (!$located && !$parsed)
+		{
 			return $this->finish(false);
 		}
 
 		$this->report->set('counts.artifacts', $this->readers->dispatch());
-		$this->report->set('counts.views', $this->assembler->assemble());
-		$this->writers->dispatch();
+		$views = $this->assembler->assemble();
+		$this->report->set('counts.views', $views);
+
+		if ($views === 0)
+		{
+			$this->message->error('Nothing described a table, so no view could be built.');
+
+			return $this->finish(false);
+		}
+
+		$written = $this->writers->dispatch();
+		$this->achieved($views, $written);
 
 		return $this->finish(true);
+	}
+
+	/**
+	 * Say plainly what the run achieved.
+	 *
+	 * @param   int  $views    How many views were assembled.
+	 * @param   int  $written  How many definitions were written.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	protected function achieved(int $views, int $written): void
+	{
+		if ($this->config->get('dryRun', false))
+		{
+			$this->message->success(
+				'Reviewed ' . $views . ' view(s) and prepared ' . $written
+				. ' definition(s). Nothing was written, because this was a dry run.'
+			);
+
+			return;
+		}
+
+		$this->message->success(
+			'Extruded ' . $views . ' view(s) into ' . $written . ' JCB definition(s).'
+		);
+		$this->shortfalls();
+	}
+
+	/**
+	 * Name what the run could not carry over.
+	 *
+	 * Every reader, resolver and writer records the facts it could not use, but a
+	 * fact sitting in the report is not the same as the caller knowing about it. A
+	 * run that quietly loses a custom field type or a field dependency looks like a
+	 * complete success, which is exactly the impression this engine must never
+	 * leave. The report stays the detailed record; this is the one place that turns
+	 * the notable parts of it into something a caller can show, so no writer has to
+	 * carry a message of its own.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	protected function shortfalls(): void
+	{
+		$counts = [
+			'unmapped.fieldtype' => 'field type(s) had no JCB equivalent and were extruded '
+				. 'as a custom field, so their options have to be set by hand',
+			'failed.field.unresolved_type' => 'field(s) could not be given a type at all and '
+				. 'were not written',
+			'unresolved.language' => 'language constant(s) had no translation, so their label '
+				. 'was derived from the column name',
+			'skipped.empty' => 'table(s) described no extrudable field and became no view',
+			'skipped.duplicate' => 'table(s) claimed a view name another table already held '
+				. 'and were left out'
+		];
+
+		foreach ($counts as $key => $tail)
+		{
+			$found = $this->tally($key);
+
+			if ($found > 0)
+			{
+				$this->message->notice($found . ' ' . $tail . '.', $key);
+			}
+		}
+
+		$dropped = 0;
+
+		foreach ((array) $this->report->get('dropped.condition', []) as $clauses)
+		{
+			$dropped += count((array) $clauses);
+		}
+
+		if ($dropped > 0)
+		{
+			$this->message->notice(
+				$dropped . ' field dependency(s) pointed at a field JCB manages itself, so '
+				. 'the showon rule could not be rebuilt.',
+				'dropped.condition'
+			);
+		}
+	}
+
+	/**
+	 * How many entries one report branch holds.
+	 *
+	 * @param   string  $key  The report path.
+	 *
+	 * @return  int  The number of entries.
+	 * @since   6.1.6
+	 */
+	protected function tally(string $key): int
+	{
+		return count((array) $this->report->get($key, []));
+	}
+
+	/**
+	 * Everything the run has to say, ready for a caller to present.
+	 *
+	 * @return  array<string, array<int, array{message: string, subject?: string}>>  The messages by level.
+	 * @since   6.1.6
+	 */
+	public function messages(): array
+	{
+		return $this->message->all();
 	}
 
 	/**

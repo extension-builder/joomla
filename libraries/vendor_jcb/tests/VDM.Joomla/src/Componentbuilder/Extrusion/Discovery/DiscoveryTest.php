@@ -31,6 +31,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaFour;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaSix;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaThree;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Tests\Support\ExtrusionComponentFixture;
@@ -79,6 +80,14 @@ final class DiscoveryTest extends FilesystemTestCase
 	private Report $report;
 
 	/**
+	 * The message bus the collector explains itself through.
+	 *
+	 * @var    Message
+	 * @since  6.1.6
+	 */
+	private Message $message;
+
+	/**
 	 * The located artifact registry.
 	 *
 	 * @var    Inventory
@@ -110,6 +119,7 @@ final class DiscoveryTest extends FilesystemTestCase
 		$this->config = new Config();
 		$this->source = new Source();
 		$this->report = new Report();
+		$this->message = new Message();
 		$this->inventory = new Inventory();
 	}
 
@@ -219,6 +229,7 @@ final class DiscoveryTest extends FilesystemTestCase
 			$this->inventory,
 			$this->source,
 			$this->report,
+			$this->message,
 			$this->locator(Schema::class),
 			$this->locator(Form::class),
 			$this->locator(Language::class),
