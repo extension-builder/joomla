@@ -864,6 +864,14 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelQueryClauseTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/CustomFieldCode.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FilterFieldSupportTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/FilterFieldFile.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FilterFieldSupportTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/ListBody.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedAdminViewsListBodyTest.php'

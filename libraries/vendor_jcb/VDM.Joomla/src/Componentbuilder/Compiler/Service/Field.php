@@ -25,6 +25,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\TypeName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\UniqueName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Rule;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Customcode;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\CustomFieldCode;
 use VDM\Joomla\Componentbuilder\Compiler\Field\DatabaseName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaThree\CoreField as J3CoreField;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaFour\CoreField as J4CoreField;
@@ -40,7 +41,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Field\InputButtonInterface a
 
 /**
  * Compiler Field
- * 
+ *
  * @since 3.2.0
  */
 class Field implements ServiceProviderInterface
@@ -100,6 +101,9 @@ class Field implements ServiceProviderInterface
 
 		$container->alias(Customcode::class, 'Field.Customcode')
 			->share('Field.Customcode', [$this, 'getCustomcode'], true);
+
+		$container->alias(CustomFieldCode::class, 'Architecture.Field.CustomFieldCode')
+			->share('Architecture.Field.CustomFieldCode', [$this, 'getCustomFieldCode'], true);
 
 		$container->alias(DatabaseName::class, 'Field.Database.Name')
 			->share('Field.Database.Name', [$this, 'getDatabaseName'], true);
@@ -325,6 +329,21 @@ class Field implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get The CustomFieldCode Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomFieldCode
+	 * @since   6.1.7
+	 */
+	public function getCustomFieldCode(Container $container): CustomFieldCode
+	{
+		return new CustomFieldCode(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
 	 * Get The CoreField Class.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -480,4 +499,3 @@ class Field implements ServiceProviderInterface
 		return $container->get('J' . $this->targetVersion . '.Field.Input.Button');
 	}
 }
-

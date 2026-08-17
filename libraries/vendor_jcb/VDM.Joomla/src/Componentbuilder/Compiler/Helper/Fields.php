@@ -53,55 +53,12 @@ class Fields
 	 *
 	 * @return  array with the code
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.CustomFieldCode service.
 	 */
 	public function getCustomFieldCode($custom)
 	{
-		// the code bucket
-		$code_bucket = array(
-			'JFORM_TYPE_HEADER' => '',
-			'JFORM_TYPE_PHP'    => ''
-		);
-		// set tab and break replacements
-		$tabBreak = array(
-			'\t' => Indent::_(1),
-			'\n' => PHP_EOL
-		);
-		// load the other PHP options
-		foreach (ComponentbuilderHelper::$phpFieldArray as $x)
-		{
-			// reset the php bucket
-			$phpBucket = '';
-			// only set if available
-			if (isset($custom['php' . $x])
-				&& ArrayHelper::check(
-					$custom['php' . $x]
-				))
-			{
-				foreach ($custom['php' . $x] as $line => $code)
-				{
-					if (StringHelper::check($code))
-					{
-						$phpBucket .= PHP_EOL . CFactory::_('Placeholder')->update(
-								$code, $tabBreak
-							);
-					}
-				}
-				// check if this is header text
-				if ('HEADER' === $x)
-				{
-					$code_bucket['JFORM_TYPE_HEADER']
-						.= PHP_EOL . $phpBucket;
-				}
-				else
-				{
-					// JFORM_TYPE_PHP <<<DYNAMIC>>>
-					$code_bucket['JFORM_TYPE_PHP']
-						.= PHP_EOL . $phpBucket;
-				}
-			}
-		}
-
-		return $code_bucket;
+		return CFactory::_('Architecture.Field.CustomFieldCode')->get($custom);
 	}
 
 	/**
@@ -781,42 +738,12 @@ class Fields
 	 *
 	 * @return  void
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminViews.FilterFieldFile service.
 	 */
 	public function setFilterFieldFile($getOptions, $filter)
 	{
-		// make sure it is not already been build
-		if (!CFactory::_('Compiler.Builder.Content.Multi')->
-			isArray('customfilterfield_' . $filter['filter_type']))
-		{
-			// start loading the field type
-			// $this->fileContentDynamic['customfilterfield_'
-			// . $filter['filter_type']]
-			// = [];
-			// JPREFIX <<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set('customfilterfield_' . $filter['filter_type'] . '|JPREFIX', 'J');
-			// Type <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set('customfilterfield_' . $filter['filter_type'] . '|Type',
-				StringHelper::safe(
-					$filter['filter_type'], 'F'
-				)
-			);
-			// type <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set('customfilterfield_' . $filter['filter_type'] . '|type',
-				StringHelper::safe($filter['filter_type'])
-			);
-			// JFORM_GETOPTIONS_PHP <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set('customfilterfield_' . $filter['filter_type'] . '|JFORM_GETOPTIONS_PHP',
-				$getOptions
-			);
-			// ADD_BUTTON <<<DYNAMIC>>>
-			CFactory::_('Compiler.Builder.Content.Multi')->set('customfilterfield_' . $filter['filter_type'] . '|ADD_BUTTON', '');
-			// now build the custom filter field type file
-			$target = array('admin' => 'customfilterfield');
-			CFactory::_('Utilities.Structure')->build(
-				$target, 'fieldlist',
-				$filter['filter_type']
-			);
-		}
+		CFactory::_('Architecture.AdminViews.FilterFieldFile')
+			->set($getOptions, $filter);
 	}
 }
-
