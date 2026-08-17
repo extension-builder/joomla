@@ -1,8 +1,16 @@
 # Extrusion engine: from SQL dump to component source
 
-This document records the current Extrusion contract and proposes the
-implementation roadmap for pointing JCB at a component folder on disk and
-extruding its administrator area into JCB definitions.
+This document records the current Extrusion contract and the implementation
+roadmap for pointing JCB at a component folder on disk and extruding its
+administrator area into JCB definitions.
+
+**Implementation status:** phases 0 through 5 are implemented under
+`Componentbuilder/Extrusion` — 77 classes covering discovery, reading,
+resolution, writing and code extraction. What remains is the graphical
+interface and the retirement of the legacy `Helper` stack (§4, phase 6), both
+of which need `admin/**` and therefore a separate, explicitly authorised
+change. Section 7 records what the working implementation proved and the
+places where reality differed from this design.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
@@ -964,3 +972,51 @@ the [helper refactoring playbook](helper-refactoring.md) prescribes.
 6. **Collision override table for field types.** `Text`/`Tel` is the only
    collision in the seeded data today; whether that table is code or a new
    `fieldtype` column is worth deciding before phase 3.
+
+
+## 7. What the implementation proved
+
+Building it changed four things in this design, each found by running the
+pipeline against real component trees rather than by re-reading the plan.
+
+**One table identity, or the tiers never meet.** A schema declares its tables as
+`#__example_item`; a table definition class names them `example_item`. Keyed
+literally, the two registries never joined: the same table produced two
+unrelated views, each seeing only half the available truth, and the duplicate
+was written twice. `Resolver\Precedence::canonical()` now reduces both to one
+identity and the assembler carries each registry's own key, so a view is
+assembled once from everything known about it. Nothing in §3 anticipated this,
+and it is the single most consequential correction.
+
+**Manifest identity is a ranking problem, not a search.** Taking the first file
+containing an `<extension>` element picks a compiler template out of a real
+tree. That hijacked the component code name, which stopped the table prefix
+being stripped, which stopped every form matching its table — so the entire XML
+tier silently vanished and every property fell back to `derived`. Candidates are
+now ranked by depth and by whether the file is named after the component. The
+failure was invisible in the output: the run reported success and wrote a full
+definition set that was quietly much worse than it should have been.
+
+**Form matching needs alternates.** A component whose table prefix differs from
+its own code name yields a view name that does not match its form file name. The
+XML tier now tries the obvious alternates, and a field still has to carry the
+right column name to be accepted.
+
+**The shared string helper cannot be used here.** `StringHelper::safe()` reaches
+into the running Joomla application for its transliteration parameters. That
+broke the stated contract that readers and resolvers work without an
+application, and made a bare run die silently rather than fail. A small
+`Resolver\Text` does the humanising instead, which is all that was ever needed.
+
+Two further notes for whoever continues this:
+
+- **Boilerplate columns must be skipped.** JCB generates `id`, `asset_id`,
+  `published`, `created`, `ordering` and the rest for every view from its own
+  switches. Extruding them produced duplicate, unusable field definitions. The
+  skip list is a `Config` option so a component with a genuinely meaningful
+  `params` column can keep it.
+- **`Locator\Table` runs only at discovery tier 3, and that is correct.** Its
+  target has no predictable location, so there is no placement-map shortcut —
+  yet what it finds outranks every other source. A file found by the weakest
+  discovery tier can still be the strongest precedence tier; the two axes are
+  independent, which is why §3.6 states them separately.
