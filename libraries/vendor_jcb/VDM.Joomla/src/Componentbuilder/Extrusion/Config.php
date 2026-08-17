@@ -54,7 +54,23 @@ final class Config extends Registry implements Registryinterface
 		'dryRun' => false,
 		'strict' => false,
 		'depth' => 12,
-		'maxFiles' => 20000
+		'maxFiles' => 20000,
+		'skipColumns' => self::BOILERPLATE
+	];
+
+	/**
+	 * Columns Joomla manages itself, which are never extruded as fields.
+	 *
+	 * JCB generates all of these for every view from its own switches, so
+	 * carrying them across would produce duplicate, unusable field definitions.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	public const BOILERPLATE = [
+		'id', 'asset_id', 'guid', 'published', 'created_by', 'modified_by',
+		'created', 'modified', 'checked_out', 'checked_out_time', 'version',
+		'hits', 'access', 'ordering', 'metakey', 'metadesc', 'metadata', 'params'
 	];
 
 	/**
@@ -186,6 +202,21 @@ final class Config extends Registry implements Registryinterface
 		}
 
 		return !in_array($name, $exclude, true);
+	}
+
+	/**
+	 * Whether one column should become a JCB field at all.
+	 *
+	 * @param   string  $column  The source column name.
+	 *
+	 * @return  bool  True when the column should be extruded.
+	 * @since   6.1.6
+	 */
+	public function extrudable(string $column): bool
+	{
+		$skip = (array) $this->get('skipColumns', self::BOILERPLATE);
+
+		return !in_array(strtolower(trim($column)), array_map('strtolower', $skip), true);
 	}
 
 	/**

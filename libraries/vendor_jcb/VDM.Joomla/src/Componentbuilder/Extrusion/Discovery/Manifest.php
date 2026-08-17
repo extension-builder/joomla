@@ -28,6 +28,25 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 final class Manifest
 {
 	/**
+	 * How far below the root a real component manifest may sit.
+	 *
+	 * @var    int
+	 * @since  6.1.6
+	 */
+	private const MAX_DEPTH = 2;
+
+	/**
+	 * Manifest file names that carry no identity of their own.
+	 *
+	 * A file with one of these names is usually a compiler template or a
+	 * bundled example rather than the component's own manifest.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	private const GENERIC = ['component', 'manifest', 'extension', 'install', 'template'];
+
+	/**
 	 * Structural markers that identify a modern component tree.
 	 *
 	 * @var    array<string>
@@ -135,11 +154,18 @@ final class Manifest
 	 */
 	public function find(string $root): ?array
 	{
+		$candidates = [];
+
 		foreach ($this->scanner->files($root, ['xml']) as $path)
 		{
-			$head = $this->scanner->head($path, 4096);
+			if (!str_contains($this->scanner->head($path, 4096), '<extension'))
+			{
+				continue;
+			}
 
-			if (!str_contains($head, '<extension'))
+			$depth = substr_count(substr($path, strlen($root)), '/') - 1;
+
+			if ($depth > self::MAX_DEPTH)
 			{
 				continue;
 			}
@@ -148,11 +174,59 @@ final class Manifest
 
 			if ($facts !== null)
 			{
-				return $facts;
+				$candidates[] = ['facts' => $facts, 'rank' => $this->rank($root, $path, $depth)];
 			}
 		}
 
-		return null;
+		if ($candidates === [])
+		{
+			return null;
+		}
+
+		usort(
+			$candidates,
+			static fn (array $left, array $right): int => $left['rank'] <=> $right['rank']
+		);
+
+		return $candidates[0]['facts'];
+	}
+
+	/**
+	 * Rank one manifest candidate, lower being a better match.
+	 *
+	 * A component's real manifest sits at or very near its root and is named
+	 * after the component. A deeply nested one is far more likely to be a
+	 * template or an unrelated bundled extension, which is exactly the mistake
+	 * that silently ruins every view name downstream.
+	 *
+	 * @param   string  $root   The resolved source root.
+	 * @param   string  $path   Absolute path to the candidate.
+	 * @param   int     $depth  How many directories below the root it sits.
+	 *
+	 * @return  int  The rank, lower being better.
+	 * @since   6.1.6
+	 */
+	protected function rank(string $root, string $path, int $depth): int
+	{
+		$base = strtolower(pathinfo($path, PATHINFO_FILENAME));
+		$rank = max(0, $depth) * 10;
+
+		if (str_starts_with($base, 'com_'))
+		{
+			return $rank;
+		}
+
+		if ($base === strtolower(basename($root)))
+		{
+			return $rank + 1;
+		}
+
+		if (in_array($base, self::GENERIC, true))
+		{
+			return $rank + 8;
+		}
+
+		return $rank + 4;
 	}
 
 	/**

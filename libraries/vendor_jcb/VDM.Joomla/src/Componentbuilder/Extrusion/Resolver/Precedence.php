@@ -18,7 +18,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table;
-use VDM\Joomla\Utilities\StringHelper;
 
 
 /**
@@ -87,6 +86,14 @@ final class Precedence implements PrecedenceInterface
 	protected Language $language;
 
 	/**
+	 * The Text Resolver.
+	 *
+	 * @var    Text
+	 * @since  6.1.6
+	 */
+	protected Text $text;
+
+	/**
 	 * The Report Registry.
 	 *
 	 * @var    Report
@@ -102,6 +109,7 @@ final class Precedence implements PrecedenceInterface
 	 * @param   Schema    $schema    The parsed schema registry.
 	 * @param   Form      $form      The parsed form registry.
 	 * @param   Language  $language  The language resolver.
+	 * @param   Text      $text      The readable text resolver.
 	 * @param   Report    $report    The run report registry.
 	 *
 	 * @since   6.1.6
@@ -112,6 +120,7 @@ final class Precedence implements PrecedenceInterface
 		Schema $schema,
 		Form $form,
 		Language $language,
+		Text $text,
 		Report $report
 	)
 	{
@@ -120,27 +129,38 @@ final class Precedence implements PrecedenceInterface
 		$this->schema = $schema;
 		$this->form = $form;
 		$this->language = $language;
+		$this->text = $text;
 		$this->report = $report;
 	}
 
 	/**
 	 * Resolve every property of one column into a value and an origin.
 	 *
-	 * @param   string  $view    The JCB view name.
-	 * @param   string  $table   The source table name.
-	 * @param   string  $column  The source column name.
+	 * @param   string                $view    The JCB view name.
+	 * @param   array<string,string>  $keys    Registry keys per tier, as schema and table.
+	 * @param   string                $column  The source column name.
 	 *
 	 * @return  array<string, array{value: mixed, origin: string}>|null  Resolved properties.
 	 * @since   6.1.6
 	 */
-	public function resolve(string $view, string $table, string $column): ?array
+	public function resolve(string $view, array $keys, string $column): ?array
 	{
 		$candidates = [];
+		$schemaKey = (string) ($keys['schema'] ?? '');
+		$tableKey = (string) ($keys['table'] ?? '');
 
-		$this->fromDerived($candidates, $table, $column);
-		$this->fromNotes($candidates, $table, $column);
+		if ($schemaKey !== '')
+		{
+			$this->fromDerived($candidates, $schemaKey, $column);
+			$this->fromNotes($candidates, $schemaKey, $column);
+		}
+
 		$this->fromXml($candidates, $view, $column);
-		$this->fromTable($candidates, $table, $column);
+
+		if ($tableKey !== '')
+		{
+			$this->fromTable($candidates, $tableKey, $column);
+		}
 
 		if ($candidates === [])
 		{
@@ -228,15 +248,15 @@ final class Precedence implements PrecedenceInterface
 	 * The lowest tier: what the SQL column and its name alone imply.
 	 *
 	 * @param   array<string, array<string, mixed>>  $candidates  The candidate map.
-	 * @param   string                               $table       The source table name.
+	 * @param   string                               $key         The registry key of the table.
 	 * @param   string                               $column      The source column name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	protected function fromDerived(array &$candidates, string $table, string $column): void
+	protected function fromDerived(array &$candidates, string $key, string $column): void
 	{
-		$path = 'table.' . $this->key($table) . '.column.' . $this->key($column);
+		$path = 'table.' . $key . '.column.' . $this->key($column);
 		$row = $this->schema->get($path);
 
 		if ($row === null)
@@ -246,7 +266,7 @@ final class Precedence implements PrecedenceInterface
 
 		$row = (array) $row;
 
-		$this->offer($candidates, 'label', 'derived', StringHelper::safe($column, 'W'));
+		$this->offer($candidates, 'label', 'derived', $this->text->humanise($column));
 		$this->offer($candidates, 'datatype', 'derived', $row['type'] ?? null);
 		$this->offer($candidates, 'size', 'derived', $row['size'] ?? null);
 		$this->offer($candidates, 'default', 'derived', $row['default'] ?? null);
@@ -259,15 +279,15 @@ final class Precedence implements PrecedenceInterface
 	 * The notes tier: the JSON configuration in a SQL column comment.
 	 *
 	 * @param   array<string, array<string, mixed>>  $candidates  The candidate map.
-	 * @param   string                               $table       The source table name.
+	 * @param   string                               $key         The registry key of the table.
 	 * @param   string                               $column      The source column name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	protected function fromNotes(array &$candidates, string $table, string $column): void
+	protected function fromNotes(array &$candidates, string $key, string $column): void
 	{
-		$path = 'table.' . $this->key($table) . '.column.' . $this->key($column) . '.comment';
+		$path = 'table.' . $key . '.column.' . $this->key($column) . '.comment';
 		$comment = $this->schema->get($path);
 
 		if (!is_string($comment) || trim($comment) === '')
@@ -307,8 +327,7 @@ final class Precedence implements PrecedenceInterface
 	 */
 	protected function fromXml(array &$candidates, string $view, string $column): void
 	{
-		$path = 'view.' . $this->key($view) . '.field.' . $this->key($column);
-		$field = $this->form->get($path);
+		$field = $this->formField($view, $column);
 
 		if ($field === null)
 		{
@@ -345,18 +364,76 @@ final class Precedence implements PrecedenceInterface
 	}
 
 	/**
+	 * Find one column's form field, tolerating a view name that is not exact.
+	 *
+	 * A form file is named after its view, but a component whose table prefix
+	 * differs from its own code name produces a view name that will not match
+	 * that file name. Trying the obvious alternates keeps the whole XML tier from
+	 * being lost to a naming mismatch, and any field actually found still has to
+	 * carry the right column name.
+	 *
+	 * @param   string  $view    The JCB view name.
+	 * @param   string  $column  The source column name.
+	 *
+	 * @return  mixed  The form field entry, or null when no form declares it.
+	 * @since   6.1.6
+	 */
+	protected function formField(string $view, string $column)
+	{
+		foreach ($this->viewAliases($view) as $alias)
+		{
+			$field = $this->form->get(
+				'view.' . $alias . '.field.' . $this->key($column)
+			);
+
+			if ($field !== null)
+			{
+				return $field;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The view names a form file for this view could plausibly use.
+	 *
+	 * @param   string  $view  The JCB view name.
+	 *
+	 * @return  array<string>  Candidate registry segments, most likely first.
+	 * @since   6.1.6
+	 */
+	protected function viewAliases(string $view): array
+	{
+		$aliases = [$this->key($view)];
+		$trimmed = $view;
+
+		while (($position = strpos($trimmed, '_')) !== false)
+		{
+			$trimmed = substr($trimmed, $position + 1);
+
+			if ($trimmed !== '')
+			{
+				$aliases[] = $this->key($trimmed);
+			}
+		}
+
+		return array_values(array_unique($aliases));
+	}
+
+	/**
 	 * The top tier: the JCB table definition class, when the source has one.
 	 *
 	 * @param   array<string, array<string, mixed>>  $candidates  The candidate map.
-	 * @param   string                               $table       The source table name.
+	 * @param   string                               $key         The registry key of the table.
 	 * @param   string                               $column      The source column name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	protected function fromTable(array &$candidates, string $table, string $column): void
+	protected function fromTable(array &$candidates, string $key, string $column): void
 	{
-		$path = 'table.' . $this->key($table) . '.field.' . $this->key($column);
+		$path = 'table.' . $key . '.field.' . $this->key($column);
 		$field = $this->table->get($path);
 
 		if ($field === null)
@@ -477,6 +554,27 @@ final class Precedence implements PrecedenceInterface
 		}
 
 		return null;
+	}
+
+	/**
+	 * The canonical identity of a source table, ignoring its prefix.
+	 *
+	 * A schema declares its tables with the Joomla prefix placeholder while a
+	 * table definition class names them bare, so the two only join once both are
+	 * reduced to the same identity. Without this the same table produces two
+	 * unrelated views and each sees only half the available truth.
+	 *
+	 * @param   string  $table  The raw table name.
+	 *
+	 * @return  string  The canonical identity.
+	 * @since   6.1.6
+	 */
+	public function canonical(string $table): string
+	{
+		$name = strtolower(trim($table));
+		$name = preg_replace('/^#__/', '', $name) ?? $name;
+
+		return trim($this->key($name), '_');
 	}
 
 	/**

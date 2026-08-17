@@ -13,7 +13,6 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
-use VDM\Joomla\Utilities\StringHelper;
 
 
 /**
@@ -36,15 +35,25 @@ final class ViewName
 	protected Source $source;
 
 	/**
+	 * The Text Resolver.
+	 *
+	 * @var    Text
+	 * @since  6.1.6
+	 */
+	protected Text $text;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Source  $source  The source identity registry.
+	 * @param   Text    $text    The readable text resolver.
 	 *
 	 * @since   6.1.6
 	 */
-	public function __construct(Source $source)
+	public function __construct(Source $source, Text $text)
 	{
 		$this->source = $source;
+		$this->text = $text;
 	}
 
 	/**
@@ -128,7 +137,7 @@ final class ViewName
 	 */
 	public function title(string $name): string
 	{
-		return StringHelper::safe($name, 'W');
+		return $this->text->humanise($name);
 	}
 
 	/**

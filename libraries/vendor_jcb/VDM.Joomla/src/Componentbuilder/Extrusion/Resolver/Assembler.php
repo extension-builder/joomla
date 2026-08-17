@@ -197,18 +197,18 @@ final class Assembler
 	{
 		$views = [];
 
-		foreach ($this->tables() as $key => $name)
+		foreach ($this->tables() as $canonical => $entry)
 		{
-			if (!$this->config->selected($name))
+			if (!$this->config->selected($entry['name']))
 			{
-				$this->report->set('skipped.filtered.' . $key, $name);
+				$this->report->set('skipped.filtered.' . $canonical, $entry['name']);
 
 				continue;
 			}
 
-			$view = $this->one($key, $name);
+			$view = $this->one($canonical, $entry);
 
-			if ($view !== null)
+			if ($view !== null && !in_array($view, $views, true))
 			{
 				$views[] = $view;
 			}
@@ -223,7 +223,7 @@ final class Assembler
 	/**
 	 * Every source table both registries know about.
 	 *
-	 * @return  array<string, string>  Registry key mapped to the true table name.
+	 * @return  array<string, array{name: string, schema: string, table: string}>  Canonical identity to its registry keys.
 	 * @since   6.1.6
 	 */
 	public function tables(): array
@@ -245,9 +245,28 @@ final class Assembler
 				$entry = (array) $entry;
 				$name = (string) ($entry['name'] ?? $key);
 
-				if ($name !== '' && !isset($tables[(string) $key]))
+				if ($name === '')
 				{
-					$tables[(string) $key] = $name;
+					continue;
+				}
+
+				$canonical = $this->precedence->canonical($name);
+
+				if ($canonical === '')
+				{
+					continue;
+				}
+
+				if (!isset($tables[$canonical]))
+				{
+					$tables[$canonical] = ['name' => $name, 'schema' => '', 'table' => ''];
+				}
+
+				$tables[$canonical][$which] = (string) $key;
+
+				if ($which === 'schema')
+				{
+					$tables[$canonical]['name'] = $name;
 				}
 			}
 		}
@@ -258,20 +277,26 @@ final class Assembler
 	/**
 	 * Assemble one table into a view definition.
 	 *
-	 * @param   string  $key   The registry key of the table.
-	 * @param   string  $name  The true table name.
+	 * @param   string                                            $canonical  The canonical table identity.
+	 * @param   array{name: string, schema: string, table: string}  $entry      The table's registry keys.
 	 *
 	 * @return  string|null  The view name, or null when nothing usable was found.
 	 * @since   6.1.6
 	 */
-	protected function one(string $key, string $name): ?string
+	protected function one(string $canonical, array $entry): ?string
 	{
+		$name = $entry['name'];
 		$view = $this->viewname->single($name);
 		$fields = [];
 
-		foreach ($this->columns($key) as $column)
+		foreach ($this->columns($entry) as $column)
 		{
-			$properties = $this->precedence->resolve($view, $name, $column);
+			if (!$this->config->extrudable($column))
+			{
+				continue;
+			}
+
+			$properties = $this->precedence->resolve($view, $entry, $column);
 
 			if ($properties !== null)
 			{
@@ -281,7 +306,7 @@ final class Assembler
 
 		if ($fields === [])
 		{
-			$this->report->set('skipped.empty.' . $key, $name);
+			$this->report->set('skipped.empty.' . $canonical, $name);
 
 			return null;
 		}
@@ -314,7 +339,7 @@ final class Assembler
 		$this->resolved->set($path . '.name_list', $this->viewname->plural($view));
 		$this->resolved->set($path . '.system_name', $this->viewname->title($view));
 		$this->resolved->set($path . '.table', $name);
-		$this->resolved->set($path . '.key', $key);
+		$this->resolved->set($path . '.key', $canonical);
 		$this->resolved->set($path . '.tabs', $tabs);
 		$this->resolved->set($path . '.roles', $roles);
 		$this->resolved->set($path . '.relations', $relations);
@@ -327,7 +352,9 @@ final class Assembler
 			$this->guid->derive([$this->option(), 'admin_view', $name])
 		);
 
-		$seed = $this->schema->get('seed.' . $key . '.sql');
+		$seed = $entry['schema'] === ''
+			? null
+			: $this->schema->get('seed.' . $entry['schema'] . '.sql');
 
 		if (is_string($seed) && $seed !== '')
 		{
@@ -340,33 +367,40 @@ final class Assembler
 	/**
 	 * Every column of one table, in declaration order where it is known.
 	 *
-	 * @param   string  $key  The registry key of the table.
+	 * @param   array{name: string, schema: string, table: string}  $entry  The table's registry keys.
 	 *
-	 * @return  array<string>  The true column names.
+	 * @return  array<string>  The true column names, in declaration order.
 	 * @since   6.1.6
 	 */
-	public function columns(string $key): array
+	public function columns(array $entry): array
 	{
 		$columns = [];
-		$block = $this->schema->get('table.' . $key . '.column');
 
-		foreach ((array) $block as $columnKey => $entry)
+		if ($entry['schema'] !== '')
 		{
-			$entry = (array) $entry;
-			$columns[(string) ($entry['name'] ?? $columnKey)] = (int) ($entry['ordinal'] ?? 0);
+			$block = $this->schema->get('table.' . $entry['schema'] . '.column');
+
+			foreach ((array) $block as $columnKey => $column)
+			{
+				$column = (array) $column;
+				$columns[(string) ($column['name'] ?? $columnKey)] = (int) ($column['ordinal'] ?? 0);
+			}
 		}
 
-		$fields = $this->table->get('table.' . $key . '.field');
-		$next = count($columns);
-
-		foreach ((array) $fields as $fieldKey => $entry)
+		if ($entry['table'] !== '')
 		{
-			$entry = (array) $entry;
-			$name = (string) ($entry['name'] ?? $fieldKey);
+			$fields = $this->table->get('table.' . $entry['table'] . '.field');
+			$next = count($columns);
 
-			if ($name !== '' && !isset($columns[$name]))
+			foreach ((array) $fields as $fieldKey => $field)
 			{
-				$columns[$name] = $next++;
+				$field = (array) $field;
+				$name = (string) ($field['name'] ?? $fieldKey);
+
+				if ($name !== '' && !isset($columns[$name]))
+				{
+					$columns[$name] = $next++;
+				}
 			}
 		}
 
