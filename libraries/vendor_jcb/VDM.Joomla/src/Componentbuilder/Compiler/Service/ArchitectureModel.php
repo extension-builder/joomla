@@ -18,6 +18,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface as ModelItemSave;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as SharedModelItemSave;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemSave as J3ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface as ModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchCopy as SharedModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\BatchCopy as J3ModelBatchCopy;
@@ -119,6 +122,15 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelListQuery::class, 'Architecture.Model.J3.ListQuery')
 			->share('Architecture.Model.J3.ListQuery', [$this, 'getJ3ModelListQuery'], true);
+
+		$container->alias(ModelItemSave::class, 'Architecture.Model.ItemSave')
+			->share('Architecture.Model.ItemSave', [$this, 'getModelItemSave'], true);
+
+		$container->alias(SharedModelItemSave::class, 'Architecture.Model.Shared.ItemSave')
+			->share('Architecture.Model.Shared.ItemSave', [$this, 'getSharedModelItemSave'], true);
+
+		$container->alias(J3ModelItemSave::class, 'Architecture.Model.J3.ItemSave')
+			->share('Architecture.Model.J3.ItemSave', [$this, 'getJ3ModelItemSave'], true);
 
 		$container->alias(AliasTitleFix::class, 'Architecture.Model.AliasTitleFix')
 			->share('Architecture.Model.AliasTitleFix', [$this, 'getModelAliasTitleFix'], true);
@@ -561,6 +573,84 @@ class ArchitectureModel implements ServiceProviderInterface
 	 * @return  AliasTitleFix
 	 * @since   6.1.7
 	 */
+	/**
+	 * Get The ItemSave Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelItemSave
+	 * @since   6.1.7
+	 */
+	public function getModelItemSave(Container $container): ModelItemSave
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 reaches the current user through the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.ItemSave');
+		}
+
+		return $container->get('Architecture.Model.Shared.ItemSave');
+	}
+
+	/**
+	 * Get The ItemSave Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelItemSave
+	 * @since   6.1.7
+	 */
+	public function getSharedModelItemSave(Container $container): SharedModelItemSave
+	{
+		return new SharedModelItemSave(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Base.Six.Four'),
+			$container->get('Compiler.Builder.Json.Item'),
+			$container->get('Compiler.Builder.Json.String'),
+			$container->get('Compiler.Builder.Permission.Fields'),
+			$container->get('Compiler.Builder.Model.Basic.Field'),
+			$container->get('Compiler.Builder.Model.Medium.Field'),
+			$container->get('Compiler.Builder.Model.Whmcs.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+		);
+	}
+
+	/**
+	 * Get The ItemSave Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelItemSave
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelItemSave(Container $container): J3ModelItemSave
+	{
+		return new J3ModelItemSave(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Base.Six.Four'),
+			$container->get('Compiler.Builder.Json.Item'),
+			$container->get('Compiler.Builder.Json.String'),
+			$container->get('Compiler.Builder.Permission.Fields'),
+			$container->get('Compiler.Builder.Model.Basic.Field'),
+			$container->get('Compiler.Builder.Model.Medium.Field'),
+			$container->get('Compiler.Builder.Model.Whmcs.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+		);
+	}
+
 	public function getModelAliasTitleFix(Container $container): AliasTitleFix
 	{
 		return new AliasTitleFix(

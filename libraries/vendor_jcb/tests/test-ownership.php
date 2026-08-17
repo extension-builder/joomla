@@ -832,6 +832,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/DashboardIconsTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ItemSave.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Model/ItemSave.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Model/ItemSaveInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AliasTitleFix.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelAliasTitleFixTest.php'
