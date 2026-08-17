@@ -16,6 +16,9 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface as ModelItemsStringFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsStringFix as SharedModelItemsStringFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemsStringFix as J3ModelItemsStringFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SelectionTranslation;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\AllowEditInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AllowEdit as SharedModelAllowEdit;
@@ -64,6 +67,15 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		$container->alias(SelectionTranslation::class, 'Architecture.Model.SelectionTranslation')
 			->share('Architecture.Model.SelectionTranslation', [$this, 'getModelSelectionTranslation'], true);
+
+		$container->alias(ModelItemsStringFix::class, 'Architecture.Model.ItemsStringFix')
+			->share('Architecture.Model.ItemsStringFix', [$this, 'getModelItemsStringFix'], true);
+
+		$container->alias(SharedModelItemsStringFix::class, 'Architecture.Model.Shared.ItemsStringFix')
+			->share('Architecture.Model.Shared.ItemsStringFix', [$this, 'getSharedModelItemsStringFix'], true);
+
+		$container->alias(J3ModelItemsStringFix::class, 'Architecture.Model.J3.ItemsStringFix')
+			->share('Architecture.Model.J3.ItemsStringFix', [$this, 'getJ3ModelItemsStringFix'], true);
 
 		$container->alias(FieldRelation::class, 'Architecture.Model.FieldRelation')
 			->share('Architecture.Model.FieldRelation', [$this, 'getModelFieldRelation'], true);
@@ -138,6 +150,86 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		return new SelectionTranslation(
 			$container->get('Compiler.Builder.Selection.Translation')
+		);
+	}
+
+	/**
+	 * Get The Model ItemsStringFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelItemsStringFix
+	 * @since   6.1.7
+	 */
+	public function getModelItemsStringFix(Container $container): ModelItemsStringFix
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 models have no getCurrentUser()
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Model.J3.ItemsStringFix');
+		}
+
+		return $container->get('Architecture.Model.Shared.ItemsStringFix');
+	}
+
+	/**
+	 * Get The Model ItemsStringFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedModelItemsStringFix
+	 * @since   6.1.7
+	 */
+	public function getSharedModelItemsStringFix(Container $container): SharedModelItemsStringFix
+	{
+		return new SharedModelItemsStringFix(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Architecture.Model.FieldRelation'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Field.Relations'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Permission.Fields'),
+			$container->get('Compiler.Builder.Selection.Translation'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Compiler.Builder.Items.Method.Eximport.String'),
+			$container->get('Compiler.Builder.Items.Method.List.String'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+		);
+	}
+
+	/**
+	 * Get The Model ItemsStringFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ModelItemsStringFix
+	 * @since   6.1.7
+	 */
+	public function getJ3ModelItemsStringFix(Container $container): J3ModelItemsStringFix
+	{
+		return new J3ModelItemsStringFix(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Architecture.Model.FieldRelation'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Field.Relations'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Permission.Fields'),
+			$container->get('Compiler.Builder.Selection.Translation'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Compiler.Builder.Items.Method.Eximport.String'),
+			$container->get('Compiler.Builder.Items.Method.List.String'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
 		);
 	}
 
