@@ -62,7 +62,7 @@ final class View extends Locator
 	{
 		$found = [];
 
-		foreach (['layouts', 'site_layouts'] as $kind)
+		foreach (['layouts' => 'admin', 'site_layouts' => 'site'] as $kind => $scope)
 		{
 			foreach ($this->mapped($root, $kind) as $directory)
 			{
@@ -70,11 +70,12 @@ final class View extends Locator
 				{
 					$found[$path] = $this->entry($path, 'map', $this->name($path));
 					$found[$path]['role'] = 'layout';
+					$found[$path]['scope'] = $scope;
 				}
 			}
 		}
 
-		foreach (['tmpl_dir', 'site_tmpl_dir'] as $kind)
+		foreach (['tmpl_dir' => 'admin', 'site_tmpl_dir' => 'site'] as $kind => $scope)
 		{
 			foreach ($this->mapped($root, $kind) as $directory)
 			{
@@ -82,6 +83,8 @@ final class View extends Locator
 				{
 					$found[$path] = $this->entry($path, 'map', $this->name($path));
 					$found[$path]['role'] = $role;
+					$found[$path]['scope'] = $scope;
+					$found[$path]['view'] = $this->view($path);
 				}
 			}
 		}
@@ -100,6 +103,30 @@ final class View extends Locator
 	public function name(string $path): string
 	{
 		return strtolower(pathinfo($path, PATHINFO_FILENAME));
+	}
+
+	/**
+	 * The view a template file belongs to.
+	 *
+	 * A template sits in the folder of the view that renders it, so the folder name
+	 * is the view name. On the legacy layout a view keeps its templates in a nested
+	 * tmpl folder, so that level is stepped over rather than mistaken for the view.
+	 *
+	 * @param   string  $path  Absolute path to the file.
+	 *
+	 * @return  string  The lower-case view name.
+	 * @since   6.1.6
+	 */
+	public function view(string $path): string
+	{
+		$directory = strtolower(basename(dirname($path)));
+
+		if ($directory === 'tmpl')
+		{
+			$directory = strtolower(basename(dirname($path, 2)));
+		}
+
+		return $directory;
 	}
 
 	/**

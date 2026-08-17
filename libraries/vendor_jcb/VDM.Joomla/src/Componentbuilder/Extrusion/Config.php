@@ -47,6 +47,7 @@ final class Config extends Registry implements Registryinterface
 		'translations' => false,
 		'relations' => true,
 		'component_details' => true,
+		'siteViews' => true,
 		'code' => false,
 		'include' => [],
 		'exclude' => [],

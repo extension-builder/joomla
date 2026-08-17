@@ -220,12 +220,32 @@ final class FieldtypeTest extends TestCase
 	{
 		$payload = [['name' => 'type', 'example' => $xmlType]];
 
-		foreach ($properties as $property)
+		foreach ($properties as $property => $example)
 		{
-			$payload[] = ['name' => $property, 'example' => ''];
+			$payload[] = is_string($property)
+				? ['name' => $property, 'example' => (string) $example]
+				: ['name' => (string) $example, 'example' => ''];
 		}
 
-		return ['id' => $id, 'name' => $name, 'properties' => json_encode($payload)];
+		return [
+			'id' => $id,
+			'guid' => $this->guid($id),
+			'name' => $name,
+			'properties' => json_encode($payload)
+		];
+	}
+
+	/**
+	 * A stable well formed guid for one served row.
+	 *
+	 * @param   int  $id  The row id.
+	 *
+	 * @return  string  The guid.
+	 * @since   6.1.6
+	 */
+	private function guid(int $id): string
+	{
+		return sprintf('%08d-0000-4000-8000-000000000000', $id);
 	}
 
 	/**
@@ -462,5 +482,124 @@ final class FieldtypeTest extends TestCase
 
 		$this->assertSame($resolver->catalogue(), $resolver->catalogue());
 		$this->assertCount(1, $resolver->catalogue());
+	}
+	/**
+	 * A field type is identified by its guid, not by its install-specific id.
+	 *
+	 * field.fieldtype is a VARCHAR(36) holding the field type's own guid. A numeric
+	 * id written there means nothing to a compile and nothing to another install, so
+	 * the guid is the only identity the resolver may hand out.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testEveryResolvedTypeCarriesItsGuid(): void
+	{
+		$resolved = $this->resolver([$this->row(3, 'Text', 'text')])->resolve('text');
+
+		$this->assertIsArray($resolved);
+		$this->assertSame($this->guid(3), $resolved['guid']);
+		$this->assertMatchesRegularExpression(
+			'/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/',
+			$resolved['guid'],
+			'The identity handed out has to be a well formed guid.'
+		);
+		$this->assertSame('Text', $resolved['name']);
+	}
+
+	/**
+	 * A field type JCB generates never claims a real component's type string.
+	 *
+	 * A generated field type declares what it extends, and its own type is a sample
+	 * name the author picks -- Custom examples subjects. Indexing that as a literal
+	 * would have a component's own subjects field claimed by the wrong record.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAGeneratedFieldTypeDoesNotClaimItsExampleTypeString(): void
+	{
+		$report = new Report();
+		$resolver = new Fieldtype(
+			$this->loader([
+				$this->row(1, 'List', 'list'),
+				$this->row(6, 'Custom', 'subjects', ['extends' => 'list'])
+			]),
+			new Source(),
+			$report
+		);
+
+		$this->assertTrue(
+			$resolver->generated(json_encode([
+				['name' => 'type', 'example' => 'subjects'],
+				['name' => 'extends', 'example' => 'list']
+			]))
+		);
+		$this->assertFalse(
+			$resolver->generated(json_encode([['name' => 'type', 'example' => 'text']]))
+		);
+		$this->assertFalse($resolver->generated(''));
+		$this->assertFalse($resolver->generated('not json'));
+
+		$resolver->catalogue();
+
+		$this->assertSame(
+			'subjects',
+			$report->get('fieldtype.generated.Custom'),
+			'A generated type is recorded as such rather than silently dropped.'
+		);
+		$this->assertSame(
+			'Custom',
+			$resolver->resolve('subjects')['name'],
+			'It still answers, but through the fallback rather than as a literal match.'
+		);
+		$this->assertSame(
+			'subjects',
+			$report->get('unmapped.fieldtype.subjects'),
+			'Reaching the fallback is reported, so nothing looks like a real match.'
+		);
+	}
+
+	/**
+	 * Two claimants of one XML type are told apart by the field's own validation.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheNarrowerClaimantWinsWhenTheFieldSaysSo(): void
+	{
+		$report = new Report();
+		$resolver = new Fieldtype(
+			$this->loader([
+				$this->row(1, 'Text', 'text', ['validate' => '', 'filter' => 'STRING']),
+				$this->row(41, 'Tel', 'text', ['validate' => 'tel', 'filter' => 'tel'])
+			]),
+			new Source(),
+			$report
+		);
+
+		$this->assertSame(
+			'Text',
+			$resolver->resolve('text')['name'],
+			'With nothing to go on the broader type wins, as it always did.'
+		);
+		$this->assertNull(
+			$resolver->discriminate('text', []),
+			'No stated attribute means nothing to discriminate on.'
+		);
+		$this->assertNull($resolver->discriminate('text', ['validate' => 'guid']));
+		$this->assertSame(
+			'Tel',
+			$resolver->discriminate('text', ['validate' => 'tel'])['name'],
+			'A text field validated as tel is a telephone number.'
+		);
+		$this->assertSame(
+			'Tel by validate="tel"',
+			$report->get('fieldtype.discriminated.text')
+		);
+		$this->assertNull(
+			$resolver->discriminate('list', ['validate' => 'tel']),
+			'A type only one field type claims has nothing to discriminate.'
+		);
 	}
 }

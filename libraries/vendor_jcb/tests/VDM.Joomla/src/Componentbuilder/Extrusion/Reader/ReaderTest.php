@@ -26,7 +26,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Split;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form as FormRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
@@ -58,6 +60,7 @@ use VDM\Tests\Support\FilesystemTestCase;
 #[CoversClass(Literal::class)]
 #[CoversClass(Split::class)]
 #[CoversClass(LayoutReader::class)]
+#[CoversClass(SiteViewReader::class)]
 #[CoversClass(TemplateReader::class)]
 #[CoversClass(Dispatcher::class)]
 final class ReaderTest extends FilesystemTestCase
@@ -1433,7 +1436,8 @@ SQL);
 			$this->schemaReader(),
 			$this->formReader(),
 			$this->layoutReader(),
-			$this->templateReader()
+			$this->templateReader(),
+			$this->siteViewReader()
 		);
 
 		$this->assertSame(1, $dispatcher->dispatch());
@@ -1490,7 +1494,8 @@ SQL);
 			$this->schemaReader(),
 			$this->formReader(),
 			$this->layoutReader(),
-			$this->templateReader()
+			$this->templateReader(),
+			$this->siteViewReader()
 		);
 
 		$this->assertSame(2, $dispatcher->dispatch());
@@ -1550,24 +1555,31 @@ SQL);
 			$this->schemaReader(),
 			$this->formReader(),
 			$this->layoutReader(),
-			$this->templateReader()
+			$this->templateReader(),
+			$this->siteViewReader()
 		);
 
 		$this->assertSame([
 			[
 				'path' => '/tree/layouts/summary.php',
 				'name' => 'summary',
-				'role' => 'layout'
+				'role' => 'layout',
+				'scope' => '',
+				'view' => null
 			],
 			[
 				'path' => '/tree/tmpl/item/default.php',
 				'name' => null,
-				'role' => ''
+				'role' => '',
+				'scope' => '',
+				'view' => null
 			],
 			[
 				'path' => '/tree/tmpl/item/blank.php',
 				'name' => null,
-				'role' => ''
+				'role' => '',
+				'scope' => '',
+				'view' => null
 			]
 		], $dispatcher->located('view'));
 		$this->assertSame([], $dispatcher->located('schema'));
@@ -1647,6 +1659,17 @@ SQL);
 	}
 
 	/**
+	 * The site view reader over the shared registries.
+	 *
+	 * @return  SiteViewReader  The reader under test.
+	 * @since   6.1.6
+	 */
+	private function siteViewReader(): SiteViewReader
+	{
+		return new SiteViewReader($this->view, new Split(), new Text(), $this->report);
+	}
+
+	/**
 	 * An inventory holding one artifact of every readable kind.
 	 *
 	 * @return  Inventory  The located artifact registry.
@@ -1687,7 +1710,8 @@ SQL);
 			$this->recorder($order, 'schema'),
 			$this->recorder($order, 'form'),
 			$this->layoutReader(),
-			$this->templateReader()
+			$this->templateReader(),
+			$this->siteViewReader()
 		);
 	}
 
@@ -1782,5 +1806,91 @@ SQL);
 		}
 
 		return $orders;
+	}
+	/**
+	 * A site view's default template becomes the site view itself.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testASiteViewDefaultTemplateBecomesTheSiteView(): void
+	{
+		$path = $this->writeTemporaryFile(
+			'site/tmpl/hello_world/default.php',
+			"<?php\ndefined('_JEXEC') or die;\n\$total = 1;\n?>\n<h1>Hello</h1>"
+		);
+
+		$this->assertTrue($this->siteViewReader()->read($path, 'hello_world'));
+		$this->assertSame('hello_world', $this->view->get('site_view.hello_world.name'));
+		$this->assertSame('hello_world', $this->view->get('site_view.hello_world.codename'));
+		$this->assertSame('hello_world', $this->view->get('site_view.hello_world.context'));
+		$this->assertSame(
+			'Hello World',
+			$this->view->get('site_view.hello_world.system_name'),
+			'The system name is the readable form of the view name.'
+		);
+		$this->assertSame('<h1>Hello</h1>', $this->view->get('site_view.hello_world.default'));
+		$this->assertStringContainsString(
+			'$total = 1;',
+			(string) $this->view->get('site_view.hello_world.php_view')
+		);
+		$this->assertSame(1, $this->view->get('site_view.hello_world.add_php_view'));
+		$this->assertSame(
+			base64_encode('<h1>Hello</h1>') !== $this->view->get('site_view.hello_world.default'),
+			true,
+			'The body is stored raw; the Data pipeline applies the declared encoding.'
+		);
+	}
+
+	/**
+	 * With no name given, the view name comes from the folder the file sits in.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testASiteViewNameFallsBackToItsOwnFolder(): void
+	{
+		$reader = $this->siteViewReader();
+		$modern = $this->writeTemporaryFile('site/tmpl/looking/default.php', '<p>look</p>');
+		$legacy = $this->writeTemporaryFile('site/views/reading/tmpl/default.php', '<p>read</p>');
+
+		$this->assertSame('looking', $reader->folder($modern));
+		$this->assertSame(
+			'reading',
+			$reader->folder($legacy),
+			'On the legacy layout the tmpl level is stepped over, not mistaken for the view.'
+		);
+
+		$this->assertTrue($reader->read($modern));
+		$this->assertTrue($reader->read($legacy));
+		$this->assertSame('<p>look</p>', $this->view->get('site_view.looking.default'));
+		$this->assertSame('<p>read</p>', $this->view->get('site_view.reading.default'));
+		$this->assertSame(0, $this->view->get('site_view.looking.add_php_view'));
+	}
+
+	/**
+	 * A site view file that cannot be used is recorded rather than half stored.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testAnUnusableSiteViewFileIsRecorded(): void
+	{
+		$reader = $this->siteViewReader();
+
+		$this->assertFalse($reader->read($this->temporaryPath('site/tmpl/gone/default.php'), 'gone'));
+		$this->assertSame(
+			'the file could not be read',
+			$this->report->get('site_view.gone.error')
+		);
+		$this->assertFalse($this->view->exists('site_view.gone.name'));
+
+		$empty = $this->writeTemporaryFile('site/tmpl/bare/default.php', "<?php\n");
+
+		$this->assertFalse($reader->read($empty, 'bare'));
+		$this->assertSame(
+			'the file held no php and no html',
+			$this->report->get('site_view.bare.error')
+		);
 	}
 }

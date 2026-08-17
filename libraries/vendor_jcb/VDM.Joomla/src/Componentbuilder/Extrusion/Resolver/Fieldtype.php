@@ -43,12 +43,33 @@ final class Fieldtype
 	private const OVERRIDE = ['text' => 'Text'];
 
 	/**
+	 * The attributes that can tell two claimants of one XML type apart.
+	 *
+	 * Joomla expresses a narrower kind of an existing field type by validating or
+	 * filtering it differently rather than by naming it differently -- a telephone
+	 * number is a text input with tel validation. Those two attributes are therefore
+	 * the only evidence in a form that distinguishes such a pair.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	private const DISCRIMINATORS = ['validate', 'filter'];
+
+	/**
 	 * Field types that exist only for one generation of Joomla.
 	 *
 	 * @var    array<string, array<string>>
 	 * @since  6.1.6
 	 */
 	private const SCOPED = ['repeatable' => ['J3'], 'subform' => ['J4', 'J5', 'J6']];
+
+	/**
+	 * Every field type that claims one XML type, keyed by that type.
+	 *
+	 * @var    array<string, array<int, array<string, mixed>>>
+	 * @since  6.1.6
+	 */
+	protected array $claimants = [];
 
 	/**
 	 * The JCB field type used for an unrecognised type.
@@ -137,7 +158,12 @@ final class Fieldtype
 
 		$this->catalogue = [];
 		$rows = $this->load->items(
-			['a.id' => 'id', 'a.name' => 'name', 'a.properties' => 'properties'],
+			[
+				'a.id' => 'id',
+				'a.guid' => 'guid',
+				'a.name' => 'name',
+				'a.properties' => 'properties'
+			],
 			['a' => 'fieldtype'],
 			['a.published' => 1]
 		);
@@ -155,14 +181,28 @@ final class Fieldtype
 
 			$entry = [
 				'id' => $id,
+				'guid' => trim((string) ($row['guid'] ?? '')),
 				'name' => $name,
-				'properties' => $this->propertyList($row['properties'] ?? null)
+				'properties' => $this->propertyList($row['properties'] ?? null),
+				'hints' => $this->hints($row['properties'] ?? null)
 			];
 			$this->named[strtolower($name)] = $entry;
 			$xmlType = $this->xmlType($row['properties'] ?? null);
 
 			if ($xmlType === null)
 			{
+				continue;
+			}
+
+			// A field type that declares extends is one JCB generates rather than one
+			// Joomla ships, and its stated type is a sample name the author chooses --
+			// Custom examples subjects, CustomUser examples staffusers. Indexing those
+			// as literal type strings would have a component's own field claimed by the
+			// wrong record, so they answer only by name and through the fallback.
+			if ($this->generated($row['properties'] ?? null))
+			{
+				$this->report->set('fieldtype.generated.' . $name, $xmlType);
+
 				continue;
 			}
 
@@ -336,6 +376,8 @@ final class Fieldtype
 	 */
 	protected function place(string $xmlType, array $entry): void
 	{
+		$this->claimants[$xmlType][] = $entry;
+
 		if (!isset($this->catalogue[$xmlType]))
 		{
 			$this->catalogue[$xmlType] = $entry;
@@ -414,6 +456,171 @@ final class Fieldtype
 	 * @param   mixed  $properties  The properties JSON.
 	 *
 	 * @return  string|null  The lower-case XML type, or null.
+	 * @since   6.1.6
+	 */
+	/**
+	 * The discriminating attribute values one field type declares.
+	 *
+	 * @param   mixed  $properties  The stored properties JSON.
+	 *
+	 * @return  array<string, string>  Attribute name keyed to its stated value.
+	 * @since   6.1.6
+	 */
+	public function hints($properties): array
+	{
+		$hints = [];
+
+		if (!is_string($properties) || $properties === '')
+		{
+			return $hints;
+		}
+
+		$decoded = json_decode($properties, true);
+
+		if (!is_array($decoded))
+		{
+			return $hints;
+		}
+
+		foreach ($decoded as $property)
+		{
+			if (!is_array($property))
+			{
+				continue;
+			}
+
+			$name = strtolower(trim((string) ($property['name'] ?? '')));
+			$example = trim((string) ($property['example'] ?? ''));
+
+			if ($example !== '' && in_array($name, self::DISCRIMINATORS, true))
+			{
+				$hints[$name] = strtolower($example);
+			}
+		}
+
+		return $hints;
+	}
+
+	/**
+	 * The field type an XML type's other claimant is better suited to.
+	 *
+	 * Two field types answering to one XML type is not ambiguity to be broken by a
+	 * rule; it is a narrower kind of the same input, and the form says which one it
+	 * meant. A field validated or filtered as tel is a telephone number even though
+	 * its type reads text, so the attributes decide and nothing has to be guessed.
+	 *
+	 * @param   string                $xmlType     The Joomla XML type string.
+	 * @param   array<string, mixed>  $attributes  The field's own stated attributes.
+	 *
+	 * @return  array<string, mixed>|null  The better claimant, or null when none is.
+	 * @since   6.1.6
+	 */
+	public function discriminate(string $xmlType, array $attributes): ?array
+	{
+		$this->catalogue();
+		$key = strtolower(trim($xmlType));
+		$claimants = $this->claimants[$key] ?? [];
+
+		if (count($claimants) < 2 || $attributes === [])
+		{
+			return null;
+		}
+
+		$stated = [];
+
+		foreach (self::DISCRIMINATORS as $name)
+		{
+			$value = $attributes[$name] ?? null;
+
+			if (is_scalar($value) && trim((string) $value) !== '')
+			{
+				$stated[$name] = strtolower(trim((string) $value));
+			}
+		}
+
+		if ($stated === [])
+		{
+			return null;
+		}
+
+		$standing = (string) (($this->catalogue[$key] ?? [])['name'] ?? '');
+
+		foreach ($claimants as $entry)
+		{
+			// The type that would have been chosen anyway needs no discriminating, and
+			// saying it was discriminated would suggest a decision that never happened.
+			if (strcasecmp((string) $entry['name'], $standing) === 0)
+			{
+				continue;
+			}
+
+			foreach ((array) ($entry['hints'] ?? []) as $name => $hint)
+			{
+				if (($stated[$name] ?? null) === $hint)
+				{
+					$this->report->set(
+						'fieldtype.discriminated.' . $key,
+						$entry['name'] . ' by ' . $name . '="' . $hint . '"'
+					);
+
+					return $entry;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Whether one field type is generated by JCB rather than shipped by Joomla.
+	 *
+	 * A generated field type declares what it extends, and its own type name is
+	 * whatever the component author decides to call it. That makes its stated type a
+	 * placeholder rather than a literal, which is exactly the distinction that
+	 * decides whether it may claim a real component's field.
+	 *
+	 * @param   mixed  $properties  The stored properties JSON.
+	 *
+	 * @return  bool  True when the field type is generated.
+	 * @since   6.1.6
+	 */
+	public function generated($properties): bool
+	{
+		if (!is_string($properties) || $properties === '')
+		{
+			return false;
+		}
+
+		$decoded = json_decode($properties, true);
+
+		if (!is_array($decoded))
+		{
+			return false;
+		}
+
+		foreach ($decoded as $property)
+		{
+			if (is_array($property) && ($property['name'] ?? '') === 'extends')
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * The Joomla XML type string one field type declares.
+	 *
+	 * The type is stored as one of the field type's own properties rather than as a
+	 * column, so it is found by name. Keying on the property named type matters more
+	 * than it looks: the property keys are ordinal slots and their numeric order is
+	 * not always their order in the record, so the first entry is not reliably the
+	 * type.
+	 *
+	 * @param   mixed  $properties  The stored properties JSON.
+	 *
+	 * @return  string|null  The lower-case XML type, or null when none is stated.
 	 * @since   6.1.6
 	 */
 	protected function xmlType($properties): ?string

@@ -387,9 +387,12 @@ final class Collector
 			$this->inventory->set($path . '.tier', (string) ($entry['tier'] ?? 'scan'));
 			$this->inventory->set($path . '.name', $entry['name'] ?? null);
 
-			if (isset($entry['role']))
+			foreach (['role', 'scope', 'view'] as $extra)
 			{
-				$this->inventory->set($path . '.role', (string) $entry['role']);
+				if (isset($entry[$extra]))
+				{
+					$this->inventory->set($path . '.' . $extra, (string) $entry[$extra]);
+				}
 			}
 
 			$index++;

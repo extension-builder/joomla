@@ -26,6 +26,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Split;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
 
@@ -85,6 +86,9 @@ class Reader implements ServiceProviderInterface
 
 		$container->alias(LayoutReader::class, 'Extrusion.Reader.Layout')
 			->share('Extrusion.Reader.Layout', [$this, 'getLayoutReader'], true);
+
+		$container->alias(SiteViewReader::class, 'Extrusion.Reader.SiteView')
+			->share('Extrusion.Reader.SiteView', [$this, 'getSiteViewReader'], true);
 
 		$container->alias(TemplateReader::class, 'Extrusion.Reader.Template')
 			->share('Extrusion.Reader.Template', [$this, 'getTemplateReader'], true);
@@ -270,6 +274,24 @@ class Reader implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Site View Reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteViewReader
+	 * @since   6.1.6
+	 */
+	public function getSiteViewReader(Container $container): SiteViewReader
+	{
+		return new SiteViewReader(
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.View.Split'),
+			$container->get('Extrusion.Resolver.Text'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
 	 * Get the Template Reader.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -305,7 +327,8 @@ class Reader implements ServiceProviderInterface
 			$container->get('Extrusion.Reader.Schema'),
 			$container->get('Extrusion.Reader.Form'),
 			$container->get('Extrusion.Reader.Layout'),
-			$container->get('Extrusion.Reader.Template')
+			$container->get('Extrusion.Reader.Template'),
+			$container->get('Extrusion.Reader.SiteView')
 		);
 	}
 }

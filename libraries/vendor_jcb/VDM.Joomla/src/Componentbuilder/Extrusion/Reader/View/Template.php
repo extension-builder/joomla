@@ -141,16 +141,20 @@ final class Template implements ReaderInterface
 		$php = $parts['add_php'] ? 1 : 0;
 		$held = $this->view->get($base . '.template');
 
-		if (is_string($held) && $held !== $parts['html'])
+		if (is_string($held))
 		{
-			// One code name, two different bodies. A JCB template code name is unique,
-			// so the second cannot simply take the first's place: whichever lost would
-			// vanish with nothing said about it. The first claim stands and the
-			// disagreement is named, which is the one honest thing to do until a caller
-			// tells us which of the two it wants.
+			// One template, materialised once into every view that uses it. The copies
+			// are not always byte identical: a template carries placeholders such as
+			// [[[sview]]] that expand differently per view, so the same template reads
+			// differently in each folder it was written to. There is no way to recover
+			// the unexpanded original from the expansions, so the first copy stands and
+			// the rest are passed over -- recorded, because a reader of the report should
+			// see that several copies were found and only one kept.
 			$this->report->set(
-				'template.collision.' . $key . '.' . md5($path),
-				$path . ' differs from ' . (string) $this->view->get($base . '.path', '')
+				'template.copies.' . $key . '.' . md5($path),
+				$held === $parts['html']
+					? 'identical to the copy already read'
+					: 'differs from the copy already read, most likely expanded placeholders'
 			);
 
 			return false;
