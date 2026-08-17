@@ -57,6 +57,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as Adm
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead as LinkedViewListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface as LinkedViewListQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListQuery as SharedLinkedViewListQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListQuery as J3LinkedViewListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface as LinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListBody as SharedLinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListBody as J3LinkedViewListBody;
@@ -242,6 +245,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(LinkedViewListHead::class, 'Architecture.LinkedView.ListHead')
 			->share('Architecture.LinkedView.ListHead', [$this, 'getLinkedViewListHead'], true);
+
+		$container->alias(LinkedViewListQuery::class, 'Architecture.LinkedView.ListQuery')
+			->share('Architecture.LinkedView.ListQuery', [$this, 'getLinkedViewListQuery'], true);
+
+		$container->alias(SharedLinkedViewListQuery::class, 'Architecture.LinkedView.Shared.ListQuery')
+			->share('Architecture.LinkedView.Shared.ListQuery', [$this, 'getSharedLinkedViewListQuery'], true);
+
+		$container->alias(J3LinkedViewListQuery::class, 'Architecture.LinkedView.J3.ListQuery')
+			->share('Architecture.LinkedView.J3.ListQuery', [$this, 'getJ3LinkedViewListQuery'], true);
 
 		$container->alias(LinkedViewListBody::class, 'Architecture.LinkedView.ListBody')
 			->share('Architecture.LinkedView.ListBody', [$this, 'getLinkedViewListBody'], true);
@@ -1083,6 +1095,82 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Creator.Permission'),
 			$container->get('Compiler.Builder.List.Head.Override'),
 			$container->get('Compiler.Builder.Field.Names')
+		);
+	}
+
+	/**
+	 * Get The LinkedView ListQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LinkedViewListQuery
+	 * @since   6.1.7
+	 */
+	public function getLinkedViewListQuery(Container $container): LinkedViewListQuery
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 takes its user and database from the global factory
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.LinkedView.J3.ListQuery');
+		}
+
+		return $container->get('Architecture.LinkedView.Shared.ListQuery');
+	}
+
+	/**
+	 * Get The LinkedView ListQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedLinkedViewListQuery
+	 * @since   6.1.7
+	 */
+	public function getSharedLinkedViewListQuery(Container $container): SharedLinkedViewListQuery
+	{
+		return new SharedLinkedViewListQuery(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Field.Database.Name'),
+			$container->get('Architecture.Model.CustomQuery'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Architecture.Model.SelectionTranslationMethod'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Views.Default.Ordering')
+		);
+	}
+
+	/**
+	 * Get The LinkedView ListQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3LinkedViewListQuery
+	 * @since   6.1.7
+	 */
+	public function getJ3LinkedViewListQuery(Container $container): J3LinkedViewListQuery
+	{
+		return new J3LinkedViewListQuery(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Field.Database.Name'),
+			$container->get('Architecture.Model.CustomQuery'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Architecture.Model.SelectionTranslationMethod'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Views.Default.Ordering')
 		);
 	}
 
