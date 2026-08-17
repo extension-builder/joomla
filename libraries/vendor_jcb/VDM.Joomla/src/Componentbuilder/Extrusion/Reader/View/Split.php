@@ -48,6 +48,11 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\View;
  * tree, where several layouts open their php_view with a docblock of their own
  * and a blanket rule would eat a line of the view on every pass.
  *
+ * The header is also not always in one piece, so imports and guards are removed
+ * wherever they stand at the top level of the PHP part rather than only at the
+ * front of it. On the real tree fifty six templates set their assets up before
+ * the guard and two import a class after it.
+ *
  * Both parts are handed back raw. The layout and template columns declare
  * store: base64, and the Data pipeline applies that encoding itself, so
  * encoding here would double encode. Nothing is included, required, or
@@ -123,14 +128,14 @@ final class Split
 		if ($region['tag'] !== null)
 		{
 			$start = min($this->header($tokens, $region['tag']), $region['tag']);
-			$php = substr($source, $start, $region['tag'] - $start);
+			$php = $this->body($source, $tokens, $start, $region['tag']);
 			$html = substr($source, $region['html']);
 		}
 		elseif ($region['open'])
 		{
 			$length = strlen($source);
 			$start = min($this->header($tokens, $length), $length);
-			$php = substr($source, $start);
+			$php = $this->body($source, $tokens, $start, $length);
 		}
 		else
 		{
@@ -313,6 +318,164 @@ final class Split
 	}
 
 	/**
+	 * Cut the surviving boilerplate out of the PHP part.
+	 *
+	 * The header is not reliably all in one piece. Real templates put their asset
+	 * and layout setup first and only then the access guard, and a couple of them
+	 * import a class further down still, so a scan that stopped at the first
+	 * statement would leave both in php_view. That is not merely untidy: the
+	 * compiler regenerates the use block, and a duplicated import is a fatal
+	 * error. Any import or guard standing at the top level of the PHP part
+	 * therefore goes, wherever it stands, together with the comment that
+	 * announces it.
+	 *
+	 * @param   string                                                $source  The complete file content.
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $start   The offset the PHP part starts at.
+	 * @param   int                                                   $limit   The offset the PHP part ends at.
+	 *
+	 * @return  string  The PHP part with every top-level guard removed.
+	 * @since   6.1.6
+	 */
+	protected function body(string $source, array $tokens, int $start, int $limit): string
+	{
+		$php = '';
+		$cursor = $start;
+
+		foreach ($this->discards($tokens, $start, $limit) as $range)
+		{
+			$php .= substr($source, $cursor, max(0, $range[0] - $cursor));
+			$cursor = max($cursor, min($limit, $this->terminator($source, $range[1])));
+		}
+
+		return $php . substr($source, $cursor, max(0, $limit - $cursor));
+	}
+
+	/**
+	 * The offset just past the line terminator that closes one cut.
+	 *
+	 * A statement owns the line it sits on, so removing it takes that line's
+	 * ending with it. Leaving the ending behind would drop a blank line into
+	 * php_view for every piece of boilerplate removed.
+	 *
+	 * @param   string  $source  The complete file content.
+	 * @param   int     $offset  The offset just past the cut.
+	 *
+	 * @return  int  The offset just past the line terminator.
+	 * @since   6.1.6
+	 */
+	protected function terminator(string $source, int $offset): int
+	{
+		$length = strlen($source);
+
+		while ($offset < $length && ($source[$offset] === ' ' || $source[$offset] === "\t"))
+		{
+			$offset++;
+		}
+
+		if ($offset < $length && $source[$offset] === "\r")
+		{
+			$offset++;
+		}
+
+		if ($offset < $length && $source[$offset] === "\n")
+		{
+			$offset++;
+		}
+
+		return $offset;
+	}
+
+	/**
+	 * Find every top-level import and access guard inside one range of the PHP part.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $start   The offset to start looking at.
+	 * @param   int                                                   $limit   The offset to stop looking at.
+	 *
+	 * @return  array<int, array{0: int, 1: int}>  Byte ranges to drop, in source order.
+	 * @since   6.1.6
+	 */
+	protected function discards(array $tokens, int $start, int $limit): array
+	{
+		$ranges = [];
+		$count = count($tokens);
+		$depth = 0;
+		$notice = null;
+
+		for ($index = 0; $index < $count; $index++)
+		{
+			$token = $tokens[$index];
+
+			if ($token['offset'] < $start)
+			{
+				continue;
+			}
+
+			if ($token['offset'] >= $limit || $token['id'] === T_CLOSE_TAG)
+			{
+				break;
+			}
+
+			if ($token['id'] === T_WHITESPACE)
+			{
+				continue;
+			}
+
+			if ($token['text'] === '{')
+			{
+				$depth++;
+				$notice = null;
+
+				continue;
+			}
+
+			if ($token['text'] === '}')
+			{
+				$depth = max(0, $depth - 1);
+				$notice = null;
+
+				continue;
+			}
+
+			if ($token['id'] === T_COMMENT)
+			{
+				$notice = $this->notice($token['text']) ? $notice ?? $token['offset'] : null;
+
+				continue;
+			}
+
+			$next = $depth === 0 ? $this->discardable($tokens, $index, $limit) : null;
+
+			if ($next === null)
+			{
+				$notice = null;
+
+				continue;
+			}
+
+			$ranges[] = [$notice ?? $token['offset'], $this->after($tokens[$next - 1])];
+			$notice = null;
+			$index = $next - 1;
+		}
+
+		return $ranges;
+	}
+
+	/**
+	 * Whether one comment is the remark that announces an access guard.
+	 *
+	 * @param   string  $text  The comment text.
+	 *
+	 * @return  bool  True when the comment belongs to the guard rather than to the view.
+	 * @since   6.1.6
+	 */
+	protected function notice(string $text): bool
+	{
+		return preg_match('/no\s+direct\s+access/i', $text) === 1;
+	}
+
+	/**
 	 * Consume one header construct.
 	 *
 	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
@@ -326,22 +489,136 @@ final class Split
 	{
 		$id = $tokens[$index]['id'];
 
-		if ($id === T_DECLARE || $id === T_NAMESPACE || $id === T_USE)
+		if ($id === T_DECLARE || $id === T_NAMESPACE)
 		{
 			return $this->statement($tokens, $index, $limit);
 		}
 
+		return $this->discardable($tokens, $index, $limit);
+	}
+
+	/**
+	 * Consume one construct the compiler regenerates for itself.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $index   Index of the construct's first token.
+	 * @param   int                                                   $limit   The offset the PHP part ends at.
+	 *
+	 * @return  int|null  The index just past the construct, or null when it is not discardable.
+	 * @since   6.1.6
+	 */
+	protected function discardable(array $tokens, int $index, int $limit): ?int
+	{
+		return $this->import($tokens, $index, $limit) ?? $this->guard($tokens, $index, $limit);
+	}
+
+	/**
+	 * Consume one import statement.
+	 *
+	 * A closure's captured variable list opens with the same keyword, so the
+	 * bracket behind it is what separates an import from a binding. A trait
+	 * import sits inside a class body and is excluded by the caller's depth test.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $index   Index of the use keyword.
+	 * @param   int                                                   $limit   The offset the PHP part ends at.
+	 *
+	 * @return  int|null  The index just past the import, or null when this is not an import.
+	 * @since   6.1.6
+	 */
+	protected function import(array $tokens, int $index, int $limit): ?int
+	{
+		if ($tokens[$index]['id'] !== T_USE)
+		{
+			return null;
+		}
+
+		$next = $this->skip($tokens, $index + 1, $limit);
+
+		if ($next === null || $tokens[$next]['text'] === '(')
+		{
+			return null;
+		}
+
+		return $this->statement($tokens, $index, $limit);
+	}
+
+	/**
+	 * Consume one access guard.
+	 *
+	 * A guard both names defined() and ends the request, and it is that pairing
+	 * that identifies it. Testing for defined() alone would swallow a conditional
+	 * a view legitimately wrote around an optional constant.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $index   Index of the guard's first token.
+	 * @param   int                                                   $limit   The offset the PHP part ends at.
+	 *
+	 * @return  int|null  The index just past the guard, or null when this is not a guard.
+	 * @since   6.1.6
+	 */
+	protected function guard(array $tokens, int $index, int $limit): ?int
+	{
 		if ($this->named($tokens, $index, 'defined'))
 		{
-			return $this->statement($tokens, $index, $limit);
+			$next = $this->statement($tokens, $index, $limit);
+
+			return $next !== null && $this->halts($tokens, $index, $next) ? $next : null;
 		}
 
-		if ($id === T_IF)
+		if ($tokens[$index]['id'] === T_IF)
 		{
 			return $this->conditional($tokens, $index, $limit);
 		}
 
 		return null;
+	}
+
+	/**
+	 * Whether one token range ends the request.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $from    The first index to test.
+	 * @param   int                                                   $to      The index to stop before.
+	 *
+	 * @return  bool  True when the range calls die or exit.
+	 * @since   6.1.6
+	 */
+	protected function halts(array $tokens, int $from, int $to): bool
+	{
+		for ($cursor = $from; $cursor < $to; $cursor++)
+		{
+			if ($tokens[$cursor]['id'] === T_EXIT)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether one token range names a given function.
+	 *
+	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
+	 * @param   int                                                   $from    The first index to test.
+	 * @param   int                                                   $to      The index to stop before.
+	 * @param   string                                                $name    The unqualified function name.
+	 *
+	 * @return  bool  True when the range names that function.
+	 * @since   6.1.6
+	 */
+	protected function mentions(array $tokens, int $from, int $to, string $name): bool
+	{
+		for ($cursor = $from; $cursor < $to; $cursor++)
+		{
+			if ($this->named($tokens, $cursor, $name))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -398,9 +675,6 @@ final class Split
 	/**
 	 * Consume one access guard written as a conditional.
 	 *
-	 * Only a conditional whose test calls defined() qualifies, which keeps real
-	 * view logic that happens to open with an if statement out of the header.
-	 *
 	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
 	 * @param   int                                                   $index   Index of the if keyword.
 	 * @param   int                                                   $limit   The offset the PHP part ends at.
@@ -410,74 +684,47 @@ final class Split
 	 */
 	protected function conditional(array $tokens, int $index, int $limit): ?int
 	{
-		$count = count($tokens);
-		$cursor = $this->skip($tokens, $index + 1, $limit);
+		$open = $this->skip($tokens, $index + 1, $limit);
 
-		if ($cursor === null || $tokens[$cursor]['text'] !== '(')
+		if ($open === null || $tokens[$open]['text'] !== '(')
 		{
 			return null;
 		}
 
-		$depth = 0;
-		$guard = false;
+		$close = $this->matched($tokens, $open, '(', ')', $limit);
 
-		for (; $cursor < $count; $cursor++)
-		{
-			$token = $tokens[$cursor];
-
-			if ($token['offset'] >= $limit || $token['id'] === T_CLOSE_TAG)
-			{
-				return null;
-			}
-
-			if ($this->named($tokens, $cursor, 'defined'))
-			{
-				$guard = true;
-			}
-
-			if ($token['text'] === '(')
-			{
-				$depth++;
-
-				continue;
-			}
-
-			if ($token['text'] === ')')
-			{
-				$depth--;
-
-				if ($depth === 0)
-				{
-					$cursor++;
-
-					break;
-				}
-			}
-		}
-
-		$cursor = $guard ? $this->skip($tokens, $cursor, $limit) : null;
-
-		if ($cursor === null)
+		if ($close === null || !$this->mentions($tokens, $open, $close, 'defined'))
 		{
 			return null;
 		}
 
-		return $tokens[$cursor]['text'] === '{'
-			? $this->block($tokens, $cursor, $limit)
-			: $this->statement($tokens, $cursor, $limit);
+		$body = $this->skip($tokens, $close, $limit);
+
+		if ($body === null)
+		{
+			return null;
+		}
+
+		$end = $tokens[$body]['text'] === '{'
+			? $this->matched($tokens, $body, '{', '}', $limit)
+			: $this->statement($tokens, $body, $limit);
+
+		return $end !== null && $this->halts($tokens, $body, $end) ? $end : null;
 	}
 
 	/**
-	 * Consume one braced block.
+	 * Consume one balanced pair.
 	 *
 	 * @param   array<int, array{id: int, text: string, offset: int}>  $tokens  The normalised token stream.
-	 * @param   int                                                   $index   Index of the opening brace.
+	 * @param   int                                                   $index   Index of the opening token.
+	 * @param   string                                                $open    The opening character.
+	 * @param   string                                                $close   The closing character.
 	 * @param   int                                                   $limit   The offset the PHP part ends at.
 	 *
-	 * @return  int|null  The index just past the closing brace, or null when there is none.
+	 * @return  int|null  The index just past the closing token, or null when there is none.
 	 * @since   6.1.6
 	 */
-	protected function block(array $tokens, int $index, int $limit): ?int
+	protected function matched(array $tokens, int $index, string $open, string $close, int $limit): ?int
 	{
 		$count = count($tokens);
 		$depth = 0;
@@ -491,14 +738,14 @@ final class Split
 				return null;
 			}
 
-			if ($token['text'] === '{')
+			if ($token['text'] === $open)
 			{
 				$depth++;
 
 				continue;
 			}
 
-			if ($token['text'] === '}')
+			if ($token['text'] === $close)
 			{
 				$depth--;
 

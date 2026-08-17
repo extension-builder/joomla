@@ -26,12 +26,12 @@ interface PrecedenceInterface
 	/**
 	 * Resolve every property of one column into a value and an origin.
 	 *
-	 * @param   string  $view    The JCB view name.
-	 * @param   string  $table   The source table name.
-	 * @param   string  $column  The source column name.
+	 * @param   string                $view    The JCB view name.
+	 * @param   array<string,string>  $keys    Registry keys per tier, as schema and table.
+	 * @param   string                $column  The source column name.
 	 *
 	 * @return  array<string, array{value: mixed, origin: string}>|null  Resolved properties.
 	 * @since   6.1.6
 	 */
-	public function resolve(string $view, string $table, string $column): ?array;
+	public function resolve(string $view, array $keys, string $column): ?array;
 }

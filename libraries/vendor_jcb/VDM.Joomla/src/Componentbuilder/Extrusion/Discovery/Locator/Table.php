@@ -12,121 +12,36 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
-use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 
 
 /**
  * Finds a JCB table definition class purely by signature.
  *
- * Every other artifact has a placement the compiler's own move map can invert,
- * so it can be asked for by path. This one cannot: a JCB-built component puts
- * its table definition class wherever that project's power namespace resolves
- * to, which is different for every component. There is therefore no tier one
- * and no tier two shortcut here, only the content signature.
+ * This artifact has no predictable location. A JCB-built component keeps its
+ * table definition class wherever that project's power namespace resolves to, so
+ * the compiler's placement map offers no shortcut and only the third discovery
+ * tier applies. That is not a weakness: a file found by signature can still be
+ * the highest-precedence source in the run, and this one is.
  *
- * The signature is a class with an extends clause that also declares a $tables
- * array property. A file that additionally names TableInterface is ranked first,
- * because that confirms the family rather than merely resembling it. Deciding
- * whether the map is actually usable is not this class's job: the literal-only
- * parser in the reader is the gate, and this locator only offers candidates.
- *
- * The walk is bounded and contained. The tree may be an unzipped upload, so a
- * symbolic link is refused rather than followed, every candidate is proven by
- * realpath to sit below the source root, and the depth and file-count caps keep
- * a pathological tree from turning discovery into a denial of service. Note that
- * vendor is deliberately not pruned: a component's table definition class very
- * often lives inside its vendored power namespace.
+ * The signature is a class with an extends clause that also declares a tables
+ * array property. Whether the map is actually usable is decided later by the
+ * literal-only reader, which refuses anything it cannot parse safely.
  *
  * @since 6.1.6
  */
-final class Table implements LocatorInterface
+final class Table extends Locator
 {
 	/**
-	 * Directory names that cannot hold a table definition class.
+	 * Marks a class that declares itself part of the table definition family.
 	 *
-	 * @var    array<string>
-	 * @since  6.1.6
-	 */
-	private const PRUNE = ['.git', 'node_modules'];
-
-	/**
-	 * The most files the walk will look at.
-	 *
-	 * @var    int
-	 * @since  6.1.6
-	 */
-	private const MAX_FILES = 20000;
-
-	/**
-	 * The deepest directory level the walk will descend to.
-	 *
-	 * @var    int
-	 * @since  6.1.6
-	 */
-	private const MAX_DEPTH = 12;
-
-	/**
-	 * How much of one candidate is read for the signature test.
-	 *
-	 * Both halves of the signature are part of a class declaration and its first
-	 * property, so the head of the file always carries them, and a bounded read
-	 * keeps an enormous file from being pulled into memory whole.
-	 *
-	 * @var    int
-	 * @since  6.1.6
-	 */
-	private const MAX_BYTES = 1048576;
-
-	/**
-	 * Matches the declaration of a $tables array property.
-	 *
-	 * The type declaration is optional and may be nullable, and both the short
-	 * and the long array form count as a match here. Whether the literal is
-	 * actually readable is the reader's decision, not this locator's, so the
-	 * signature is deliberately the looser of the two tests.
-	 *
-	 * @var    string
-	 * @since  6.1.6
-	 */
-	private const PROPERTY = '/(?:private|protected|public)\s+(?:static\s+)?(?:readonly\s+)?'
-		. '(?:\?\s*)?(?:array\s+)?\$tables\s*=\s*(?:\[|array\s*\()/';
-
-	/**
-	 * Matches a class declaration carrying an extends clause.
-	 *
-	 * @var    string
-	 * @since  6.1.6
-	 */
-	private const INHERITS = '/\bclass\s+\w+\s+extends\s+/';
-
-	/**
-	 * Matches an implements clause naming the table interface family.
+	 * A file matching this is ranked ahead of a bare signature match, because the
+	 * interface is a stronger statement of intent than the property alone.
 	 *
 	 * @var    string
 	 * @since  6.1.6
 	 */
 	private const FAMILY = '/\bimplements\b[^{;]*\bTableInterface\b/';
-
-	/**
-	 * The Report Registry.
-	 *
-	 * @var    Report
-	 * @since  6.1.6
-	 */
-	protected Report $report;
-
-	/**
-	 * Constructor.
-	 *
-	 * @param   Report  $report  The run report registry.
-	 *
-	 * @since   6.1.6
-	 */
-	public function __construct(Report $report)
-	{
-		$this->report = $report;
-	}
 
 	/**
 	 * The artifact kind this locator is responsible for.
@@ -140,261 +55,50 @@ final class Table implements LocatorInterface
 	}
 
 	/**
+	 * The file extensions this locator's artifact uses.
+	 *
+	 * @return  array<string>  Lower-case extensions without the dot.
+	 * @since   6.1.6
+	 */
+	protected function extensions(): array
+	{
+		return ['php'];
+	}
+
+	/**
 	 * Locate every table definition class below a source root.
 	 *
-	 * @param   string  $root  The absolute, contained source root.
+	 * @param   string  $root  The resolved source root.
 	 *
 	 * @return  array<int, array{path: string, tier: string, name: string|null}>  Located artifacts.
 	 * @since   6.1.6
 	 */
 	public function locate(string $root): array
 	{
-		$resolved = $this->root($root);
+		$preferred = [];
+		$candidates = [];
 
-		if ($resolved === null)
+		foreach ($this->scanned($root) as $path)
 		{
-			return $this->recorded([]);
-		}
+			$content = $this->scanner->read($path);
 
-		$family = [];
-		$other = [];
-
-		foreach ($this->walk($resolved) as $path)
-		{
-			$source = $this->head($path);
-
-			if (!$this->matches($source))
+			if ($content === null || !$this->heuristic->isTableClass($content))
 			{
 				continue;
 			}
 
-			if (preg_match(self::FAMILY, $source) === 1)
+			$entry = $this->entry($path, 'signature');
+
+			if (preg_match(self::FAMILY, $content) === 1)
 			{
-				$family[] = $path;
+				$preferred[] = $entry;
 
 				continue;
 			}
 
-			$other[] = $path;
+			$candidates[] = $entry;
 		}
 
-		sort($family, SORT_STRING);
-		sort($other, SORT_STRING);
-		$found = [];
-
-		foreach (array_merge($family, $other) as $path)
-		{
-			$found[] = ['path' => $path, 'tier' => 'signature', 'name' => null];
-		}
-
-		return $this->recorded($found);
-	}
-
-	/**
-	 * Whether one candidate's text carries the table definition signature.
-	 *
-	 * @param   string  $source  The candidate's leading text.
-	 *
-	 * @return  bool  True when both halves of the signature are present.
-	 * @since   6.1.6
-	 */
-	private function matches(string $source): bool
-	{
-		if ($source === '')
-		{
-			return false;
-		}
-
-		return preg_match(self::PROPERTY, $source) === 1
-			&& preg_match(self::INHERITS, $source) === 1;
-	}
-
-	/**
-	 * Walk the tree once, collecting contained PHP files.
-	 *
-	 * @param   string  $root  The resolved source root.
-	 *
-	 * @return  array<string>  Absolute, contained file paths.
-	 * @since   6.1.6
-	 */
-	private function walk(string $root): array
-	{
-		$found = [];
-		$queue = [[$root, 0]];
-		$seen = 0;
-
-		while ($queue !== [])
-		{
-			$current = array_shift($queue);
-			$entries = @scandir($current[0]);
-
-			if ($entries === false)
-			{
-				continue;
-			}
-
-			foreach ($entries as $entry)
-			{
-				if ($entry === '.' || $entry === '..' || in_array($entry, self::PRUNE, true))
-				{
-					continue;
-				}
-
-				$path = $current[0] . '/' . $entry;
-
-				if (is_link($path))
-				{
-					$this->report->set('skipped.symlink.' . md5($path), $path);
-
-					continue;
-				}
-
-				if (is_dir($path))
-				{
-					if ($current[1] < self::MAX_DEPTH)
-					{
-						$queue[] = [$path, $current[1] + 1];
-
-						continue;
-					}
-
-					$this->report->set('skipped.depth.' . md5($path), $path);
-
-					continue;
-				}
-
-				if (!is_file($path))
-				{
-					continue;
-				}
-
-				$seen++;
-
-				if ($seen > self::MAX_FILES)
-				{
-					$this->report->set('skipped.maxfiles', self::MAX_FILES);
-
-					return $found;
-				}
-
-				if (strtolower((string) pathinfo($path, PATHINFO_EXTENSION)) !== 'php')
-				{
-					continue;
-				}
-
-				$contained = $this->contain($root, $path);
-
-				if ($contained !== null)
-				{
-					$found[] = $contained;
-				}
-			}
-		}
-
-		return $found;
-	}
-
-	/**
-	 * Resolve a source root to a real, existing directory.
-	 *
-	 * @param   string  $root  The candidate source root.
-	 *
-	 * @return  string|null  The resolved root, or null when it is unusable.
-	 * @since   6.1.6
-	 */
-	private function root(string $root): ?string
-	{
-		if ($root === '')
-		{
-			return null;
-		}
-
-		$resolved = realpath($root);
-
-		if ($resolved === false || !is_dir($resolved))
-		{
-			return null;
-		}
-
-		return rtrim(str_replace('\\', '/', $resolved), '/');
-	}
-
-	/**
-	 * Prove one absolute candidate sits below the source root.
-	 *
-	 * @param   string  $root       The resolved source root.
-	 * @param   string  $candidate  The absolute candidate path.
-	 *
-	 * @return  string|null  The contained absolute path, or null.
-	 * @since   6.1.6
-	 */
-	private function contain(string $root, string $candidate): ?string
-	{
-		$resolved = realpath($candidate);
-
-		if ($resolved === false)
-		{
-			return null;
-		}
-
-		$resolved = rtrim(str_replace('\\', '/', $resolved), '/');
-
-		if (!str_starts_with($resolved, $root . '/'))
-		{
-			$this->report->set('skipped.uncontained.' . md5($resolved), $resolved);
-
-			return null;
-		}
-
-		return $resolved;
-	}
-
-	/**
-	 * Read the head of one candidate for the signature test.
-	 *
-	 * @param   string  $path  Absolute file path.
-	 *
-	 * @return  string  The leading bytes, or an empty string.
-	 * @since   6.1.6
-	 */
-	private function head(string $path): string
-	{
-		$handle = @fopen($path, 'rb');
-
-		if ($handle === false)
-		{
-			return '';
-		}
-
-		$content = @fread($handle, self::MAX_BYTES);
-		@fclose($handle);
-
-		return $content === false ? '' : $content;
-	}
-
-	/**
-	 * Record what this locator found, or that it found nothing.
-	 *
-	 * @param   array<int, array{path: string, tier: string, name: string|null}>  $found  Located artifacts.
-	 *
-	 * @return  array<int, array{path: string, tier: string, name: string|null}>  The same list.
-	 * @since   6.1.6
-	 */
-	private function recorded(array $found): array
-	{
-		if ($found === [])
-		{
-			$this->report->set('located.' . $this->kind() . '.missing', true);
-
-			return $found;
-		}
-
-		foreach ($found as $index => $entry)
-		{
-			$this->report->set('located.' . $this->kind() . '.' . $index . '.path', $entry['path']);
-			$this->report->set('located.' . $this->kind() . '.' . $index . '.tier', $entry['tier']);
-		}
-
-		return $found;
+		return $this->recorded(array_merge($preferred, $candidates));
 	}
 }

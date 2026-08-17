@@ -24,6 +24,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\ViewName;
 
 
@@ -46,6 +47,9 @@ class Resolver implements ServiceProviderInterface
 	{
 		$container->alias(Guid::class, 'Extrusion.Resolver.Guid')
 			->share('Extrusion.Resolver.Guid', [$this, 'getGuid'], true);
+
+		$container->alias(Text::class, 'Extrusion.Resolver.Text')
+			->share('Extrusion.Resolver.Text', [$this, 'getText'], true);
 
 		$container->alias(LanguageResolver::class, 'Extrusion.Resolver.Language')
 			->share('Extrusion.Resolver.Language', [$this, 'getLanguage'], true);
@@ -92,6 +96,19 @@ class Resolver implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the readable text resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Text
+	 * @since   6.1.6
+	 */
+	public function getText(Container $container): Text
+	{
+		return new Text();
+	}
+
+	/**
 	 * Get the language resolver.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -118,7 +135,8 @@ class Resolver implements ServiceProviderInterface
 	public function getViewName(Container $container): ViewName
 	{
 		return new ViewName(
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Text')
 		);
 	}
 
@@ -155,6 +173,7 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Schema'),
 			$container->get('Extrusion.Registry.Form'),
 			$container->get('Extrusion.Resolver.Language'),
+			$container->get('Extrusion.Resolver.Text'),
 			$container->get('Extrusion.Registry.Report')
 		);
 	}
