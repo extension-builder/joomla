@@ -148,6 +148,8 @@ final class AdminFieldsConditions extends Writer
 
 			if ($matchGuid === '')
 			{
+				$this->dropped($view, $match, 'its match field was not extruded as a field');
+
 				continue;
 			}
 
@@ -163,7 +165,11 @@ final class AdminFieldsConditions extends Writer
 				if ($targetGuid !== '')
 				{
 					$targets[] = $targetGuid;
+
+					continue;
 				}
+
+				$this->dropped($view, (string) $target, 'the target field was not extruded as a field');
 			}
 
 			if ($targets === [])
@@ -193,6 +199,30 @@ final class AdminFieldsConditions extends Writer
 		$definition->published = 1;
 
 		return $this->store($definition);
+	}
+
+	/**
+	 * Record a condition clause that could not be written.
+	 *
+	 * A real component routinely makes a field depend on a column Joomla manages
+	 * itself, such as access or published. JCB generates those from its own
+	 * switches rather than as extruded fields, so the dependency has nothing to
+	 * point at and has to be dropped. Dropping it quietly would lose part of the
+	 * source component with nothing to show for it, so every drop is named here.
+	 *
+	 * @param   string  $view    The view name.
+	 * @param   string  $field   The field that could not be resolved.
+	 * @param   string  $reason  Why the clause was dropped.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	protected function dropped(string $view, string $field, string $reason): void
+	{
+		$this->report->set(
+			'dropped.condition.' . $this->key($view) . '.' . $this->key($field),
+			$reason
+		);
 	}
 
 	/**
