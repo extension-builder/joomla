@@ -636,6 +636,7 @@ PHP;
 					'column' => 'counter',
 					'table' => '#__example_category',
 					'view' => 'category',
+					'views' => 'categories',
 					'entity' => 'category',
 					'value' => 'title',
 					'key' => 'id',

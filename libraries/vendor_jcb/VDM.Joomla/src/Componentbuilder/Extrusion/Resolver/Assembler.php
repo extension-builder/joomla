@@ -413,6 +413,11 @@ final class Assembler
 			if ($relation !== null)
 			{
 				$relations[] = $relation;
+
+				// The field carries the resolved relationship, not the raw table-map
+				// link, so the writer that turns it into a custom field type sees the
+				// target view name this run settled on rather than deriving its own.
+				$properties['link'] = ['value' => $relation, 'origin' => 'table'];
 			}
 
 			$this->resolved->set(

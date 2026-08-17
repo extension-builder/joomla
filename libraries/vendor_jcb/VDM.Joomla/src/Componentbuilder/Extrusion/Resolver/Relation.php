@@ -111,6 +111,7 @@ final class Relation
 			'column' => $column,
 			'table' => $table,
 			'view' => $target,
+			'views' => $this->viewname->plural($target),
 			'entity' => $entity,
 			'value' => trim((string) ($link['value'] ?? 'name')),
 			'key' => trim((string) ($link['key'] ?? 'id')),

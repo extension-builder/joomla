@@ -33,10 +33,30 @@ final class FieldXml
 	 * The type is implied by the field type itself, and showon becomes a JCB
 	 * condition rather than a stored attribute.
 	 *
+	 * A linked field is the one exception to dropping the type, handled in
+	 * link(): a generated custom field type is named by that attribute, so
+	 * dropping it there would leave the field with no type to generate.
+	 *
 	 * @var    array<string>
 	 * @since  6.1.6
 	 */
 	private const DROP = ['type', 'showon'];
+
+	/**
+	 * The attributes a linked field carries, in the order JCB writes them.
+	 *
+	 * These are read straight back out of the stored element at compile time --
+	 * Compiler\Field\Attributes lifts table, value_field and key_field from the
+	 * string itself -- so they are the whole mechanism by which a relationship
+	 * survives into a generated component.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	private const LINK = [
+		'extends', 'table', 'component', 'entity', 'view', 'views',
+		'value_field', 'key_field'
+	];
 
 	/**
 	 * The attribute order JCB's own generated fields use.
@@ -132,7 +152,8 @@ final class FieldXml
 	{
 		$bag = $this->bag($column, $properties);
 		$type = (string) ($properties['xml_type']['value'] ?? '');
-		$allowed = $this->fieldtype->properties($type);
+		$link = $this->link($properties, $type);
+		$allowed = $this->fieldtype->properties($link === [] ? $type : 'custom');
 		$attributes = [];
 
 		foreach (self::ORDER as $name)
@@ -152,7 +173,80 @@ final class FieldXml
 			}
 		}
 
-		return $attributes;
+		if ($link === [])
+		{
+			return $attributes;
+		}
+
+		// A linked field is a generated custom field type, and these attributes are
+		// the only place its target is recorded, so they are written whether or not
+		// the catalogue entry happens to declare them.
+		return ['type' => $link['type']] + $attributes + array_intersect_key(
+			$link,
+			array_flip(self::LINK)
+		);
+	}
+
+	/**
+	 * The custom field type attributes one field's relationship implies.
+	 *
+	 * A table definition class states that a column stores a key from another
+	 * table and should display a value from it. JCB expresses exactly that as a
+	 * generated custom field type, so a relationship is not a separate kind of
+	 * record to invent -- it is a field whose type is generated instead of picked.
+	 * That makes this the whole answer to how a link lands, and it needs no
+	 * decision from the caller.
+	 *
+	 * The type attribute names the field type JCB will generate. The plural of the
+	 * target view is used, because that is the convention JCB's own seeded example
+	 * follows and it reads as a list of the thing being selected from.
+	 *
+	 * @param   array<string, array{value: mixed, origin: string}>  $properties  Resolved properties.
+	 * @param   string                                             $declared    The declared XML type.
+	 *
+	 * @return  array<string, string>  The link attributes, or an empty array when the field has none.
+	 * @since   6.1.6
+	 */
+	public function link(array $properties, string $declared = ''): array
+	{
+		$link = $properties['link']['value'] ?? null;
+
+		if (!is_array($link) || $link === [])
+		{
+			return [];
+		}
+
+		$table = trim((string) ($link['table'] ?? ''));
+		$entity = trim((string) ($link['entity'] ?? ''));
+
+		if ($table === '' || $entity === '')
+		{
+			return [];
+		}
+
+		$single = trim((string) ($link['view'] ?? '')) ?: $entity;
+		$plural = trim((string) ($link['views'] ?? '')) ?: $single . 's';
+		$declared = strtolower(trim($declared));
+
+		// A declared type JCB already knows is a plain field type and cannot express
+		// a link, so the generated type is named after the target instead. A declared
+		// type JCB does not know is already the source component's own generated
+		// field type, and keeping its name keeps the component recognisable.
+		$type = $declared === '' || $this->fieldtype->id($declared) !== null
+			? $plural
+			: $declared;
+
+		return [
+			'type' => $type,
+			'extends' => 'list',
+			'table' => $table,
+			'component' => trim((string) ($link['component'] ?? '')),
+			'entity' => $entity,
+			'view' => $single,
+			'views' => $plural,
+			'value_field' => trim((string) ($link['value'] ?? 'name')),
+			'key_field' => trim((string) ($link['key'] ?? 'id'))
+		];
 	}
 
 	/**

@@ -663,13 +663,87 @@ SQL;
 		$this->assertSame(
 			['demo_widget'],
 			$this->resolved()->get('views'),
-			'Without a code name the prefix has nowhere to go but into the view name.'
+			'One table alone cannot testify to a prefix, so its whole name is the view.'
 		);
 		$this->assertContains(
-			'No component code name was given with the dump, so the table prefix stays '
-			. 'in every view name.',
+			'The component name could not be established, and the table names do not '
+			. 'share a prefix that would imply it, so every view name keeps whatever '
+			. 'prefix its table had.',
 			array_column($this->messages()->level('warning'), 'message'),
 			'A run that could not strip the prefix has to say so.'
+		);
+	}
+
+	/**
+	 * Two or more tables state their own component, so nobody has to be asked.
+	 *
+	 * Joomla's own convention has a component prefix every table it owns. That makes
+	 * the component name a fact about the dump rather than something the caller must
+	 * supply, and recovering it is what turns a pasted dump into properly named
+	 * views without any further input.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheComponentNameIsRecoveredFromTheTableNames(): void
+	{
+		$report = $this->extruder()->component(8)->dump(<<<'SQL'
+CREATE TABLE IF NOT EXISTS `#__demo_widget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(255) NOT NULL DEFAULT '',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `#__demo_widget_note` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`body` MEDIUMTEXT NOT NULL,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `#__demo_gadget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`title` VARCHAR(255) NOT NULL DEFAULT '',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL)->extrude();
+
+		$this->assertTrue($report->get('completed'));
+		$this->assertSame(
+			'com_demo',
+			$this->source()->get('code_name'),
+			'The shared part of the table names is the component, cut at an underscore.'
+		);
+		$this->assertSame('demo', $report->get('source.prefix'));
+		$this->assertSame(
+			['widget', 'widget_note', 'gadget'],
+			$this->resolved()->get('views'),
+			'Only the component prefix comes off; a compound view name stays whole.'
+		);
+		$this->assertContains(
+			'No component name was given, so it was taken from the part every table '
+			. 'name shares: com_demo.',
+			array_column($this->messages()->level('notice'), 'message')
+		);
+		$this->assertFalse(
+			$report->get('source.jcb_built'),
+			'A dump whose tables carry no guid is not something JCB built.'
+		);
+
+		$this->extruder()->reset()->component(8)->codeName('other')->dump(<<<'SQL'
+CREATE TABLE IF NOT EXISTS `#__demo_widget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(255) NOT NULL DEFAULT '',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `#__demo_gadget` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`title` VARCHAR(255) NOT NULL DEFAULT '',
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL)->extrude();
+
+		$this->assertSame(
+			'com_other',
+			$this->source()->get('code_name'),
+			'Inference is the weakest tier and must never overrule a caller who knows.'
 		);
 	}
 

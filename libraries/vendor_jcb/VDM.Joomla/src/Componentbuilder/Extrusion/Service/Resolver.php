@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language as LanguageResolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
@@ -56,6 +57,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(ViewName::class, 'Extrusion.Resolver.ViewName')
 			->share('Extrusion.Resolver.ViewName', [$this, 'getViewName'], true);
+
+		$container->alias(Prefix::class, 'Extrusion.Resolver.Prefix')
+			->share('Extrusion.Resolver.Prefix', [$this, 'getPrefix'], true);
 
 		$container->alias(Fieldtype::class, 'Extrusion.Resolver.Fieldtype')
 			->share('Extrusion.Resolver.Fieldtype', [$this, 'getFieldtype'], true);
@@ -137,6 +141,23 @@ class Resolver implements ServiceProviderInterface
 		return new ViewName(
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Text')
+		);
+	}
+
+	/**
+	 * Get the table-name prefix resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Prefix
+	 * @since   6.1.6
+	 */
+	public function getPrefix(Container $container): Prefix
+	{
+		return new Prefix(
+			$container->get('Extrusion.Registry.Schema'),
+			$container->get('Extrusion.Registry.Table'),
+			$container->get('Extrusion.Registry.Report')
 		);
 	}
 

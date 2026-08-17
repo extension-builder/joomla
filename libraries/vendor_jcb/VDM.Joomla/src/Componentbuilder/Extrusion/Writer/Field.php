@@ -176,13 +176,29 @@ final class Field extends Writer
 	protected function one(string $view, string $column, array $properties): bool
 	{
 		$type = (string) $this->value($properties, 'xml_type', 'text');
-		$fieldtype = $this->fieldtype->resolve($type);
+		$link = $this->fieldxml->link($properties, $type);
+
+		// A field that stores a key from another table has to be a custom field type,
+		// because that is the only JCB field type whose generated code queries the
+		// linked view. Leaving it as the plain type the column looked like would keep
+		// the attributes and throw away the relationship they describe.
+		$fieldtype = $link === []
+			? $this->fieldtype->resolve($type)
+			: $this->fieldtype->fallback($type);
 
 		if ($fieldtype === null)
 		{
 			$this->report->set('failed.field.unresolved_type.' . $this->key($column), $type);
 
 			return false;
+		}
+
+		if ($link !== [])
+		{
+			$this->report->set(
+				'relations.written.' . $this->key($view) . '.' . $this->key($column),
+				$link['type'] . ' selecting ' . $link['value_field'] . ' from ' . $link['table']
+			);
 		}
 
 		$guid = $this->guid->prefer(
