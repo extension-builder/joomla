@@ -470,15 +470,17 @@ final class Extruder implements ExtruderInterface
 		$this->identity();
 		$views = $this->assembler->assemble();
 		$this->report->set('counts.views', $views);
+		$written = $this->writers->dispatch();
 
-		if ($views === 0)
+		if ($views === 0 && $written === 0)
 		{
-			$this->message->error('Nothing described a table, so no view could be built.');
+			$this->message->error(
+				'Nothing described a table and nothing else was recoverable either, so '
+				. 'no definition was written.'
+			);
 
 			return $this->finish(false);
 		}
-
-		$written = $this->writers->dispatch();
 		$this->achieved($views, $written);
 
 		return $this->finish(true);

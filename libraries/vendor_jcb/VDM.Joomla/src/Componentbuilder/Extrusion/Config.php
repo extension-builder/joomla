@@ -58,7 +58,8 @@ final class Config extends Registry implements Registryinterface
 		'strict' => false,
 		'depth' => 12,
 		'maxFiles' => 20000,
-		'skipColumns' => self::BOILERPLATE
+		'skipColumns' => self::BOILERPLATE,
+		'skipViews' => self::GENERATED_VIEWS
 	];
 
 	/**
@@ -74,6 +75,33 @@ final class Config extends Registry implements Registryinterface
 		'id', 'asset_id', 'guid', 'published', 'created_by', 'modified_by',
 		'created', 'modified', 'checked_out', 'checked_out_time', 'version',
 		'hits', 'access', 'ordering', 'metakey', 'metadesc', 'metadata', 'params'
+	];
+
+	/**
+	 * The view files JCB's own compiler owns, so they are never user content.
+	 *
+	 * This is not a guess and not a heuristic. Every name here is a template file
+	 * shipped in admin/compiler/joomla_*, placed by the same create and move maps
+	 * the placement rule is inverted from, which makes it the compiler's own
+	 * statement of what it generates.
+	 *
+	 * It matters because the boilerplate is indistinguishable from user content by
+	 * shape alone. A real component carries default_body.php inside every one of its
+	 * list views -- twelve of them in getbible, each with different content, because
+	 * the compiler writes each from that view's own field set. Extruding those as
+	 * reusable templates would produce a dozen records fighting over one code name,
+	 * eleven of which would be silently overwritten, and none of which described
+	 * anything a person wrote.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.6
+	 */
+	public const GENERATED_VIEWS = [
+		'default', 'default_batch_body', 'default_batch_footer', 'default_body',
+		'default_custom_admin', 'default_custom_admin_template', 'default_foot',
+		'default_head', 'default_import', 'default_import_custom',
+		'default_list_custom_admin', 'default_list_site', 'default_main',
+		'default_site', 'default_site_template', 'default_toolbar', 'default_vdm'
 	];
 
 	/**
@@ -221,6 +249,24 @@ final class Config extends Registry implements Registryinterface
 		);
 
 		return !in_array(strtolower(trim($column)), $skip, true);
+	}
+
+	/**
+	 * Whether one view file is user content rather than compiler boilerplate.
+	 *
+	 * @param   string  $name  The file name without its extension.
+	 *
+	 * @return  bool  True when the file is worth extruding.
+	 * @since   6.1.6
+	 */
+	public function templatable(string $name): bool
+	{
+		$skip = array_map(
+			static fn ($name): string => strtolower(trim((string) $name)),
+			(array) $this->get('skipViews', self::GENERATED_VIEWS)
+		);
+
+		return !in_array(strtolower(trim($name)), $skip, true);
 	}
 
 	/**

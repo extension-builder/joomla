@@ -1464,8 +1464,8 @@ SQL);
 		$missing = $this->temporaryPath('tmpl/item/absent.php');
 		$roles = [
 			['layouts/summary.php', ExtrusionComponentFixture::LAYOUT, 'summary', 'layout'],
-			['tmpl/item/default.php', "<?php\ndefined('_JEXEC') or die;\n?>\n<p>main</p>", 'item_default', 'main'],
-			['tmpl/item/default_extra.php', "<?php\n\$a = 1;\n?>\n<p>extra</p>", 'item_extra', 'template'],
+			['tmpl/item/default.php', "<?php\ndefined('_JEXEC') or die;\n?>\n<p>main</p>", 'default', 'main'],
+			['tmpl/item/default_extra.php', "<?php\n\$a = 1;\n?>\n<p>extra</p>", 'default_extra', 'template'],
 			['tmpl/item/stray.php', '<p>stray</p>', 'stray', 'partial']
 		];
 		$inventory->set('view_count', count($roles) + 1);
@@ -1493,15 +1493,22 @@ SQL);
 			$this->templateReader()
 		);
 
-		$this->assertSame(3, $dispatcher->dispatch());
+		$this->assertSame(2, $dispatcher->dispatch());
 		$this->assertSame(['summary'], array_keys((array) $this->view->get('layout')));
 		$this->assertSame(
-			['item_default', 'item_extra'],
-			array_keys((array) $this->view->get('template'))
+			['extra'],
+			array_keys((array) $this->view->get('template')),
+			'A template keeps the code name JCB generated it under, with the default_ '
+			. 'prefix removed, and a view\'s own default.php is not a template at all.'
 		);
-		$this->assertSame('<p>main</p>', $this->view->get('template.item_default.template'));
-		$this->assertSame('$a = 1;', $this->view->get('template.item_extra.php_view'));
+		$this->assertSame('$a = 1;', $this->view->get('template.extra.php_view'));
+		$this->assertSame(
+			$this->temporaryPath('tmpl/item/default.php'),
+			$this->report->get('view.skipped.main.' . md5($this->temporaryPath('tmpl/item/default.php'))),
+			'The view own template is named in the report rather than quietly dropped.'
+		);
 
+		$this->assertFalse($this->view->exists('template.item_default.template'));
 		$this->assertFalse($this->view->exists('template.stray.template'));
 		$this->assertFalse($this->view->exists('layout.stray.layout'));
 		$this->assertFalse($this->report->exists('template.stray.path'));
@@ -1511,7 +1518,7 @@ SQL);
 			$this->report->get('layout.absent.error')
 		);
 		$this->assertFalse($this->view->exists('layout.absent.name'));
-		$this->assertSame(3, $this->report->get('counts.read'));
+		$this->assertSame(2, $this->report->get('counts.read'));
 	}
 
 	/**

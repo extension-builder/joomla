@@ -259,15 +259,33 @@ final class Collector
 			$this->report->set('found.' . $kind, $count);
 		}
 
-		if ($found['schema'] === 0 && $found['table_class'] === 0 && $found['form'] === 0)
+		$fields = $found['schema'] > 0 || $found['table_class'] > 0 || $found['form'] > 0;
+
+		if (!$fields && $found['view'] === 0)
 		{
 			$this->message->error(
-				'No schema, table definition class or form XML was found, so there is '
-				. 'nothing to describe any field with.',
+				'Nothing was found to extrude: no schema, table definition class or form '
+				. 'XML to describe a field with, and no layouts or templates either.',
 				(string) $this->source->get('path', '')
 			);
 
 			return false;
+		}
+
+		if (!$fields)
+		{
+			// A component's site folder legitimately has no schema and no forms -- its
+			// content is layouts and templates, and those are worth having on their own.
+			// Refusing the run because no field could be described would throw away
+			// everything the caller actually pointed at.
+			$this->message->notice(
+				'Nothing here describes a field, so no view was built; the '
+				. $found['view'] . ' layout(s) and template(s) found were extruded on '
+				. 'their own.',
+				(string) $this->source->get('path', '')
+			);
+
+			return true;
 		}
 
 		if ($found['schema'] === 0)
