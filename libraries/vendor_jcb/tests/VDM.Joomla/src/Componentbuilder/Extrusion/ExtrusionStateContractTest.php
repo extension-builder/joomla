@@ -167,7 +167,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$config = new Config();
 
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(25, $config);
+		$this->assertCount(26, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertSame(0, $config->get('component'));
 		$this->assertSame('update', $config->get('onExisting'));
@@ -217,14 +217,14 @@ final class ExtrusionStateContractTest extends TestCase
 
 		$this->assertSame('update', $config->get('mode'));
 		$this->assertSame('value', $config->get('custom'));
-		$this->assertCount(26, $config);
+		$this->assertCount(27, $config);
 
 		$cleared = $config->clear();
 
 		$this->assertSame($config, $cleared);
 		$this->assertNotSame([], $config->toArray());
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(25, $config);
+		$this->assertCount(26, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertFalse($config->get('dryRun'));
 		$this->assertSame(Config::TIERS, $config->get('precedence'));
@@ -262,7 +262,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('update', $config->get('onExisting'));
 		$this->assertSame(20000, $config->get('maxFiles'));
 		$this->assertSame(Config::BOILERPLATE, $config->get('skipColumns'));
-		$this->assertCount(26, $config);
+		$this->assertCount(27, $config);
 
 		$this->assertSame(0, $config->rank('xml'), 'the configured precedence must drive the ranks.');
 		$this->assertSame(5, $config->rank('table'));
@@ -289,7 +289,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertFalse($fromString->selected('note'));
 		$this->assertTrue($fromString->selected('article'));
 		$this->assertSame('en-GB', $fromString->get('languageTag'));
-		$this->assertCount(25, $fromString);
+		$this->assertCount(26, $fromString);
 
 		$fromObject = new Config((object) ['strict' => true, 'tableClass' => 'off']);
 
@@ -297,7 +297,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('off', $fromObject->get('tableClass'));
 		$this->assertTrue($fromObject->get('admin'));
 		$this->assertSame(Config::TIERS, $fromObject->get('precedence'));
-		$this->assertCount(25, $fromObject);
+		$this->assertCount(26, $fromObject);
 
 		$fromNulls = new Config(['layout' => null, 'depth' => null, 'skipColumns' => null]);
 
@@ -338,7 +338,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'defaults() must leave keys outside the catalogue in place.'
 		);
 		$this->assertTrue($config->exists('custom'));
-		$this->assertCount(26, $config);
+		$this->assertCount(27, $config);
 
 		$config->clear();
 
@@ -346,7 +346,7 @@ final class ExtrusionStateContractTest extends TestCase
 			$config->exists('custom'),
 			'clear() must drop keys outside the catalogue.'
 		);
-		$this->assertCount(25, $config);
+		$this->assertCount(26, $config);
 	}
 
 	/**
@@ -819,6 +819,13 @@ final class ExtrusionStateContractTest extends TestCase
 				'id', 'asset_id', 'guid', 'published', 'created_by', 'modified_by',
 				'created', 'modified', 'checked_out', 'checked_out_time', 'version',
 				'hits', 'access', 'ordering', 'metakey', 'metadesc', 'metadata', 'params'
+			],
+			'skipViews' => [
+				'default', 'default_batch_body', 'default_batch_footer', 'default_body',
+				'default_custom_admin', 'default_custom_admin_template', 'default_foot',
+				'default_head', 'default_import', 'default_import_custom',
+				'default_list_custom_admin', 'default_list_site', 'default_main',
+				'default_site', 'default_site_template', 'default_toolbar', 'default_vdm'
 			]
 		];
 	}

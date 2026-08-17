@@ -172,6 +172,24 @@ final class Dispatcher
 	}
 
 	/**
+	 * Record one located view file that was deliberately not read.
+	 *
+	 * The path is the key, because several views legitimately hold a file of the
+	 * same name and keying on the name alone would collapse a dozen findings into
+	 * one -- which is the very kind of quiet loss this report exists to prevent.
+	 *
+	 * @param   string  $reason  Why the file was passed over.
+	 * @param   string  $path    Absolute path to the file.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	protected function skipped(string $reason, string $path): void
+	{
+		$this->report->set('view.skipped.' . $reason . '.' . md5($path), $path);
+	}
+
+	/**
 	 * Read every located artifact of one kind.
 	 *
 	 * @param   string           $kind    The inventory artifact kind.
@@ -220,9 +238,29 @@ final class Dispatcher
 				continue;
 			}
 
-			if ($role === 'template' || $role === 'main')
+			if ($role === 'template')
 			{
+				if (!$this->config->templatable((string) $entry['name']))
+				{
+					$this->skipped('generated', $entry['path']);
+
+					continue;
+				}
+
 				$read += $this->template->read($entry['path'], $entry['name']) ? 1 : 0;
+
+				continue;
+			}
+
+			if ($role === 'main')
+			{
+				// A view's own default.php is not a reusable JCB template. JCB generates
+				// the list and edit templates of an admin view itself, and a site view
+				// keeps its body in its own default column, so storing it as a template
+				// would duplicate it under a name nothing refers to. It is recorded here
+				// so a reader of the report can see it was found and deliberately passed
+				// over, rather than wonder where it went.
+				$this->skipped('main', $entry['path']);
 			}
 		}
 

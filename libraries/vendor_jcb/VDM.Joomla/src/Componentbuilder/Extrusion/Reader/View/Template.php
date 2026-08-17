@@ -76,6 +76,30 @@ final class Template implements ReaderInterface
 	}
 
 	/**
+	 * The JCB template code name a generated file name carries.
+	 *
+	 * JCB writes a template whose code name is x into a view's folder as
+	 * default_x.php, so removing that prefix recovers the code name exactly rather
+	 * than by resemblance. It also collapses the same template used by several views
+	 * onto one record, which is correct: they are one template, materialised once per
+	 * view that asked for it.
+	 *
+	 * A file with no such prefix keeps its own name, because there is nothing to
+	 * recover and the file name is the best code name available.
+	 *
+	 * @param   string  $name  The file name without its extension.
+	 *
+	 * @return  string  The template code name.
+	 * @since   6.1.6
+	 */
+	public function alias(string $name): string
+	{
+		$stripped = preg_replace('/^default_/i', '', trim($name)) ?? $name;
+
+		return trim($stripped) === '' ? trim($name) : $stripped;
+	}
+
+	/**
 	 * Read one template source file into the View registry.
 	 *
 	 * @param   string       $path  Absolute path to the template file.
@@ -86,7 +110,7 @@ final class Template implements ReaderInterface
 	 */
 	public function read(string $path, ?string $name = null): bool
 	{
-		$raw = trim($name ?? pathinfo($path, PATHINFO_FILENAME));
+		$raw = $this->alias(trim($name ?? pathinfo($path, PATHINFO_FILENAME)));
 		$key = $this->key($raw);
 		$base = 'template.' . $key;
 		$this->report->set($base . '.path', $path);
@@ -115,6 +139,22 @@ final class Template implements ReaderInterface
 		}
 
 		$php = $parts['add_php'] ? 1 : 0;
+		$held = $this->view->get($base . '.template');
+
+		if (is_string($held) && $held !== $parts['html'])
+		{
+			// One code name, two different bodies. A JCB template code name is unique,
+			// so the second cannot simply take the first's place: whichever lost would
+			// vanish with nothing said about it. The first claim stands and the
+			// disagreement is named, which is the one honest thing to do until a caller
+			// tells us which of the two it wants.
+			$this->report->set(
+				'template.collision.' . $key . '.' . md5($path),
+				$path . ' differs from ' . (string) $this->view->get($base . '.path', '')
+			);
+
+			return false;
+		}
 
 		$this->view->set($base . '.name', $key);
 		$this->view->set($base . '.php_view', $parts['php']);
