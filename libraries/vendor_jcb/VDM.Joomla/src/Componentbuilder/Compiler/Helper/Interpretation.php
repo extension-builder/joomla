@@ -7120,168 +7120,17 @@ class Interpretation extends Fields
 	 * @param   string  $refview
 	 *
 	 * @return string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.LinkedView.ListHead service.
 	 */
 	public function setListHeadLinked($nameSingleCode, $nameListCode,
 	                                  $addNewButon, $refview
 	)
 	{
-		if (($items = CFactory::_('Compiler.Builder.Lists')->get($nameListCode)) !== null)
-		{
-			// component helper name
-			$Helper = CFactory::_('Compiler.Builder.Content.One')->get('Component') . 'Helper';
-			$head   = '';
-			$footable_version = CFactory::_('Config')->get('footable_version', 2);
-			// only add new button if set
-			if ($addNewButon > 0)
-			{
-				// set permissions.
-				$accessCheck = "\$can->get('" . CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.create') . "')";
-				// add a button for new
-				$head = '<?php if (' . $accessCheck . '): ?>';
-				// make group button if needed
-				$tabB = "";
-				if ($addNewButon == 2)
-				{
-					$head .= PHP_EOL . Indent::_(1) . '<div class="btn-group">';
-					$tabB = Indent::_(1);
-				}
-				// add the new buttons
-				if ($addNewButon == 1 || $addNewButon == 2)
-				{
-					$head .= PHP_EOL . $tabB . Indent::_(1)
-						. '<a class="btn btn-small btn-success" href="<?php echo $new; ?>"><span class="icon-new icon-white"></span> <?php echo Text:'
-						. ':_(' . "'" . CFactory::_('Config')->lang_prefix . "_NEW'"
-						. '); ?></a>';
-				}
-				// add the close and new button
-				if ($addNewButon == 2 || $addNewButon == 3)
-				{
-					$head .= PHP_EOL . $tabB . Indent::_(1)
-						. '<a class="btn btn-small" onclick="Joomla.submitbutton(\''
-						. $refview
-						. '.cancel\');" href="<?php echo $close_new; ?>"><span class="icon-new"></span> <?php echo Text:'
-						. ':_(' . "'" . CFactory::_('Config')->lang_prefix . "_CLOSE_NEW'"
-						. '); ?></a>';
-				}
-				// close group button if needed
-				if ($addNewButon == 2)
-				{
-					$head .= PHP_EOL . Indent::_(1) . '</div><br /><br />';
-				}
-				else
-				{
-					$head .= '<br /><br />';
-				}
-				$head .= PHP_EOL . '<?php endif; ?>' . PHP_EOL;
-			}
-			$head .= '<?php if (Super_' . '__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check($items)): ?>';
-			// set the style for V2
-			$metro_blue = (2 == $footable_version) ? ' metro-blue' : '';
-			// set the toggle for V3
-			$toggle = (3 == $footable_version)
-				? ' data-show-toggle="true" data-toggle-column="first"' : '';
-			// set paging
-			$paging = (2 == $footable_version)
-				? ' data-page-size="20" data-filter="#filter_' . $nameListCode
-				. '"'
-				: ' data-sorting="true" data-paging="true" data-paging-size="20" data-filtering="true"';
-			// add html fix for V3
-			$htmlFix = (3 == $footable_version)
-				? ' data-type="html" data-sort-use="text"' : '';
-			$head    .= PHP_EOL . '<table class="footable table data '
-				. $nameListCode . $metro_blue . '"' . $toggle . $paging . '>';
-			$head    .= PHP_EOL . "<thead>";
-			// main lang prefix
-			$langView = CFactory::_('Config')->lang_prefix . '_'
-				. StringHelper::safe($nameSingleCode, 'U');
-			// set status lang
-			$statusLangName = $langView . '_STATUS';
-			// set id lang
-			$idLangName = $langView . '_ID';
-			// make sure only first link is used as togeler
-			$firstLink = true;
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $statusLangName, 'Status');
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $idLangName, 'Id');
-			$head .= PHP_EOL . Indent::_(1) . "<tr>";
-			// set controller for data hiding options
-			$controller = 1;
-			// build the dynamic fields
-			foreach ($items as $item)
-			{
-				// check if target is linked list view
-				if (1 == $item['target'] || 4 == $item['target'])
-				{
-					// check if we have an over-ride
-					if (($list_head_override = CFactory::_('Compiler.Builder.List.Head.Override')->
-						get($nameListCode . '.' . $item['guid'])) !== null)
-					{
-						$item['lang'] = $list_head_override;
-					}
-					$setin = (2 == $footable_version)
-						? ' data-hide="phone"' : ' data-breakpoints="xs sm"';
-					if ($controller > 3)
-					{
-						$setin = (2 == $footable_version)
-							? ' data-hide="phone,tablet"'
-							: ' data-breakpoints="xs sm md"';
-					}
-
-					if ($controller > 6)
-					{
-						$setin = (2 == $footable_version)
-							? ' data-hide="all"' : ' data-breakpoints="all"';
-					}
-
-					if ($item['link'] && $firstLink)
-					{
-						$setin     = (2 == $footable_version)
-							? ' data-toggle="true"' : '';
-						$firstLink = false;
-					}
-					$head .= PHP_EOL . Indent::_(2) . "<th" . $setin . $htmlFix
-						. ">";
-					$head .= PHP_EOL . Indent::_(3) . "<?php echo Text:"
-						. ":_('" . $item['lang'] . "'); ?>";
-					$head .= PHP_EOL . Indent::_(2) . "</th>";
-					$controller++;
-				}
-			}
-			// set some V3 attr
-			$data_hide = (2 == $footable_version)
-				? 'data-hide="phone,tablet"' : 'data-breakpoints="xs sm md"';
-			// add the defaults
-			if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.published'))
-			{
-				$head .= PHP_EOL . Indent::_(2) . '<th width="10" ' . $data_hide
-					. '>';
-				$head .= PHP_EOL . Indent::_(3) . "<?php echo Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. $statusLangName . "'); ?>";
-				$head .= PHP_EOL . Indent::_(2) . "</th>";
-			}
-
-			// add the defaults
-			if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.id'))
-			{
-				$data_type = (2 == $footable_version)
-					? 'data-type="numeric"'
-					: 'data-type="number"';
-				$head      .= PHP_EOL . Indent::_(2) . '<th width="5" '
-					. $data_type
-					. ' ' . $data_hide . '>';
-				$head      .= PHP_EOL . Indent::_(3) . "<?php echo Text:"
-					. ":_('"
-					. $idLangName . "'); ?>";
-				$head      .= PHP_EOL . Indent::_(2) . "</th>";
-			}
-			$head .= PHP_EOL . Indent::_(1) . "</tr>";
-			$head .= PHP_EOL . "</thead>";
-
-			return $head;
-		}
-
-		return '';
+		return CFactory::_('Architecture.LinkedView.ListHead')->get(
+			$nameSingleCode, $nameListCode, $addNewButon, $refview
+		);
 	}
 
 	/**

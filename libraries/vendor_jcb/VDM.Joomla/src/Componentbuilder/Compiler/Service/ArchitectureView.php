@@ -56,6 +56,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Disp
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead as LinkedViewListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface as AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface as AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedAdminViewFootableScripts;
@@ -235,6 +236,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewCustomTabs::class, 'Architecture.AdminView.CustomTabs')
 			->share('Architecture.AdminView.CustomTabs', [$this, 'getAdminViewCustomTabs'], true);
+
+		$container->alias(LinkedViewListHead::class, 'Architecture.LinkedView.ListHead')
+			->share('Architecture.LinkedView.ListHead', [$this, 'getLinkedViewListHead'], true);
 
 		$container->alias(AdminViewEditBody::class, 'Architecture.AdminView.EditBody')
 			->share('Architecture.AdminView.EditBody', [$this, 'getAdminViewEditBody'], true);
@@ -1047,6 +1051,26 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewCustomTabs(
 			$container->get('Compiler.Builder.Custom.Tabs')
+		);
+	}
+
+	/**
+	 * Get The LinkedView ListHead Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  LinkedViewListHead
+	 * @since   6.1.7
+	 */
+	public function getLinkedViewListHead(Container $container): LinkedViewListHead
+	{
+		return new LinkedViewListHead(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Lists'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Compiler.Builder.List.Head.Override'),
+			$container->get('Compiler.Builder.Field.Names')
 		);
 	}
 
