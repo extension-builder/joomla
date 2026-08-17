@@ -861,10 +861,14 @@ final class DiscoveryTest extends FilesystemTestCase
 		$root = $this->componentRoot('modern', ExtrusionComponentFixture::modern(), 'com_example');
 		$collector = $this->collector();
 
-		$this->assertFalse($collector->collect($this->temporaryPath('modern') . '/com_missing'));
+		$missing = $this->temporaryPath('modern') . '/com_missing';
+
+		$this->assertFalse($collector->collect($missing));
 		$this->assertStringContainsString(
 			'not a readable directory',
-			(string) $this->report->get('failed.root')
+			(string) $this->report->get('failed.root.' . md5($missing)),
+			'Each unusable root is reported under its own path, because a run may be '
+			. 'given several and only some of them may be wrong.'
 		);
 		$this->assertFalse($this->inventory->exists('schema.0.path'));
 

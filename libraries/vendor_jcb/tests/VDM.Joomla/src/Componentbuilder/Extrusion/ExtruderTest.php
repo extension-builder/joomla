@@ -288,7 +288,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertFalse($report->get('dry_run'));
 		$this->assertSame('create', $report->get('mode'));
 		$this->assertSame(
-			[['message' => 'No component source root and no schema dump were given.']],
+			[['message' => 'No component source folder and no schema dump were given.']],
 			$this->messages()->level('error'),
 			'A run with nothing to work on must say so on the bus.'
 		);
@@ -330,7 +330,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertFalse($report->get('completed'));
 		$this->assertStringContainsString(
 			'not a readable directory',
-			(string) $report->get('failed.root')
+			(string) $report->get('failed.root.' . md5($bare . '/com_missing')),
+			'Each unusable root is reported under its own path, because a run may be '
+			. 'given several and only some of them may be wrong.'
 		);
 		$this->assertSame(
 			[[
@@ -1037,5 +1039,86 @@ SQL);
 	private function source(): Source
 	{
 		return $this->container->get('Extrusion.Registry.Source');
+	}
+	/**
+	 * A component is two folders, and the run takes either or both.
+	 *
+	 * The interface that drives this offers an administrator folder and a site
+	 * folder, and someone may have one, the other, or both. Giving both has to reach
+	 * exactly what giving their common parent reaches, or the two ways of asking for
+	 * the same component would answer differently.
+	 *
+	 * @return  void
+	 * @since   6.1.6
+	 */
+	public function testTheAdministratorAndSiteFoldersCanBeGivenSeparatelyOrTogether(): void
+	{
+		$root = $this->split();
+
+		$this->extruder()->adminPath($root . '/admin')->component(2)->extrude();
+
+		$this->assertSame(
+			['item', 'category'],
+			$this->resolved()->get('views'),
+			'The administrator folder alone yields the administrator views.'
+		);
+		$this->assertSame(
+			[],
+			(array) $this->resolved()->get('site_view', []),
+			'An administrator view own default.php is generated output, never a site view.'
+		);
+
+		$this->extruder()->reset()->sitePath($root . '/site')->component(2)->extrude();
+
+		$this->assertSame(
+			['looking'],
+			array_keys((array) $this->resolved()->get('site_view', [])),
+			'The site folder alone yields the site views.'
+		);
+		$this->assertSame(
+			[],
+			(array) $this->resolved()->get('views', []),
+			'A site folder describes no field, so it builds no administrator view.'
+		);
+
+		$report = $this->extruder()->reset()
+			->adminPath($root . '/admin')
+			->sitePath($root . '/site')
+			->component(2)
+			->extrude();
+
+		$this->assertTrue($report->get('completed'));
+		$this->assertSame(['item', 'category'], $this->resolved()->get('views'));
+		$this->assertSame(
+			['looking'],
+			array_keys((array) $this->resolved()->get('site_view', [])),
+			'Given both folders the run reaches both halves in one pass.'
+		);
+		$this->assertSame(
+			[$root . '/admin', $root . '/site'],
+			$report->get('source.roots'),
+			'Every root the run was given is named in the report.'
+		);
+		$this->assertSame(1, $report->get('written_counts.site_view'));
+		$this->assertSame(1, $report->get('written_counts.component_site_views'));
+	}
+
+	/**
+	 * A component split across two folders with no common parent worth pointing at.
+	 *
+	 * @return  string  The absolute tree path holding admin and site.
+	 * @since   6.1.6
+	 */
+	private function split(): string
+	{
+		return $this->tree('split', [
+			'admin/com_example.xml' => ExtrusionComponentFixture::MANIFEST,
+			'admin/sql/install.mysql.utf8.sql' => ExtrusionComponentFixture::SCHEMA,
+			'admin/forms/item.xml' => ExtrusionComponentFixture::FORM,
+			'admin/language/en-GB/com_example.ini' => ExtrusionComponentFixture::LANGUAGE,
+			'admin/tmpl/item/default.php' => "<?php\ndefined('_JEXEC') or die;\n?>\n<p>edit</p>",
+			'site/tmpl/looking/default.php' => "<?php\ndefined('_JEXEC') or die;\n?>\n<p>look</p>",
+			'site/tmpl/looking/default_extra.php' => ExtrusionComponentFixture::LAYOUT
+		]);
 	}
 }

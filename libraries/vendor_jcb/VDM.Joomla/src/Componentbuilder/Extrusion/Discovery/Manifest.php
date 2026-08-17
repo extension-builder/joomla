@@ -123,18 +123,24 @@ final class Manifest
 	 * Establish the component identity below one source root.
 	 *
 	 * @param   string  $root  The resolved source root.
+	 * @param   bool    $keep  Keep an identity an earlier root already established.
 	 *
 	 * @return  bool  True when a component code name was established.
 	 * @since   6.1.6
 	 */
-	public function establish(string $root): bool
+	public function establish(string $root, bool $keep = false): bool
 	{
-		$this->source->set('path', $root);
+		if (!$keep)
+		{
+			$this->source->set('path', $root);
+		}
+
+		$established = $keep && (string) $this->source->get('code_name', '') !== '';
 
 		$supplied = $this->supplied();
 		$manifest = $this->find($root) ?? $this->beside($root);
 
-		if ($manifest !== null)
+		if ($manifest !== null && !$established)
 		{
 			$this->source->set('manifest', $manifest['path']);
 			$this->source->set('code_name', $manifest['option']);
@@ -150,6 +156,13 @@ final class Manifest
 			}
 
 			$this->report->set('source.manifest_typed', (bool) ($manifest['typed'] ?? false));
+		}
+		elseif ($established)
+		{
+			$this->report->set(
+				'source.root.' . md5($root),
+				'collected under the identity an earlier root established'
+			);
 		}
 		elseif ($supplied !== '')
 		{
@@ -170,7 +183,10 @@ final class Manifest
 			$this->source->set('code_name', $supplied);
 		}
 
-		$this->source->set('layout', $this->family($root));
+		if (!$established)
+		{
+			$this->source->set('layout', $this->family($root));
+		}
 
 		return $this->source->get('code_name', '') !== '';
 	}

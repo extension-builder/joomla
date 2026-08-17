@@ -61,13 +61,19 @@ final class View extends Locator
 	public function locate(string $root): array
 	{
 		$found = [];
+		$only = $this->scope();
 
-		foreach (['layouts' => 'admin', 'site_layouts' => 'site'] as $kind => $scope)
+		foreach ($this->kinds('layouts', 'site_layouts', $only) as $kind => $scope)
 		{
 			foreach ($this->mapped($root, $kind) as $directory)
 			{
 				foreach ($this->php($root, $directory) as $path)
 				{
+					if (isset($found[$path]))
+					{
+						continue;
+					}
+
 					$found[$path] = $this->entry($path, 'map', $this->name($path));
 					$found[$path]['role'] = 'layout';
 					$found[$path]['scope'] = $scope;
@@ -75,12 +81,17 @@ final class View extends Locator
 			}
 		}
 
-		foreach (['tmpl_dir' => 'admin', 'site_tmpl_dir' => 'site'] as $kind => $scope)
+		foreach ($this->kinds('tmpl_dir', 'site_tmpl_dir', $only) as $kind => $scope)
 		{
 			foreach ($this->mapped($root, $kind) as $directory)
 			{
 				foreach ($this->templates($root, $directory) as $path => $role)
 				{
+					if (isset($found[$path]))
+					{
+						continue;
+					}
+
 					$found[$path] = $this->entry($path, 'map', $this->name($path));
 					$found[$path]['role'] = $role;
 					$found[$path]['scope'] = $scope;
@@ -103,6 +114,51 @@ final class View extends Locator
 	public function name(string $path): string
 	{
 		return strtolower(pathinfo($path, PATHINFO_FILENAME));
+	}
+
+	/**
+	 * The scope this pass is confined to, when the caller declared one.
+	 *
+	 * @return  string  Either admin, site, or an empty string for both.
+	 * @since   6.1.6
+	 */
+	protected function scope(): string
+	{
+		$scope = strtolower(trim((string) $this->source->get('scope', '')));
+
+		return in_array($scope, ['admin', 'site'], true) ? $scope : '';
+	}
+
+	/**
+	 * The placement kinds to search, and the scope each one's findings carry.
+	 *
+	 * Both families are always searched, because a layout and a template are the
+	 * same thing to JCB wherever they came from -- there is one layout table and one
+	 * template table, with no administrator or site distinction in either.
+	 *
+	 * The scope is carried anyway, because exactly one decision depends on it: a
+	 * view's own default.php is the site view itself on the site side and generated
+	 * output on the administrator side. When the root is itself one of the two
+	 * folders, both families resolve to the same directory and the tree cannot say
+	 * which it is; a declared scope settles it, and without one the administrator
+	 * reading stands, because that merely passes the file over instead of inventing
+	 * a front end view that does not exist.
+	 *
+	 * @param   string  $admin  The administrator placement kind.
+	 * @param   string  $site   The site placement kind.
+	 * @param   string  $only   The declared scope, or an empty string.
+	 *
+	 * @return  array<string, string>  Placement kind keyed to the scope its findings carry.
+	 * @since   6.1.6
+	 */
+	protected function kinds(string $admin, string $site, string $only): array
+	{
+		if ($only !== '')
+		{
+			return [$admin => $only, $site => $only];
+		}
+
+		return [$admin => 'admin', $site => 'site'];
 	}
 
 	/**
