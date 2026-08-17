@@ -437,6 +437,19 @@ final class Extruder implements ExtruderInterface
 			return $this->finish(false);
 		}
 
+		if ($path === '')
+		{
+			// No tree was given, so identity cannot be discovered; the caller's own
+			// code name is all there is, and the table prefix depends on it.
+			if (!$this->collector->identify())
+			{
+				$this->message->warning(
+					'No component code name was given with the dump, so the table prefix '
+					. 'stays in every view name.'
+				);
+			}
+		}
+
 		$this->report->set('counts.artifacts', $this->readers->dispatch());
 		$views = $this->assembler->assemble();
 		$this->report->set('counts.views', $views);
