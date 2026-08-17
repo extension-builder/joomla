@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Dashboard\Icons;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Dashboard\ViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Dashboard\View as J6View;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Dashboard\View as J5View;
@@ -46,6 +47,9 @@ class ArchitectureDashboard implements ServiceProviderInterface
 	 */
 	public function register(Container $container)
 	{
+		$container->alias(Icons::class, 'Architecture.Dashboard.Icons')
+			->share('Architecture.Dashboard.Icons', [$this, 'getIcons'], true);
+
 		$container->alias(ViewInterface::class, 'Architecture.Dashboard.View')
 			->share('Architecture.Dashboard.View', [$this, 'getViewInterface'], true);
 
@@ -60,6 +64,26 @@ class ArchitectureDashboard implements ServiceProviderInterface
 
 		$container->alias(J3View::class, 'Architecture.Dashboard.J3.View')
 			->share('Architecture.Dashboard.J3.View', [$this, 'getJ3View'], true);
+	}
+
+	/**
+	 * Get The Icons Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Icons
+	 * @since   6.1.7
+	 */
+	public function getIcons(Container $container): Icons
+	{
+		return new Icons(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Category.Other.Name'),
+			$container->get('Utilities.Paths')
+		);
 	}
 
 	/**
@@ -157,4 +181,3 @@ class ArchitectureDashboard implements ServiceProviderInterface
 		);
 	}
 }
-
