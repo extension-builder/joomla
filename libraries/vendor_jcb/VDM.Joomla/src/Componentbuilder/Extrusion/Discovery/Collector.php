@@ -184,27 +184,76 @@ final class Collector
 	 */
 	public function collect(string $path): bool
 	{
-		$root = $this->scanner->root($path);
+		return $this->gather([['path' => $path, 'scope' => '']]);
+	}
 
-		if ($root === null)
+	/**
+	 * Collect the inventory of every source root the caller supplied.
+	 *
+	 * A component is two trees, and which of them someone has is not our business to
+	 * assume: an administrator folder alone, a site folder alone, both, or the one
+	 * directory that contains both. Each is collected in turn into one inventory, so
+	 * a run given both sees exactly what a run given their common parent would see.
+	 *
+	 * Each root may declare which half of the component it is. That declaration is
+	 * what tells a view's own default.php apart from a site view when the root is
+	 * itself one of the two folders and the tree cannot say.
+	 *
+	 * @param   array<int, array{path: string, scope: string}>  $roots  The requested source roots.
+	 *
+	 * @return  bool  True when at least one root was usable and yielded something.
+	 * @since   6.1.6
+	 */
+	public function gather(array $roots): bool
+	{
+		$usable = [];
+
+		foreach ($roots as $requested)
 		{
-			$this->report->set('failed.root', 'not a readable directory: ' . $path);
-			$this->message->error(
-				'The given component source is not a readable directory, so nothing '
-				. 'could be read from it.',
-				$path
-			);
+			$path = trim((string) ($requested['path'] ?? ''));
 
+			if ($path === '')
+			{
+				continue;
+			}
+
+			$root = $this->scanner->root($path);
+
+			if ($root === null)
+			{
+				$this->report->set('failed.root.' . md5($path), 'not a readable directory: ' . $path);
+				$this->message->error(
+					'The given component source is not a readable directory, so nothing '
+					. 'could be read from it.',
+					$path
+				);
+
+				continue;
+			}
+
+			$usable[] = ['root' => $root, 'scope' => (string) ($requested['scope'] ?? '')];
+		}
+
+		if ($usable === [])
+		{
 			return false;
 		}
 
 		$this->identify();
-		$this->manifest->establish($root);
 
-		foreach ($this->locators() as $locator)
+		foreach ($usable as $index => $entry)
 		{
-			$this->store($locator);
+			$this->source->set('scope', $entry['scope']);
+			$this->manifest->establish($entry['root'], $index > 0);
+
+			foreach ($this->locators() as $locator)
+			{
+				$this->store($locator, $entry['root']);
+			}
 		}
+
+		$this->source->set('scope', '');
+		$this->report->set('source.roots', array_column($usable, 'root'));
 
 		return $this->assess();
 	}
@@ -363,25 +412,25 @@ final class Collector
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	protected function store(LocatorInterface $locator): void
+	protected function store(LocatorInterface $locator, string $root): void
 	{
-		$root = (string) $this->source->get('path', '');
-
 		if ($root === '')
 		{
 			return;
 		}
 
 		$kind = $locator->kind();
-		$index = 0;
+		$index = (int) $this->inventory->get($kind . '_count', 0);
+		$seen = $this->seen($kind, $index);
 
 		foreach ($locator->locate($root) as $entry)
 		{
-			if (!is_array($entry) || !isset($entry['path']))
+			if (!is_array($entry) || !isset($entry['path']) || isset($seen[$entry['path']]))
 			{
 				continue;
 			}
 
+			$seen[$entry['path']] = true;
 			$path = $kind . '.' . $index;
 			$this->inventory->set($path . '.path', (string) $entry['path']);
 			$this->inventory->set($path . '.tier', (string) ($entry['tier'] ?? 'scan'));
@@ -399,5 +448,35 @@ final class Collector
 		}
 
 		$this->inventory->set($kind . '_count', $index);
+	}
+
+	/**
+	 * The artifact paths of one kind already in the inventory.
+	 *
+	 * Two roots can overlap -- a component root and its own administrator folder
+	 * name the same files -- so a second pass must add what is new without listing
+	 * anything twice.
+	 *
+	 * @param   string  $kind   The artifact kind.
+	 * @param   int     $count  How many are already recorded.
+	 *
+	 * @return  array<string, bool>  Absolute path keyed to true.
+	 * @since   6.1.6
+	 */
+	protected function seen(string $kind, int $count): array
+	{
+		$seen = [];
+
+		for ($index = 0; $index < $count; $index++)
+		{
+			$path = $this->inventory->get($kind . '.' . $index . '.path');
+
+			if (is_string($path) && $path !== '')
+			{
+				$seen[$path] = true;
+			}
+		}
+
+		return $seen;
 	}
 }

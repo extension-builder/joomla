@@ -200,6 +200,60 @@ final class Extruder implements ExtruderInterface
 	}
 
 	/**
+	 * Set the administrator folder to consume.
+	 *
+	 * A component is two trees and someone may have either, both, or the directory
+	 * that contains them. Naming the administrator half outright is not only a
+	 * convenience: it is what tells a view's own default.php apart from a site view
+	 * when the folder given is itself one half and its shape cannot say which.
+	 *
+	 * @param   string  $path  Absolute path to the administrator folder.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function adminPath(string $path): self
+	{
+		return $this->option('adminPath', $path);
+	}
+
+	/**
+	 * Set the site folder to consume.
+	 *
+	 * @param   string  $path  Absolute path to the site folder.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.6
+	 */
+	public function sitePath(string $path): self
+	{
+		return $this->option('sitePath', $path);
+	}
+
+	/**
+	 * Every source root this run was given, each with the half it represents.
+	 *
+	 * @return  array<int, array{path: string, scope: string}>  The requested roots.
+	 * @since   6.1.6
+	 */
+	public function roots(): array
+	{
+		$roots = [];
+
+		foreach (['path' => '', 'adminPath' => 'admin', 'sitePath' => 'site'] as $option => $scope)
+		{
+			$path = trim((string) $this->config->get($option, ''));
+
+			if ($path !== '')
+			{
+				$roots[] = ['path' => $path, 'scope' => $scope];
+			}
+		}
+
+		return $roots;
+	}
+
+	/**
 	 * Supply a schema dump as text instead of pointing at a folder.
 	 *
 	 * This is the original extrusion: paste a dump, get views and fields, with the
@@ -437,12 +491,12 @@ final class Extruder implements ExtruderInterface
 	 */
 	public function extrude(): Report
 	{
-		$path = (string) $this->config->get('path', '');
+		$roots = $this->roots();
 		$dump = (string) $this->config->get('dump', '');
 
-		if ($path === '' && $dump === '')
+		if ($roots === [] && $dump === '')
 		{
-			$this->message->error('No component source root and no schema dump were given.');
+			$this->message->error('No component source folder and no schema dump were given.');
 
 			return $this->finish(false);
 		}
@@ -454,14 +508,14 @@ final class Extruder implements ExtruderInterface
 			$this->message->error('The supplied schema dump declared no table.');
 		}
 
-		$located = $path !== '' && $this->collector->collect($path);
+		$located = $roots !== [] && $this->collector->gather($roots);
 
 		if (!$located && !$parsed)
 		{
 			return $this->finish(false);
 		}
 
-		if ($path === '')
+		if ($roots === [])
 		{
 			$this->collector->identify();
 		}
