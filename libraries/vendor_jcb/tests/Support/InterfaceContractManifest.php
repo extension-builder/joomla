@@ -656,9 +656,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Interfaces\\FactoryInterface' => [
 			'path' => 'VDM.Joomla/src/Interfaces/FactoryInterface.php',
-			'implementations' => 16,
+			'implementations' => 17,
 			'concrete' => 0,
-			'implementation_hash' => 'cbaeda148bdaafa0ceebf0d0caf1cd9625802fa48efd1259b7d72a393beb85b3',
+			'implementation_hash' => '8805bb6814c6ea618fd0560ee8d88a07ba052c76f74ded69ed80f494539bb23a',
 			'signature_hash' => 'c30e60ed4f900dd723042033cf3d15bdbd902b429e71d75b6dfc28b31be4b00c'
 		],
 		'VDM\\Joomla\\Interfaces\\File\\HandlerInterface' => [
