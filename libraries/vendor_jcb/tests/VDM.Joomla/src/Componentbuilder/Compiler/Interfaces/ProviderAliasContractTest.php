@@ -73,7 +73,7 @@ final class ProviderAliasContractTest extends TestCase
 	 */
 	public function testManifestContainsEveryProviderInterfaceAlias(): void
 	{
-		$this->assertCount(47, iterator_to_array(self::aliasContracts()));
+		$this->assertCount(48, iterator_to_array(self::aliasContracts()));
 	}
 
 	/**
@@ -103,6 +103,11 @@ final class ProviderAliasContractTest extends TestCase
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface::class,
 			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
 			'Architecture.AdminViews.DisplayMethod'
+		];
+		yield 'Architecture.AdminViews.ListHead' => [
+			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface::class,
+			\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class,
+			'Architecture.AdminViews.ListHead'
 		];
 		yield 'Architecture.ComHelperClass.CreateUser' => [
 			\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\CreateUserInterface::class,

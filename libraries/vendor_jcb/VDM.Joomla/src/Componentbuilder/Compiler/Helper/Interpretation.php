@@ -6763,169 +6763,51 @@ class Interpretation extends Fields
 	 *
 	 * @return string
 	 */
+	/**
+	 * set the admin list view table head
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminViews.ListHead service.
+	 */
 	public function setListHead($nameSingleCode, $nameListCode)
 	{
-		if (($items = CFactory::_('Compiler.Builder.Lists')->get($nameListCode)) !== null)
-		{
-			// set the Html values based on filter type
-			$jhtml_sort        = "grid.sort";
-			$jhtml_sort_icon   = "<i class=\"icon-menu-2\"></i>";
-			$jhtml_sort_icon_2 = "";
-			// for the new filter (2 = topbar)
-			if (CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 2)
-			{
-				$jhtml_sort        = "searchtools.sort";
-				$jhtml_sort_icon   = "";
-				$jhtml_sort_icon_2 = ", 'icon-menu-2'";
-			}
-			// Target the J5+
-			$allowSortingWhen = "<?php if (\$this->canEdit && \$this->canState): ?>";
-			if (CFactory::_('Config')->get('joomla_version', 3) !== 3)
-			{
-				$allowSortingWhen = "<?php if (!\$this->isModal && \$this->canEdit && \$this->canState): ?>";
-			}
-			// main lang prefix
-			$langView = CFactory::_('Config')->lang_prefix . '_'
-				. StringHelper::safe($nameSingleCode, 'U');
-			// set status lang
-			$statusLangName = $langView . '_STATUS';
-			// set id lang
-			$idLangName = $langView . '_ID';
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $statusLangName, 'Status');
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $idLangName, 'Id');
-			// set default
-			$head = '<tr>';
-			$head .= PHP_EOL . Indent::_(1) . $allowSortingWhen;
-			if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.ordering'))
-			{
-				$head .= PHP_EOL . Indent::_(2)
-					. '<th width="1%" class="nowrap center hidden-phone">';
-				$head .= PHP_EOL . Indent::_(3)
-					. "<?php echo Html::_('" . $jhtml_sort . "', '"
-					. $jhtml_sort_icon . "'"
-					. ", 'a.ordering', \$this->listDirn, \$this->listOrder, null, 'asc', 'JGRID_HEADING_ORDERING'"
-					. $jhtml_sort_icon_2 . "); ?>";
-				$head .= PHP_EOL . Indent::_(2) . "</th>";
-			}
-			$head .= PHP_EOL . Indent::_(2)
-				. '<th width="20" class="nowrap center">';
-			$head .= PHP_EOL . Indent::_(3)
-				. "<?php echo Html::_('grid.checkall'); ?>";
-			$head .= PHP_EOL . Indent::_(2) . "</th>";
-			$head .= PHP_EOL . Indent::_(1) . "<?php else: ?>";
-			$head .= PHP_EOL . Indent::_(2)
-				. '<th width="20" class="nowrap center hidden-phone">';
-			$head .= PHP_EOL . Indent::_(3) . "&#9662;";
-			$head .= PHP_EOL . Indent::_(2) . "</th>";
-			$head .= PHP_EOL . Indent::_(2)
-				. '<th width="20" class="nowrap center">';
-			$head .= PHP_EOL . Indent::_(3) . "&#9632;";
-			$head .= PHP_EOL . Indent::_(2) . "</th>";
-			$head .= PHP_EOL . Indent::_(1) . "<?php endif; ?>";
-			// set footer Column number
-			$this->listColnrBuilder[$nameListCode] = 4;
-			// build the dynamic fields
-			foreach ($items as $item)
-			{
-				// check if target is admin list
-				if (1 == $item['target'] || 3 == $item['target'])
-				{
-					// check if we have an over-ride
-					if (($list_head_override = CFactory::_('Compiler.Builder.List.Head.Override')->
-						get($nameListCode . '.' . $item['guid'])) !== null)
-					{
-						$item['lang'] = $list_head_override;
-					}
-					$class = 'nowrap hidden-phone';
-					if ($item['link'])
-					{
-						$class = 'nowrap';
-					}
-					// add sort options if required
-					if ($item['sort'])
-					{
-						// if category
-						if ($item['type'] === 'category')
-						{
-							// only one category per/view allowed at this point
-							$title = "<?php echo Html::_('" . $jhtml_sort
-								. "', '"
-								. $item['lang'] . "', 'category_title"
-								. "', \$this->listDirn, \$this->listOrder); ?>";
-						}
-						// set the custom code
-						elseif (ArrayHelper::check(
-							$item['custom']
-						))
-						{
-							// keep an eye on this
-							$title = "<?php echo Html::_('" . $jhtml_sort
-								. "', '" . $item['lang'] . "', '" . $item['custom']['db']
-								. "." . $item['custom']['text']
-								. "', \$this->listDirn, \$this->listOrder); ?>";
-						}
-						else
-						{
-							$title = "<?php echo Html::_('" . $jhtml_sort
-								. "', '" . $item['lang'] . "', 'a." . $item['code']
-								. "', \$this->listDirn, \$this->listOrder); ?>";
-						}
-					}
-					else
-					{
-						$title = "<?php echo Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $item['lang'] . "'); ?>";
-					}
-					$head .= PHP_EOL . Indent::_(1) . '<th class="' . $class . '" >';
-					$head .= PHP_EOL . Indent::_(3) . $title;
-					$head .= PHP_EOL . Indent::_(1) . "</th>";
-					$this->listColnrBuilder[$nameListCode]++;
-				}
-			}
-			// set default
-			if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.published'))
-			{
-				$head .= PHP_EOL . Indent::_(1)
-					. "<?php if (\$this->canState): ?>";
-				$head .= PHP_EOL . Indent::_(2)
-					. '<th width="10" class="nowrap center" >';
-				$head .= PHP_EOL . Indent::_(3)
-					. "<?php echo Html::_('" . $jhtml_sort . "', '"
-					. $statusLangName
-					. "', 'a.published', \$this->listDirn, \$this->listOrder); ?>";
-				$head .= PHP_EOL . Indent::_(2) . "</th>";
-				$head .= PHP_EOL . Indent::_(1) . "<?php else: ?>";
-				$head .= PHP_EOL . Indent::_(2)
-					. '<th width="10" class="nowrap center" >';
-				$head .= PHP_EOL . Indent::_(3) . "<?php echo Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. $statusLangName . "'); ?>";
-				$head .= PHP_EOL . Indent::_(2) . "</th>";
-				$head .= PHP_EOL . Indent::_(1) . "<?php endif; ?>";
-			}
-			if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.id'))
-			{
-				$head .= PHP_EOL . Indent::_(1)
-					. '<th width="5" class="nowrap center hidden-phone" >';
-				$head .= PHP_EOL . Indent::_(3)
-					. "<?php echo Html::_('" . $jhtml_sort . "', '"
-					. $idLangName
-					. "', 'a.id', \$this->listDirn, \$this->listOrder); ?>";
-				$head .= PHP_EOL . Indent::_(1) . "</th>";
-			}
-			$head .= PHP_EOL . "</tr>";
+		$head = CFactory::_('Architecture.AdminViews.ListHead')
+			->get($nameSingleCode, $nameListCode);
 
-			return $head;
+		// keep the legacy public column counter in step with the builder
+		$columns = CFactory::_('Compiler.Builder.List.Column.Number')
+			->get($nameListCode);
+		if ($columns !== null)
+		{
+			$this->listColnrBuilder[$nameListCode] = $columns;
 		}
 
-		return '';
+		return $head;
 	}
 
+	/**
+	 * get the admin list view column count
+	 *
+	 * @param   string  $nameListCode  The list view name
+	 *
+	 * @return  int|string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Compiler.Builder.List.Column.Number registry.
+	 */
 	public function setListColnr($nameListCode)
 	{
-		if (isset($this->listColnrBuilder[$nameListCode]))
+		$columns = CFactory::_('Compiler.Builder.List.Column.Number')
+			->get($nameListCode);
+
+		if ($columns !== null)
 		{
-			return $this->listColnrBuilder[$nameListCode];
+			return $columns;
 		}
 
 		return '';

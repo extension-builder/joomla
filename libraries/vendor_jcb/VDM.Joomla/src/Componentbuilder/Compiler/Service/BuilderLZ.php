@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\LayoutData;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ListFieldClass;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ListHeadOverride;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ListColumnNumber;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ListJoin;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Lists;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\MainTextField;
@@ -109,6 +110,9 @@ class BuilderLZ implements ServiceProviderInterface
 
 		$container->alias(ListHeadOverride::class, 'Compiler.Builder.List.Head.Override')
 			->share('Compiler.Builder.List.Head.Override', [$this, 'getListHeadOverride'], true);
+
+		$container->alias(ListColumnNumber::class, 'Compiler.Builder.List.Column.Number')
+			->share('Compiler.Builder.List.Column.Number', [$this, 'getListColumnNumber'], true);
 
 		$container->alias(ListJoin::class, 'Compiler.Builder.List.Join')
 			->share('Compiler.Builder.List.Join', [$this, 'getListJoin'], true);
@@ -985,5 +989,17 @@ class BuilderLZ implements ServiceProviderInterface
 	{
 		return new ViewsDefaultOrdering();
 	}
-}
 
+	/**
+	 * Get The ListColumnNumber Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ListColumnNumber
+	 * @since   6.1.7
+	 */
+	public function getListColumnNumber(Container $container): ListColumnNumber
+	{
+		return new ListColumnNumber();
+	}
+}
