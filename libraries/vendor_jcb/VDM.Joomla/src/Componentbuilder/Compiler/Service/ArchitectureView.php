@@ -57,6 +57,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as Adm
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface as AdminViewEditBody;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface as AdminViewFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedAdminViewFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\FootableScripts as J3AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\EditBody as SharedAdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\EditBody as J3AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields as AdminViewTabLayoutFields;
@@ -235,6 +238,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewEditBody::class, 'Architecture.AdminView.EditBody')
 			->share('Architecture.AdminView.EditBody', [$this, 'getAdminViewEditBody'], true);
+
+		$container->alias(AdminViewFootableScripts::class, 'Architecture.AdminView.FootableScripts')
+			->share('Architecture.AdminView.FootableScripts', [$this, 'getAdminViewFootableScripts'], true);
+
+		$container->alias(SharedAdminViewFootableScripts::class, 'Architecture.AdminView.Shared.FootableScripts')
+			->share('Architecture.AdminView.Shared.FootableScripts', [$this, 'getSharedAdminViewFootableScripts'], true);
+
+		$container->alias(J3AdminViewFootableScripts::class, 'Architecture.AdminView.J3.FootableScripts')
+			->share('Architecture.AdminView.J3.FootableScripts', [$this, 'getJ3AdminViewFootableScripts'], true);
 
 		$container->alias(SharedAdminViewEditBody::class, 'Architecture.AdminView.Shared.EditBody')
 			->share('Architecture.AdminView.Shared.EditBody', [$this, 'getSharedAdminViewEditBody'], true);
@@ -1035,6 +1047,60 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewCustomTabs(
 			$container->get('Compiler.Builder.Custom.Tabs')
+		);
+	}
+
+	/**
+	 * Get The AdminView FootableScripts Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewFootableScripts
+	 * @since   6.1.7
+	 */
+	public function getAdminViewFootableScripts(Container $container): AdminViewFootableScripts
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 declares an inline script without the asset manager
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminView.J3.FootableScripts');
+		}
+
+		return $container->get('Architecture.AdminView.Shared.FootableScripts');
+	}
+
+	/**
+	 * Get The AdminView FootableScripts Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewFootableScripts
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewFootableScripts(Container $container): SharedAdminViewFootableScripts
+	{
+		return new SharedAdminViewFootableScripts(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AdminView FootableScripts Class for Joomla 3.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewFootableScripts
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewFootableScripts(Container $container): J3AdminViewFootableScripts
+	{
+		return new J3AdminViewFootableScripts(
+			$container->get('Config')
 		);
 	}
 
