@@ -273,6 +273,19 @@ final class Dispatcher
 				continue;
 			}
 
+			if ($role === 'edit')
+			{
+				// A view holding an edit.php edits a record rather than displaying one, and
+				// it carries no default.php at all. Recovering it means recovering the model
+				// and field set behind it, so it is named as seen and passed over. The file
+				// name is the whole of the evidence: a front end list view renders an
+				// adminForm with a token for its own filters exactly as an edit view does,
+				// so nothing in the markup could tell the two apart.
+				$this->skipped('edit_view', $entry['path']);
+
+				continue;
+			}
+
 			if ($role === 'main')
 			{
 				// On the site side a view's default template is the site view itself: JCB

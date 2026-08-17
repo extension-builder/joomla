@@ -217,6 +217,13 @@ final class View extends Locator
 	 * A default_<x>.php file beside a view's default.php is a reusable JCB
 	 * template; default.php itself is the view's own main template.
 	 *
+	 * An edit.php marks the folder as a view that edits a record rather than
+	 * displays one. In the front end such a view is an administrator view moved
+	 * there, and it carries no default.php at all -- so it is named here rather than
+	 * inferred later from what its markup contains. That distinction cannot be drawn
+	 * from the content: a front end list view renders an adminForm with a token for
+	 * its own filters, exactly as an edit view does.
+	 *
 	 * @param   string  $root       The resolved source root.
 	 * @param   string  $directory  The templates root.
 	 *
@@ -237,6 +244,13 @@ final class View extends Locator
 			foreach ($this->php($root, $viewDirectory) as $path)
 			{
 				$base = strtolower(basename($path));
+
+				if ($base === 'edit.php')
+				{
+					$found[$path] = 'edit';
+
+					continue;
+				}
 
 				if ($base === 'default.php')
 				{
@@ -265,6 +279,14 @@ final class View extends Locator
 				}
 
 				$base = strtolower(basename($contained));
+
+				if ($base === 'edit.php')
+				{
+					$found[$contained] = 'edit';
+
+					continue;
+				}
+
 				$found[$contained] = $base === 'default.php'
 					? 'main'
 					: (str_starts_with($base, 'default_') ? 'template' : 'view');

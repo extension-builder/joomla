@@ -41,29 +41,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 final class SiteView implements ReaderInterface
 {
 	/**
-	 * What a front end view that edits a record always contains.
-	 *
-	 * A site view that renders a form is an administrator view moved to the front:
-	 * it has fields, a token and a task, and recovering it would mean recovering the
-	 * model and the field set behind it. That is a different and much larger job, so
-	 * such a view is passed over rather than half extruded into something that would
-	 * compile into a form with nothing in it.
-	 *
-	 * Each marker is Joomla's own convention for rendering a bound form, so a view
-	 * matching one is not a guess about intent.
-	 *
-	 * @var    array<string>
-	 * @since  6.1.6
-	 */
-	private const EDITING = [
-		'$this->form->',
-		'name="adminForm"',
-		"name='adminForm'",
-		'JHtml::_(\'form.token\')',
-		'HTMLHelper::_(\'form.token\')'
-	];
-
-	/**
 	 * The View Registry.
 	 *
 	 * @var    ViewRegistry
@@ -149,17 +126,6 @@ final class SiteView implements ReaderInterface
 			return false;
 		}
 
-		if ($this->editing($content))
-		{
-			$this->report->set(
-				$base . '.skipped',
-				'a front end view that edits a record, which needs the model and field '
-				. 'set behind it and is not extruded'
-			);
-
-			return false;
-		}
-
 		$parts = $this->split->split($content);
 
 		if ($parts['php'] === '' && $parts['html'] === '')
@@ -187,27 +153,6 @@ final class SiteView implements ReaderInterface
 		$this->report->set($base . '.default', strlen($parts['html']));
 
 		return true;
-	}
-
-	/**
-	 * Whether a site view renders a bound form rather than displaying content.
-	 *
-	 * @param   string  $content  The template source.
-	 *
-	 * @return  bool  True when the view edits a record.
-	 * @since   6.1.6
-	 */
-	public function editing(string $content): bool
-	{
-		foreach (self::EDITING as $marker)
-		{
-			if (str_contains($content, $marker))
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**
