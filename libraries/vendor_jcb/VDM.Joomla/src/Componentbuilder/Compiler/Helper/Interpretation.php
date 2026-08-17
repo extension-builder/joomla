@@ -6579,50 +6579,12 @@ class Interpretation extends Fields
 	 * @return  string   The array
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.TabLayoutFields service.
 	 */
 	public function getTabLayoutFieldsArray($nameSingleCode)
 	{
-		// check if the load build is set for this view
-		if (CFactory::_('Compiler.Builder.Layout')->exists($nameSingleCode))
-		{
-			$layout_builder = CFactory::_('Compiler.Builder.Layout')->get($nameSingleCode);
-			$layoutArray = [];
-			foreach ($layout_builder as $layout => $alignments)
-			{
-				$alignments = (array) $alignments;
-				// sort the alignments
-				ksort($alignments);
-				$alignmentArray = [];
-				foreach ($alignments as $alignment => $fields)
-				{
-					$fields = (array) $fields;
-					// sort the fields
-					ksort($fields);
-					$fieldArray = [];
-					foreach ($fields as $field)
-					{
-						// add each field
-						$fieldArray[] = PHP_EOL . Indent::_(4) . "'" . $field
-							. "'";
-					}
-					// add the alignemnt key
-					$alignmentArray[] = PHP_EOL . Indent::_(3) . "'"
-						. $this->alignmentOptions[$alignment] . "' => array("
-						. implode(',', $fieldArray) . PHP_EOL . Indent::_(3) . ")";
-				}
-				// add the layout key
-				$layoutArray[] = PHP_EOL . Indent::_(2) . "'"
-					. StringHelper::safe($layout)
-					. "' => array(" . implode(',', $alignmentArray) . PHP_EOL
-					. Indent::_(2) . ")";
-			}
-
-			return 'array(' . implode(',', $layoutArray) . PHP_EOL . Indent::_(
-					1
-				) . ")";
-		}
-
-		return 'array()';
+		return CFactory::_('Architecture.AdminView.TabLayoutFields')
+			->get($nameSingleCode);
 	}
 
 	/**
@@ -7574,38 +7536,12 @@ class Interpretation extends Fields
 	 * @return  string  The generated custom tabs.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.CustomTabs service.
 	 */
 	protected function addCustomTabs($nr, $name_single, $target)
 	{
-		// check if this view is having custom tabs
-		if (($tabs = CFactory::_('Compiler.Builder.Custom.Tabs')->get($name_single)) !== null
-			&& ArrayHelper::check($tabs))
-		{
-			$html = [];
-			foreach ($tabs as $customTab)
-			{
-				if (ArrayHelper::check($customTab)
-					&& isset($customTab['html']))
-				{
-					if ($customTab['tab'] == $nr
-						&& $customTab['position'] == $target
-						&& isset($customTab['html'])
-						&& StringHelper::check(
-							$customTab['html']
-						))
-					{
-						$html[] = $customTab['html'];
-					}
-				}
-			}
-			// return if found
-			if (ArrayHelper::check($html))
-			{
-				return PHP_EOL . implode(PHP_EOL, $html);
-			}
-		}
-
-		return false;
+		return CFactory::_('Architecture.AdminView.CustomTabs')
+			->get($nr, $name_single, $target);
 	}
 
 	/**
