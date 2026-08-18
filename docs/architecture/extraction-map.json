@@ -94,6 +94,16 @@
       }
     ]
   },
+  "ifValueScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/IfValueScript.php",
+        "matched": 0
+      }
+    ]
+  },
   "setAdminViewDisplayMethod": {
     "fingerprints": 6,
     "moved_into": [
