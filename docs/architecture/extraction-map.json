@@ -423,6 +423,15 @@
       }
     ]
   },
+  "setLangAdmin": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Language/Admin.php",
+        "matched": 6
+      }
+    ]
+  },
   "setListBody": {
     "fingerprints": 6,
     "moved_into": [
