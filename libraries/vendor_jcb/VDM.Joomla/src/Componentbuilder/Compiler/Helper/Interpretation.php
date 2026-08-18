@@ -2960,69 +2960,12 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in script.php
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.AssetsTable service.
 	 */
-	protected function getAssetsTableIntelligentInstall()
+	protected function getAssetsTableIntelligentInstall(): string
 	{
-		// WHY DO WE NEED AN ASSET TABLE FIX?
-		// https://www.mysqltutorial.org/mysql-varchar/
-		// https://stackoverflow.com/a/15227917/1429677
-		// https://forums.mysql.com/read.php?24,105964,105964
-		// https://git.vdm.dev/joomla/Component-Builder/issues/616#issuecomment-12085
-		// 30 actions each +-20 characters with 8 groups
-		// that makes 4800 characters and the current Joomla
-		// column size is varchar(5120)
-
-		// check if we should add the intelligent fix treatment for the assets table
-		if (CFactory::_('Config')->add_assets_table_fix == 2)
-		{
-			// get worse case
-			$access_worse_case = CFactory::_('Config')->get('access_worse_case', 0);
-			// get the type we will convert to
-			$data_type = ($access_worse_case > 64000) ? "MEDIUMTEXT"
-				: "TEXT";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-			{
-				$script   = [];
-				$script[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Fix the assets table rules column size.";
-				$script[] = Indent::_(3) . '$this->setDatabaseAssetsRulesFix('
-					. (int) $access_worse_case . ', "' . $data_type . '");';
-
-				return PHP_EOL . implode(PHP_EOL, $script);
-			}
-
-			// the if statement about $rule_length
-			$codeIF = "\$rule_length <= " . $access_worse_case;
-			// fix column size
-			$script   = [];
-			$script[] = Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " Fix the assets table rules column size";
-			$script[] = Indent::_(5)
-				. '$fix_rules_size = "ALTER TABLE `#__assets` CHANGE `rules` `rules` '
-				. $data_type
-				. ' NOT NULL COMMENT \'JSON encoded access control. Enlarged to '
-				. $data_type . ' by JCB\';";';
-			$script[] = Indent::_(5) . "\$db->setQuery(\$fix_rules_size);";
-			$script[] = Indent::_(5) . "\$db->execute();";
-			$codeA    = implode(PHP_EOL, $script);
-			// fixed message
-			$messageA = Indent::_(5)
-				. "\$app->enqueueMessage(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('The <b>#__assets</b> table rules column was resized to the "
-				. $data_type
-				. " datatype for the components possible large permission rules.'));";
-			// do nothing
-			$codeB = "";
-			// fix not needed so ignore
-			$messageB = "";
-
-			// done
-			return $this->getAssetsTableIntelligentCode(
-				$codeIF, $codeA, $codeB, $messageA, $messageB, 2
-			);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Component.AssetsTable')->install();
 	}
 
 	/**
@@ -3030,105 +2973,12 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in script.php
 	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.AssetsTable service.
 	 */
-	protected function getAssetsTableIntelligentUninstall()
+	protected function getAssetsTableIntelligentUninstall(): string
 	{
-		// check if we should add the intelligent uninstall treatment for the assets table
-		if (CFactory::_('Config')->add_assets_table_fix == 2)
-		{
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-			{
-				$script   = [];
-				$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Revert the assets table rules column back to the default.";
-				$script[] = Indent::_(2) . '$this->removeDatabaseAssetsRulesFix();';
-
-				return PHP_EOL . implode(PHP_EOL, $script);
-			}
-			// the if statement about $rule_length
-			$codeIF = "\$rule_length < 5120";
-			// reverse column size
-			$script   = [];
-			$script[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " Revert the assets table rules column back to the default";
-			$script[] = Indent::_(4)
-				. '$revert_rule = "ALTER TABLE `#__assets` CHANGE `rules` `rules` varchar(5120) NOT NULL COMMENT \'JSON encoded access control.\';";';
-			$script[] = Indent::_(4) . "\$db->setQuery(\$revert_rule);";
-			$script[] = Indent::_(4) . "\$db->execute();";
-			$codeA    = implode(PHP_EOL, $script);
-			// reverted message
-			$messageA = Indent::_(4)
-				. "\$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_REVERTED_THE_B_ASSETSB_TABLE_RULES_COLUMN_BACK_TO_ITS_DEFAULT_SIZE_OF_VARCHARFIVE_THOUSAND_ONE_HUNDRED_AND_TWENTY'));";
-			// do nothing
-			$codeB = "";
-			// not reverted message
-			$messageB = Indent::_(4)
-				. "\$app->enqueueMessage(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Could not revert the <b>#__assets</b> table rules column back to its default size of varchar(5120), since there is still one or more components that still requires the column to be larger.'));";
-
-			// done
-			return $this->getAssetsTableIntelligentCode(
-				$codeIF, $codeA, $codeB, $messageA, $messageB
-			);
-		}
-
-		return '';
-	}
-
-	/**
-	 * set code for both install, update and uninstall
-	 *
-	 * @param   string  $codeIF    The IF code to fix this issue
-	 * @param   string  $codeA     The a code to fix this issue
-	 * @param   string  $codeB     The b code to fix this issue
-	 * @param   string  $messageA  The fix a message
-	 * @param   string  $messageB  The fix b message
-	 *
-	 * @return  string
-	 *
-	 */
-	protected function getAssetsTableIntelligentCode($codeIF, $codeA, $codeB,
-	                                                 $messageA, $messageB, $tab = 1
-	)
-	{
-		// reset script
-		$script   = [];
-		$script[] = Indent::_($tab) . Indent::_(1) . "//" . Line::_(
-				__LINE__,__CLASS__
-			)
-			. " Get the biggest rule column in the assets table at this point.";
-		$script[] = Indent::_($tab) . Indent::_(1)
-			. '$get_rule_length = "SELECT CHAR_LENGTH(`rules`) as rule_size FROM #__assets ORDER BY rule_size DESC LIMIT 1";';
-		$script[] = Indent::_($tab) . Indent::_(1)
-			. "\$db->setQuery(\$get_rule_length);";
-		$script[] = Indent::_($tab) . Indent::_(1) . "if (\$db->execute())";
-		$script[] = Indent::_($tab) . Indent::_(1) . "{";
-		$script[] = Indent::_($tab) . Indent::_(2)
-			. "\$rule_length = \$db->loadResult();";
-		// https://github.com/joomla/joomla-cms/blob/3.10.0-alpha3/installation/sql/mysql/joomla.sql#L22
-		// Checked 1st December 2020 (let us know if this changes)
-		$script[] = Indent::_($tab) . Indent::_(2) . "//" . Line::_(
-				__LINE__,__CLASS__
-			)
-			. " Check the size of the rules column";
-		$script[] = Indent::_($tab) . Indent::_(2) . "if (" . $codeIF . ")";
-		$script[] = Indent::_($tab) . Indent::_(2) . "{";
-		$script[] = $codeA;
-		$script[] = $messageA;
-		$script[] = Indent::_($tab) . Indent::_(2) . "}";
-		// only ad this if there is a B part
-		if (StringHelper::check($codeB)
-			|| StringHelper::check($messageB))
-		{
-			$script[] = Indent::_($tab) . Indent::_(2) . "else";
-			$script[] = Indent::_($tab) . Indent::_(2) . "{";
-			$script[] = $codeB;
-			$script[] = $messageB;
-			$script[] = Indent::_($tab) . Indent::_(2) . "}";
-		}
-		$script[] = Indent::_($tab) . Indent::_(1) . "}";
-
-		// done
-		return PHP_EOL . implode(PHP_EOL, $script);
+		return CFactory::_('Architecture.Component.AssetsTable')->uninstall();
 	}
 
 	public function setMoveFolderScript()

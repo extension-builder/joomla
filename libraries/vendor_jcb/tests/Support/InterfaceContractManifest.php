@@ -87,6 +87,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '90fe0368faa63872c53853a362d52ee41e7554d89321dc58a89c4551d55e7b1b',
 			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\AssetsTableInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/AssetsTableInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '565275b81c80007aaf279668e13e9e52a39dfdce1a5896c0dc790e84668cb654',
+			'signature_hash' => '1b1be2d33c229f0785b45e817bc757407af77a4c02a843510fcd5e7c3f324873'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AllowAddInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AllowAddInterface.php',
 			'implementations' => 4,
