@@ -96,6 +96,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\Disp
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomMainMenu as MenuCustomMainMenu;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoaderInterface as ViewUikitLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\UikitLoader as SharedViewUikitLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\UikitLoader as J6ViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedMenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
@@ -381,6 +384,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(MenuCustomMainMenu::class, 'Architecture.Menu.CustomMainMenu')
 			->share('Architecture.Menu.CustomMainMenu', [$this, 'getMenuCustomMainMenu'], true);
+
+		$container->alias(ViewUikitLoader::class, 'Architecture.View.UikitLoader')
+			->share('Architecture.View.UikitLoader', [$this, 'getViewUikitLoader'], true);
+
+		$container->alias(SharedViewUikitLoader::class, 'Architecture.View.Shared.UikitLoader')
+			->share('Architecture.View.Shared.UikitLoader', [$this, 'getSharedViewUikitLoader'], true);
+
+		$container->alias(J6ViewUikitLoader::class, 'Architecture.View.J6.UikitLoader')
+			->share('Architecture.View.J6.UikitLoader', [$this, 'getJ6ViewUikitLoader'], true);
 		$container->alias(MenuCustomViewInterface::class, 'Architecture.Menu.CustomView')
 			->share('Architecture.Menu.CustomView', [$this, 'getMenuCustomView'], true);
 
@@ -2013,6 +2025,66 @@ class ArchitectureView implements ServiceProviderInterface
 		return new MenuCustomMainMenu(
 			$container->get('Component'),
 			$container->get('Language')
+		);
+	}
+
+	/**
+	 * Get The UikitLoader Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewUikitLoader
+	 * @since   6.1.7
+	 */
+	public function getViewUikitLoader(Container $container): ViewUikitLoader
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// Joomla 6 does not carry uikit at all
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.View.J6.UikitLoader');
+		}
+
+		return $container->get('Architecture.View.Shared.UikitLoader');
+	}
+
+	/**
+	 * Get The UikitLoader Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedViewUikitLoader
+	 * @since   6.1.7
+	 */
+	public function getSharedViewUikitLoader(Container $container): SharedViewUikitLoader
+	{
+		return new SharedViewUikitLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Site.Field.Data'),
+			$container->get('Compiler.Builder.Uikit.Comp')
+		);
+	}
+
+	/**
+	 * Get The UikitLoader Class for Joomla 6.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ViewUikitLoader
+	 * @since   6.1.7
+	 */
+	public function getJ6ViewUikitLoader(Container $container): J6ViewUikitLoader
+	{
+		return new J6ViewUikitLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Site.Field.Data'),
+			$container->get('Compiler.Builder.Uikit.Comp')
 		);
 	}
 

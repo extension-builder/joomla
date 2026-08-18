@@ -206,6 +206,9 @@ function versionBranch(string $shape): bool
 	{
 		$clause = trim($clause, '()');
 
+		// a cast on the version read does not stop it being a version read
+		$clause = (string) preg_replace('~^int\\)~', '', $clause);
+
 		if (!preg_match(
 			"~^(S->get\('joomla_version',3\)|\\\$target_version)"
 			. '(===|!==|==|!=|<=|>=|<|>)\d+$~', $clause))
