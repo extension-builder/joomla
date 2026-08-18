@@ -25,6 +25,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Language\Multilingual;
 use VDM\Joomla\Componentbuilder\Compiler\Language\Translation;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Admin as ArchitectureLanguageAdmin;
 /**
  * Compiler Language Service Provider
  * 
@@ -68,6 +69,9 @@ class Language implements ServiceProviderInterface
 
 		$container->alias(Translation::class, 'Language.Translation')
 			->share('Language.Translation', [$this, 'getTranslation'], true);
+
+		$container->alias(ArchitectureLanguageAdmin::class, 'Architecture.Language.Admin')
+			->share('Architecture.Language.Admin', [$this, 'getArchitectureLanguageAdmin'], true);
 	}
 
 	/**
@@ -216,5 +220,23 @@ class Language implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Language.Messages')
 		);
 	}
-}
 
+	/**
+	 * Get The Architecture Language Admin Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ArchitectureLanguageAdmin
+	 * @since   6.1.7
+	 */
+	public function getArchitectureLanguageAdmin(Container $container): ArchitectureLanguageAdmin
+	{
+		return new ArchitectureLanguageAdmin(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Languages'),
+			$container->get('Event')
+		);
+	}
+}
