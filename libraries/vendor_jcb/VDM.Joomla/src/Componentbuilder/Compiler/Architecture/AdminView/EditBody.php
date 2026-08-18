@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView;
 
 
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Language;
@@ -210,7 +211,7 @@ class EditBody implements EditBodyInterface
 	 * @param MetaData                 $metadata                The Meta Data Class.
 	 * @param AccessSwitch             $accessswitch            The Access Switch Class.
 	 * @param HasPermissions           $haspermissions          The Has Permissions Class.
-	 * @param CMSApplicationInterface  $app                     The Application Class.
+	 * @param CMSApplicationInterface|null  $app                The Application Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -222,7 +223,7 @@ class EditBody implements EditBodyInterface
 		NewPublishingFields $newpublishingfields,
 		MovedPublishingFields $movedpublishingfields, MetaData $metadata,
 		AccessSwitch $accessswitch, HasPermissions $haspermissions,
-		CMSApplicationInterface $app)
+		?CMSApplicationInterface $app = null)
 	{
 		$this->config = $config;
 		$this->language = $language;
@@ -239,7 +240,7 @@ class EditBody implements EditBodyInterface
 		$this->metadata = $metadata;
 		$this->accessswitch = $accessswitch;
 		$this->haspermissions = $haspermissions;
-		$this->app = $app;
+		$this->app = $app ?: Factory::getApplication();
 	}
 
 	/**

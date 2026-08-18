@@ -1495,8 +1495,7 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Moved.Publishing.Fields'),
 			$container->get('Compiler.Builder.Meta.Data'),
 			$container->get('Compiler.Builder.Access.Switch'),
-			$container->get('Compiler.Builder.Has.Permissions'),
-			$container->get('Application')
+			$container->get('Compiler.Builder.Has.Permissions')
 		);
 	}
 
@@ -1525,8 +1524,7 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Moved.Publishing.Fields'),
 			$container->get('Compiler.Builder.Meta.Data'),
 			$container->get('Compiler.Builder.Access.Switch'),
-			$container->get('Compiler.Builder.Has.Permissions'),
-			$container->get('Application')
+			$container->get('Compiler.Builder.Has.Permissions')
 		);
 	}
 
@@ -1794,8 +1792,7 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
 			$container->get('Compiler.Builder.Selection.Translation'),
 			$container->get('Architecture.Field.CustomFieldCode'),
-			$container->get('Architecture.AdminViews.FilterFieldFile'),
-			$container->get('Application')
+			$container->get('Architecture.AdminViews.FilterFieldFile')
 		);
 	}
 
@@ -1815,8 +1812,7 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
 			$container->get('Compiler.Builder.Selection.Translation'),
 			$container->get('Architecture.Field.CustomFieldCode'),
-			$container->get('Architecture.AdminViews.FilterFieldFile'),
-			$container->get('Application')
+			$container->get('Architecture.AdminViews.FilterFieldFile')
 		);
 	}
 

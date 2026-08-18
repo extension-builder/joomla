@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews;
 
 
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\CustomFieldCode;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
@@ -106,7 +107,7 @@ class FilterFieldHelper implements FilterFieldHelperInterface
 	 * @param SelectionTranslation  $selectiontranslation   The Selection Translation Class.
 	 * @param CustomFieldCode       $customfieldcode        The Custom Field Code Class.
 	 * @param FilterFieldFile       $filterfieldfile        The Filter Field File Class.
-	 * @param CMSApplicationInterface  $app                 The Application Class.
+	 * @param CMSApplicationInterface|null  $app            The Application Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -116,7 +117,7 @@ class FilterFieldHelper implements FilterFieldHelperInterface
 		SelectionTranslation $selectiontranslation,
 		CustomFieldCode $customfieldcode,
 		FilterFieldFile $filterfieldfile,
-		CMSApplicationInterface $app)
+		?CMSApplicationInterface $app = null)
 	{
 		$this->config = $config;
 		$this->filter = $filter;
@@ -124,7 +125,7 @@ class FilterFieldHelper implements FilterFieldHelperInterface
 		$this->selectiontranslation = $selectiontranslation;
 		$this->customfieldcode = $customfieldcode;
 		$this->filterfieldfile = $filterfieldfile;
-		$this->app = $app;
+		$this->app = $app ?: Factory::getApplication();
 	}
 
 	/**
