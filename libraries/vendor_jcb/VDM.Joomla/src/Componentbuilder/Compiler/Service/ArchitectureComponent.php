@@ -28,6 +28,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\Asse
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\UninstallScriptInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallScript as SharedUninstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\UninstallScript as J3UninstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallSql;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
@@ -116,6 +117,9 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3UninstallScript::class, 'Architecture.Component.J3.UninstallScript')
 			->share('Architecture.Component.J3.UninstallScript', [$this, 'getJ3UninstallScript'], true);
+
+		$container->alias(UninstallSql::class, 'Architecture.Component.UninstallSql')
+			->share('Architecture.Component.UninstallSql', [$this, 'getUninstallSql'], true);
 	}
 
 	/**
@@ -439,6 +443,24 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Customcode.Dispenser'),
 			$container->get('Architecture.Component.AssetsTable')
+		);
+	}
+
+	/**
+	 * Get The UninstallSql Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UninstallSql
+	 * @since   6.1.7
+	 */
+	public function getUninstallSql(Container $container): UninstallSql
+	{
+		return new UninstallSql(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Database.Uninstall')
 		);
 	}
 }
