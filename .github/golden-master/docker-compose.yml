@@ -1,5 +1,11 @@
-# Joomla with the last released JCB already installed, used as the baseline
-# compiler for the golden master comparison. See run.sh.
+# Joomla with the last released JCB, from the joomengine image.
+#
+# The entrypoint installs Joomla, then installs the released JCB package, then
+# runs whatever JOOMLA_CLI_COMMANDS holds. That last step is the baseline
+# compile: the released compiler builds the component before this working tree
+# has been anywhere near the container.
+#
+# run.sh sets JCB_COMPILE_COMMAND and waits for the entrypoint to say it is done.
 services:
   joomla:
     image: octoleo/joomengine:latest
@@ -10,8 +16,7 @@ services:
       JOOMLA_DB_USER: joomengine
       JOOMLA_DB_NAME: joomengine
       JOOMLA_DB_PASSWORD: secure_password12345
-      # No JOOMLA_CLI_COMMANDS on purpose: run.sh drives every compile itself,
-      # so it can pin the compiler options and read the exit code of each run.
+      JOOMLA_CLI_COMMANDS: "${JCB_COMPILE_COMMAND}"
     depends_on:
       - mariadb
 
