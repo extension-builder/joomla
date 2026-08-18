@@ -25,6 +25,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\AssetsTable as SharedAssetsTable;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\AssetsTable as J3AssetsTable;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\UninstallScriptInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallScript as SharedUninstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\UninstallScript as J3UninstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
@@ -104,6 +107,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3AssetsTable::class, 'Architecture.Component.J3.AssetsTable')
 			->share('Architecture.Component.J3.AssetsTable', [$this, 'getJ3AssetsTable'], true);
+
+		$container->alias(UninstallScriptInterface::class, 'Architecture.Component.UninstallScript')
+			->share('Architecture.Component.UninstallScript', [$this, 'getUninstallScript'], true);
+
+		$container->alias(SharedUninstallScript::class, 'Architecture.Component.Shared.UninstallScript')
+			->share('Architecture.Component.Shared.UninstallScript', [$this, 'getSharedUninstallScript'], true);
+
+		$container->alias(J3UninstallScript::class, 'Architecture.Component.J3.UninstallScript')
+			->share('Architecture.Component.J3.UninstallScript', [$this, 'getJ3UninstallScript'], true);
 	}
 
 	/**
@@ -370,6 +382,63 @@ class ArchitectureComponent implements ServiceProviderInterface
 	{
 		return new J3AssetsTable(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The UninstallScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UninstallScriptInterface
+	 * @since   6.1.7
+	 */
+	public function getUninstallScript(Container $container): UninstallScriptInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 removes its registered content types, fields and history
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.UninstallScript');
+		}
+
+		return $container->get('Architecture.Component.Shared.UninstallScript');
+	}
+
+	/**
+	 * Get The Component UninstallScript Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedUninstallScript
+	 * @since   6.1.7
+	 */
+	public function getSharedUninstallScript(Container $container): SharedUninstallScript
+	{
+		return new SharedUninstallScript(
+			$container->get('Customcode.Dispenser'),
+			$container->get('Architecture.Component.AssetsTable')
+		);
+	}
+
+	/**
+	 * Get The UninstallScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3UninstallScript
+	 * @since   6.1.7
+	 */
+	public function getJ3UninstallScript(Container $container): J3UninstallScript
+	{
+		return new J3UninstallScript(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Architecture.Component.AssetsTable')
 		);
 	}
 }
