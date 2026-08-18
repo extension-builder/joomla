@@ -95,6 +95,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod a
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\DisplayMethod as J4CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomMainMenu as MenuCustomMainMenu;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedMenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
@@ -377,6 +378,9 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(MenuAdminView::class, 'Architecture.Menu.AdminView')
 			->share('Architecture.Menu.AdminView', [$this, 'getMenuAdminView'], true);
 
+
+		$container->alias(MenuCustomMainMenu::class, 'Architecture.Menu.CustomMainMenu')
+			->share('Architecture.Menu.CustomMainMenu', [$this, 'getMenuCustomMainMenu'], true);
 		$container->alias(MenuCustomViewInterface::class, 'Architecture.Menu.CustomView')
 			->share('Architecture.Menu.CustomView', [$this, 'getMenuCustomView'], true);
 
@@ -1993,6 +1997,22 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Language'),
 			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The CustomMainMenu Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuCustomMainMenu
+	 * @since   6.1.7
+	 */
+	public function getMenuCustomMainMenu(Container $container): MenuCustomMainMenu
+	{
+		return new MenuCustomMainMenu(
+			$container->get('Component'),
+			$container->get('Language')
 		);
 	}
 

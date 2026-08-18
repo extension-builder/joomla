@@ -912,6 +912,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetControlsScriptTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/CustomMainMenu.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Controller/EximportMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedControllerEximportMethodTest.php'

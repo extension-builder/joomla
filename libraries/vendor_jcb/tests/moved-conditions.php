@@ -85,6 +85,8 @@ return [
 			=> 'the array became a Registry, so isset() && truthy is the truthiness of get()',
 		'if(isset($this->importCustomScripts[$nameListCode])'
 			=> 'the array became a Registry, so isset() && truthy is the truthiness of get()',
+		'if(!isset($this->customAdminAdded[$menu[\'settings\']->code]))'
+			=> 'the state is filled earlier in the pipeline, so the shim passes it in as an argument rather than the class reading the registry, and the isset is unchanged',
 	],
 	// conditions the classes carry that no legacy helper had
 	'arrived' => [
@@ -148,5 +150,7 @@ return [
 			=> 'the whole body sat inside the eximport guard, so it became an early return on a falsy Registry read',
 		'if(S->get($nameListCode))'
 			=> 'the Registry read that replaced isset() && truthy on the array it succeeded',
+		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
+			=> 'the same isset, on the argument the shim now passes in',
 	],
 ];
