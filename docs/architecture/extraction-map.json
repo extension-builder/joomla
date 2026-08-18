@@ -423,6 +423,15 @@
       "Architecture/ComHelperClass/CryptKey.php"
     ]
   },
+  "setInstall": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/InstallSql.php",
+        "matched": 6
+      }
+    ]
+  },
   "setJavaScriptFile": {
     "fingerprints": 3,
     "moved_into": [
