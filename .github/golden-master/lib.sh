@@ -104,8 +104,12 @@ take_packages() {
 #
 # JCB writes the target into the package name as a __J<n> suffix. Reading it
 # back is the only statement about the target that comes from the compiler
-# rather than from the flag we passed it. A package with no such suffix says
-# nothing either way and is left alone.
+# rather than from the flag we handed it, which is the whole point: the flag is
+# what we asked for, the suffix is what we got.
+#
+# A package with no suffix at all is not evidence of anything, and this asks for
+# evidence, so that fails too. If a package legitimately carries no target in
+# its name, this is the place to say so and why.
 #
 # $1   a name for this run
 # $2+  the packages it wrote
@@ -119,7 +123,11 @@ assert_target() {
 	do
 		base="$(basename "${package}" .zip)"
 
-		if [[ "${base}" =~ __J([0-9]+)$ ]] && [[ "${BASH_REMATCH[1]}" != "${JOOMLA_VERSION}" ]]
+		if [[ ! "${base}" =~ __J([0-9]+)$ ]]
+		then
+			printf '    does not say what it was built for: %s\n' "${base}"
+			wrong=1
+		elif [[ "${BASH_REMATCH[1]}" != "${JOOMLA_VERSION}" ]]
 		then
 			printf '    built for Joomla %s, not %s: %s\n' \
 				"${BASH_REMATCH[1]}" "${JOOMLA_VERSION}" "${base}"

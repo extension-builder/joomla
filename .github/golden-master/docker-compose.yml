@@ -8,7 +8,10 @@
 # run.sh sets JCB_COMPILE_COMMAND and waits for the entrypoint to say it is done.
 services:
   joomla:
-    image: octoleo/joomengine:latest
+    # Joomla 6.1.2 with JCB 6.1.6, pinned. The tag "latest" is the same image
+    # today, but it is a moving name: the baseline this whole comparison rests
+    # on would change under us the next time it is pushed.
+    image: octoleo/joomengine:6.1.6-php8.4-apache
     ports:
       - "8080:80"
     environment:

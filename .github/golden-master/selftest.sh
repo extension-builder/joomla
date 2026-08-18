@@ -121,7 +121,7 @@ expect_exit "passes when every package says J6" 0 \
 	assert_target x /t/com_demo_v1_0_0__J6.zip /t/plg_demo_v2_0_0__J6.zip
 expect_exit "stops when a package says J5" 1 \
 	assert_target x /t/com_demo_v1_0_0__J6.zip /t/plg_demo_v2_0_0__J5.zip
-expect_exit "says nothing about a package with no target in its name" 0 \
+expect_exit "stops when a package does not say what it was built for" 1 \
 	assert_target x /t/something.zip
 
 echo
