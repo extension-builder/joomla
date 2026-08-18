@@ -93,6 +93,8 @@ jobs:
             php bin/check-container-keys.php
           fi
 
+          bash "${GITHUB_WORKSPACE}/.github/golden-master/selftest.sh"
+
       - name: Resolve Composer cache directory
         id: composer-cache
         run: echo "directory=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
