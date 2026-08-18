@@ -1,4 +1,13 @@
 {
+  "addCustomMainMenu": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Menu/CustomMainMenu.php",
+        "matched": 2
+      }
+    ]
+  },
   "checkStatmentLicenseLocked": {
     "fingerprints": 3,
     "moved_into": [
