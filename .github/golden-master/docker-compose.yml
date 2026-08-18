@@ -1,0 +1,24 @@
+# Joomla with the last released JCB already installed, used as the baseline
+# compiler for the golden master comparison. See run.sh.
+services:
+  joomla:
+    image: octoleo/joomengine:latest
+    ports:
+      - "8080:80"
+    environment:
+      JOOMLA_DB_HOST: mariadb:3306
+      JOOMLA_DB_USER: joomengine
+      JOOMLA_DB_NAME: joomengine
+      JOOMLA_DB_PASSWORD: secure_password12345
+      # No JOOMLA_CLI_COMMANDS on purpose: run.sh drives every compile itself,
+      # so it can pin the compiler options and read the exit code of each run.
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:latest
+    environment:
+      MARIADB_USER: joomengine
+      MARIADB_DATABASE: joomengine
+      MARIADB_PASSWORD: secure_password12345
+      MARIADB_ROOT_PASSWORD: your_root_secure_password12345

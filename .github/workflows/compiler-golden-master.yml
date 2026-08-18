@@ -1,0 +1,84 @@
+name: Compiler golden master
+
+# Compiles a component twice, once with the last released compiler and once
+# with this branch, and reports what changed in the component that came out.
+#
+# Manual only. It pulls two images and installs Joomla, so it is far too heavy
+# to run on every push, and the answer only matters when someone wants it.
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: GUID of the component to compile
+        required: false
+        default: 1c20aec5-bf1a-44e7-9deb-d1c920ca591d
+      joomla_version:
+        description: Compile target
+        required: false
+        default: '5'
+        type: choice
+        options:
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Compile with both compilers and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out this branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Compile with both compilers
+        env:
+          COMPONENT: ${{ inputs.component }}
+          JOOMLA_VERSION: ${{ inputs.joomla_version }}
+        run: bash .github/golden-master/run.sh "${GITHUB_WORKSPACE}/.golden-master"
+
+      - name: Report what changed
+        if: always()
+        run: |
+          summary=.golden-master/summary.txt
+
+          {
+            echo "### Compiler golden master"
+            echo
+            echo "Component \`${{ inputs.component }}\`, compiled for Joomla ${{ inputs.joomla_version }}."
+            echo
+
+            if [[ ! -f "$summary" ]]; then
+              echo "The comparison did not get as far as producing a summary. Read the job log."
+            elif [[ -s "$summary" ]]; then
+              echo "The two compilers produced **different** components:"
+              echo
+              echo '```'
+              cat "$summary"
+              echo '```'
+              echo
+              echo "The whole diff is in the artifact, as \`full.diff\`."
+            else
+              echo "The two compilers produced the **same** component, byte for byte."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: golden-master
+          path: |
+            .golden-master/summary.txt
+            .golden-master/full.diff
+            .golden-master/baseline.log
+            .golden-master/candidate.log
+            .golden-master/baseline.zip
+            .golden-master/candidate.zip
+          if-no-files-found: warn
+          retention-days: 30
