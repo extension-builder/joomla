@@ -19,7 +19,8 @@
 #
 # Environment:
 #   COMPONENT       GUID of the component to compile (default: the demo one)
-#   COMPILE_EXTRA   Extra options for both compiles (see the default below)
+#   COMPILE_EXTRA   Extra options for both compiles; a Joomla version flag here
+#                   is rejected, since the target is not a choice
 #   KEEP_STACK      Leave the containers running afterwards when set to 1
 #
 set -euo pipefail
@@ -46,9 +47,26 @@ INSTALL_TIMEOUT=900
 #                  every one of those markers, which would bury the real diff.
 #   build-date     is stamped into what is generated, so it must not be "now",
 #                  or the two runs differ for no reason worth reading.
+#
+# One caveat on debug-line-nr, and it is not this script's to fix. The console
+# command discards a CLI value of '0', because it filters with !empty() and
+# PHP calls '0' empty (Console/Compiler.php, "Release of v6.1.4"). So this asks
+# for 0 and gets whatever the global setting says. If a comparison ever comes
+# back full of changed // line markers and nothing else, that is why.
 COMPILE_EXTRA="${COMPILE_EXTRA:---debug-line-nr=0 --add-build-date=2 --build-date=2026-01-01}"
 
-COMPILE_EXTRA="--joomla-version=${JOOMLA_VERSION} ${COMPILE_EXTRA}"
+# The target is not something to pass in. Say so before adding our own, or the
+# check has to tell our flag from theirs.
+if [[ " ${COMPILE_EXTRA} " =~ [[:space:]](--joomla-version|-j)([=[:space:]]|$) ]]
+then
+	printf 'COMPILE_EXTRA must not set a Joomla version. This harness builds for Joomla %s.\n' \
+		"${JOOMLA_VERSION}" >&2
+	exit 2
+fi
+
+# And it goes on last: Symfony takes the last value of a repeated option, so a
+# version flag that got in ahead of this one would win.
+COMPILE_EXTRA="${COMPILE_EXTRA} --joomla-version=${JOOMLA_VERSION}"
 
 # The command the container runs for us, and that we run again ourselves.
 COMPILE_COMMAND="componentbuilder:compile:component --component=${COMPONENT} ${COMPILE_EXTRA}"
