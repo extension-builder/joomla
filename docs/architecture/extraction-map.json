@@ -17,6 +17,41 @@
       }
     ]
   },
+  "getAssetsTableIntelligentCode": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/AssetsTable.php",
+        "matched": 5
+      }
+    ]
+  },
+  "getAssetsTableIntelligentInstall": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/AssetsTable.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/Component/AssetsTable.php",
+        "matched": 3
+      }
+    ]
+  },
+  "getAssetsTableIntelligentUninstall": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/AssetsTable.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/Component/AssetsTable.php",
+        "matched": 3
+      }
+    ]
+  },
   "getCustomAdminViewButtons": {
     "fingerprints": 6,
     "moved_into": [
