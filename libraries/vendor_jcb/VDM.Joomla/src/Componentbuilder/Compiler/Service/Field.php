@@ -27,6 +27,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\Rule;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Customcode;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\CustomFieldCode;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\TargetControlsScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\IfValueScript;
 use VDM\Joomla\Componentbuilder\Compiler\Field\DatabaseName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaThree\CoreField as J3CoreField;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaFour\CoreField as J4CoreField;
@@ -109,6 +110,9 @@ class Field implements ServiceProviderInterface
 
 		$container->alias(TargetControlsScript::class, 'Architecture.Field.TargetControlsScript')
 			->share('Architecture.Field.TargetControlsScript', [$this, 'getTargetControlsScript'], true);
+
+		$container->alias(IfValueScript::class, 'Architecture.Field.IfValueScript')
+			->share('Architecture.Field.IfValueScript', [$this, 'getIfValueScript'], true);
 		$container->alias(DatabaseName::class, 'Field.Database.Name')
 			->share('Field.Database.Name', [$this, 'getDatabaseName'], true);
 
@@ -360,6 +364,22 @@ class Field implements ServiceProviderInterface
 		return new TargetControlsScript(
 			$container->get('Field.Groups'),
 			$container->get('Compiler.Builder.Validation.Fix')
+		);
+	}
+
+	/**
+	 * Get The IfValueScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  IfValueScript
+	 * @since   6.1.7
+	 */
+	public function getIfValueScript(Container $container): IfValueScript
+	{
+		return new IfValueScript(
+			$container->get('Field.Groups'),
+			$container->get('Compiler.Builder.Script.User.Switch')
 		);
 	}
 
