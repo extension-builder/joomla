@@ -1301,279 +1301,19 @@ class Interpretation extends Fields
 		return $setter;
 	}
 
+	/**
+	 * Build the statements that load the uikit assets a view needs.
+	 *
+	 * @param   array  $view  The view being built.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.View.UikitLoader service.
+	 */
 	public function setUikitLoader(&$view)
 	{
-		// we do not load this for Joomla 6+ (use the libraries to add it if you still need it)
-		if ((int) CFactory::_('Config')->get('joomla_version', 3) === 6)
-		{
-			return '';
-		}
-
-		// reset setter
-		$setter = '';
-		// load the defaults needed
-		if (CFactory::_('Config')->uikit > 0)
-		{
-			$setter .= PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Load uikit options.";
-			$setter .= PHP_EOL . Indent::_(2)
-				. "\$uikit = \$this->params->get('uikit_load');";
-			$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Set script size.";
-			$setter .= PHP_EOL . Indent::_(2)
-				. "\$size = \$this->params->get('uikit_min');";
-			$tabV   = "";
-			// if both versions should be loaded then add some more logic
-			if (2 == CFactory::_('Config')->uikit)
-			{
-				$setter .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Load uikit version.";
-				$setter .= PHP_EOL . Indent::_(2)
-					. "\$this->uikitVersion = \$this->params->get('uikit_version', 2);";
-				$setter .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Use Uikit Version 2";
-				$setter .= PHP_EOL . Indent::_(2)
-					. "if (2 == \$this->uikitVersion)";
-				$setter .= PHP_EOL . Indent::_(2) . "{";
-				$tabV   = Indent::_(1);
-			}
-		}
-		// load the defaults needed
-		if (2 == CFactory::_('Config')->uikit || 1 == CFactory::_('Config')->uikit)
-		{
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Set css style.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "\$style = \$this->params->get('uikit_style');";
-
-			$setter .= PHP_EOL . PHP_EOL . $tabV . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__) . " The uikit css.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if ((!\$HeaderCheck->css_loaded('uikit.min') || \$uikit == 1) && \$uikit != 2 && \$uikit != 3)";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/css/uikit'.\$style.\$size.'.css', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " The uikit js.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if ((!\$HeaderCheck->js_loaded('uikit.min') || \$uikit == 1) && \$uikit != 2 && \$uikit != 3)";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/js/uikit'.\$size.'.js', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-		}
-		// load the components need
-		if ((2 == CFactory::_('Config')->uikit || 1 == CFactory::_('Config')->uikit)
-			&& ($data_ = CFactory::_('Compiler.Builder.Uikit.Comp')->get($view['settings']->code)) !== null)
-		{
-			$setter .= PHP_EOL . PHP_EOL . $tabV . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__)
-				. " Load the script to find all uikit components needed.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "if (\$uikit != 2)";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Set the default uikit components in this view.";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "\$uikitComp = [];";
-			foreach ($data_ as $class)
-			{
-				$setter .= PHP_EOL . $tabV . Indent::_(3) . "\$uikitComp[] = '"
-					. $class . "';";
-			}
-			// check content for more needed components
-			if (CFactory::_('Compiler.Builder.Site.Field.Data')->exists('uikit.' . $view['settings']->code))
-			{
-				$setter .= PHP_EOL . PHP_EOL . $tabV . Indent::_(3) . "//"
-					. Line::_(__Line__, __Class__)
-					. " Get field uikit components needed in this view.";
-				$setter .= PHP_EOL . $tabV . Indent::_(3)
-					. "\$uikitFieldComp = \$this->get('UikitComp');";
-				$setter .= PHP_EOL . $tabV . Indent::_(3)
-					. "if (isset(\$uikitFieldComp) && "
-					. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$uikitFieldComp))";
-				$setter .= PHP_EOL . $tabV . Indent::_(3) . "{";
-				$setter .= PHP_EOL . $tabV . Indent::_(4)
-					. "if (isset(\$uikitComp) && "
-					. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$uikitComp))";
-				$setter .= PHP_EOL . $tabV . Indent::_(4) . "{";
-				$setter .= PHP_EOL . $tabV . Indent::_(5)
-					. "\$uikitComp = array_merge(\$uikitComp, \$uikitFieldComp);";
-				$setter .= PHP_EOL . $tabV . Indent::_(5)
-					. "\$uikitComp = array_unique(\$uikitComp);";
-				$setter .= PHP_EOL . $tabV . Indent::_(4) . "}";
-				$setter .= PHP_EOL . $tabV . Indent::_(4) . "else";
-				$setter .= PHP_EOL . $tabV . Indent::_(4) . "{";
-				$setter .= PHP_EOL . $tabV . Indent::_(5)
-					. "\$uikitComp = \$uikitFieldComp;";
-				$setter .= PHP_EOL . $tabV . Indent::_(4) . "}";
-				$setter .= PHP_EOL . $tabV . Indent::_(3) . "}";
-			}
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-			$setter .= PHP_EOL . PHP_EOL . $tabV . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__)
-				. " Load the needed uikit components in this view.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if (\$uikit != 2 && isset(\$uikitComp) && "
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$uikitComp))";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " loading...";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "foreach (\$uikitComp as \$class)";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "foreach ("
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component') . "Helper::\$uk_components[\$class] as \$name)";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " check if the CSS file exists.";
-			$setter .= PHP_EOL . $tabV . Indent::_(5)
-				. "if (@file_exists(JPATH_ROOT.'/media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/css/components/'.\$name.\$style.\$size.'.css'))";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(6) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " load the css.";
-			$setter .= PHP_EOL . $tabV . Indent::_(6)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/css/components/'.\$name.\$style.\$size.'.css', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " check if the JavaScript file exists.";
-			$setter .= PHP_EOL . $tabV . Indent::_(5)
-				. "if (@file_exists(JPATH_ROOT.'/media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/js/components/'.\$name.\$size.'.js'))";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(6) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " load the js.";
-			$setter .= PHP_EOL . $tabV . Indent::_(6)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/js/components/'.\$name.\$size.'.js', ['version' => 'auto'], ['type' => 'text/javascript', 'async' => 'async']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-		}
-		elseif ((2 == CFactory::_('Config')->uikit || 1 == CFactory::_('Config')->uikit)
-			&& CFactory::_('Compiler.Builder.Site.Field.Data')->exists('uikit.' . $view['settings']->code))
-		{
-			$setter .= PHP_EOL . PHP_EOL . $tabV . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__)
-				. " Load the needed uikit components in this view.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "\$uikitComp = \$this->get('UikitComp');";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if (\$uikit != 2 && isset(\$uikitComp) && "
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$uikitComp))";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " loading...";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "foreach (\$uikitComp as \$class)";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "foreach ("
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component') . "Helper::\$uk_components[\$class] as \$name)";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " check if the CSS file exists.";
-			$setter .= PHP_EOL . $tabV . Indent::_(5)
-				. "if (@file_exists(JPATH_ROOT.'/media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/css/components/'.\$name.\$style.\$size.'.css'))";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(6) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " load the css.";
-			$setter .= PHP_EOL . $tabV . Indent::_(6)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/css/components/'.\$name.\$style.\$size.'.css', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " check if the JavaScript file exists.";
-			$setter .= PHP_EOL . $tabV . Indent::_(5)
-				. "if (@file_exists(JPATH_ROOT.'/media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/js/components/'.\$name.\$size.'.js'))";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(6) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " load the js.";
-			$setter .= PHP_EOL . $tabV . Indent::_(6)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v2/js/components/'.\$name.\$size.'.js', ['version' => 'auto'], ['type' => 'text/javascript', 'async' => 'async']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(5) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(4) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(3) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-		}
-		// now set the version 3
-		if (2 == CFactory::_('Config')->uikit || 3 == CFactory::_('Config')->uikit)
-		{
-			if (2 == CFactory::_('Config')->uikit)
-			{
-				$setter .= PHP_EOL . Indent::_(2) . "}";
-				$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Use Uikit Version 3";
-				$setter .= PHP_EOL . Indent::_(2)
-					. "elseif (3 == \$this->uikitVersion)";
-				$setter .= PHP_EOL . Indent::_(2) . "{";
-			}
-			// add version 3 fiels to page
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " The uikit css.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if ((!\$HeaderCheck->css_loaded('uikit.min') || \$uikit == 1) && \$uikit != 2 && \$uikit != 3)";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "Html::_('stylesheet', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v3/css/uikit'.\$size.'.css', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " The uikit js.";
-			$setter .= PHP_EOL . $tabV . Indent::_(2)
-				. "if ((!\$HeaderCheck->js_loaded('uikit.min') || \$uikit == 1) && \$uikit != 2 && \$uikit != 3)";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "{";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v3/js/uikit'.\$size.'.js', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(3)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name
-				. "/uikit-v3/js/uikit-icons'.\$size.'.js', ['version' => 'auto']);";
-			$setter .= PHP_EOL . $tabV . Indent::_(2) . "}";
-			if (2 == CFactory::_('Config')->uikit)
-			{
-				$setter .= PHP_EOL . Indent::_(2) . "}";
-			}
-		}
-
-		return $setter;
+		return CFactory::_('Architecture.View.UikitLoader')->get($view);
 	}
 
 	public function setCustomViewExtraDisplayMethods(&$view)
@@ -7167,6 +6907,15 @@ class Interpretation extends Fields
 		return $fix;
 	}
 
+	/**
+	 * Build the task registration of the ajax controller of one target.
+	 *
+	 * @param   string  $target  The build target the tasks belong to.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setRegisterAjaxTask($target)
 	{
 		$tasks = '';
