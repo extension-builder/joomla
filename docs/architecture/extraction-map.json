@@ -641,6 +641,15 @@
       }
     ]
   },
+  "setUikitLoader": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/View/UikitLoader.php",
+        "matched": 6
+      }
+    ]
+  },
   "setUikitHelperMethods": {
     "fingerprints": 6,
     "moved_into": [
