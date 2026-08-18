@@ -703,6 +703,24 @@
       }
     ]
   },
+  "setUninstallScriptJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/UninstallScript.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setUninstallScriptJ4": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/UninstallScript.php",
+        "matched": 3
+      }
+    ]
+  },
   "setUserPermissionCheckAccess": {
     "fingerprints": 5,
     "moved_into": [
