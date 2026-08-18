@@ -19,7 +19,6 @@
 #
 # Environment:
 #   COMPONENT       GUID of the component to compile (default: the demo one)
-#   JOOMLA_VERSION  Compile target, 3 4 5 or 6 (default: 6)
 #   COMPILE_EXTRA   Extra options for both compiles (see the default below)
 #   KEEP_STACK      Leave the containers running afterwards when set to 1
 #
@@ -30,8 +29,12 @@ COMPOSE_FILE="${REPO_ROOT}/.github/golden-master/docker-compose.yml"
 OUT_DIR="${1:-${REPO_ROOT}/.golden-master}"
 
 COMPONENT="${COMPONENT:-1c20aec5-bf1a-44e7-9deb-d1c920ca591d}"
-JOOMLA_VERSION="${JOOMLA_VERSION:-6}"
 KEEP_STACK="${KEEP_STACK:-0}"
+
+# This work targets Joomla 6, and only Joomla 6. It is not a knob: a run that
+# built for anything else would be comparing output nobody here cares about, so
+# the target is fixed and every package that comes out is checked against it.
+JOOMLA_VERSION=6
 
 WEBROOT=/var/www/html
 INSTALL_TIMEOUT=900
@@ -45,7 +48,6 @@ INSTALL_TIMEOUT=900
 #                  or the two runs differ for no reason worth reading.
 COMPILE_EXTRA="${COMPILE_EXTRA:---debug-line-nr=0 --add-build-date=2 --build-date=2026-01-01}"
 
-# The target being built for. Joomla 6 is what this work is aimed at.
 COMPILE_EXTRA="--joomla-version=${JOOMLA_VERSION} ${COMPILE_EXTRA}"
 
 # The command the container runs for us, and that we run again ourselves.
@@ -104,49 +106,97 @@ wait_for_log() {
 	done
 }
 
-# Bring the package the compiler just wrote out of the container.
+# Bring out everything the compiler just wrote.
 #
-# The compiler says where it put it in the last lines of its own output, so look
-# there first. Joomla's tmp folder is where it lands, but that is configuration,
-# not a promise, so fall back to looking for it.
+# One compile can leave several packages behind - the component itself, and a
+# package for each module and plugin it builds. Taking only the newest compares
+# one of them and calls it the component, so take the lot.
 #
 # $1  a name for this run
-# $2  the log holding that compile's output
-take_package() {
-	local name="$1" log="$2" package
+take_packages() {
+	local name="$1" dest="${OUT_DIR}/${name}" package
+	local -a packages=()
 
-	# Only paths under the site root: the container log also carries the released
-	# package the entrypoint installed, and that is not what was just built.
-	package="$(grep -oE "${WEBROOT}/[^[:space:]\"']+\.zip" "${log}" 2>/dev/null | tail -1)"
+	mkdir -p "${dest}"
 
-	if [[ -n "${package}" ]] && ! compose exec -T joomla sh -c "test -f '${package}'"
+	while IFS= read -r package
+	do
+		package="${package%$'\r'}"
+
+		if [[ -n "${package}" ]]
+		then
+			packages+=("${package}")
+		fi
+	done < <(compose exec -T joomla sh -c "ls -1 ${WEBROOT}/tmp/*.zip 2>/dev/null")
+
+	if [[ ${#packages[@]} -eq 0 ]]
 	then
-		package=""
-	fi
-
-	if [[ -z "${package}" ]]
-	then
-		package="$(compose exec -T joomla sh -c \
-			"ls -1t ${WEBROOT}/tmp/*.zip 2>/dev/null | head -1" | tr -d '\r')"
-	fi
-
-	if [[ -z "${package}" ]]
-	then
-		package="$(compose exec -T joomla sh -c \
-			"find ${WEBROOT} -name '*.zip' -newer ${WEBROOT}/configuration.php 2>/dev/null | head -1" \
-			| tr -d '\r')"
-	fi
-
-	if [[ -z "${package}" ]]
-	then
-		say "The ${name} compile left no package behind. The last of its output:"
-		tail -40 "${log}"
+		say "The ${name} compile left no package in ${WEBROOT}/tmp. The container log:"
+		compose logs joomla | tail -60
 		exit 1
 	fi
 
-	say "The ${name} compiler wrote ${package}"
-	compose cp "joomla:${package}" "${OUT_DIR}/${name}.zip"
+	say "The ${name} compiler wrote ${#packages[@]} package(s)"
+
+	for package in "${packages[@]}"
+	do
+		printf '    %s\n' "${package}"
+		compose cp "joomla:${package}" "${dest}/$(basename "${package}")"
+	done
+
+	assert_target "${name}" "${packages[@]}"
+
 	compose exec -T joomla sh -c "rm -f ${WEBROOT}/tmp/*.zip"
+}
+
+# Refuse to compare anything that was not built for the target we asked for.
+#
+# JCB writes the target into the package name as a __J<n> suffix. Reading it
+# back is the only statement about the target that comes from the compiler
+# rather than from the flag we passed it. A package with no such suffix says
+# nothing either way and is left alone.
+#
+# $1   a name for this run
+# $2+  the packages it wrote
+assert_target() {
+	local name="$1"
+	shift
+
+	local package base wrong=0
+
+	for package in "$@"
+	do
+		base="$(basename "${package}" .zip)"
+
+		if [[ "${base}" =~ __J([0-9]+)$ ]] && [[ "${BASH_REMATCH[1]}" != "${JOOMLA_VERSION}" ]]
+		then
+			printf '    built for Joomla %s, not %s: %s\n' \
+				"${BASH_REMATCH[1]}" "${JOOMLA_VERSION}" "${base}"
+			wrong=1
+		fi
+	done
+
+	if (( wrong ))
+	then
+		say "The ${name} compile did not build for Joomla ${JOOMLA_VERSION}"
+		exit 1
+	fi
+}
+
+# Lay every package of a run out side by side, each under its own name.
+#
+# $1  the directory holding that run's packages
+# $2  where to unpack them
+unpack_packages() {
+	local from="$1" into="$2" package
+
+	for package in "${from}"/*.zip
+	do
+		[[ -e "${package}" ]] || continue
+
+		mkdir -p "${into}/$(basename "${package}" .zip)"
+		unzip -q "${package}" -d "${into}/$(basename "${package}" .zip)"
+	done
 }
 
 say "Starting Joomla, which installs the released JCB and compiles with it"
@@ -164,7 +214,7 @@ wait_for_log \
 	'the first compile is done'
 
 compose logs joomla > "${OUT_DIR}/baseline.log" 2>&1
-take_package baseline "${OUT_DIR}/baseline.log"
+take_packages baseline
 
 say "Packaging this working tree"
 PACKAGE="${OUT_DIR}/jcb-under-test.zip"
@@ -218,12 +268,12 @@ then
 fi
 
 tail -20 "${OUT_DIR}/candidate.log"
-take_package candidate "${OUT_DIR}/candidate.log"
+take_packages candidate
 
 say "Comparing what the two compilers produced"
 GOLDEN="${OUT_DIR}/golden"
 mkdir -p "${GOLDEN}"
-unzip -q "${OUT_DIR}/baseline.zip" -d "${GOLDEN}"
+unpack_packages "${OUT_DIR}/baseline" "${GOLDEN}"
 
 git -C "${GOLDEN}" init -q
 git -C "${GOLDEN}" add -A
@@ -232,10 +282,12 @@ git -C "${GOLDEN}" \
 	-c user.email="golden@master.invalid" \
 	commit -qm "what the released compiler produced"
 
-# Lay the second component over the first, so one diff shows added, removed and
-# changed files together.
+# Lay the second run over the first, so one diff shows added, removed and
+# changed files together - across every package, not just one of them. A package
+# that only one of the two runs produced shows up as wholly added or removed,
+# which is exactly what it is.
 find "${GOLDEN}" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-unzip -q "${OUT_DIR}/candidate.zip" -d "${GOLDEN}"
+unpack_packages "${OUT_DIR}/candidate" "${GOLDEN}"
 git -C "${GOLDEN}" add -A
 
 git -C "${GOLDEN}" diff --cached --stat > "${OUT_DIR}/summary.txt"

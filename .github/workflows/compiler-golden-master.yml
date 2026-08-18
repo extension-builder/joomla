@@ -12,16 +12,6 @@ on:
         description: GUID of the component to compile
         required: false
         default: 1c20aec5-bf1a-44e7-9deb-d1c920ca591d
-      joomla_version:
-        description: Compile target
-        required: false
-        default: '6'
-        type: choice
-        options:
-          - '6'
-          - '5'
-          - '4'
-          - '3'
 
 permissions:
   contents: read
@@ -39,7 +29,6 @@ jobs:
       - name: Compile with both compilers
         env:
           COMPONENT: ${{ inputs.component }}
-          JOOMLA_VERSION: ${{ inputs.joomla_version }}
         run: bash .github/golden-master/run.sh "${GITHUB_WORKSPACE}/.golden-master"
 
       - name: Report what changed
@@ -50,7 +39,7 @@ jobs:
           {
             echo "### Compiler golden master"
             echo
-            echo "Component \`${{ inputs.component }}\`, compiled for Joomla ${{ inputs.joomla_version }}."
+            echo "Component \`${{ inputs.component }}\`, compiled for Joomla 6."
             echo
 
             if [[ ! -f "$summary" ]]; then
@@ -78,7 +67,7 @@ jobs:
             .golden-master/full.diff
             .golden-master/baseline.log
             .golden-master/candidate.log
-            .golden-master/baseline.zip
-            .golden-master/candidate.zip
+            .golden-master/baseline
+            .golden-master/candidate
           if-no-files-found: warn
           retention-days: 30
