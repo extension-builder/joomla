@@ -94,6 +94,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '565275b81c80007aaf279668e13e9e52a39dfdce1a5896c0dc790e84668cb654',
 			'signature_hash' => '1b1be2d33c229f0785b45e817bc757407af77a4c02a843510fcd5e7c3f324873'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\InstallSqlInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/InstallSqlInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '79ba47c352bf4dfa964b619506e51155eaccf38b765807000dab5f6bcf48e0b7',
+			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\UninstallScriptInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/UninstallScriptInterface.php',
 			'implementations' => 2,
