@@ -84,11 +84,13 @@ jobs:
             php bin/check-php-style.php --base="$base_sha"
             php bin/check-test-ownership.php --base="$base_sha"
             php bin/check-moved-conditions.php --base="$base_sha"
+            php bin/check-container-keys.php
           else
             git show --check --format= HEAD
             php bin/check-php-style.php
             php bin/check-test-ownership.php
             php bin/check-moved-conditions.php
+            php bin/check-container-keys.php
           fi
 
       - name: Resolve Composer cache directory

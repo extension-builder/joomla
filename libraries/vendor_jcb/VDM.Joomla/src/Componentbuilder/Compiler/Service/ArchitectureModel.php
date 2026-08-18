@@ -550,30 +550,6 @@ class ArchitectureModel implements ServiceProviderInterface
 	}
 
 	/**
-	 * Get The GetForm Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  ModelGetForm
-	 * @since   6.1.7
-	 */
-	/**
-	 * Get The BatchCopy Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  ModelBatchCopy
-	 * @since   6.1.7
-	 */
-	/**
-	 * Get The AliasTitleFix Class.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  AliasTitleFix
-	 * @since   6.1.7
-	 */
-	/**
 	 * Get The ItemSave Class.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -651,6 +627,14 @@ class ArchitectureModel implements ServiceProviderInterface
 		);
 	}
 
+	/**
+	 * Get The AliasTitleFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AliasTitleFix
+	 * @since   6.1.7
+	 */
 	public function getModelAliasTitleFix(Container $container): AliasTitleFix
 	{
 		return new AliasTitleFix(
@@ -662,6 +646,14 @@ class ArchitectureModel implements ServiceProviderInterface
 		);
 	}
 
+	/**
+	 * Get The BatchCopy Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelBatchCopy
+	 * @since   6.1.7
+	 */
 	public function getModelBatchCopy(Container $container): ModelBatchCopy
 	{
 		if (empty($this->targetVersion))
@@ -784,6 +776,14 @@ class ArchitectureModel implements ServiceProviderInterface
 		);
 	}
 
+	/**
+	 * Get The GetForm Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelGetForm
+	 * @since   6.1.7
+	 */
 	public function getModelGetForm(Container $container): ModelGetForm
 	{
 		if (empty($this->targetVersion))
