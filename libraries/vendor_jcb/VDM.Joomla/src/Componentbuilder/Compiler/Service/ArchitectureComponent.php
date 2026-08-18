@@ -29,6 +29,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\Unins
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallScript as SharedUninstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\UninstallScript as J3UninstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallSql;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\InstallSql as SharedInstallSql;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\InstallSql as J3InstallSql;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
@@ -120,6 +123,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(UninstallSql::class, 'Architecture.Component.UninstallSql')
 			->share('Architecture.Component.UninstallSql', [$this, 'getUninstallSql'], true);
+
+		$container->alias(InstallSqlInterface::class, 'Architecture.Component.InstallSql')
+			->share('Architecture.Component.InstallSql', [$this, 'getInstallSql'], true);
+
+		$container->alias(SharedInstallSql::class, 'Architecture.Component.Shared.InstallSql')
+			->share('Architecture.Component.Shared.InstallSql', [$this, 'getSharedInstallSql'], true);
+
+		$container->alias(J3InstallSql::class, 'Architecture.Component.J3.InstallSql')
+			->share('Architecture.Component.J3.InstallSql', [$this, 'getJ3InstallSql'], true);
 	}
 
 	/**
@@ -461,6 +473,88 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Placeholder'),
 			$container->get('Customcode.Dispenser'),
 			$container->get('Compiler.Builder.Database.Uninstall')
+		);
+	}
+
+	/**
+	 * Get The InstallSql Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  InstallSqlInterface
+	 * @since   6.1.7
+	 */
+	public function getInstallSql(Container $container): InstallSqlInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 keeps the zero-date defaults and carries no sql header
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.InstallSql');
+		}
+
+		return $container->get('Architecture.Component.Shared.InstallSql');
+	}
+
+	/**
+	 * Get The Component InstallSql Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedInstallSql
+	 * @since   6.1.7
+	 */
+	public function getSharedInstallSql(Container $container): SharedInstallSql
+	{
+		return new SharedInstallSql(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Counter'),
+			$container->get('Compiler.Builder.Database.Tables'),
+			$container->get('Compiler.Builder.Database.Uninstall'),
+			$container->get('Compiler.Builder.Update.Mysql'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Component.Fields'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Database.Unique.Keys'),
+			$container->get('Compiler.Builder.Database.Keys'),
+			$container->get('Compiler.Builder.Mysql.Table.Setting')
+		);
+	}
+
+	/**
+	 * Get The InstallSql Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3InstallSql
+	 * @since   6.1.7
+	 */
+	public function getJ3InstallSql(Container $container): J3InstallSql
+	{
+		return new J3InstallSql(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Counter'),
+			$container->get('Compiler.Builder.Database.Tables'),
+			$container->get('Compiler.Builder.Database.Uninstall'),
+			$container->get('Compiler.Builder.Update.Mysql'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Component.Fields'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Database.Unique.Keys'),
+			$container->get('Compiler.Builder.Database.Keys'),
+			$container->get('Compiler.Builder.Mysql.Table.Setting')
 		);
 	}
 }
