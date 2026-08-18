@@ -703,6 +703,15 @@
       }
     ]
   },
+  "setUninstall": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/UninstallSql.php",
+        "matched": 4
+      }
+    ]
+  },
   "setUninstallScriptJ3": {
     "fingerprints": 6,
     "moved_into": [
