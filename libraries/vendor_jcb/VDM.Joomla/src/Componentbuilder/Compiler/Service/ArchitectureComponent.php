@@ -22,6 +22,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\ExcelMethodsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\ExcelMethods as SharedExcelMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelperClass\ExcelMethods as J3ExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\AssetsTable as SharedAssetsTable;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\AssetsTable as J3AssetsTable;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
@@ -92,6 +95,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3ExcelMethods::class, 'Architecture.ComHelperClass.J3.ExcelMethods')
 			->share('Architecture.ComHelperClass.J3.ExcelMethods', [$this, 'getJ3ExcelMethods'], true);
+
+		$container->alias(AssetsTableInterface::class, 'Architecture.Component.AssetsTable')
+			->share('Architecture.Component.AssetsTable', [$this, 'getAssetsTable'], true);
+
+		$container->alias(SharedAssetsTable::class, 'Architecture.Component.Shared.AssetsTable')
+			->share('Architecture.Component.Shared.AssetsTable', [$this, 'getSharedAssetsTable'], true);
+
+		$container->alias(J3AssetsTable::class, 'Architecture.Component.J3.AssetsTable')
+			->share('Architecture.Component.J3.AssetsTable', [$this, 'getJ3AssetsTable'], true);
 	}
 
 	/**
@@ -304,6 +316,60 @@ class ArchitectureComponent implements ServiceProviderInterface
 		return new J3ExcelMethods(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get The AssetsTable Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AssetsTableInterface
+	 * @since   6.1.7
+	 */
+	public function getAssetsTable(Container $container): AssetsTableInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 carries the whole treatment in the generated script.php
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.AssetsTable');
+		}
+
+		return $container->get('Architecture.Component.Shared.AssetsTable');
+	}
+
+	/**
+	 * Get The Component AssetsTable Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAssetsTable
+	 * @since   6.1.7
+	 */
+	public function getSharedAssetsTable(Container $container): SharedAssetsTable
+	{
+		return new SharedAssetsTable(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The AssetsTable Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AssetsTable
+	 * @since   6.1.7
+	 */
+	public function getJ3AssetsTable(Container $container): J3AssetsTable
+	{
+		return new J3AssetsTable(
+			$container->get('Config')
 		);
 	}
 }
