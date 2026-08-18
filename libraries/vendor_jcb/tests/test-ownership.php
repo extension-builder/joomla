@@ -932,6 +932,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewUikitLoaderTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Language/Admin.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/LanguageAdminTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Controller/EximportMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedControllerEximportMethodTest.php'

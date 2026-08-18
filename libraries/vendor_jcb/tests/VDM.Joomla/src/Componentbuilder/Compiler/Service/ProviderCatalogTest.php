@@ -165,9 +165,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => 'e00afb3f23801680635d93adb3b4b8e08b396a7801ac87d215dd9bf9ab015990'
 		]];
 		yield 'language' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Language::class, [
-			'aliases' => 9,
-			'services' => 9,
-			'hash' => '103540dadb128eebbf37974624e160a80a79cadc6338d550adfcf4fb770ad962'
+			'aliases' => 10,
+			'services' => 10,
+			'hash' => 'f86309f96f7ce711036862fc371b57bbc29c7dd388ff83e6717dc0cb3c7fd471'
 		]];
 		yield 'library' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Library::class, [
 			'aliases' => 4,
