@@ -9651,176 +9651,30 @@ class Interpretation extends Fields
 		return false;
 	}
 
+	/**
+	 * Build the custom menu entries that sit before the given admin view.
+	 *
+	 * @param   array   $view      The admin view being walked.
+	 * @param   string  $codeName  The component code name.
+	 * @param   string  $lang      The menu language prefix.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.CustomMainMenu service.
+	 */
 	public function addCustomMainMenu(&$view, &$codeName, &$lang)
 	{
-		$customMenu = '';
-		// see if we should have custom admin views
-		if (CFactory::_('Component')->isArray('custom_admin_views'))
+		$service = CFactory::_('Architecture.Menu.CustomMainMenu');
+		$customMenu = $service->get(
+			$view, (string) $codeName, (string) $lang, $this->customAdminAdded
+		);
+
+		// the caller reads these off this property once every view is walked,
+		// and unsets it, so they are handed over rather than mirrored
+		foreach ($service->takeDeferred() as $nr => $deferred)
 		{
-			foreach (CFactory::_('Component')->get('custom_admin_views') as $nr => $menu)
-			{
-				if (!isset($this->customAdminAdded[$menu['settings']->code]))
-				{
-					if (isset($menu['mainmenu']) && $menu['mainmenu'] == 1
-						&& $view['adminview'] == $menu['before'])
-					{
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $menu['settings']->CODE,
-							$menu['settings']->name
-						);
-						// add custom menu
-						$customMenu .= PHP_EOL . Indent::_(3)
-							. '<menu option="com_' . $codeName . '" view="'
-							. $menu['settings']->code . '">' . $lang . '_'
-							. $menu['settings']->CODE . '</menu>';
-					}
-					elseif (isset($menu['mainmenu']) && $menu['mainmenu'] == 1
-						&& empty($menu['before']))
-					{
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $menu['settings']->CODE,
-							$menu['settings']->name
-						);
-						// add custom menu
-						$this->lastCustomMainMenu[$nr] = PHP_EOL . Indent::_(3)
-							. '<menu option="com_' . $codeName . '" view="'
-							. $menu['settings']->code . '">' . $lang . '_'
-							. $menu['settings']->CODE . '</menu>';
-					}
-				}
-			}
-		}
-		// see if we should have custom menus
-		if (CFactory::_('Component')->isArray('custommenus'))
-		{
-			foreach (CFactory::_('Component')->get('custommenus') as $nr => $menu)
-			{
-				$nr = $nr + 100;
-				if (isset($menu['mainmenu']) && $menu['mainmenu'] == 1
-					&& $view['adminview'] == $menu['before'])
-				{
-					if (isset($menu['link'])
-						&& StringHelper::check($menu['link']))
-					{
-						$nameList  = StringHelper::safe(
-							$menu['name']
-						);
-						$nameUpper = StringHelper::safe(
-							$menu['name'], 'U'
-						);
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $nameUpper, $menu['name']
-						);
-						// sanitize url
-						if (strpos((string) $menu['link'], 'http') === false)
-						{
-							$menu['link'] = str_replace(
-								'/administrator/index.php?', '', (string) $menu['link']
-							);
-							$menu['link'] = str_replace(
-								'administrator/index.php?', '', $menu['link']
-							);
-							// check if the index is still there
-							if (strpos($menu['link'], 'index.php?') !== false)
-							{
-								$menu['link'] = str_replace(
-									'/index.php?', '', $menu['link']
-								);
-								$menu['link'] = str_replace(
-									'index.php?', '', $menu['link']
-								);
-							}
-						}
-						// urlencode
-						$menu['link'] = htmlspecialchars(
-							(string) $menu['link'], ENT_XML1, 'UTF-8'
-						);
-						// add custom menu
-						$customMenu .= PHP_EOL . Indent::_(3) . '<menu link="'
-							. $menu['link'] . '">' . $lang . '_' . $nameUpper
-							. '</menu>';
-					}
-					else
-					{
-						$nameList  = StringHelper::safe(
-							$menu['name_code']
-						);
-						$nameUpper = StringHelper::safe(
-							$menu['name_code'], 'U'
-						);
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $nameUpper, $menu['name']
-						);
-						// add custom menu
-						$customMenu .= PHP_EOL . Indent::_(3)
-							. '<menu option="com_' . $codeName . '" view="'
-							. $nameList . '">' . $lang . '_' . $nameUpper
-							. '</menu>';
-					}
-				}
-				elseif (isset($menu['mainmenu']) && $menu['mainmenu'] == 1
-					&& empty($menu['before']))
-				{
-					if (isset($menu['link'])
-						&& StringHelper::check($menu['link']))
-					{
-						$nameList  = StringHelper::safe(
-							$menu['name']
-						);
-						$nameUpper = StringHelper::safe(
-							$menu['name'], 'U'
-						);
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $nameUpper, $menu['name']
-						);
-						// sanitize url
-						if (strpos((string) $menu['link'], 'http') === false)
-						{
-							$menu['link'] = str_replace(
-								'/administrator/index.php?', '', (string) $menu['link']
-							);
-							$menu['link'] = str_replace(
-								'administrator/index.php?', '', $menu['link']
-							);
-							// check if the index is still there
-							if (strpos($menu['link'], 'index.php?') !== false)
-							{
-								$menu['link'] = str_replace(
-									'/index.php?', '', $menu['link']
-								);
-								$menu['link'] = str_replace(
-									'index.php?', '', $menu['link']
-								);
-							}
-						}
-						// urlencode
-						$menu['link'] = htmlspecialchars(
-							(string) $menu['link'], ENT_XML1, 'UTF-8'
-						);
-						// add custom menu
-						$this->lastCustomMainMenu[$nr] = PHP_EOL . Indent::_(3)
-							. '<menu link="' . $menu['link'] . '">' . $lang
-							. '_' . $nameUpper . '</menu>';
-					}
-					else
-					{
-						$nameList  = StringHelper::safe(
-							$menu['name_code']
-						);
-						$nameUpper = StringHelper::safe(
-							$menu['name_code'], 'U'
-						);
-						CFactory::_('Language')->set(
-							'adminsys', $lang . '_' . $nameUpper, $menu['name']
-						);
-						// add custom menu
-						$this->lastCustomMainMenu[$nr] = PHP_EOL . Indent::_(3)
-							. '<menu option="com_' . $codeName . '" view="'
-							. $nameList . '">' . $lang . '_' . $nameUpper
-							. '</menu>';
-					}
-				}
-			}
+			$this->lastCustomMainMenu[$nr] = $deferred;
 		}
 
 		return $customMenu;
