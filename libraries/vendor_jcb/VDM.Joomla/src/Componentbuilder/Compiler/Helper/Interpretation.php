@@ -3893,64 +3893,17 @@ class Interpretation extends Fields
 		return '';
 	}
 
-	public function setUninstall()
+	/**
+	 * Build the uninstall.sql content of the component.
+	 *
+	 * @return  string  The generated uninstall sql.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.UninstallSql service.
+	 */
+	public function setUninstall(): string
 	{
-		$db = '';
-		if (CFactory::_('Compiler.Builder.Database.Uninstall')->isArray('table'))
-		{
-			$db .= implode(PHP_EOL, CFactory::_('Compiler.Builder.Database.Uninstall')->get('table')) . PHP_EOL;
-		}
-		// add custom sql uninstall dump to the file
-		if (isset(CFactory::_('Customcode.Dispenser')->hub['sql_uninstall'])
-			&& StringHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub['sql_uninstall']
-			))
-		{
-			$db .= CFactory::_('Placeholder')->update_(
-					CFactory::_('Customcode.Dispenser')->hub['sql_uninstall']
-				) . PHP_EOL;
-			unset(CFactory::_('Customcode.Dispenser')->hub['sql_uninstall']);
-		}
-
-		// check if this component used larger rules
-		// now revert them back on uninstall
-		// only add this option if set to SQL fix
-		if (CFactory::_('Config')->add_assets_table_fix == 1)
-		{
-			// https://github.com/joomla/joomla-cms/blob/3.10.0-alpha3/installation/sql/mysql/joomla.sql#L22
-			// Checked 1st December 2020 (let us know if this changes)
-			$db .= PHP_EOL;
-			$db .= PHP_EOL . '--';
-			$db .= PHP_EOL
-				. '--' . Line::_(
-					__LINE__,__CLASS__
-				)
-				. ' Always insure this column rules is reversed to Joomla defaults on uninstall. (as on 1st Dec 2020)';
-			$db .= PHP_EOL . '--';
-			$db .= PHP_EOL
-				. "ALTER TABLE `#__assets` CHANGE `rules` `rules` varchar(5120) NOT NULL COMMENT 'JSON encoded access control.';";
-		}
-
-		// check if this component used larger names
-		// now revert them back on uninstall
-		// only add this option if set to SQL fix
-		if (CFactory::_('Config')->add_assets_table_fix == 1 && CFactory::_('Config')->add_assets_table_name_fix)
-		{
-			// https://github.com/joomla/joomla-cms/blob/3.10.0-alpha3/installation/sql/mysql/joomla.sql#L20
-			// Checked 1st December 2020 (let us know if this changes)
-			$db .= PHP_EOL;
-			$db .= PHP_EOL . '--';
-			$db .= PHP_EOL
-				. '--' . Line::_(
-					__LINE__,__CLASS__
-				)
-				. ' Always insure this column name is reversed to Joomla defaults on uninstall. (as on 1st Dec 2020).';
-			$db .= PHP_EOL . '--';
-			$db .= PHP_EOL
-				. "ALTER TABLE `#__assets` CHANGE `name` `name` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'The unique name for the asset.';";
-		}
-
-		return $db;
+		return CFactory::_('Architecture.Component.UninstallSql')->get();
 	}
 
 	/**

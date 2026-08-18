@@ -1100,6 +1100,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SecurityRendererTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/UninstallSql.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/UninstallSqlTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/Whmcs.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SecurityRendererTest.php'
