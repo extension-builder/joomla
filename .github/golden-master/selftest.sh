@@ -108,17 +108,33 @@ expect_exit "gives up rather than waiting for ever" 1 \
 
 echo
 echo "pull_command"
-[[ "$(pull_command aaa bbb)" == 'componentbuilder:pull:component --items=aaa --repo=bbb' ]] \
+[[ "$(pull_command aaa bbb)" == 'componentbuilder:pull:component -i aaa -r bbb --no-interaction' ]] \
 	&& check "names the component and the repository it comes from" pass \
 	|| check "names the component and the repository it comes from" fail
+[[ "$(pull_command aaa bbb)" != *'--items'* ]] \
+	&& check "uses the options the pull command declares" pass \
+	|| check "uses the options the pull command declares" fail
 [[ -z "$(pull_command aaa '')" ]] \
 	&& check "asks for nothing when the component is already local" pass \
 	|| check "asks for nothing when the component is already local" fail
 
 echo
-echo "run_compile"
+echo "run_cli"
 COMPILE_STUB_STATUS=0
 compose_exec_stub() { return "${COMPILE_STUB_STATUS}"; }
+expect_exit "keeps going when the command succeeds" 0 \
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b'
+[[ -f "${OUT_DIR}/fetch.log" ]] \
+	&& check "keeps what the command said" pass || check "keeps what the command said" fail
+
+COMPILE_STUB_STATUS=1
+expect_exit "stops when the command fails" 1 \
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b'
+
+COMPILE_STUB_STATUS=0
+
+echo
+echo "run_compile"
 expect_exit "keeps going when the compile succeeds" 0 run_compile ok 'compile:me'
 [[ -f "${OUT_DIR}/ok.log" ]] \
 	&& check "keeps what the compile said" pass || check "keeps what the compile said" fail

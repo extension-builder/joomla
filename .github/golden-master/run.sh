@@ -90,14 +90,13 @@ DIFF_LINES_TOTAL="${DIFF_LINES_TOTAL:-2000}"
 
 COMPILE_COMMAND="componentbuilder:compile:component --component=${COMPONENT} ${COMPILE_EXTRA}"
 PULL_COMMAND="$(pull_command "${COMPONENT}" "${REPOSITORY}")"
-export JCB_CLI_COMMANDS="${PULL_COMMAND}"
 
 trap cleanup EXIT
 
 mkdir -p "${OUT_DIR}"
 rm -rf "${OUT_DIR:?}/"*
 
-say "Starting Joomla, which installs the released JCB and fetches the component"
+say "Starting Joomla, which installs the released JCB"
 say "Compile command: ${COMPILE_COMMAND}"
 
 if [[ -n "${PULL_COMMAND}" ]]
@@ -109,18 +108,20 @@ fi
 
 compose up -d
 
-# The entrypoint installs the released JCB package first...
+# The entrypoint installs the released JCB package, and nothing can be asked of
+# JCB until it has.
 wait_for_log \
 	'Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip' \
 	'the released JCB is installed'
 
-# ...and only then fetches the component. Waiting for this is the gate: nothing
-# compiles until the fetch has said it succeeded.
+# Fetch the component through the Joomla console, in a process of its own. It
+# has to be a separate process from the compile: a compile that fetches the
+# component itself does both jobs at once and runs the site out of memory.
+# run_cli stops the run if the fetch fails, so nothing compiles against a
+# component that never arrived.
 if [[ -n "${PULL_COMMAND}" ]]
 then
-	wait_for_log \
-		"Joomla CLI command succeeded: ${PULL_COMMAND}" \
-		'the component is fetched'
+	run_cli fetch "Fetching the component" "${PULL_COMMAND}"
 fi
 
 run_compile baseline "${COMPILE_COMMAND}"
