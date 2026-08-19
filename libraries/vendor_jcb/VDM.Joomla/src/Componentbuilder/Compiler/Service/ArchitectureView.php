@@ -151,6 +151,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as ViewJquery;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\EximportButtonsInterface as AdminViewsEximportButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EximportButtons as SharedAdminViewsEximportButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\EximportButtons as J3AdminViewsEximportButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterSetInterface as AdminViewsFilterSet;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterSet as SharedAdminViewsFilterSet;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterSet as J3AdminViewsFilterSet;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface as AdminViewsFilterListSet;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet as SharedAdminViewsFilterListSet;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterListSet as J3AdminViewsFilterListSet;
 
 
 /**
@@ -399,6 +405,24 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsListHead::class, 'Architecture.AdminViews.J3.ListHead')
 			->share('Architecture.AdminViews.J3.ListHead', [$this, 'getJ3AdminViewsListHead'], true);
+
+		$container->alias(AdminViewsFilterSet::class, 'Architecture.AdminViews.FilterSet')
+			->share('Architecture.AdminViews.FilterSet', [$this, 'getAdminViewsFilterSet'], true);
+
+		$container->alias(SharedAdminViewsFilterSet::class, 'Architecture.AdminViews.Shared.FilterSet')
+			->share('Architecture.AdminViews.Shared.FilterSet', [$this, 'getSharedAdminViewsFilterSet'], true);
+
+		$container->alias(J3AdminViewsFilterSet::class, 'Architecture.AdminViews.J3.FilterSet')
+			->share('Architecture.AdminViews.J3.FilterSet', [$this, 'getJ3AdminViewsFilterSet'], true);
+
+		$container->alias(AdminViewsFilterListSet::class, 'Architecture.AdminViews.FilterListSet')
+			->share('Architecture.AdminViews.FilterListSet', [$this, 'getAdminViewsFilterListSet'], true);
+
+		$container->alias(SharedAdminViewsFilterListSet::class, 'Architecture.AdminViews.Shared.FilterListSet')
+			->share('Architecture.AdminViews.Shared.FilterListSet', [$this, 'getSharedAdminViewsFilterListSet'], true);
+
+		$container->alias(J3AdminViewsFilterListSet::class, 'Architecture.AdminViews.J3.FilterListSet')
+			->share('Architecture.AdminViews.J3.FilterListSet', [$this, 'getJ3AdminViewsFilterListSet'], true);
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
@@ -2042,6 +2066,134 @@ class ArchitectureView implements ServiceProviderInterface
 		}
 
 		return $container->get('Architecture.AdminViews.Shared.ListBody');
+	}
+
+	/**
+	 * Get The AdminViews FilterSet Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsFilterSet
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsFilterSet(Container $container): AdminViewsFilterSet
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 filter is styled and submitted the way it was
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.FilterSet');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.FilterSet');
+	}
+
+	/**
+	 * Get The AdminViews FilterSet Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsFilterSet
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsFilterSet(Container $container): SharedAdminViewsFilterSet
+	{
+		return new SharedAdminViewsFilterSet(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Utilities.Structure'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Filter')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 AdminViews FilterSet Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsFilterSet
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsFilterSet(Container $container): J3AdminViewsFilterSet
+	{
+		return new J3AdminViewsFilterSet(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Utilities.Structure'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Filter')
+		);
+	}
+
+	/**
+	 * Get The AdminViews FilterListSet Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsFilterListSet
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsFilterListSet(Container $container): AdminViewsFilterListSet
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 filter is styled and submitted the way it was
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.FilterListSet');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.FilterListSet');
+	}
+
+	/**
+	 * Get The AdminViews FilterListSet Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsFilterListSet
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsFilterListSet(Container $container): SharedAdminViewsFilterListSet
+	{
+		return new SharedAdminViewsFilterListSet(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Sort'),
+			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 AdminViews FilterListSet Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsFilterListSet
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsFilterListSet(Container $container): J3AdminViewsFilterListSet
+	{
+		return new J3AdminViewsFilterListSet(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Sort'),
+			$container->get('Adminview.DefaultOrdering')
+		);
 	}
 
 	/**

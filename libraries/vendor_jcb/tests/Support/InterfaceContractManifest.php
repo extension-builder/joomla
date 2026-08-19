@@ -304,6 +304,20 @@ final class InterfaceContractManifest
 			'implementation_hash' => '46cf3e681b936c25645d8cd10ded1db02b61d2d27119fda5bd7d1034459496ce',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\FilterSetInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/FilterSetInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '79afe5645ff6de358892e8eb6c1d7e1c756f4b658994d50d31cd2abf5674ec4e',
+			'signature_hash' => '4ece92006a63ea85530b4833a45f8ea911c1ae69c5e7fef192f124d96a987354'
+		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\FilterListSetInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/FilterListSetInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '390e2fbcbc5d680e734eb59bd3e54effffc4a49d0fab1d15a57d903ace1b6391',
+			'signature_hash' => '4ece92006a63ea85530b4833a45f8ea911c1ae69c5e7fef192f124d96a987354'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\EximportButtonsInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/EximportButtonsInterface.php',
 			'implementations' => 2,

@@ -89,6 +89,26 @@ return [
 			=> 'the version half chose the class, and the $parent_key half became an early return on !== guid',
 		"&&S->get('joomla_version',3)==3)"
 			=> 'the version half of the export and import button guard chose the class, and the eximport half became a Registry read',
+		'&&!S->isString($nameSingleCode.\'.access\'))'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'&&S->get("{$nameListCode}.filter",0)>=1)'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'elseif(ArrayHelper::check('
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if(!S->isString($nameSingleCode.\'.published\'))'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if(!isset($donelist[$filter[\'code\']]))'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if($filter[\'type\']!=\'category\')'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if($filter[\'type\']===\'category\')'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if(S->exists("{$nameListCode}.extension")'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if(S->exists($nameSingleCode)'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
+		'if(S->get($nameListCode,1)==2)'
+			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
 		'if(isset($this->DashboardGetCustomData)'
 			=> 'the method names became a declared ?array on the class that reads them, which is null until they have been read',
 		'if($view[\'settings\']->main_get->pagination==1)'

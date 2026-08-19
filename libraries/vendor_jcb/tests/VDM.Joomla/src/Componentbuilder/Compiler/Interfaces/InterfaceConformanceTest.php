@@ -49,7 +49,7 @@ final class InterfaceConformanceTest extends InterfaceContractTestCase
 	 */
 	public function testManifestContainsEveryCompilerInterface(): void
 	{
-		$this->assertCount(76, iterator_to_array(self::interfaceContracts()));
+		$this->assertCount(78, iterator_to_array(self::interfaceContracts()));
 	}
 
 	/**
