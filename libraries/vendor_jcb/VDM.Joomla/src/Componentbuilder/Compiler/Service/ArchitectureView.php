@@ -101,6 +101,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\Disp
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomMainMenu as MenuCustomMainMenu;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomSubMenu as MenuCustomSubMenu;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\SubMenus as MenuSubMenus;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\MainMenusInterface as MenuMainMenusInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\MainMenus as SharedMenuMainMenus;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\MainMenus as J3MenuMainMenus;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoaderInterface as ViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\UikitLoader as SharedViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\UikitLoader as J6ViewUikitLoader;
@@ -404,6 +409,21 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(MenuCustomMainMenu::class, 'Architecture.Menu.CustomMainMenu')
 			->share('Architecture.Menu.CustomMainMenu', [$this, 'getMenuCustomMainMenu'], true);
+
+		$container->alias(MenuCustomSubMenu::class, 'Architecture.Menu.CustomSubMenu')
+			->share('Architecture.Menu.CustomSubMenu', [$this, 'getMenuCustomSubMenu'], true);
+
+		$container->alias(MenuSubMenus::class, 'Architecture.Menu.SubMenus')
+			->share('Architecture.Menu.SubMenus', [$this, 'getMenuSubMenus'], true);
+
+		$container->alias(MenuMainMenusInterface::class, 'Architecture.Menu.MainMenus')
+			->share('Architecture.Menu.MainMenus', [$this, 'getMenuMainMenus'], true);
+
+		$container->alias(SharedMenuMainMenus::class, 'Architecture.Menu.Shared.MainMenus')
+			->share('Architecture.Menu.Shared.MainMenus', [$this, 'getSharedMenuMainMenus'], true);
+
+		$container->alias(J3MenuMainMenus::class, 'Architecture.Menu.J3.MainMenus')
+			->share('Architecture.Menu.J3.MainMenus', [$this, 'getJ3MenuMainMenus'], true);
 
 		$container->alias(ViewUikitLoader::class, 'Architecture.View.UikitLoader')
 			->share('Architecture.View.UikitLoader', [$this, 'getViewUikitLoader'], true);
@@ -2153,6 +2173,110 @@ class ArchitectureView implements ServiceProviderInterface
 		return new MenuCustomMainMenu(
 			$container->get('Component'),
 			$container->get('Language')
+		);
+	}
+
+	/**
+	 * Get The MenuCustomSubMenu Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuCustomSubMenu
+	 * @since   6.1.7
+	 */
+	public function getMenuCustomSubMenu(Container $container): MenuCustomSubMenu
+	{
+		return new MenuCustomSubMenu(
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Creator.Permission')
+		);
+	}
+
+	/**
+	 * Get The MenuSubMenus Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuSubMenus
+	 * @since   6.1.7
+	 */
+	public function getMenuSubMenus(Container $container): MenuSubMenus
+	{
+		return new MenuSubMenus(
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Category.Other.Name'),
+			$container->get('Compiler.Builder.Uninstall.Script.Context'),
+			$container->get('Compiler.Builder.Uninstall.Script.Fields'),
+			$container->get('Architecture.Menu.CustomSubMenu')
+		);
+	}
+
+	/**
+	 * Get The MenuMainMenus Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  MenuMainMenusInterface
+	 * @since   6.1.7
+	 */
+	public function getMenuMainMenus(Container $container): MenuMainMenusInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 has no default dashboard for a component to reach
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Menu.J3.MainMenus');
+		}
+
+		return $container->get('Architecture.Menu.Shared.MainMenus');
+	}
+
+	/**
+	 * Get The Menu MainMenus Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedMenuMainMenus
+	 * @since   6.1.7
+	 */
+	public function getSharedMenuMainMenus(Container $container): SharedMenuMainMenus
+	{
+		return new SharedMenuMainMenus(
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Architecture.Menu.CustomMainMenu')
+		);
+	}
+
+	/**
+	 * Get The MenuMainMenus Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3MenuMainMenus
+	 * @since   6.1.7
+	 */
+	public function getJ3MenuMainMenus(Container $container): J3MenuMainMenus
+	{
+		return new J3MenuMainMenus(
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Architecture.Menu.CustomMainMenu')
 		);
 	}
 

@@ -72,6 +72,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UikitComp;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UpdateMysql;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContent;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptFields;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContext;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript;
@@ -266,6 +267,9 @@ class BuilderLZ implements ServiceProviderInterface
 		$container->alias(UpdateMysql::class, 'Compiler.Builder.Update.Mysql')
 			->share('Compiler.Builder.Update.Mysql', [$this, 'getUpdateMysql'], true);
 
+
+		$container->alias(UninstallScriptFields::class, 'Compiler.Builder.Uninstall.Script.Fields')
+			->share('Compiler.Builder.Uninstall.Script.Fields', [$this, 'getUninstallScriptFields'], true);
 
 		$container->alias(UninstallScriptContext::class, 'Compiler.Builder.Uninstall.Script.Context')
 			->share('Compiler.Builder.Uninstall.Script.Context', [$this, 'getUninstallScriptContext'], true);
@@ -1024,6 +1028,19 @@ class BuilderLZ implements ServiceProviderInterface
 		return new UninstallScriptContext();
 	}
 
+
+	/**
+	 * Get The UninstallScriptFields Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UninstallScriptFields
+	 * @since   6.1.7
+	 */
+	public function getUninstallScriptFields(Container $container): UninstallScriptFields
+	{
+		return new UninstallScriptFields();
+	}
 	/**
 	 * Get The UninstallScriptContent Class.
 	 *
