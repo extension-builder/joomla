@@ -28,6 +28,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\Asse
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\UninstallScriptInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallScript as SharedUninstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\UninstallScript as J3UninstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\ContentTypesInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ContentTypes as SharedContentTypes;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\ContentTypes as J3ContentTypes;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallSql;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\InstallSql as SharedInstallSql;
@@ -120,6 +123,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3UninstallScript::class, 'Architecture.Component.J3.UninstallScript')
 			->share('Architecture.Component.J3.UninstallScript', [$this, 'getJ3UninstallScript'], true);
+
+		$container->alias(ContentTypesInterface::class, 'Architecture.Component.ContentTypes')
+			->share('Architecture.Component.ContentTypes', [$this, 'getContentTypes'], true);
+
+		$container->alias(SharedContentTypes::class, 'Architecture.Component.Shared.ContentTypes')
+			->share('Architecture.Component.Shared.ContentTypes', [$this, 'getSharedContentTypes'], true);
+
+		$container->alias(J3ContentTypes::class, 'Architecture.Component.J3.ContentTypes')
+			->share('Architecture.Component.J3.ContentTypes', [$this, 'getJ3ContentTypes'], true);
 
 		$container->alias(UninstallSql::class, 'Architecture.Component.UninstallSql')
 			->share('Architecture.Component.UninstallSql', [$this, 'getUninstallSql'], true);
@@ -455,6 +467,92 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Customcode.Dispenser'),
 			$container->get('Architecture.Component.AssetsTable')
+		);
+	}
+
+	/**
+	 * Get The ContentTypes Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ContentTypesInterface
+	 * @since   6.1.7
+	 */
+	public function getContentTypes(Container $container): ContentTypesInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 inserts its own content type rows
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.ContentTypes');
+		}
+
+		return $container->get('Architecture.Component.Shared.ContentTypes');
+	}
+
+	/**
+	 * Get The Component ContentTypes Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedContentTypes
+	 * @since   6.1.7
+	 */
+	public function getSharedContentTypes(Container $container): SharedContentTypes
+	{
+		return new SharedContentTypes(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Custom.Field.Links'),
+			$container->get('Compiler.Builder.Dynamic.Fields'),
+			$container->get('Compiler.Builder.Hidden.Fields'),
+			$container->get('Compiler.Builder.History'),
+			$container->get('Compiler.Builder.Integer.Fields'),
+			$container->get('Compiler.Builder.Main.Text.Field'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Compiler.Builder.Title'),
+			$container->get('Compiler.Builder.Uninstall.Script.Context'),
+			$container->get('Compiler.Builder.Uninstall.Script.Content')
+		);
+	}
+
+	/**
+	 * Get The ContentTypes Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ContentTypes
+	 * @since   6.1.7
+	 */
+	public function getJ3ContentTypes(Container $container): J3ContentTypes
+	{
+		return new J3ContentTypes(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Custom.Field.Links'),
+			$container->get('Compiler.Builder.Dynamic.Fields'),
+			$container->get('Compiler.Builder.Hidden.Fields'),
+			$container->get('Compiler.Builder.History'),
+			$container->get('Compiler.Builder.Integer.Fields'),
+			$container->get('Compiler.Builder.Main.Text.Field'),
+			$container->get('Compiler.Builder.Meta.Data'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Compiler.Builder.Title'),
+			$container->get('Compiler.Builder.Uninstall.Script.Context'),
+			$container->get('Compiler.Builder.Uninstall.Script.Content')
 		);
 	}
 

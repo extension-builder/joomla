@@ -71,6 +71,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\TemplateData;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UikitComp;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UpdateMysql;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContent;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContext;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
@@ -264,6 +266,12 @@ class BuilderLZ implements ServiceProviderInterface
 		$container->alias(UpdateMysql::class, 'Compiler.Builder.Update.Mysql')
 			->share('Compiler.Builder.Update.Mysql', [$this, 'getUpdateMysql'], true);
 
+
+		$container->alias(UninstallScriptContext::class, 'Compiler.Builder.Uninstall.Script.Context')
+			->share('Compiler.Builder.Uninstall.Script.Context', [$this, 'getUninstallScriptContext'], true);
+
+		$container->alias(UninstallScriptContent::class, 'Compiler.Builder.Uninstall.Script.Content')
+			->share('Compiler.Builder.Uninstall.Script.Content', [$this, 'getUninstallScriptContent'], true);
 
 		$container->alias(ValidationFix::class, 'Compiler.Builder.Validation.Fix')
 			->share('Compiler.Builder.Validation.Fix', [$this, 'getValidationFix'], true);
@@ -1002,6 +1010,32 @@ class BuilderLZ implements ServiceProviderInterface
 	}
 
 
+
+	/**
+	 * Get The UninstallScriptContext Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UninstallScriptContext
+	 * @since   6.1.7
+	 */
+	public function getUninstallScriptContext(Container $container): UninstallScriptContext
+	{
+		return new UninstallScriptContext();
+	}
+
+	/**
+	 * Get The UninstallScriptContent Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  UninstallScriptContent
+	 * @since   6.1.7
+	 */
+	public function getUninstallScriptContent(Container $container): UninstallScriptContent
+	{
+		return new UninstallScriptContent();
+	}
 	/**
 	 * Get The ViewScript Class.
 	 *
