@@ -729,225 +729,36 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the body of a custom view.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated body.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.Body instead.
+	 */
 	public function setCustomViewBody(&$view)
 	{
-		if (StringHelper::check($view['settings']->default))
-		{
-			if ($view['settings']->main_get->gettype == 2
-				&& $view['settings']->main_get->pagination == 1)
-			{
-				// does this view have a custom limitbox position
-				$has_limitbox = (strpos(
-						(string) $view['settings']->default,
-						(string) Placefix::_('LIMITBOX')
-					) !== false);
-				// does this view have a custom pages counter position
-				$has_pagescounter = (strpos(
-						(string) $view['settings']->default,
-						(string) Placefix::_('PAGESCOUNTER')
-					) !== false);
-				// does this view have a custom pages links position
-				$has_pageslinks = (strpos(
-						(string) $view['settings']->default,
-						(string) Placefix::_('PAGESLINKS')
-					) !== false);
-				// does this view have a custom pagination start position
-				$has_pagination_start = (strpos(
-						(string) $view['settings']->default,
-						(string) Placefix::_('PAGINATIONSTART')
-					) !== false);
-				// does this view have a custom pagination end position
-				$has_pagination_end = (strpos(
-						(string) $view['settings']->default,
-						(string) Placefix::_('PAGINATIONEND')
-					) !== false);
-				// if both page link and limit box is on the page, and page counter we don't need to add START and END stuff
-				$has_pagination = ($has_limitbox && $has_pagescounter && $has_pageslinks);
-
-				// add pagination start
-				CFactory::_('Placeholder')->add_('PAGINATIONSTART', PHP_EOL
-					. '<?php if (isset($this->items) && isset($this->pagination) && isset($this->pagination->pagesTotal) && $this->pagination->pagesTotal > 1): ?>');
-				CFactory::_('Placeholder')->add_('PAGINATIONSTART',
-					PHP_EOL . Indent::_(1) . '<div class="pagination">');
-				CFactory::_('Placeholder')->add_('PAGINATIONSTART',
-					PHP_EOL . Indent::_(2)
-					. '<?php if ($this->params->def(\'show_pagination_results\', 1)) : ?>');
-
-				// add pagination end
-				CFactory::_('Placeholder')->set_('PAGINATIONEND',
-						Indent::_(2) . '<?php endif; ?>');
-
-				// only add if no custom page link is found
-				if (!$has_pageslinks)
-				{
-					if (CFactory::_('Config')->build_target === 'custom_admin')
-					{
-						CFactory::_('Placeholder')->add_('PAGINATIONEND',
-							PHP_EOL . Indent::_(2)
-							. '<?php echo $this->pagination->getListFooter(); ?>');
-					}
-					else
-					{
-						CFactory::_('Placeholder')->add_('PAGINATIONEND',
-							PHP_EOL . Indent::_(2)
-							. '<?php echo $this->pagination->getPagesLinks(); ?>');
-					}
-				}
-
-				CFactory::_('Placeholder')->add_('PAGINATIONEND',
-					PHP_EOL . Indent::_(1) . '</div>');
-				CFactory::_('Placeholder')->add_('PAGINATIONEND',
-					PHP_EOL . '<?php endif; ?>');
-
-				// add limit box
-				CFactory::_('Placeholder')->set_('LIMITBOX',
-					'<?php echo $this->pagination->getLimitBox(); ?>');
-
-				// add pages counter
-				CFactory::_('Placeholder')->set_('PAGESCOUNTER',
-					'<?php echo $this->pagination->getPagesCounter(); ?>');
-
-				// add pages links
-				if (CFactory::_('Config')->build_target === 'custom_admin')
-				{
-					CFactory::_('Placeholder')->set_('PAGESLINKS',
-						'<?php echo $this->pagination->getListFooter(); ?>');
-				}
-				else
-				{
-					CFactory::_('Placeholder')->set_('PAGESLINKS',
-						'<?php echo $this->pagination->getPagesLinks(); ?>');
-				}
-
-				// build body
-				$body = [];
-				// Load the default values to the body
-				$body[] = CFactory::_('Placeholder')->update_(
-					$view['settings']->default
-				);
-
-				// add pagination start
-				if (!$has_pagination && !$has_pagination_start)
-				{
-					$body[] = CFactory::_('Placeholder')->get_('PAGINATIONSTART');
-				}
-
-				if (!$has_limitbox && !$has_pagescounter)
-				{
-					$body[] = Indent::_(3)
-						. '<p class="counter pull-right"> <?php echo $this->pagination->getPagesCounter(); ?> <?php echo $this->pagination->getLimitBox(); ?></p>';
-				}
-				elseif (!$has_limitbox)
-				{
-					$body[] = Indent::_(3)
-						. '<p class="counter pull-right"> <?php echo $this->pagination->getLimitBox(); ?></p>';
-				}
-				elseif (!$has_pagescounter)
-				{
-					$body[] = Indent::_(3)
-						. '<p class="counter pull-right"> <?php echo $this->pagination->getPagesCounter(); ?> </p>';
-				}
-				// add pagination end
-				if (!$has_pagination && !$has_pagination_end)
-				{
-					$body[] = CFactory::_('Placeholder')->get_('PAGINATIONEND');
-				}
-
-				// lets clear the placeholders just in case
-				CFactory::_('Placeholder')->remove_('LIMITBOX');
-				CFactory::_('Placeholder')->remove_('PAGESCOUNTER');
-				CFactory::_('Placeholder')->remove_('PAGESLINKS');
-				CFactory::_('Placeholder')->remove_('PAGINATIONSTART');
-				CFactory::_('Placeholder')->remove_('PAGINATIONEND');
-
-				// insure the form is added (only if no form exist)
-				if (strpos((string) $view['settings']->default, '<form') === false)
-				{
-					CFactory::_('Compiler.Builder.Custom.Form')->set(CFactory::_('Config')->build_target . "." . $view['settings']->code, true);
-				}
-
-				// return the body
-				return implode(PHP_EOL, $body);
-			}
-			else
-			{
-				// insure the form is added (only if no form exist)
-				if ('site' !== CFactory::_('Config')->build_target
-					&& strpos((string) $view['settings']->default, '<form') === false)
-				{
-					CFactory::_('Compiler.Builder.Custom.Form')->set(CFactory::_('Config')->build_target . "." . $view['settings']->code, true);
-				}
-
-				return PHP_EOL . CFactory::_('Placeholder')->update_(
-						$view['settings']->default
-					);
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.CustomView.Body')->get($view);
 	}
 
+	/**
+	 * Set the form a custom view is wrapped in.
+	 *
+	 * @param   string  $view     The view name.
+	 * @param   int     $gettype  What the main get method of the view returns.
+	 * @param   int     $type     Which half of the form is wanted.
+	 *
+	 * @return  string  The generated markup.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.Form instead.
+	 */
 	public function setCustomViewForm(&$view, &$gettype, $type)
 	{
-		if (CFactory::_('Compiler.Builder.Custom.Form')->exists(CFactory::_('Config')->build_target . "." . $view))
-		{
-			switch ($type)
-			{
-				case 1:
-					// top
-					if ('site' === CFactory::_('Config')->build_target)
-					{
-						if (CFactory::_('Config')->get('joomla_version', 3) >= 6)
-						{
-							return '<form action="<?php echo Joomla__'.'_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_(\'index.php'
-								. '\'); ?>" method="post" name="adminForm" id="adminForm">'
-								. PHP_EOL; // yes we only need index.php
-						}
-						else
-						{
-							return '<form action="<?php echo Joomla__'.'_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_(\'index.php?option=com_'
-								. CFactory::_('Config')->component_code_name
-								. '\'); ?>" method="post" name="adminForm" id="adminForm">'
-								. PHP_EOL;
-						}
-					}
-					else
-					{
-						if ($gettype == 2)
-						{
-							return '<form action="<?php echo Joomla__'.'_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_(\'index.php?option=com_'
-								. CFactory::_('Config')->component_code_name . '&view=' . $view
-								. '\'); ?>" method="post" name="adminForm" id="adminForm" class="form-validate" enctype="multipart/form-data">'
-								. PHP_EOL;
-						}
-						else
-						{
-							return '<form action="<?php echo Joomla__'.'_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_(\'index.php?option=com_'
-								. CFactory::_('Config')->component_code_name . '&view=' . $view
-								. '\' . $urlId); ?>" method="post" name="adminForm" id="adminForm" class="form-validate" enctype="multipart/form-data">'
-								. PHP_EOL;
-						}
-					}
-					break;
-				case 2:
-					// bottom
-					$input = '';
-					if ('admin' === CFactory::_('Config')->build_target
-						&& isset($this->customAdminViewListId[$view]))
-					{
-						$input = PHP_EOL . Indent::_(1)
-							. '<input type="hidden" name="id" value="<?php echo $this->app->getInput()->getInt(\'id\', 0); ?>" />';
-					}
-
-					return $input . PHP_EOL
-						. '<input type="hidden" name="task" value="" />'
-						. PHP_EOL . "<?php echo Html::_('form.token'); ?>"
-						. PHP_EOL . '</form>';
-					break;
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.CustomView.Form')->get($view, $gettype, $type);
 	}
 
 	public function setCustomViewSubmitButtonScript(&$view)
@@ -1004,115 +815,34 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the templates a custom view was drawn with.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.TemplateBody instead.
+	 */
 	public function setCustomViewTemplateBody(&$view)
 	{
-		if (($data_ = CFactory::_('Compiler.Builder.Template.Data')->
-			get(CFactory::_('Config')->build_target . '.' . $view['settings']->code)) !== null)
-		{
-			$created  = CFactory::_('Model.Createdate')->get($view);
-			$modified = CFactory::_('Model.Modifieddate')->get($view);
-			foreach ($data_ as $template => $data)
-			{
-				// build the file
-				$target = [
-					CFactory::_('Config')->build_target => $view['settings']->code
-				];
-				$config = [
-					Placefix::_h('CREATIONDATE') => $created,
-					Placefix::_h('BUILDDATE') => $modified,
-					Placefix::_h('VERSION') => $view['settings']->version
-				];
-				CFactory::_('Utilities.Structure')->build($target, 'template', $template, $config);
-				// set the file data
-				$TARGET = StringHelper::safe(
-					CFactory::_('Config')->build_target, 'U'
-				);
-				if (!isset($data['html']) || $data['html'] === null)
-				{
-					echo '<pre>';
-					var_dump($data);
-					exit;
-				}
-				// SITE_TEMPLATE_BODY <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '_'
-					. $template . '|' . $TARGET . '_TEMPLATE_BODY', PHP_EOL . CFactory::_('Placeholder')->update_(
-						$data['html']
-					));
-				if (!isset($data['php_view']) || $data['php_view'] === null)
-				{
-					echo '<pre>';
-					var_dump($data);
-					exit;
-				}
-				// SITE_TEMPLATE_CODE_BODY <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '_'
-					. $template . '|' . $TARGET . '_TEMPLATE_CODE_BODY',
-					$this->setTemplateCode($data['php_view'])
-				);
-			}
-		}
+		CFactory::_('Architecture.CustomView.TemplateBody')->set($view);
 	}
 
-	public function setTemplateCode(&$php)
-	{
-		if (StringHelper::check($php))
-		{
-			$php_view = (array) explode(PHP_EOL, (string) $php);
-			if (ArrayHelper::check($php_view))
-			{
-				$php_view = PHP_EOL . PHP_EOL . implode(PHP_EOL, $php_view);
 
-				return CFactory::_('Placeholder')->update_($php_view);
-			}
-		}
 
-		return '';
-	}
-
+	/**
+	 * Set the layouts of the build target.
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.Layouts instead.
+	 */
 	public function setCustomViewLayouts()
 	{
-		if (($data_ = CFactory::_('Compiler.Builder.Layout.Data')->
-			get(CFactory::_('Config')->build_target)) !== null)
-		{
-			foreach ($data_ as $layout => $data)
-			{
-				// build the file
-				$target = array(CFactory::_('Config')->build_target => $layout);
-				CFactory::_('Utilities.Structure')->build($target, 'layout');
-				// set the file data
-				$TARGET = StringHelper::safe(
-					CFactory::_('Config')->build_target, 'U'
-				);
-				// SITE_LAYOUT_CODE <<<DYNAMIC>>>
-				$php_view = (array) explode(PHP_EOL, (string) $data['php_view']);
-				if (ArrayHelper::check($php_view))
-				{
-					$php_view = PHP_EOL . PHP_EOL . implode(PHP_EOL, $php_view);
-					CFactory::_('Compiler.Builder.Content.Multi')->set($layout . '|' . $TARGET . '_LAYOUT_CODE',
-						CFactory::_('Placeholder')->update_(
-							$php_view
-						)
-					);
-				}
-				else
-				{
-					CFactory::_('Compiler.Builder.Content.Multi')->set($layout . '|' . $TARGET
-						. '_LAYOUT_CODE',  '');
-				}
-				// SITE_LAYOUT_BODY <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($layout . '|' . $TARGET . '_LAYOUT_BODY',
-					PHP_EOL . CFactory::_('Placeholder')->update_(
-						$data['html']
-					)
-				);
-				// SITE_LAYOUT_HEADER <<<DYNAMIC>>>
-				CFactory::_('Compiler.Builder.Content.Multi')->set($layout . '|' . $TARGET . '_LAYOUT_HEADER',
-					(($header = CFactory::_('Header')->get(
-							str_replace('_', '.', (string) CFactory::_('Config')->build_target) . '.layout',
-							$layout, false)) !== false) ? PHP_EOL . PHP_EOL . $header : ''
-				);
-			}
-		}
+		CFactory::_('Architecture.CustomView.Layouts')->set();
 	}
 
 	public function getReplacementNames()

@@ -132,6 +132,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\Sid
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\BatchOptionsInterface as AdminViewsBatchOptionsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\BatchOptions as SharedAdminViewsBatchOptions;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\BatchOptions as J3AdminViewsBatchOptions;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Body as CustomViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\TemplateBody as CustomViewTemplateBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Layouts as CustomViewLayouts;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\FormInterface as CustomViewFormInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Form as SharedCustomViewForm;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\Form as J6CustomViewForm;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -541,6 +547,24 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsBatchOptions::class, 'Architecture.AdminViews.J3.BatchOptions')
 			->share('Architecture.AdminViews.J3.BatchOptions', [$this, 'getJ3AdminViewsBatchOptions'], true);
+
+		$container->alias(CustomViewBody::class, 'Architecture.CustomView.Body')
+			->share('Architecture.CustomView.Body', [$this, 'getCustomViewBody'], true);
+
+		$container->alias(CustomViewTemplateBody::class, 'Architecture.CustomView.TemplateBody')
+			->share('Architecture.CustomView.TemplateBody', [$this, 'getCustomViewTemplateBody'], true);
+
+		$container->alias(CustomViewLayouts::class, 'Architecture.CustomView.Layouts')
+			->share('Architecture.CustomView.Layouts', [$this, 'getCustomViewLayouts'], true);
+
+		$container->alias(CustomViewFormInterface::class, 'Architecture.CustomView.Form')
+			->share('Architecture.CustomView.Form', [$this, 'getCustomViewForm'], true);
+
+		$container->alias(SharedCustomViewForm::class, 'Architecture.CustomView.Shared.Form')
+			->share('Architecture.CustomView.Shared.Form', [$this, 'getSharedCustomViewForm'], true);
+
+		$container->alias(J6CustomViewForm::class, 'Architecture.CustomView.J6.Form')
+			->share('Architecture.CustomView.J6.Form', [$this, 'getJ6CustomViewForm'], true);
 	}
 
 	/**
@@ -2964,6 +2988,122 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Field.Names'),
 			$container->get('Compiler.Builder.Category'),
 			$container->get('Component')
+		);
+	}
+
+	/**
+	 * Get The CustomView Body Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewBody
+	 * @since   6.1.7
+	 */
+	public function getCustomViewBody(Container $container): CustomViewBody
+	{
+		return new CustomViewBody(
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Config'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The CustomView TemplateBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewTemplateBody
+	 * @since   6.1.7
+	 */
+	public function getCustomViewTemplateBody(Container $container): CustomViewTemplateBody
+	{
+		return new CustomViewTemplateBody(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Template.Data'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The CustomView Layouts Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewLayouts
+	 * @since   6.1.7
+	 */
+	public function getCustomViewLayouts(Container $container): CustomViewLayouts
+	{
+		return new CustomViewLayouts(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Layout.Data'),
+			$container->get('Utilities.Structure'),
+			$container->get('Header')
+		);
+	}
+
+	/**
+	 * Get The CustomView Form Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewFormInterface
+	 * @since   6.1.7
+	 */
+	public function getCustomViewForm(Container $container): CustomViewFormInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 6 carries the component in the route rather than the query
+		if ((int) $this->targetVersion >= 6)
+		{
+			return $container->get('Architecture.CustomView.J6.Form');
+		}
+
+		return $container->get('Architecture.CustomView.Shared.Form');
+	}
+
+	/**
+	 * Get The CustomView Form Class shared by every earlier target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedCustomViewForm
+	 * @since   6.1.7
+	 */
+	public function getSharedCustomViewForm(Container $container): SharedCustomViewForm
+	{
+		return new SharedCustomViewForm(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Compiler.Builder.Custom.Admin.View.List.Id')
+		);
+	}
+
+	/**
+	 * Get The Joomla 6 CustomView Form Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6CustomViewForm
+	 * @since   6.1.7
+	 */
+	public function getJ6CustomViewForm(Container $container): J6CustomViewForm
+	{
+		return new J6CustomViewForm(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Compiler.Builder.Custom.Admin.View.List.Id')
 		);
 	}
 }

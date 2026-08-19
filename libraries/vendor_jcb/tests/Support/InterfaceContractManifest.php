@@ -178,6 +178,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => 'd4ab69532cb84bd596f50d40a33dc5102e6d9318da5dded15851ea87764b2545',
 			'signature_hash' => 'beb29674b15b82974ea075b60692efdc75637b6198131fe6cec6694e51440ec8'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\CustomView\\FormInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/CustomView/FormInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'b73996f4a99e0dd645cf428fb9e75f06a47583de9d5dee84ec2f207cc2efd69b',
+			'signature_hash' => '3f4f11de8e50cf172ac0327057d769a53c7750ef28a3d079d34e593adce7aa73'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Dashboard\\ViewInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Dashboard/ViewInterface.php',
 			'implementations' => 4,

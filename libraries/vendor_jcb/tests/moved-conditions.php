@@ -73,6 +73,8 @@ return [
 			=> 'what a task that cannot run answers with became the failed() extension point',
 		'if($isJoomla3)'
 			=> 'how the ajax model is asked for became the ajaxModel() extension point',
+		'&&isset($this->customAdminViewListId[$view]))'
+			=> 'the property was a copy the compiler refreshed by hand, and the class reads the registry it copied',
 		'if(isset($this->viewScriptBuilder[$view])'
 			=> 'the scripts array became a Registry, and its get() returns null for a view that was given no script',
 		'&&isset($this->viewScriptBuilder[$view][$type]))'
@@ -186,6 +188,8 @@ return [
 			=> 'the entries taken from the custom menus, where the legacy read the property it kept them in',
 		"if(S->get('build.dashboard',null)!==null)"
 			=> 'the early return that carries the dashboard half of the guard it replaced',
+		'if((int)$this->targetVersion>=6)'
+			=> 'the joomla_version >= 6 branch of the site form became the provider selector that chooses the class',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],
