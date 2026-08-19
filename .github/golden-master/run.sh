@@ -5,9 +5,13 @@
 #
 # The released compiler comes from the octoleo/joomengine image. Its entrypoint
 # installs Joomla, installs the released JCB package, and then runs whatever
-# JOOMLA_CLI_COMMANDS holds, which is the first compile. That takes a while, and
-# the entrypoint says so in the container log when each step is done, so this
-# script waits for those lines rather than guessing.
+# JOOMLA_CLI_COMMANDS holds, which is where the component is fetched. That takes
+# a while, and the entrypoint says so in the container log when each step is
+# done, so this script waits for those lines rather than guessing.
+#
+# Both compiles are then driven from here, one before this working tree is
+# installed and one after. Driving one of them through the entrypoint and the
+# other by hand would put the harness itself into the comparison.
 #
 # This working tree then goes in the way JCB expects: zipped, handed to the
 # container, and installed with the same extension:install the entrypoint uses.
@@ -18,7 +22,10 @@
 # usage: .github/golden-master/run.sh [output-directory]
 #
 # Environment:
-#   COMPONENT       GUID of the component to compile (default: the demo one)
+#   COMPONENT       GUID of the component to compile
+#   REPOSITORY      GUID of the repository to fetch that component from. Set it
+#                   empty to skip the fetch, for a component the site already
+#                   has
 #   COMPILE_EXTRA   Extra options for both compiles; a Joomla version flag here
 #                   is rejected, since the target is not a choice
 #   KEEP_STACK      Leave the containers running afterwards when set to 1
@@ -29,7 +36,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/.github/golden-master/docker-compose.yml"
 OUT_DIR="${1:-${REPO_ROOT}/.golden-master}"
 
-COMPONENT="${COMPONENT:-1c20aec5-bf1a-44e7-9deb-d1c920ca591d}"
+COMPONENT="${COMPONENT:-160d0efb-6bf0-48eb-8d46-55cf74729501}"
+REPOSITORY="${REPOSITORY-ca50a886-0fd9-4fd8-803f-ba2cd9f43f55}"
 KEEP_STACK="${KEEP_STACK:-0}"
 
 # This work targets Joomla 6, and only Joomla 6. It is not a knob: a run that
@@ -68,20 +76,32 @@ fi
 # version flag that got in ahead of this one would win.
 COMPILE_EXTRA="${COMPILE_EXTRA} --joomla-version=${JOOMLA_VERSION}"
 
-# The command the container runs for us, and that we run again ourselves.
-COMPILE_COMMAND="componentbuilder:compile:component --component=${COMPONENT} ${COMPILE_EXTRA}"
-export JCB_COMPILE_COMMAND="${COMPILE_COMMAND}"
-
 # shellcheck source=.github/golden-master/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+# The compile we run twice, and the fetch the container runs once before either
+# of them. Fetching once rather than before each compile is not only cheaper: it
+# is what makes the comparison mean anything, since both compilers then read the
+# same component out of the same database.
+COMPILE_COMMAND="componentbuilder:compile:component --component=${COMPONENT} ${COMPILE_EXTRA}"
+PULL_COMMAND="$(pull_command "${COMPONENT}" "${REPOSITORY}")"
+export JCB_CLI_COMMANDS="${PULL_COMMAND}"
 
 trap cleanup EXIT
 
 mkdir -p "${OUT_DIR}"
 rm -rf "${OUT_DIR:?}/"*
 
-say "Starting Joomla, which installs the released JCB and compiles with it"
+say "Starting Joomla, which installs the released JCB and fetches the component"
 say "Compile command: ${COMPILE_COMMAND}"
+
+if [[ -n "${PULL_COMMAND}" ]]
+then
+	say "Fetch command: ${PULL_COMMAND}"
+else
+	say "No repository given, so the component must already be on the site"
+fi
+
 compose up -d
 
 # The entrypoint installs the released JCB package first...
@@ -89,12 +109,16 @@ wait_for_log \
 	'Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip' \
 	'the released JCB is installed'
 
-# ...and only then runs the compile we asked it for.
-wait_for_log \
-	"Joomla CLI command succeeded: componentbuilder:compile:component --component=${COMPONENT}" \
-	'the first compile is done'
+# ...and only then fetches the component. Waiting for this is the gate: nothing
+# compiles until the fetch has said it succeeded.
+if [[ -n "${PULL_COMMAND}" ]]
+then
+	wait_for_log \
+		"Joomla CLI command succeeded: ${PULL_COMMAND}" \
+		'the component is fetched'
+fi
 
-compose logs joomla > "${OUT_DIR}/baseline.log" 2>&1
+run_compile baseline "${COMPILE_COMMAND}"
 take_packages baseline
 
 say "Packaging this working tree"
@@ -139,17 +163,10 @@ fi
 
 say "The container is now running this working tree's compiler"
 
-say "Compiling again, with the same options"
-if ! compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
-	${COMPILE_COMMAND} > "${OUT_DIR}/candidate.log" 2>&1
-then
-	say "The second compile failed. Its output:"
-	cat "${OUT_DIR}/candidate.log"
-	exit 1
-fi
-
-tail -20 "${OUT_DIR}/candidate.log"
+run_compile candidate "${COMPILE_COMMAND}"
 take_packages candidate
+
+compose logs joomla > "${OUT_DIR}/container.log" 2>&1
 
 say "Comparing what the two compilers produced"
 GOLDEN="${OUT_DIR}/golden"

@@ -42,10 +42,16 @@ compose() {
 			cat "${STUB_LOG}"
 			;;
 		'exec -T')
-			# compose exec -T joomla sh -c "<command>"
-			local command="${!#}"
-			command="${command//${WEBROOT}\/tmp/${STUB_TMP}}"
-			sh -c "${command}"
+			# take_packages runs `sh -c "<command>"`; run_compile runs php with
+			# the compile command, and only its exit status matters here.
+			if [[ "$4" == 'sh' ]]
+			then
+				local command="${!#}"
+				command="${command//${WEBROOT}\/tmp/${STUB_TMP}}"
+				sh -c "${command}"
+			else
+				compose_exec_stub
+			fi
 			;;
 		'cp '*)
 			cp "${2#joomla:}" "$3"
@@ -99,6 +105,28 @@ expect_exit "stops when the container reports a failed command" 1 \
 : > "${STUB_LOG}"
 expect_exit "gives up rather than waiting for ever" 1 \
 	wait_for_log 'a marker that will never appear' 'something that never happens'
+
+echo
+echo "pull_command"
+[[ "$(pull_command aaa bbb)" == 'componentbuilder:pull:component --items=aaa --repo=bbb' ]] \
+	&& check "names the component and the repository it comes from" pass \
+	|| check "names the component and the repository it comes from" fail
+[[ -z "$(pull_command aaa '')" ]] \
+	&& check "asks for nothing when the component is already local" pass \
+	|| check "asks for nothing when the component is already local" fail
+
+echo
+echo "run_compile"
+COMPILE_STUB_STATUS=0
+compose_exec_stub() { return "${COMPILE_STUB_STATUS}"; }
+expect_exit "keeps going when the compile succeeds" 0 run_compile ok 'compile:me'
+[[ -f "${OUT_DIR}/ok.log" ]] \
+	&& check "keeps what the compile said" pass || check "keeps what the compile said" fail
+
+COMPILE_STUB_STATUS=1
+expect_exit "stops when the compile fails" 1 run_compile bad 'compile:me'
+
+COMPILE_STUB_STATUS=0
 
 echo
 echo "take_packages"

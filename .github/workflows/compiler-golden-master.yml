@@ -11,7 +11,13 @@ on:
       component:
         description: GUID of the component to compile
         required: false
-        default: 1c20aec5-bf1a-44e7-9deb-d1c920ca591d
+        default: 160d0efb-6bf0-48eb-8d46-55cf74729501
+      repository:
+        description: >-
+          GUID of the repository to fetch that component from. Leave it empty
+          for a component the site already has.
+        required: false
+        default: ca50a886-0fd9-4fd8-803f-ba2cd9f43f55
 
 permissions:
   contents: read
@@ -29,6 +35,7 @@ jobs:
       - name: Compile with both compilers
         env:
           COMPONENT: ${{ inputs.component }}
+          REPOSITORY: ${{ inputs.repository }}
         run: bash .github/golden-master/run.sh "${GITHUB_WORKSPACE}/.golden-master"
 
       - name: Report what changed
@@ -40,6 +47,11 @@ jobs:
             echo "### Compiler golden master"
             echo
             echo "Component \`${{ inputs.component }}\`, compiled for Joomla 6."
+
+            if [[ -n "${{ inputs.repository }}" ]]; then
+              echo "Fetched first from repository \`${{ inputs.repository }}\`."
+            fi
+
             echo
 
             if [[ ! -f "$summary" ]]; then
@@ -67,6 +79,7 @@ jobs:
             .golden-master/full.diff
             .golden-master/baseline.log
             .golden-master/candidate.log
+            .golden-master/container.log
             .golden-master/baseline
             .golden-master/candidate
           if-no-files-found: warn

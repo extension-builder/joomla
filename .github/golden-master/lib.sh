@@ -53,6 +53,54 @@ wait_for_log() {
 	done
 }
 
+# Build the command that fetches a component before anything tries to compile it.
+#
+# The compile command resolves a component GUID through a service that looks
+# locally and then remotely, so compiling a component this site has never seen
+# makes one process do the fetching and the compiling both. That is what runs
+# the site out of memory. Fetching first, in a process of its own, means the
+# compile only ever reads what is already here.
+#
+# $1  the component GUID
+# $2  the repository GUID it can be found in, or empty when it is already local
+pull_command() {
+	local component="$1" repository="$2"
+
+	if [[ -z "${repository}" ]]
+	then
+		return 0
+	fi
+
+	printf 'componentbuilder:pull:component --items=%s --repo=%s' \
+		"${component}" "${repository}"
+}
+
+# Run one compile inside the container and keep what it said.
+#
+# Both compiles go through here, so the only difference between them is which
+# compiler is installed at the time. A compile driven one way and compared
+# against one driven another way would be comparing the harness as much as the
+# compilers.
+#
+# $1  a name for this run
+# $2  the compile command
+run_compile() {
+	local name="$1" command="$2"
+	local log="${OUT_DIR}/${name}.log"
+
+	say "Compiling with the ${name} compiler"
+
+	if ! compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
+		${command} > "${log}" 2>&1
+	then
+		say "The ${name} compile failed. Its output:"
+		cat "${log}"
+		exit 1
+	fi
+
+	tail -20 "${log}"
+}
+
 # Bring out everything the compiler just wrote.
 #
 # One compile can leave several packages behind - the component itself, and a
