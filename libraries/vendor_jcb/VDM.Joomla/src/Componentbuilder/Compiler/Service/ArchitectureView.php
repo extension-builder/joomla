@@ -157,6 +157,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\Fil
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface as AdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet as SharedAdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterListSet as J3AdminViewsFilterListSet;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewPlaceholders;
 
 
 /**
@@ -549,6 +550,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(ViewGetModules::class, 'Architecture.View.GetModules')
 			->share('Architecture.View.GetModules', [$this, 'getViewGetModules'], true);
+
+		$container->alias(ViewPlaceholders::class, 'Architecture.View.Placeholders')
+			->share('Architecture.View.Placeholders', [$this, 'getViewPlaceholders'], true);
 
 		$container->alias(ViewPrepareDocument::class, 'Architecture.View.PrepareDocument')
 			->share('Architecture.View.PrepareDocument', [$this, 'getViewPrepareDocument'], true);
@@ -2976,6 +2980,22 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Content.Multi'),
 			$container->get('Compiler.Builder.Get.Module')
+		);
+	}
+
+	/**
+	 * Get The View Placeholders Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewPlaceholders
+	 * @since   6.1.7
+	 */
+	public function getViewPlaceholders(Container $container): ViewPlaceholders
+	{
+		return new ViewPlaceholders(
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi')
 		);
 	}
 

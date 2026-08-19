@@ -29,9 +29,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Admin as Architec
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Site as ArchitectureLanguageSite;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\SiteSys as ArchitectureLanguageSiteSys;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\AdminSys as ArchitectureLanguageAdminSys;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Files as ArchitectureLanguageFiles;
 /**
  * Compiler Language Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class Language implements ServiceProviderInterface
@@ -73,6 +74,9 @@ class Language implements ServiceProviderInterface
 		$container->alias(Translation::class, 'Language.Translation')
 			->share('Language.Translation', [$this, 'getTranslation'], true);
 
+		$container->alias(ArchitectureLanguageFiles::class, 'Architecture.Language.Files')
+			->share('Architecture.Language.Files', [$this, 'getArchitectureLanguageFiles'], true);
+
 		$container->alias(ArchitectureLanguageAdmin::class, 'Architecture.Language.Admin')
 			->share('Architecture.Language.Admin', [$this, 'getArchitectureLanguageAdmin'], true);
 
@@ -84,6 +88,37 @@ class Language implements ServiceProviderInterface
 
 		$container->alias(ArchitectureLanguageAdminSys::class, 'Architecture.Language.AdminSys')
 			->share('Architecture.Language.AdminSys', [$this, 'getArchitectureLanguageAdminSys'], true);
+	}
+
+	/**
+	 * Get The Architecture Language Files Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ArchitectureLanguageFiles
+	 * @since   6.1.7
+	 */
+	public function getArchitectureLanguageFiles(Container $container): ArchitectureLanguageFiles
+	{
+		return new ArchitectureLanguageFiles(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Event'),
+			$container->get('Compiler.Builder.Languages'),
+			$container->get('Compiler.Builder.Multilingual'),
+			$container->get('Language.Multilingual'),
+			$container->get('Language.Set'),
+			$container->get('Language.Purge'),
+			$container->get('Language.Translation'),
+			$container->get('Architecture.Language.Admin'),
+			$container->get('Architecture.Language.AdminSys'),
+			$container->get('Architecture.Language.Site'),
+			$container->get('Architecture.Language.SiteSys'),
+			$container->get('Utilities.Paths'),
+			$container->get('Utilities.Counter'),
+			$container->get('Utilities.File'),
+			$container->get('Placeholder')
+		);
 	}
 
 	/**
