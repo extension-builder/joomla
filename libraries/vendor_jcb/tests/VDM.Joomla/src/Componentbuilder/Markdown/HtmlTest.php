@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Markdown;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Markdown\Html;
@@ -123,5 +124,72 @@ final class HtmlTest extends TestCase
 			'<blockquote>first<br>second</blockquote>',
 			(new Html())->convert("> first\n> second")
 		);
+	}
+
+	/**
+	 * Refuse a URL scheme that can execute script.
+	 *
+	 * convert() escapes the document before the link rules run, so a URL
+	 * cannot break out of the attribute, but it could still carry a
+	 * scripting scheme straight into href.
+	 *
+	 * @param   string  $markdown  Markdown carrying the candidate URL.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('refusedUrlSchemes')]
+	public function testConvertEmptiesAnExecutableUrlScheme(string $markdown): void
+	{
+		$this->assertStringContainsString('href=""', (new Html())->convert($markdown));
+	}
+
+	/**
+	 * URL schemes that must never reach an href.
+	 *
+	 * @return  array<string, array{string}>
+	 * @since   6.1.7
+	 */
+	public static function refusedUrlSchemes(): array
+	{
+		return [
+			'javascript' => ['[x](javascript:alert%281%29)'],
+			'javascript uppercase' => ['[x](JaVaScRiPt:alert%281%29)'],
+			'javascript split by a control character' => ["[x](java\tscript:alert%281%29)"],
+			'vbscript' => ['[x](vbscript:msgbox)'],
+			'data' => ['[x](data:text/html;base64,PHNjcmlwdD48L3NjcmlwdD4=)'],
+		];
+	}
+
+	/**
+	 * Keep the URLs a document legitimately links to.
+	 *
+	 * @param   string  $markdown  Markdown carrying the candidate URL.
+	 * @param   string  $expected  The href the document must keep.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('keptUrls')]
+	public function testConvertKeepsANonExecutableUrl(string $markdown, string $expected): void
+	{
+		$this->assertStringContainsString('href="' . $expected . '"', (new Html())->convert($markdown));
+	}
+
+	/**
+	 * URLs that must survive untouched.
+	 *
+	 * @return  array<string, array{string,string}>
+	 * @since   6.1.7
+	 */
+	public static function keptUrls(): array
+	{
+		return [
+			'https' => ['[x](https://example.test/a?b=1&c=2)', 'https://example.test/a?b=1&amp;c=2'],
+			'http' => ['[x](http://example.test)', 'http://example.test'],
+			'mailto' => ['[x](mailto:someone@example.test)', 'mailto:someone@example.test'],
+			'root relative' => ['[x](/index.php?option=com_test)', '/index.php?option=com_test'],
+			'anchor' => ['[x](#section)', '#section'],
+		];
 	}
 }
