@@ -4971,101 +4971,46 @@ class Interpretation extends Fields
 		return array('code' => $initial, 'array' => $array);
 	}
 
+	/**
+	 * Find the conditions of this view that steer the same target fields.
+	 *
+	 * @param   array   $relations  Every condition the view declares.
+	 * @param   array   $condition  The condition being chained.
+	 * @param   string  $view       The single view code name.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.TargetRelationScript service.
+	 */
 	public function getTargetRelationScript($relations, $condition, $view)
 	{
-		// reset the buket
-		$buket = [];
-		// convert to name array
-		foreach ($condition['target_field'] as $targetField)
-		{
-			if (ArrayHelper::check($targetField)
-				&& isset($targetField['name']))
-			{
-				$currentTargets[] = $targetField['name'];
-			}
-		}
-		// start the search
-		foreach ($relations as $relation)
-		{
-			// reset found
-			$found = false;
-			// chain only none matching fields
-			if ($relation['match_field'] !== $condition['match_field']
-				&& $relation['target_relation']) // Made this change to see if it improves the expected result (TODO)
-			{
-				if (ArrayHelper::check(
-					$relation['target_field']
-				))
-				{
-					foreach ($relation['target_field'] as $target)
-					{
-						if (ArrayHelper::check($target)
-							&& $this->checkRelationControl(
-								$target['name'], $relation['match_name'],
-								$condition['match_name'], $view
-							))
-						{
-							if (in_array($target['name'], $currentTargets))
-							{
-								$this->targetRelationControl[$view][$target['name']]
-									= array($relation['match_name'],
-									$condition['match_name']);
-								$found = true;
-								break;
-							}
-						}
-					}
-					if ($found)
-					{
-						$buket[] = $relation;
-					}
-				}
-			}
-		}
-
-		return $buket;
+		return CFactory::_('Architecture.Field.TargetRelationScript')->get(
+			(array) $relations, (array) $condition, (string) $view
+		);
 	}
 
+	/**
+	 * Test whether this target may still be claimed by this pair of matches.
+	 *
+	 * @param   string  $targetName          The name of the target field.
+	 * @param   mixed   $relationMatchName   The name the chained condition matches on.
+	 * @param   mixed   $conditionMatchName  The name the condition being chained matches on.
+	 * @param   string  $view                The single view code name.
+	 *
+	 * @return  bool
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.TargetRelationScript service.
+	 */
 	public function checkRelationControl($targetName, $relationMatchName,
-	                                     $conditionMatchName, $view
+		$conditionMatchName, $view
 	)
 	{
-		if (isset($this->targetRelationControl[$view])
-			&& ArrayHelper::check(
-				$this->targetRelationControl[$view]
-			))
-		{
-			if (isset($this->targetRelationControl[$view][$targetName])
-				&& ArrayHelper::check(
-					$this->targetRelationControl[$view][$targetName]
-				))
-			{
-				if (!in_array(
-						$relationMatchName,
-						$this->targetRelationControl[$view][$targetName]
-					)
-					|| !in_array(
-						$conditionMatchName,
-						$this->targetRelationControl[$view][$targetName]
-					))
-				{
-					return true;
-				}
-			}
-			else
-			{
-				return true;
-			}
-		}
-		elseif (!isset($this->targetRelationControl[$view])
-			|| !ArrayHelper::check(
-				$this->targetRelationControl[$view]
-			))
-		{
-			return true;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Field.TargetRelationScript')->checkControl(
+			(string) $targetName, $relationMatchName, $conditionMatchName,
+			(string) $view
+		);
 	}
 
 	/**
@@ -5119,128 +5064,42 @@ class Interpretation extends Fields
 		);
 	}
 
+	/**
+	 * Read the options a watched field declares.
+	 *
+	 * @param   mixed  $type     The type of the field being watched.
+	 * @param   mixed  $options  The options the field declares.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.OptionsScript service.
+	 */
 	public function getOptionsScript($type, $options)
 	{
-		$buket = [];
-		if (StringHelper::check($options))
-		{
-			if (CFactory::_('Field.Groups')->check($type, 'list')
-				|| CFactory::_('Field.Groups')->check($type, 'dynamic')
-				|| !CFactory::_('Field.Groups')->check($type))
-			{
-				$optionsArray = array_map(
-					'trim', (array) explode(PHP_EOL, (string) $options)
-				);
-				if (!ArrayHelper::check($optionsArray))
-				{
-					$optionsArray[] = $optionsArray;
-				}
-				foreach ($optionsArray as $option)
-				{
-					if (strpos($option, '|') !== false)
-					{
-						list($option) = array_map(
-							'trim', (array) explode('|', $option)
-						);
-					}
-					if ($option != 'dynamic_list')
-					{
-						// add option to return buket
-						$buket[] = $option;
-					}
-				}
-			}
-			elseif (CFactory::_('Field.Groups')->check($type, 'text'))
-			{
-				// check to get the key words if set
-				$keywords = GetHelper::between(
-					$options, 'keywords="', '"'
-				);
-				if (StringHelper::check($keywords))
-				{
-					if (strpos((string) $keywords, ',') !== false)
-					{
-						$keywords = array_map(
-							'trim', (array) explode(',', (string) $keywords)
-						);
-						foreach ($keywords as $keyword)
-						{
-							$buket['keywords'][] = trim($keyword);
-						}
-					}
-					else
-					{
-						$buket['keywords'][] = trim((string) $keywords);
-					}
-				}
-				// check to ket string length if set
-				$length = GetHelper::between(
-					$options, 'length="', '"'
-				);
-				if (StringHelper::check($length))
-				{
-					$buket['length'] = $length;
-				}
-				else
-				{
-					$buket['length'] = false;
-				}
-			}
-		}
-
-		return $buket;
+		return CFactory::_('Architecture.Field.OptionsScript')->get(
+			$type, $options
+		);
 	}
 
+	/**
+	 * Build the javascript that reads the watched field's value.
+	 *
+	 * @param   mixed   $type     The type of the field being watched.
+	 * @param   string  $name     The name of the field being watched.
+	 * @param   mixed   $extends  The type the field extends, when it is a custom field.
+	 * @param   string  $unique   The unique key of the condition being built.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.ValueScript service.
+	 */
 	public function getValueScript($type, $name, $extends, $unique)
 	{
-		$select  = '';
-		$isArray = false;
-		$keyName = $name . '_' . $unique;
-		if ($type === 'checkboxes' || $extends === 'checkboxes')
-		{
-			$select  = "var " . $keyName . " = [];" . PHP_EOL . Indent::_(1)
-				. "jQuery('#jform_" . $name
-				. " input[type=checkbox]').each(function()" . PHP_EOL
-				. Indent::_(1) . "{" . PHP_EOL . Indent::_(2)
-				. "if (jQuery(this).is(':checked'))" . PHP_EOL . Indent::_(2)
-				. "{" . PHP_EOL . Indent::_(3) . $keyName
-				. ".push(jQuery(this).prop('value'));" . PHP_EOL . Indent::_(2)
-				. "}" . PHP_EOL . Indent::_(1) . "});";
-			$isArray = true;
-		}
-		elseif ($type === 'checkbox')
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").prop(\'checked\');';
-		}
-		elseif ($type === 'radio')
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. ' input[type=\'radio\']:checked").val();';
-		}
-		elseif (CFactory::_('Compiler.Builder.Script.User.Switch')->inArray($type))
-		{
-			// this is only since 3.3.4
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '_id").val();';
-		}
-		elseif ($type === 'list'
-			|| CFactory::_('Field.Groups')->check(
-				$type, 'dynamic'
-			)
-			|| !CFactory::_('Field.Groups')->check($type))
-		{
-			$select  = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").val();';
-			$isArray = true;
-		}
-		elseif (CFactory::_('Field.Groups')->check($type, 'text'))
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").val();';
-		}
-
-		return array('get' => $select, 'isArray' => $isArray);
+		return CFactory::_('Architecture.Field.ValueScript')->get(
+			$type, (string) $name, $extends, (string) $unique
+		);
 	}
 
 	public function clearValueScript($type, $name, $unique)
