@@ -932,6 +932,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentMetadata.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentMetadataTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/View/DocumentMetadata.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentMetadataTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/DocumentMetadataInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentMetadataTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/CustomSubMenu.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuSubMenusTest.php'

@@ -109,6 +109,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\MainMenus
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoaderInterface as ViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\UikitLoader as SharedViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\UikitLoader as J6ViewUikitLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentMetadataInterface as ViewDocumentMetadataInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedMenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
@@ -441,6 +444,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3MenuCustomView::class, 'Architecture.Menu.J3.CustomView')
 			->share('Architecture.Menu.J3.CustomView', [$this, 'getJ3MenuCustomView'], true);
+
+		$container->alias(ViewDocumentMetadataInterface::class, 'Architecture.View.DocumentMetadata')
+			->share('Architecture.View.DocumentMetadata', [$this, 'getViewDocumentMetadata'], true);
+
+		$container->alias(SharedViewDocumentMetadata::class, 'Architecture.View.Shared.DocumentMetadata')
+			->share('Architecture.View.Shared.DocumentMetadata', [$this, 'getSharedViewDocumentMetadata'], true);
+
+		$container->alias(J3ViewDocumentMetadata::class, 'Architecture.View.J3.DocumentMetadata')
+			->share('Architecture.View.J3.DocumentMetadata', [$this, 'getJ3ViewDocumentMetadata'], true);
 	}
 
 	/**
@@ -2402,5 +2414,55 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Request'),
 			$container->get('Utilities.Structure')
 		);
+	}
+
+	/**
+	 * Get The View DocumentMetadata Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewDocumentMetadataInterface
+	 * @since   6.1.7
+	 */
+	public function getViewDocumentMetadata(Container $container): ViewDocumentMetadataInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 reaches its document through a property of the view
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.View.J3.DocumentMetadata');
+		}
+
+		return $container->get('Architecture.View.Shared.DocumentMetadata');
+	}
+
+	/**
+	 * Get The View DocumentMetadata Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedViewDocumentMetadata
+	 * @since   6.1.7
+	 */
+	public function getSharedViewDocumentMetadata(Container $container): SharedViewDocumentMetadata
+	{
+		return new SharedViewDocumentMetadata();
+	}
+
+	/**
+	 * Get The Joomla 3 View DocumentMetadata Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ViewDocumentMetadata
+	 * @since   6.1.7
+	 */
+	public function getJ3ViewDocumentMetadata(Container $container): J3ViewDocumentMetadata
+	{
+		return new J3ViewDocumentMetadata();
 	}
 }
