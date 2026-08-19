@@ -149,6 +149,13 @@ class Manager implements PersistentManagerInterface
 			throw new \InvalidArgumentException(Text::sprintf('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSIONS_TO_UPLOAD_S', $typeDefinition->name()));
 		}
 
+		// the file type says who may use the type, and nothing about the record
+		// the file is being linked to, so the entity is checked separately
+		if (!$this->allowedToAttach($entity, $target))
+		{
+			throw new \InvalidArgumentException(Text::sprintf('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSIONS_TO_UPLOAD_S', $typeDefinition->name()));
+		}
+
 		$fileDefinition = $this->agent->type($typeDefinition)->get();
 
 		if ($typeDefinition->type() === 'image' && !empty($typeDefinition->crop()))
@@ -252,6 +259,53 @@ class Manager implements PersistentManagerInterface
 	}
 
 	/**
+	 * Check that the active user may attach a file to this entity.
+	 *
+	 * Without this, any user allowed to upload at all could attach or replace
+	 * files on a record owned by somebody else, because the only other test
+	 * is the file type's view level, which says nothing about the record.
+	 *
+	 * A target that keeps no owner column cannot be judged here, so it is
+	 * left to the component's own access control.
+	 *
+	 * @param   string  $entity  The entity guid the file is linked to.
+	 * @param   string  $target  The target entity name.
+	 *
+	 * @return  bool    True when the file may be attached.
+	 * @since   6.1.7
+	 */
+	protected function allowedToAttach(string $entity, string $target): bool
+	{
+		$userId = (int) $this->user->id;
+
+		if ($userId < 1)
+		{
+			return false;
+		}
+
+		try
+		{
+			$owners = $this->items->table($target)->values([$entity], 'guid', 'created_by');
+		}
+		catch (\Throwable $e)
+		{
+			// the target records no owner, so there is nothing to decide on
+			return true;
+		}
+
+		if (empty($owners) || (int) reset($owners) === $userId)
+		{
+			return true;
+		}
+
+		// anyone else needs a permission that covers other people's records
+		$option = $this->componentOption();
+
+		return ($option !== null && $this->user->authorise('core.edit', $option))
+			|| $this->user->authorise('core.manage');
+	}
+
+	/**
 	 * Check that the active user may remove this file.
 	 *
 	 * The view level only decides who may see a file, and it is Public on
@@ -281,10 +335,33 @@ class Manager implements PersistentManagerInterface
 		}
 
 		// anyone else needs a permission that covers other people's records
-		$option = Helper::getOption(null);
+		$option = $this->componentOption();
 
 		return ($option !== null && $this->user->authorise('core.delete', $option))
 			|| $this->user->authorise('core.manage');
+	}
+
+	/**
+	 * Get the component to scope a permission check to.
+	 *
+	 * Resolving the option reads the request and then the application, so it
+	 * is only available while one is running. A command line build or a test
+	 * has neither, and a permission check is no reason to fail there, so the
+	 * caller falls back to the root asset instead.
+	 *
+	 * @return  string|null  The component option, or null when none resolves.
+	 * @since   6.1.7
+	 */
+	protected function componentOption(): ?string
+	{
+		try
+		{
+			return Helper::getOption(null);
+		}
+		catch (\Throwable $e)
+		{
+			return null;
+		}
 	}
 
 	/**

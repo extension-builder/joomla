@@ -324,6 +324,66 @@ final class FileBehaviorTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Refuse to attach a file to a record owned by somebody else.
+	 *
+	 * The file type's view level says who may use the type. It says nothing
+	 * about the record the file is linked to, so without an entity check any
+	 * user allowed to upload could replace another owner's attachments.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testManagerRefusesToAttachAFileToAnotherOwnersEntity(): void
+	{
+		$typeRecord = (object) [
+			'guid' => 'type-guid',
+			'name' => 'Reports',
+			'access' => 2,
+			'quantity' => 0,
+			'download_access' => 3,
+			'target' => ['admin_view'],
+			'type' => 2,
+			'document_formats' => ['txt'],
+			'filter' => 'file',
+			'path' => $this->createTemporaryDirectory('manager/refused'),
+		];
+		$item = $this->createMock(ItemInterface::class);
+		$item->method('table')->willReturnSelf();
+		$item->method('get')->with('type-guid')->willReturn($typeRecord);
+		// nothing may be stored when the entity belongs to somebody else
+		$item->expects($this->never())->method('set');
+
+		$items = $this->createMock(ItemsInterface::class);
+		$items->method('table')->with('admin_view')->willReturnSelf();
+		$items->expects($this->once())
+			->method('values')
+			->with(['entity-guid'], 'guid', 'created_by')
+			->willReturn([99]);
+
+		$agent = $this->createMock(AgentInterface::class);
+		// the upload never reaches the agent
+		$agent->expects($this->never())->method('get');
+
+		$user = $this->createStub(User::class);
+		$user->id = 42;
+		$user->method('getAuthorisedViewLevels')->willReturn([1, 2]);
+		$user->method('authorise')->willReturn(false);
+
+		$subject = new ComponentbuilderFileManagerFixture(
+			$item,
+			$items,
+			new Type($item),
+			$agent,
+			new Image(),
+			$user
+		);
+
+		$this->expectException(\InvalidArgumentException::class);
+
+		$subject->upload('type-guid', 'entity-guid', 'admin_view');
+	}
+
+	/**
 	 * Normalize names, number crop batches, and select oldest valid timestamps.
 	 *
 	 * @return  void
