@@ -83,6 +83,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # of them. Fetching once rather than before each compile is not only cheaper: it
 # is what makes the comparison mean anything, since both compilers then read the
 # same component out of the same database.
+# How much of the diff to print into the log. The whole of it is in the
+# artifact either way; these keep a large diff from burying the rest of the log.
+DIFF_LINES_PER_FILE="${DIFF_LINES_PER_FILE:-80}"
+DIFF_LINES_TOTAL="${DIFF_LINES_TOTAL:-2000}"
+
 COMPILE_COMMAND="componentbuilder:compile:component --component=${COMPONENT} ${COMPILE_EXTRA}"
 PULL_COMMAND="$(pull_command "${COMPONENT}" "${REPOSITORY}")"
 export JCB_CLI_COMMANDS="${PULL_COMMAND}"
@@ -197,6 +202,9 @@ if [[ -s "${OUT_DIR}/summary.txt" ]]
 then
 	say "The two compilers produced different components"
 	cat "${OUT_DIR}/summary.txt"
+
+	# and what changed, here in the log rather than only in the artifact
+	log_diff "${OUT_DIR}/full.diff" "${DIFF_LINES_PER_FILE}" "${DIFF_LINES_TOTAL}"
 else
 	say "The two compilers produced the same component"
 fi

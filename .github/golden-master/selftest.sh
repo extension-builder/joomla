@@ -170,5 +170,42 @@ unpack_packages "${WORK}/empty-does-not-exist" "${WORK}/laid-out"
 check "an empty run is not an error" pass
 
 echo
+echo "log_diff"
+DIFF_FILE="${WORK}/full.diff"
+{
+	printf 'diff --git a/com_demo/one.php b/com_demo/one.php\n'
+	printf 'index 111..222 100644\n'
+	for i in $(seq 1 10); do printf '+line %d of one\n' "$i"; done
+	printf 'diff --git a/com_demo/two.php b/com_demo/two.php\n'
+	printf 'index 333..444 100644\n'
+	for i in $(seq 1 10); do printf '+line %d of two\n' "$i"; done
+} > "${DIFF_FILE}"
+
+OUT="$(log_diff "${DIFF_FILE}" 100 1000)"
+grep -q 'com_demo/one.php' <<< "${OUT}" && grep -q 'com_demo/two.php' <<< "${OUT}" \
+	&& check "names every file that changed" pass \
+	|| check "names every file that changed" fail
+grep -q 'line 10 of two' <<< "${OUT}" \
+	&& check "prints what changed" pass || check "prints what changed" fail
+grep -q '::group::' <<< "${OUT}" \
+	&& check "folds itself away in the workflow log" pass \
+	|| check "folds itself away in the workflow log" fail
+
+OUT="$(log_diff "${DIFF_FILE}" 3 1000)"
+grep -q '8 more lines of this file' <<< "${OUT}" \
+	&& check "says how much of a long file it left out" pass \
+	|| check "says how much of a long file it left out" fail
+
+OUT="$(log_diff "${DIFF_FILE}" 100 5)"
+grep -q '1 more changed file' <<< "${OUT}" \
+	&& check "says how many files it left out" pass \
+	|| check "says how many files it left out" fail
+
+: > "${WORK}/empty.diff"
+[[ -z "$(log_diff "${WORK}/empty.diff" 100 1000)" ]] \
+	&& check "says nothing when nothing changed" pass \
+	|| check "says nothing when nothing changed" fail
+
+echo
 printf '%d passed, %d failed\n' "${PASSED}" "${FAILED}"
 (( FAILED == 0 ))
