@@ -28,6 +28,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\Customcode;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\CustomFieldCode;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\TargetControlsScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\IfValueScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\ValueScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\OptionsScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\TargetRelationScript;
 use VDM\Joomla\Componentbuilder\Compiler\Field\DatabaseName;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaThree\CoreField as J3CoreField;
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaFour\CoreField as J4CoreField;
@@ -113,6 +116,16 @@ class Field implements ServiceProviderInterface
 
 		$container->alias(IfValueScript::class, 'Architecture.Field.IfValueScript')
 			->share('Architecture.Field.IfValueScript', [$this, 'getIfValueScript'], true);
+
+		$container->alias(ValueScript::class, 'Architecture.Field.ValueScript')
+			->share('Architecture.Field.ValueScript', [$this, 'getValueScript'], true);
+
+		$container->alias(OptionsScript::class, 'Architecture.Field.OptionsScript')
+			->share('Architecture.Field.OptionsScript', [$this, 'getOptionsScript'], true);
+
+		$container->alias(TargetRelationScript::class, 'Architecture.Field.TargetRelationScript')
+			->share('Architecture.Field.TargetRelationScript', [$this, 'getTargetRelationScript'], true);
+
 		$container->alias(DatabaseName::class, 'Field.Database.Name')
 			->share('Field.Database.Name', [$this, 'getDatabaseName'], true);
 
@@ -381,6 +394,50 @@ class Field implements ServiceProviderInterface
 			$container->get('Field.Groups'),
 			$container->get('Compiler.Builder.Script.User.Switch')
 		);
+	}
+
+	/**
+	 * Get The ValueScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ValueScript
+	 * @since   6.1.7
+	 */
+	public function getValueScript(Container $container): ValueScript
+	{
+		return new ValueScript(
+			$container->get('Field.Groups'),
+			$container->get('Compiler.Builder.Script.User.Switch')
+		);
+	}
+
+	/**
+	 * Get The OptionsScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  OptionsScript
+	 * @since   6.1.7
+	 */
+	public function getOptionsScript(Container $container): OptionsScript
+	{
+		return new OptionsScript(
+			$container->get('Field.Groups')
+		);
+	}
+
+	/**
+	 * Get The TargetRelationScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  TargetRelationScript
+	 * @since   6.1.7
+	 */
+	public function getTargetRelationScript(Container $container): TargetRelationScript
+	{
+		return new TargetRelationScript();
 	}
 
 	/**

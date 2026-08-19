@@ -920,6 +920,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldIfValueScriptTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/ValueScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldValueScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/OptionsScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldOptionsScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/TargetRelationScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetRelationScriptTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/UikitLoader.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewUikitLoaderTest.php'
