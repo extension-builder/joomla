@@ -470,75 +470,20 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * @param   type  $view
-	 * @param   type  $type
+	 * Set the access check of a view.
 	 *
-	 * @since 3.2.0
+	 * @param   array   $view  The view definition.
+	 * @param   string  $type  The kind of view.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.ComHelperClass.UserPermissionCheckAccess instead.
 	 */
 	public function setUserPermissionCheckAccess($view, $type)
 	{
-		if (isset($view['access']) && $view['access'] == 1)
-		{
-			switch ($type)
-			{
-				case 1:
-					$userString = '$this->user';
-					break;
-				default:
-					$userString = '$user';
-					break;
-			}
-			// check that the default and the redirect page is not the same
-			if (CFactory::_('Compiler.Builder.Content.One')->exists('SITE_DEFAULT_VIEW')
-				&& CFactory::_('Compiler.Builder.Content.One')->get('SITE_DEFAULT_VIEW') != $view['settings']->code)
-			{
-				$redirectMessage = Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					)
-					. " redirect away to the default view if no access allowed.";
-				$redirectString  = "Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-					. CFactory::_('Config')->component_code_name . "&view="
-					. CFactory::_('Compiler.Builder.Content.One')->get('SITE_DEFAULT_VIEW') . "')";
-			}
-			else
-			{
-				$redirectMessage = Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " redirect away to the home page if no access allowed.";
-				$redirectString  = 'Joomla__'.'_eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root()';
-			}
-			$accessCheck[] = PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " check if this user has permission to access item";
-			$accessCheck[] = Indent::_(2) . "if (!" . $userString
-				. "->authorise('site." . $view['settings']->code
-				. ".access', 'com_" . CFactory::_('Config')->component_code_name . "'))";
-			$accessCheck[] = Indent::_(2) . "{";
-			$accessCheck[] = Indent::_(3)
-				. "\$app = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();";
-			// set lang
-			$langKeyWord = CFactory::_('Config')->lang_prefix . '_'
-				. StringHelper::safe(
-					'Not authorised to view ' . $view['settings']->code . '!',
-					'U'
-				);
-			CFactory::_('Language')->set(
-				'site', $langKeyWord,
-				'Not authorised to view ' . $view['settings']->code . '!'
-			);
-			$accessCheck[] = Indent::_(3) . "\$app->enqueueMessage(Text:"
-				. ":_('" . $langKeyWord . "'), 'error');";
-			$accessCheck[] = $redirectMessage;
-			$accessCheck[] = Indent::_(3) . "\$app->redirect(" . $redirectString
-				. ");";
-			$accessCheck[] = Indent::_(3) . "return false;";
-			$accessCheck[] = Indent::_(2) . "}";
-
-			// return the access check
-			return implode(PHP_EOL, $accessCheck);
-		}
-
-		return '';
+		return CFactory::_('Architecture.ComHelperClass.UserPermissionCheckAccess')
+			->get($view, $type);
 	}
 
 	/**
@@ -1957,89 +1902,19 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * @param $nameListCode
+	 * Set the controller methods the dynamic buttons of a view call.
 	 *
-	 * @return array|string
+	 * @param   string  $nameListCode  The list view name.
+	 *
+	 * @return  string  The generated methods.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Controller.CustomAdminDynamicButton instead.
 	 */
 	public function setCustomAdminDynamicButtonController($nameListCode)
 	{
-		$method = '';
-		if (CFactory::_('Compiler.Builder.Dynamic.Buttons')->isArray($nameListCode))
-		{
-			$method = [];
-			foreach (CFactory::_('Compiler.Builder.Dynamic.Buttons')->get($nameListCode) as $custom_button)
-			{
-				// add the custom redirect method
-				$method[] = PHP_EOL . PHP_EOL . Indent::_(1)
-					. "public function redirectTo"
-					. StringHelper::safe(
-						$custom_button['link'], 'F'
-					) . "()";
-				$method[] = Indent::_(1) . "{";
-				$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Check for request forgeries";
-				$method[] = Indent::_(2)
-					. "Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::checkToken() or die(Text:"
-					. ":_('JINVALID_TOKEN'));";
-				$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " check if export is allowed for this user.";
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
-				}
-				else
-				{
-					$method[] = Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
-				}
-				$method[] = Indent::_(2) . "if (\$user->authorise('"
-					. $custom_button['link'] . ".access', 'com_"
-					. CFactory::_('Config')->component_code_name . "'))";
-				$method[] = Indent::_(2) . "{";
-				$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Get the input";
-				$method[] = Indent::_(3)
-					. "\$input = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;";
-				$method[] = Indent::_(3)
-					. "\$pks = \$input->post->get('cid', array(), 'array');";
-				$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Sanitize the input";
-				$method[] = Indent::_(3)
-					. "\$pks = ArrayHelper::toInteger(\$pks);";
-				$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " convert to string";
-				$method[] = Indent::_(3) . "\$ids = implode('_', \$pks);";
-				$method[] = Indent::_(3)
-					. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-					. CFactory::_('Config')->component_code_name . "&view="
-					. $custom_button['link'] . "&cid='.\$ids, false));";
-				$method[] = Indent::_(3) . "return;";
-				$method[] = Indent::_(2) . "}";
-				$method[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Redirect to the list screen with error.";
-				$method[] = Indent::_(2) . "\$message = Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-					. CFactory::_('Config')->lang_prefix . "_ACCESS_TO_" . $custom_button['NAME']
-					. "_FAILED');";
-				$method[] = Indent::_(2)
-					. "\$this->setRedirect(Joomla__"."_d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_"
-					. CFactory::_('Config')->component_code_name . "&view=" . $nameListCode
-					. "', false), \$message, 'error');";
-				$method[] = Indent::_(2) . "return;";
-				$method[] = Indent::_(1) . "}";
-				// add to lang array
-				$lankey = CFactory::_('Config')->lang_prefix . "_ACCESS_TO_"
-					. $custom_button['NAME'] . "_FAILED";
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lankey,
-					'Access to ' . $custom_button['link'] . ' was denied.'
-				);
-			}
-
-			return implode(PHP_EOL, $method);
-		}
-
-		return $method;
+		return CFactory::_('Architecture.Controller.CustomAdminDynamicButton')
+			->get($nameListCode);
 	}
 
 	/**
@@ -2179,74 +2054,18 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the custom import scripts of a list view that allows import.
+	 * Write the custom import files of a list view.
 	 *
-	 * @param   string  $nameListCode  The list view name
+	 * @param   string  $nameListCode  The list view name.
 	 *
-	 * @return  string
+	 * @return  void
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Component.ImportCustomScripts instead.
 	 */
 	public function setImportCustomScripts($nameListCode)
 	{
-		// setup Ajax files
-		$target = array('admin' => 'import_' . $nameListCode);
-		CFactory::_('Utilities.Structure')->build($target, 'customimport');
-		// load the custom script to the files
-		// IMPORT_EXT_METHOD <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_EXT_METHOD', CFactory::_('Customcode.Dispenser')->get(
-			'php_import_ext', 'import_' . $nameListCode, PHP_EOL, null,
-			true
-		));
-		// IMPORT_DISPLAY_METHOD_CUSTOM <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_DISPLAY_METHOD_CUSTOM', CFactory::_('Customcode.Dispenser')->get(
-			'php_import_display', 'import_' . $nameListCode, PHP_EOL,
-			null,
-			true
-		));
-		// IMPORT_SETDATA_METHOD <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_SETDATA_METHOD', CFactory::_('Customcode.Dispenser')->get(
-			'php_import_setdata', 'import_' . $nameListCode, PHP_EOL,
-			null,
-			true
-		));
-		// IMPORT_METHOD_CUSTOM <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_METHOD_CUSTOM', CFactory::_('Customcode.Dispenser')->get(
-			'php_import', 'import_' . $nameListCode, PHP_EOL, null,
-			true
-		));
-		// IMPORT_SAVE_METHOD <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_SAVE_METHOD', CFactory::_('Customcode.Dispenser')->get(
-			'php_import_save', 'import_' . $nameListCode, PHP_EOL,
-			null,
-			true
-		));
-		// IMPORT_DEFAULT_VIEW_CUSTOM <<<DYNAMIC>>>
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_DEFAULT_VIEW_CUSTOM', CFactory::_('Customcode.Dispenser')->get(
-			'html_import_view', 'import_' . $nameListCode, PHP_EOL,
-			null,
-			true
-		));
-
-		// insure we have the view placeholders setup
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|VIEW', 'IMPORT_' . CFactory::_('Placeholder')->get_h('VIEWS'));
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|View', 'Import_' . CFactory::_('Placeholder')->get_h('views'));
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|view', 'import_' . CFactory::_('Placeholder')->get_h('views'));
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|VIEWS', 'IMPORT_' . CFactory::_('Placeholder')->get_h('VIEWS'));
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|Views', 'Import_' . CFactory::_('Placeholder')->get_h('views'));
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|views', 'import_' . CFactory::_('Placeholder')->get_h('views'));
-
-		// IMPORT_CUSTOM_CONTROLLER_HEADER <<<DYNAMIC>>> add the header details for the controller
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_CUSTOM_CONTROLLER_HEADER', CFactory::_('Header')->get(
-			'import.custom.controller',
-			$nameListCode
-		));
-
-		// IMPORT_CUSTOM_MODEL_HEADER <<<DYNAMIC>>> add the header details for the model
-		CFactory::_('Compiler.Builder.Content.Multi')->set('import_' . $nameListCode . '|IMPORT_CUSTOM_MODEL_HEADER', CFactory::_('Header')->get(
-			'import.custom.model',
-			$nameListCode
-		));
+		CFactory::_('Architecture.Component.ImportCustomScripts')->set($nameListCode);
 	}
 
 	/**
@@ -2576,80 +2395,19 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the form validation override a view with switched fields needs.
+	 * Set the validation fix statements of a view.
 	 *
-	 * @param   string  $view       The single view name
-	 * @param   mixed   $Component  The component being built
+	 * @param   string  $view       The single view name.
+	 * @param   string  $Component  The component name.
 	 *
-	 * @return  string
+	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.ValidationFix instead.
 	 */
 	public function setValidationFix($view, $Component)
 	{
-		$fix = '';
-		if (isset($this->validationFixBuilder[$view])
-			&& ArrayHelper::check(
-				$this->validationFixBuilder[$view]
-			))
-		{
-			$fix .= PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * Method to validate the form data.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   Form   \$form   The form to validate against.";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   array   \$data   The data to validate.";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   string  \$group  The name of the field group to validate.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @return  mixed  Array of filtered data if valid, false otherwise.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1) . " * @see     JFormRule";
-			$fix .= PHP_EOL . Indent::_(1) . " * @see     JFilterInput";
-			$fix .= PHP_EOL . Indent::_(1) . " * @since   12.2";
-			$fix .= PHP_EOL . Indent::_(1) . " */";
-			$fix .= PHP_EOL . Indent::_(1)
-				. "public function validate(\$form, \$data, \$group = null)";
-			$fix .= PHP_EOL . Indent::_(1) . "{";
-			$fix .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if the not_required field is set";
-			$fix .= PHP_EOL . Indent::_(2)
-				. "if (isset(\$data['not_required']) && "
-				. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$data['not_required']))";
-			$fix .= PHP_EOL . Indent::_(2) . "{";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "\$requiredFields = (array) explode(',',(string) \$data['not_required']);";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "\$requiredFields = array_unique(\$requiredFields);";
-			$fix .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " now change the required field attributes value";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "foreach (\$requiredFields as \$requiredField)";
-			$fix .= PHP_EOL . Indent::_(3) . "{";
-			$fix .= PHP_EOL . Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " make sure there is a string value";
-			$fix .= PHP_EOL . Indent::_(4) . "if ("
-				. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$requiredField))";
-			$fix .= PHP_EOL . Indent::_(4) . "{";
-			$fix .= PHP_EOL . Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " change to false";
-			$fix .= PHP_EOL . Indent::_(5)
-				. "\$form->setFieldAttribute(\$requiredField, 'required', 'false');";
-			$fix .= PHP_EOL . Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " also clear the data set";
-			$fix .= PHP_EOL . Indent::_(5) . "unset(\$data[\$requiredField]);";
-			$fix .= PHP_EOL . Indent::_(4) . "}";
-			$fix .= PHP_EOL . Indent::_(3) . "}";
-			$fix .= PHP_EOL . Indent::_(2) . "}";
-			$fix .= PHP_EOL . Indent::_(2)
-				. "return parent::validate(\$form, \$data, \$group);";
-			$fix .= PHP_EOL . Indent::_(1) . "}";
-		}
-
-		return $fix;
+		return CFactory::_('Architecture.Model.ValidationFix')->get($view, $Component);
 	}
 
 	/**
@@ -2795,57 +2553,18 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the generated table's unique field method.
+	 * Set the unique field statements of a view.
 	 *
-	 * @param   array  $view  The view being built
+	 * @param   string  $view  The single view name.
 	 *
-	 * @return  string
+	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.UniqueFields instead.
 	 */
 	public function setUniqueFields(&$view)
 	{
-		$fields   = [];
-		$fields[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-		$fields[] = Indent::_(1)
-			. " * Method to get the unique fields of this table.";
-		$fields[] = Indent::_(1) . " *";
-		$fields[] = Indent::_(1)
-			. " * @return  mixed  An array of field names, boolean false if none is set.";
-		$fields[] = Indent::_(1) . " *";
-		$fields[] = Indent::_(1) . " * @since   3.0";
-		$fields[] = Indent::_(1) . " */";
-		$fields[] = Indent::_(1) . "protected function getUniqueFields()";
-		$fields[] = Indent::_(1) . "{";
-		if (CFactory::_('Compiler.Builder.Database.Unique.Keys')->exists($view))
-		{
-			// if guid should also be added
-			if (CFactory::_('Compiler.Builder.Database.Unique.Guid')->exists($view))
-			{
-				$fields[] = Indent::_(2) . "return array('" . implode(
-						"','", CFactory::_('Compiler.Builder.Database.Unique.Keys')->get($view)
-					) . "', 'guid');";
-			}
-			else
-			{
-				$fields[] = Indent::_(2) . "return array('" . implode(
-						"','", CFactory::_('Compiler.Builder.Database.Unique.Keys')->get($view)
-					) . "');";
-			}
-		}
-		// if only GUID is found
-		elseif (CFactory::_('Compiler.Builder.Database.Unique.Guid')->exists($view))
-		{
-			$fields[] = Indent::_(2) . "return array('guid');";
-		}
-		else
-		{
-			$fields[] = Indent::_(2) . "return false;";
-		}
-		$fields[] = Indent::_(1) . "}";
-
-		// return the unique fields
-		return implode(PHP_EOL, $fields);
+		return CFactory::_('Architecture.Model.UniqueFields')->get($view);
 	}
 
 	/**
@@ -2986,102 +2705,35 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the permission object the generated list view checks against.
+	 * Set the permission object of a list view.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
+	 * @param   string  $nameSingleCode  The single view name.
+	 * @param   string  $nameListCode    The list view name.
 	 *
-	 * @return  string
+	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.AdminViews.CanDo instead.
 	 */
 	public function setJviewListCanDo($nameSingleCode, $nameListCode)
 	{
-		$allow = [];
-		// set component name
-		$component = CFactory::_('Config')->component_code_name;
-		// check if the item has permissions for edit.
-		$allow[] = PHP_EOL . Indent::_(2)
-			. "\$this->canEdit = \$this->canDo->get('"
-			. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.edit')
-			. "');";
-		// check if the item has permissions for edit state.
-		$allow[] = Indent::_(2) . "\$this->canState = \$this->canDo->get('"
-			. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.edit.state')
-			. "');";
-		// check if the item has permissions for create.
-		$allow[] = Indent::_(2) . "\$this->canCreate = \$this->canDo->get('"
-			. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.create') . "');";
-		// check if the item has permissions for delete.
-		$allow[] = Indent::_(2) . "\$this->canDelete = \$this->canDo->get('"
-			. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.delete') . "');";
-		// check if the item has permissions for batch.
-		if (CFactory::_('Compiler.Creator.Permission')->globalExist($nameSingleCode, 'core.batch'))
-		{
-			$allow[] = Indent::_(2) . "\$this->canBatch = (\$this->canDo->get('"
-				. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.batch')
-				. "') && \$this->canDo->get('core.batch'));";
-		}
-		else
-		{
-			$allow[] = Indent::_(2)
-				. "\$this->canBatch = \$this->canDo->get('core.batch');";
-		}
-
-		return implode(PHP_EOL, $allow);
+		return CFactory::_('Architecture.AdminViews.CanDo')
+			->get($nameSingleCode, $nameListCode);
 	}
 
 	/**
-	 * Build the access control fieldset of a view that has one.
+	 * Set the access control fieldset of a view.
 	 *
-	 * @param   string  $view  The view name
+	 * @param   string  $view  The single view name.
 	 *
-	 * @return  string
+	 * @return  string  The generated fieldset.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Field.SetAccessControl instead.
 	 */
 	public function setFieldSetAccessControl(&$view)
 	{
-		$access = '';
-		if ($view != 'component')
-		{
-			// set component name
-			$component = CFactory::_('Config')->component_code_name;
-			// set label
-			$label = 'Permissions in relation to this ' . $view;
-			// set the access fieldset
-			$access = "<!--" . Line::_(__Line__, __Class__)
-				. " Access Control Fields. -->";
-			$access .= PHP_EOL . Indent::_(1)
-				. '<fieldset name="accesscontrol">';
-			$access .= PHP_EOL . Indent::_(2) . "<!--" . Line::_(
-					__LINE__,__CLASS__
-				) . " Asset Id Field. Type: Hidden (joomla) -->";
-			$access .= PHP_EOL . Indent::_(2) . '<field';
-			$access .= PHP_EOL . Indent::_(3) . 'name="asset_id"';
-			$access .= PHP_EOL . Indent::_(3) . 'type="hidden"';
-			$access .= PHP_EOL . Indent::_(3) . 'filter="unset"';
-			$access .= PHP_EOL . Indent::_(2) . '/>';
-			$access .= PHP_EOL . Indent::_(2) . "<!--" . Line::_(
-					__LINE__,__CLASS__
-				) . " Rules Field. Type: Rules (joomla) -->";
-			$access .= PHP_EOL . Indent::_(2) . '<field';
-			$access .= PHP_EOL . Indent::_(3) . 'name="rules"';
-			$access .= PHP_EOL . Indent::_(3) . 'type="rules"';
-			$access .= PHP_EOL . Indent::_(3) . 'label="' . $label . '"';
-			$access .= PHP_EOL . Indent::_(3) . 'translate_label="false"';
-			$access .= PHP_EOL . Indent::_(3) . 'filter="rules"';
-			$access .= PHP_EOL . Indent::_(3) . 'validate="rules"';
-			$access .= PHP_EOL . Indent::_(3) . 'class="inputbox"';
-			$access .= PHP_EOL . Indent::_(3) . 'component="com_' . $component
-				. '"';
-			$access .= PHP_EOL . Indent::_(3) . 'section="' . $view . '"';
-			$access .= PHP_EOL . Indent::_(2) . '/>';
-			$access .= PHP_EOL . Indent::_(1) . '</fieldset>';
-		}
-
-		// return access field set
-		return $access;
+		return CFactory::_('Architecture.Field.SetAccessControl')->get($view);
 	}
 
 	/**

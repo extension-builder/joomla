@@ -37,6 +37,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\Exi
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\AjaxCasesInterface as ControllerAjaxCases;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxCases as SharedControllerAjaxCases;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\AjaxCases as J3ControllerAjaxCases;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\CustomAdminDynamicButtonInterface as ControllerCustomAdminDynamicButton;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\CustomAdminDynamicButton as SharedControllerCustomAdminDynamicButton;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\CustomAdminDynamicButton as J3ControllerCustomAdminDynamicButton;
 /**
  * Architecture Controller Service Provider
  * 
@@ -124,6 +127,15 @@ class ArchitectureController implements ServiceProviderInterface
 
 		$container->alias(J3ControllerAjaxCases::class, 'Architecture.Controller.J3.AjaxCases')
 			->share('Architecture.Controller.J3.AjaxCases', [$this, 'getJ3ControllerAjaxCases'], true);
+
+		$container->alias(ControllerCustomAdminDynamicButton::class, 'Architecture.Controller.CustomAdminDynamicButton')
+			->share('Architecture.Controller.CustomAdminDynamicButton', [$this, 'getControllerCustomAdminDynamicButton'], true);
+
+		$container->alias(SharedControllerCustomAdminDynamicButton::class, 'Architecture.Controller.Shared.CustomAdminDynamicButton')
+			->share('Architecture.Controller.Shared.CustomAdminDynamicButton', [$this, 'getSharedControllerCustomAdminDynamicButton'], true);
+
+		$container->alias(J3ControllerCustomAdminDynamicButton::class, 'Architecture.Controller.J3.CustomAdminDynamicButton')
+			->share('Architecture.Controller.J3.CustomAdminDynamicButton', [$this, 'getJ3ControllerCustomAdminDynamicButton'], true);
 	}
 
 	/**
@@ -508,6 +520,64 @@ class ArchitectureController implements ServiceProviderInterface
 	{
 		return new J3ControllerAjaxCases(
 			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The Controller CustomAdminDynamicButton Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ControllerCustomAdminDynamicButton
+	 * @since   6.1.7
+	 */
+	public function getControllerCustomAdminDynamicButton(Container $container): ControllerCustomAdminDynamicButton
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 asks the factory for the user rather than the application
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Controller.J3.CustomAdminDynamicButton');
+		}
+
+		return $container->get('Architecture.Controller.Shared.CustomAdminDynamicButton');
+	}
+
+	/**
+	 * Get The Controller CustomAdminDynamicButton Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedControllerCustomAdminDynamicButton
+	 * @since   6.1.7
+	 */
+	public function getSharedControllerCustomAdminDynamicButton(Container $container): SharedControllerCustomAdminDynamicButton
+	{
+		return new SharedControllerCustomAdminDynamicButton(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Dynamic.Buttons')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 Controller CustomAdminDynamicButton Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ControllerCustomAdminDynamicButton
+	 * @since   6.1.7
+	 */
+	public function getJ3ControllerCustomAdminDynamicButton(Container $container): J3ControllerCustomAdminDynamicButton
+	{
+		return new J3ControllerCustomAdminDynamicButton(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Dynamic.Buttons')
 		);
 	}
 

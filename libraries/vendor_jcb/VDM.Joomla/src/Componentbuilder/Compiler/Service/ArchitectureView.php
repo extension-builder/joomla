@@ -143,6 +143,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentM
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedMenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo as AdminViewsCanDo;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\SetAccessControl as FieldSetAccessControl;
 
 
 /**
@@ -565,6 +567,12 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J6CustomViewForm::class, 'Architecture.CustomView.J6.Form')
 			->share('Architecture.CustomView.J6.Form', [$this, 'getJ6CustomViewForm'], true);
+
+		$container->alias(AdminViewsCanDo::class, 'Architecture.AdminViews.CanDo')
+			->share('Architecture.AdminViews.CanDo', [$this, 'getAdminViewsCanDo'], true);
+
+		$container->alias(FieldSetAccessControl::class, 'Architecture.Field.SetAccessControl')
+			->share('Architecture.Field.SetAccessControl', [$this, 'getFieldSetAccessControl'], true);
 	}
 
 	/**
@@ -3106,4 +3114,35 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Custom.Admin.View.List.Id')
 		);
 	}
+	/**
+	 * Get The AdminViews CanDo Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsCanDo
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsCanDo(Container $container): AdminViewsCanDo
+	{
+		return new AdminViewsCanDo(
+			$container->get('Config'),
+			$container->get('Compiler.Creator.Permission')
+		);
+	}
+
+	/**
+	 * Get The Field SetAccessControl Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  FieldSetAccessControl
+	 * @since   6.1.7
+	 */
+	public function getFieldSetAccessControl(Container $container): FieldSetAccessControl
+	{
+		return new FieldSetAccessControl(
+			$container->get('Config')
+		);
+	}
+
 }

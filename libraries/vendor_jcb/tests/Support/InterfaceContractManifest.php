@@ -304,6 +304,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '46cf3e681b936c25645d8cd10ded1db02b61d2d27119fda5bd7d1034459496ce',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\CustomAdminDynamicButtonInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/CustomAdminDynamicButtonInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '0ce15ad0b2c4d0dcb50b23ea23674a44c0d5b7832ba2379aacf4cde473af6e3a',
+			'signature_hash' => 'b36f83754491ba3d55b3312877b160473941ff9df18058fd785d4ce313e1ecd8'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\LibrariesLoaderInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/LibrariesLoaderInterface.php',
 			'implementations' => 2,

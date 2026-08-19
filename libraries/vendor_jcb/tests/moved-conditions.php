@@ -55,6 +55,8 @@ return [
 			=> 'the property was renamed to $done once the class no longer needed the concern in the name',
 		'if(isset($this->validationFixBuilder[$nameSingleCode])'
 			=> 'the fixes array became a Registry, so the isset half of the guard is now the truthiness of get(), and ArrayHelper::check leads the if',
+		'if(isset($this->validationFixBuilder[$view])'
+			=> 'the same guard on the view the model builds, where the fixes array became the Registry the compiler fills',
 		"if((\$_custom=\$this->setCustomAdminSubMenu("
 			=> 'the method moved into the class beside its caller and lost the set prefix it no longer needs',
 		'if(isset($this->lastCustomSubMenu)'

@@ -47,6 +47,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\PostI
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\PostInstallScript as SharedComponentPostInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\PostInstallScript as J3ComponentPostInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\PostUpdateScript as ComponentPostUpdateScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImportCustomScripts as ComponentImportCustomScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UserPermissionCheckAccess as ComHelperUserPermissionCheckAccess;
 
 
 /**
@@ -172,6 +174,12 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(ComponentPostUpdateScript::class, 'Architecture.Component.PostUpdateScript')
 			->share('Architecture.Component.PostUpdateScript', [$this, 'getComponentPostUpdateScript'], true);
+
+		$container->alias(ComponentImportCustomScripts::class, 'Architecture.Component.ImportCustomScripts')
+			->share('Architecture.Component.ImportCustomScripts', [$this, 'getComponentImportCustomScripts'], true);
+
+		$container->alias(ComHelperUserPermissionCheckAccess::class, 'Architecture.ComHelperClass.UserPermissionCheckAccess')
+			->share('Architecture.ComHelperClass.UserPermissionCheckAccess', [$this, 'getComHelperUserPermissionCheckAccess'], true);
 	}
 
 	/**
@@ -824,6 +832,42 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Customcode.Dispenser'),
 			$container->get('Architecture.Component.ImageType'),
 			$container->get('Architecture.Component.ContentTypes')
+		);
+	}
+
+	/**
+	 * Get The Component ImportCustomScripts Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentImportCustomScripts
+	 * @since   6.1.7
+	 */
+	public function getComponentImportCustomScripts(Container $container): ComponentImportCustomScripts
+	{
+		return new ComponentImportCustomScripts(
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Utilities.Structure'),
+			$container->get('Header'),
+			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The ComHelperClass UserPermissionCheckAccess Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComHelperUserPermissionCheckAccess
+	 * @since   6.1.7
+	 */
+	public function getComHelperUserPermissionCheckAccess(Container $container): ComHelperUserPermissionCheckAccess
+	{
+		return new ComHelperUserPermissionCheckAccess(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Config'),
+			$container->get('Language')
 		);
 	}
 

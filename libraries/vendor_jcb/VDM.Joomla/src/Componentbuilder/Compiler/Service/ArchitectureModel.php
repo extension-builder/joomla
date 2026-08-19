@@ -67,6 +67,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterFields as Mode
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetItemMethod as ModelGetItemMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewTitle as ModelGenerateNewTitle;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewAlias as ModelGenerateNewAlias;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix as ModelValidationFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\UniqueFields as ModelUniqueFields;
 
 
 /**
@@ -252,6 +254,12 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(ModelGenerateNewAlias::class, 'Architecture.Model.GenerateNewAlias')
 			->share('Architecture.Model.GenerateNewAlias', [$this, 'getModelGenerateNewAlias'], true);
+
+		$container->alias(ModelValidationFix::class, 'Architecture.Model.ValidationFix')
+			->share('Architecture.Model.ValidationFix', [$this, 'getModelValidationFix'], true);
+
+		$container->alias(ModelUniqueFields::class, 'Architecture.Model.UniqueFields')
+			->share('Architecture.Model.UniqueFields', [$this, 'getModelUniqueFields'], true);
 	}
 
 	/**
@@ -1290,6 +1298,35 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Alias'),
 			$container->get('Compiler.Builder.Custom.Alias'),
 			$container->get('Compiler.Builder.Title')
+		);
+	}
+
+	/**
+	 * Get The Model ValidationFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelValidationFix
+	 * @since   6.1.7
+	 */
+	public function getModelValidationFix(Container $container): ModelValidationFix
+	{
+		return new ModelValidationFix();
+	}
+
+	/**
+	 * Get The Model UniqueFields Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelUniqueFields
+	 * @since   6.1.7
+	 */
+	public function getModelUniqueFields(Container $container): ModelUniqueFields
+	{
+		return new ModelUniqueFields(
+			$container->get('Compiler.Builder.Database.Unique.Guid'),
+			$container->get('Compiler.Builder.Database.Unique.Keys')
 		);
 	}
 
