@@ -461,6 +461,7 @@ abstract class StringHelper
 	 *
 	 * @returns string
 	 * @since  3.0.9
+	 * @throws \Random\RandomException If no random source is available.
 	 */
 	public static function random(int $size): string
 	{
@@ -470,7 +471,9 @@ abstract class StringHelper
 
 		for ($i = 0; $i < $size; $i++)
 		{
-			$get = rand(0, $bagsize);
+			// this value guards generated passwords and upload file names,
+			// so it must come from a cryptographic source, not rand()
+			$get = random_int(0, $bagsize);
 			$key[] = $bag[$get];
 		}
 
