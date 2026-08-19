@@ -111,6 +111,10 @@ return [
 			=> 'the guard was written once in each arm of the filter version split, and the shared class writes it once',
 		'if(isset($this->DashboardGetCustomData)'
 			=> 'the method names became a declared ?array on the class that reads them, which is null until they have been read',
+		'if($this->setLangAdmin($componentName))'
+			=> 'the four language areas became classes the file builder is handed, so the helper call is now a read of one of them',
+		'if($this->setLangAdminSys())'
+			=> 'the same, for the area that carries the strings shown before the component is installed',
 		'if($view[\'settings\']->main_get->pagination==1)'
 			=> 'the guard was written once in each arm of a version branch, and the collapsed class writes it once',
 		'(strlen((string)$leftside)>2||strlen((string)$rightside)>2))'
@@ -220,6 +224,10 @@ return [
 			=> 'the joomla_version >= 6 branch of the site form became the provider selector that chooses the class',
 		'if($this->customData!==null'
 			=> 'the isset half of the dashboard guard, on the declared nullable property that replaced the helper one',
+		'if(S->get($componentName))'
+			=> 'the language area that answers whether it had anything to say, which the helper asked itself before',
+		'if(S->get())'
+			=> 'the same, for the area that takes no component name',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],

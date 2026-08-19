@@ -13,17 +13,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Helper;
 
 
 use Joomla\CMS\Factory;
-use Joomla\Filesystem\File;
-use Joomla\Filesystem\Folder;
 use Joomla\Filter\OutputFilter;
 use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\ObjectHelper;
-use VDM\Joomla\Utilities\FileHelper;
 use VDM\Joomla\Utilities\String\NamespaceHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Factory as CFactory;
-use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Minify;
@@ -32,17 +28,32 @@ use VDM\Joomla\Componentbuilder\Compiler\Helper\Interpretation;
 
 /**
  * Infusion class
- * 
+ *
+ * @since 3.2.0
  * @deprecated 3.3
  */
 class Infusion extends Interpretation
 {
+	/**
+	 * The language files the compiler wrote
+	 *
+	 * @var     array
+	 * @since   3.2.0
+	 */
 	public $langFiles = [];
 
+	/**
+	 * The admin views whose edit body is built on the second run
+	 *
+	 * @var     array
+	 * @since   3.2.0
+	 */
 	public $secondRunAdmin;
 
 	/**
 	 * Constructor
+	 *
+	 * @since   3.2.0
 	 */
 	public function __construct()
 	{
@@ -59,9 +70,9 @@ class Infusion extends Interpretation
 	/**
 	 * Build the content for the structure
 	 *
-	 *
 	 * @return  boolean  on success
 	 *
+	 * @since   3.2.0
 	 */
 	protected function buildFileContent()
 	{
@@ -2282,268 +2293,30 @@ class Infusion extends Interpretation
 	}
 
 	/**
-	 * Set the view place holders to global scope
+	 * Name one view to everything built for it.
 	 *
-	 * @param   object  $view  The view settings
+	 * @param   object  $view  The view being built.
 	 *
-	 * @ return void
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.Placeholders instead.
 	 */
 	protected function setViewPlaceholders(&$view)
 	{
-		// just to be safe, lets clear previous view placeholders
-		CFactory::_('Placeholder')->clearType('view');
-		CFactory::_('Placeholder')->clearType('views');
-
-		// VIEW <<<DYNAMIC>>>
-		if (isset($view->name_single) && $view->name_single != 'null')
-		{
-			// set main keys
-			$nameSingleCode              = $view->name_single_code;
-			$name_single_uppercase       = StringHelper::safe(
-				$view->name_single, 'U'
-			);
-			$name_single_first_uppercase = StringHelper::safe(
-				$view->name_single, 'F'
-			);
-
-			// set some place holder for the views
-			CFactory::_('Placeholder')->set('view', $nameSingleCode);
-			CFactory::_('Placeholder')->set('View', $name_single_first_uppercase);
-			CFactory::_('Placeholder')->set('VIEW', $name_single_uppercase);
-		}
-
-		// VIEWS <<<DYNAMIC>>>
-		if (isset($view->name_list) && $view->name_list != 'null')
-		{
-			$nameListCode              = $view->name_list_code;
-			$name_list_uppercase       = StringHelper::safe(
-				$view->name_list, 'U'
-			);
-			$name_list_first_uppercase = StringHelper::safe(
-				$view->name_list, 'F'
-			);
-
-			// set some place holder for the views
-			CFactory::_('Placeholder')->set('views', $nameListCode);
-			CFactory::_('Placeholder')->set('Views', $name_list_first_uppercase);
-			CFactory::_('Placeholder')->set('VIEWS', $name_list_uppercase);
-		}
-
-		// view <<<DYNAMIC>>>
-		if (isset($nameSingleCode))
-		{
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|view', $nameSingleCode);
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|VIEW', $name_single_uppercase);
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|View', $name_single_first_uppercase);
-
-			if (isset($nameListCode))
-			{
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|view', $nameSingleCode);
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|VIEW', $name_single_uppercase);
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|View', $name_single_first_uppercase);
-			}
-		}
-
-		// views <<<DYNAMIC>>>
-		if (isset($nameListCode))
-		{
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|views', $nameListCode);
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|VIEWS', $name_list_uppercase);
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|Views', $name_list_first_uppercase);
-
-			if (isset($nameSingleCode))
-			{
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|views', $nameListCode);
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|VIEWS', $name_list_uppercase);
-				CFactory::_('Compiler.Builder.Content.Multi')->set($nameSingleCode . '|Views', $name_list_first_uppercase);
-			}
-		}
+		CFactory::_('Architecture.View.Placeholders')->set($view);
 	}
 
 	/**
 	 * Build the language values and insert into file
 	 *
 	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Language.Files instead.
 	 */
 	public function setLangFileData(): void
 	{
-		// add final list of needed lang strings
-		$componentName = CFactory::_('Component')->get('name');
-		$componentName = OutputFilter::cleanText($componentName);
-		$langTag = CFactory::_('Config')->get('lang_tag', 'en-GB');
-
-		// Trigger Event: jcb_ce_onBeforeLoadingAllLangStrings
-		CFactory::_('Event')->trigger(
-			'jcb_ce_onBeforeLoadingAllLangStrings', [&$componentName]
-		);
-
-		// reset values
-		$values         = [];
-		$mainLangLoader = [];
-		// check the admin lang is set
-		if ($this->setLangAdmin($componentName))
-		{
-			$values[]                = array_values(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.admin")
-			);
-			$mainLangLoader['admin'] = count(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.admin")
-			);
-		}
-		// check the admin system lang is set
-		if ($this->setLangAdminSys())
-		{
-			$values[]                   = array_values(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.adminsys")
-			);
-			$mainLangLoader['adminsys'] = count(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.adminsys")
-			);
-		}
-		// check the site lang is set
-		if ((!CFactory::_('Config')->remove_site_folder || !CFactory::_('Config')->remove_site_edit_folder)
-			&& $this->setLangSite($componentName))
-		{
-			$values[]               = array_values(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.site")
-			);
-			$mainLangLoader['site'] = count(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.site")
-			);
-		}
-		// check the site system lang is set
-		if ((!CFactory::_('Config')->remove_site_folder || !CFactory::_('Config')->remove_site_edit_folder)
-			&& $this->setLangSiteSys($componentName))
-		{
-			$values[]                  = array_values(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.sitesys")
-			);
-			$mainLangLoader['sitesys'] = count(
-				CFactory::_('Compiler.Builder.Languages')->get("components.{$langTag}.sitesys")
-			);
-		}
-		$values = array_unique(ArrayHelper::merge($values));
-		// get the other lang strings if there is any
-		CFactory::_('Compiler.Builder.Multilingual')->set('components',
-			CFactory::_('Language.Multilingual')->get($values)
-		);
-		// update insert the current lang in to DB
-		CFactory::_('Language.Set')->execute($values, CFactory::_('Config')->component_guid);
-		// remove old unused language strings
-		CFactory::_('Language.Purge')->execute($values, CFactory::_('Config')->component_guid);
-		// path to INI file
-		$getPAth = CFactory::_('Utilities.Paths')->template_path . '/en-GB.com_admin.ini';
-
-		// Trigger Event: jcb_ce_onBeforeBuildAllLangFiles
-		CFactory::_('Event')->trigger(
-			'jcb_ce_onBeforeBuildAllLangFiles', ['components']
-		);
-
-		// now we insert the values into the files
-		if (CFactory::_('Compiler.Builder.Languages')->IsArray("components"))
-		{
-			// rest xml array
-			$langXML = [];
-			foreach (CFactory::_('Compiler.Builder.Languages')->get("components") as $tag => $areas)
-			{
-				// trim the tag
-				$tag = trim((string) $tag);
-				foreach ($areas as $area => $languageStrings)
-				{
-					// set naming convention
-					$p = 'admin';
-					$t = '';
-					if (strpos((string) $area, 'site') !== false)
-					{
-						if (CFactory::_('Config')->remove_site_folder
-							&& CFactory::_('Config')->remove_site_edit_folder)
-						{
-							continue;
-						}
-						$p = 'site';
-					}
-					if (strpos((string) $area, 'sys') !== false)
-					{
-						$t = '.sys';
-					}
-					// build the file name
-					$file_name = $tag . '.com_' . CFactory::_('Config')->component_code_name . $t
-						. '.ini';
-					// check if language should be added
-					if (CFactory::_('Language.Translation')->check(
-						$tag, $languageStrings, $mainLangLoader[$area],
-						$file_name
-					))
-					{
-						// build the path to place the lang file
-						$path = CFactory::_('Utilities.Paths')->component_path . '/' . $p . '/language/'
-							. $tag . '/';
-						if (!is_dir($path))
-						{
-							Folder::create($path);
-							// count the folder created
-							CFactory::_('Utilities.Counter')->folder++;
-						}
-						// move the file to its place
-						File::copy($getPAth, $path . $file_name);
-						// count the file created
-						CFactory::_('Utilities.Counter')->file++;
-						// add content to it
-						$lang = array_map(
-							fn($langstring, $placeholder) => $placeholder . '="' . $langstring . '"',
-							array_values($languageStrings),
-							array_keys($languageStrings)
-						);
-						// add to language file
-						CFactory::_('Utilities.File')->write(
-							$path . $file_name, implode(PHP_EOL, $lang)
-						);
-						// set the line counter
-						CFactory::_('Utilities.Counter')->line += count(
-								(array) $lang
-							);
-						unset($lang);
-						// build xml strings
-						if (!isset($langXML[$p]))
-						{
-							$langXML[$p] = [];
-						}
-						$langXML[$p][] = '<language tag="' . $tag
-							. '">language/'
-							. $tag . '/' . $file_name . '</language>';
-					}
-				}
-			}
-			// load the lang xml
-			if (ArrayHelper::check($langXML))
-			{
-				$replace = [];
-				if (isset($langXML['admin'])
-					&& ArrayHelper::check($langXML['admin']))
-				{
-					$replace[Placefix::_h('ADMIN_LANGUAGES')]
-						= implode(PHP_EOL . Indent::_(3), $langXML['admin']);
-				}
-				if ((!CFactory::_('Config')->remove_site_folder || !CFactory::_('Config')->remove_site_edit_folder)
-					&& isset($langXML['site'])
-					&& ArrayHelper::check($langXML['site']))
-				{
-					$replace[Placefix::_h('SITE_LANGUAGES')]
-						= implode(PHP_EOL . Indent::_(2), $langXML['site']);
-				}
-				// build xml path
-				$xmlPath = CFactory::_('Utilities.Paths')->component_path . '/' . CFactory::_('Config')->component_code_name
-					. '.xml';
-				// get the content in xml
-				$componentXML = FileHelper::getContent(
-					$xmlPath
-				);
-				// update the xml content
-				$componentXML = CFactory::_('Placeholder')->update($componentXML, $replace);
-				// store the values back to xml
-				CFactory::_('Utilities.File')->write($xmlPath, $componentXML);
-			}
-		}
+		CFactory::_('Architecture.Language.Files')->build();
 	}
 }
-

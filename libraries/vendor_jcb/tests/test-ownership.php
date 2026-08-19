@@ -1944,6 +1944,14 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Language/Files.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Language/FilesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/Placeholders.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/PlaceholdersTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'

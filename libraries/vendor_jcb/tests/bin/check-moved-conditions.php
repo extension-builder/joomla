@@ -68,6 +68,7 @@ if ($baseSha === null || $baseSha === '')
 const LEGACY_HELPERS = [
 	'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Helper/Interpretation.php',
 	'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Helper/Fields.php',
+	'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Helper/Infusion.php',
 ];
 
 /**
