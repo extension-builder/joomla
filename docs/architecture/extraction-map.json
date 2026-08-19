@@ -8,6 +8,25 @@
       }
     ]
   },
+  "buildFunctionCall": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a punctuation fragment shorter than the fingerprint threshold; it became ViewScript::functionCall()",
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 0
+      }
+    ]
+  },
+  "buildTheViewScript": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 6
+      }
+    ]
+  },
   "checkRelationControl": {
     "fingerprints": 0,
     "traced_by": "name, because it carries no string literal at all; it became TargetRelationScript::checkControl()",
@@ -785,6 +804,16 @@
       {
         "class": "Architecture/Component/LicenseLock.php",
         "matched": 1
+      }
+    ]
+  },
+  "setViewScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because it emits nothing at all; it became ViewScript::script()",
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 0
       }
     ]
   },
