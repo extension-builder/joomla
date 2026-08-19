@@ -323,8 +323,18 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 			$counter = (new ReflectionClass(Counter::class))->newInstanceWithoutConstructor();
 			$folder = $this->createMock(Folder::class);
 			$folder->expects($this->exactly(3))->method('create')->willReturn(true);
+			$written = [];
 			$file = $this->createMock(File::class);
-			$file->expects($this->exactly(4))->method('write')->willReturn(true);
+			$file->expects($this->exactly(4))
+				->method('write')
+				->willReturnCallback(
+					static function (string $path, string $data) use (&$written): bool
+					{
+						$written[basename($path)] = $data;
+
+						return true;
+					}
+				);
 			$files = new Files();
 			$app = $this->createMock(CMSApplicationInterface::class);
 			$app->expects($this->exactly(2))->method('enqueueMessage');
@@ -390,6 +400,22 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 			$this->assertCount(4, $files->get('17_P0m3R'));
 			$this->assertSame(4, $counter->file);
 			$this->assertSame(1, $counter->power);
+
+			// the deny only reaches IIS if the document parses, and it was
+			// written without its configuration root element
+			$this->assertArrayHasKey('web.config', $written);
+			$previous = libxml_use_internal_errors(true);
+			$document = simplexml_load_string($written['web.config']);
+			libxml_clear_errors();
+			libxml_use_internal_errors($previous);
+			$this->assertNotFalse($document, 'The generated web.config must be well formed XML');
+			$this->assertSame('configuration', $document->getName());
+			$this->assertSame('*', (string) $document->{'system.web'}->authorization->deny['users']);
+
+			// the Apache side denies every request in both module eras
+			$this->assertArrayHasKey('.htaccess', $written);
+			$this->assertStringContainsString('Require all denied', $written['.htaccess']);
+			$this->assertStringContainsString('Deny from all', $written['.htaccess']);
 		}
 		finally
 		{
