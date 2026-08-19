@@ -85,9 +85,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '74ef0d41f9435d40a407239201ab42e9a06a0062048300d55fb3f3254ad007da'
 		]];
 		yield 'architecture view' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class, [
-			'aliases' => 89,
-			'services' => 89,
-			'hash' => '6d95190724cbfe24c5a161db7376f28829a3cb046e5bdf8dbbee7719fde2a928'
+			'aliases' => 90,
+			'services' => 90,
+			'hash' => 'eda353370e0c0979108dead3bcf4db1c52616d7c320433c9e9edd70d632f4d34'
 		]];
 		yield 'builder A-J' => [\VDM\Joomla\Componentbuilder\Compiler\Service\BuilderAJ::class, [
 			'aliases' => 57,
@@ -95,9 +95,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => 'af63e1152ba93b12852abe036d1ac456373368604f6c26f402e3ec4d61a2ef5c'
 		]];
 		yield 'builder L-Z' => [\VDM\Joomla\Componentbuilder\Compiler\Service\BuilderLZ::class, [
-			'aliases' => 59,
-			'services' => 59,
-			'hash' => '84c2c08be192ae39536dd99497037f59d6a4346d5b4e3799ff45ae73770e3816'
+			'aliases' => 60,
+			'services' => 60,
+			'hash' => '6cc7f12bc5a294a372e36e7691f4d3bfcba4e80431ce9b49dd18096e2acad6b8'
 		]];
 		yield 'compiler' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Compiler::class, [
 			'aliases' => 6,

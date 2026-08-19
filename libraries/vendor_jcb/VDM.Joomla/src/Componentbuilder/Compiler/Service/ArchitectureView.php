@@ -74,6 +74,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\Foot
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\EditBody as SharedAdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\EditBody as J3AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields as AdminViewTabLayoutFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as AdminViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as SharedAdminViewsViewBody;
@@ -311,6 +312,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewTabLayoutFields::class, 'Architecture.AdminView.TabLayoutFields')
 			->share('Architecture.AdminView.TabLayoutFields', [$this, 'getAdminViewTabLayoutFields'], true);
+
+		$container->alias(AdminViewScript::class, 'Architecture.AdminView.ViewScript')
+			->share('Architecture.AdminView.ViewScript', [$this, 'getAdminViewScript'], true);
 
 		$container->alias(LayoutView::class, 'Architecture.Layout.View')
 			->share('Architecture.Layout.View', [$this, 'getLayoutView'], true);
@@ -1540,6 +1544,37 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewTabLayoutFields(
 			$container->get('Compiler.Builder.Layout')
+		);
+	}
+
+	/**
+	 * Get The AdminViewScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewScript
+	 * @since   6.1.7
+	 */
+	public function getAdminViewScript(Container $container): AdminViewScript
+	{
+		return new AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
 		);
 	}
 

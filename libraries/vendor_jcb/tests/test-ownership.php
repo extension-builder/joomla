@@ -908,6 +908,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/ViewScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/TargetControlsScript.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetControlsScriptTest.php'
@@ -931,6 +935,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/TargetRelationScript.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetRelationScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/ViewScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViewScriptTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/UikitLoader.php' => [
 		'mode' => 'contract',

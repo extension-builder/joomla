@@ -3122,6 +3122,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Model.AliasTitleFix')->get($nameSingleCode);
 	}
 
+	/**
+	 * Build the generated model's title generator.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setGenerateNewTitle($nameSingleCode)
 	{
 		// if category is added to this view then do nothing
@@ -3234,6 +3243,15 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the generated model's alias generator.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setGenerateNewAlias($nameSingleCode)
 	{
 		// make sure this view has an alias
@@ -4308,667 +4326,42 @@ class Interpretation extends Fields
 			->getMultiFilterQuery($filter, $Helper, $a);
 	}
 
+	/**
+	 * Build the javascript this admin view carries.
+	 *
+	 * @param   array  $viewArray  The admin view, as the component data carries it.
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function buildTheViewScript($viewArray)
 	{
-		// set the view name
-		$nameSingleCode = $viewArray['settings']->name_single_code;
-		// add conditions to this view
-		if (isset($viewArray['settings']->conditions)
-			&& ArrayHelper::check(
-				$viewArray['settings']->conditions
-			))
-		{
-			// reset defaults
-			$getValue       = [];
-			$ifValue        = [];
-			$targetControls = [];
-			$functions      = [];
+		CFactory::_('Architecture.AdminView.ViewScript')->get((array) $viewArray);
 
-			foreach ($viewArray['settings']->conditions as $condition)
-			{
-				if (isset($condition['match_name'])
-					&& StringHelper::check(
-						$condition['match_name']
-					))
-				{
-					$uniqueVar      = Unique::get(7);
-					$matchName      = $condition['match_name'] . '_'
-						. $uniqueVar;
-					$targetBehavior = ($condition['target_behavior'] == 1
-						|| $condition['target_behavior'] == 3) ? 'show'
-						: 'hide';
-					$targetDefault  = ($condition['target_behavior'] == 1
-						|| $condition['target_behavior'] == 3) ? 'hide'
-						: 'show';
-
-					// set the realtation if any
-					if ($condition['target_relation'])
-					{
-						// chain to other items of the same target
-						$relations = $this->getTargetRelationScript(
-							$viewArray['settings']->conditions, $condition,
-							$nameSingleCode
-						);
-						if (ArrayHelper::check($relations))
-						{
-							// set behavior and default array
-							$behaviors[$matchName] = $targetBehavior;
-							$defaults[$matchName]  = $targetDefault;
-							$toggleSwitch[$matchName]
-								= ($condition['target_behavior']
-								== 1
-								|| $condition['target_behavior'] == 2) ? true
-								: false;
-							// set the type buket
-							$typeBuket[$matchName] = $condition['match_type'];
-							// set function array
-							$functions[$uniqueVar][0] = $matchName;
-							$matchNames[$matchName]
-								= $condition['match_name'];
-							// get the select value
-							$getValue[$matchName] = $this->getValueScript(
-								$condition['match_type'],
-								$condition['match_name'],
-								$condition['match_extends'], $uniqueVar
-							);
-							// get the options
-							$options = $this->getOptionsScript(
-								$condition['match_type'],
-								$condition['match_options']
-							);
-							// set the if values
-							$ifValue[$matchName] = $this->ifValueScript(
-								$matchName, $condition['match_behavior'],
-								$condition['match_type'], $options
-							);
-							// set the target controls
-							$targetControls[$matchName]
-								= $this->setTargetControlsScript(
-								$toggleSwitch[$matchName],
-								$condition['target_field'], $targetBehavior,
-								$targetDefault, $uniqueVar, $nameSingleCode
-							);
-
-							foreach ($relations as $relation)
-							{
-								if (StringHelper::check(
-									$relation['match_name']
-								))
-								{
-									$relationName = $relation['match_name']
-										. '_' . $uniqueVar;
-									// set the type buket
-									$typeBuket[$relationName]
-										= $relation['match_type'];
-									// set function array
-									$functions[$uniqueVar][] = $relationName;
-									$matchNames[$relationName]
-										= $relation['match_name'];
-									// get the relation option
-									$relationOptions = $this->getOptionsScript(
-										$relation['match_type'],
-										$relation['match_options']
-									);
-									$getValue[$relationName]
-										= $this->getValueScript(
-										$relation['match_type'],
-										$relation['match_name'],
-										$condition['match_extends'], $uniqueVar
-									);
-									$ifValue[$relationName]
-										= $this->ifValueScript(
-										$relationName,
-										$relation['match_behavior'],
-										$relation['match_type'],
-										$relationOptions
-									);
-								}
-							}
-						}
-					}
-					else
-					{
-						// set behavior and default array
-						$behaviors[$matchName] = $targetBehavior;
-						$defaults[$matchName]  = $targetDefault;
-						$toggleSwitch[$matchName]
-							= ($condition['target_behavior']
-							== 1
-							|| $condition['target_behavior'] == 2) ? true
-							: false;
-						// set the type buket
-						$typeBuket[$matchName] = $condition['match_type'];
-						// set function array
-						$functions[$uniqueVar][0] = $matchName;
-						$matchNames[$matchName]   = $condition['match_name'];
-						// get the select value
-						$getValue[$matchName] = $this->getValueScript(
-							$condition['match_type'], $condition['match_name'],
-							$condition['match_extends'], $uniqueVar
-						);
-						// get the options
-						$options = $this->getOptionsScript(
-							$condition['match_type'],
-							$condition['match_options']
-						);
-						// set the if values
-						$ifValue[$matchName] = $this->ifValueScript(
-							$matchName, $condition['match_behavior'],
-							$condition['match_type'], $options
-						);
-						// set the target controls
-						$targetControls[$matchName]
-							= $this->setTargetControlsScript(
-							$toggleSwitch[$matchName],
-							$condition['target_field'], $targetBehavior,
-							$targetDefault, $uniqueVar, $nameSingleCode
-						);
-					}
-				}
-			}
-			// reset buckets
-			$initial    = '';
-			$func       = '';
-			$validation = '';
-			$isSet      = '';
-			$listener   = '';
-			if (ArrayHelper::check($functions))
-			{
-				// now build the initial script
-				$initial .= "//" . Line::_(__Line__, __Class__) . " Initial Script"
-					. PHP_EOL . "document.addEventListener('DOMContentLoaded', function()";
-				$initial .= PHP_EOL . "{";
-				foreach ($functions as $function => $matchKeys)
-				{
-					$func_call = $this->buildFunctionCall(
-						$function, $matchKeys, $getValue
-					);
-					$initial   .= $func_call['code'];
-				}
-				$initial .= "});" . PHP_EOL;
-				// for modal fields
-				$modal = '';
-				// now build the listener scripts
-				foreach ($functions as $l_function => $l_matchKeys)
-				{
-					$funcCall = '';
-					foreach ($l_matchKeys as $l_matchKey)
-					{
-						$name         = $matchNames[$l_matchKey];
-						$matchTypeKey = $typeBuket[$l_matchKey];
-						$funcCall     = $this->buildFunctionCall(
-							$l_function, $l_matchKeys, $getValue
-						);
-
-						if (CFactory::_('Compiler.Builder.Script.Media.Switch')->inArray($matchTypeKey))
-						{
-							$modal .= $funcCall['code'];
-						}
-						else
-						{
-							if (CFactory::_('Compiler.Builder.Script.User.Switch')->inArray($matchTypeKey))
-							{
-								$name = $name . '_id';
-							}
-
-							$listener .= PHP_EOL . "//" . Line::_(
-									__LINE__,__CLASS__
-								) . " #jform_" . $name . " listeners for "
-								. $l_matchKey . " function";
-							$listener .= PHP_EOL . "jQuery('#jform_" . $name
-								. "').on('keyup',function()";
-							$listener .= PHP_EOL . "{";
-							$listener .= $funcCall['code'];
-							$listener .= PHP_EOL . "});";
-							$listener .= PHP_EOL
-								. "jQuery('#adminForm').on('change', '#jform_"
-								. $name . "',function (e)";
-							$listener .= PHP_EOL . "{";
-							$listener .= PHP_EOL . Indent::_(1)
-								. "e.preventDefault();";
-							$listener .= $funcCall['code'];
-							$listener .= PHP_EOL . "});" . PHP_EOL;
-						}
-					}
-				}
-				if (StringHelper::check($modal))
-				{
-					$listener .= PHP_EOL . "window.SqueezeBox.initialize({";
-					$listener .= PHP_EOL . Indent::_(1) . "onClose:function(){";
-					$listener .= $modal;
-					$listener .= PHP_EOL . Indent::_(1) . "}";
-					$listener .= PHP_EOL . "});" . PHP_EOL;
-				}
-
-				// now build the function
-				$func = '';
-				$head = '';
-				foreach ($functions as $f_function => $f_matchKeys)
-				{
-					$map = '';
-					// does this function require an array
-					$addArray = false;
-					$func_    = $this->buildFunctionCall(
-						$f_function, $f_matchKeys, $getValue
-					);
-					// set array switch
-					if ($func_['array'])
-					{
-						$addArray = true;
-					}
-					$func      .= PHP_EOL . "//" . Line::_(__Line__, __Class__)
-						. " the " . $f_function . " function";
-					$func      .= PHP_EOL . "function " . $f_function . "(";
-					$fucounter = 0;
-					foreach ($f_matchKeys as $fu_matchKey)
-					{
-						if (StringHelper::check($fu_matchKey))
-						{
-							if ($fucounter == 0)
-							{
-								$func .= $fu_matchKey;
-							}
-							else
-							{
-								$func .= ',' . $fu_matchKey;
-							}
-							$fucounter++;
-						}
-					}
-					$func .= ")";
-					$func .= PHP_EOL . "{";
-					if ($addArray)
-					{
-						foreach ($f_matchKeys as $a_matchKey)
-						{
-							$name = $matchNames[$a_matchKey];
-							$func .= PHP_EOL . Indent::_(1) . "if (isSet("
-								. $a_matchKey . ") && " . $a_matchKey
-								. ".constructor !== Array)" . PHP_EOL
-								. Indent::_(1) . "{" . PHP_EOL . Indent::_(2)
-								. "var temp_" . $f_function . " = "
-								. $a_matchKey . ";" . PHP_EOL . Indent::_(2)
-								. "var " . $a_matchKey . " = [];" . PHP_EOL
-								. Indent::_(2) . $a_matchKey . ".push(temp_"
-								. $f_function . ");" . PHP_EOL . Indent::_(1)
-								. "}";
-							$func .= PHP_EOL . Indent::_(1) . "else if (!isSet("
-								. $a_matchKey . "))" . PHP_EOL . Indent::_(1)
-								. "{";
-							$func .= PHP_EOL . Indent::_(2) . "var "
-								. $a_matchKey . " = [];";
-							$func .= PHP_EOL . Indent::_(1) . "}";
-							$func .= PHP_EOL . Indent::_(1) . "var " . $name
-								. " = " . $a_matchKey . ".some(" . $a_matchKey
-								. "_SomeFunc);" . PHP_EOL;
-
-							// setup the map function
-							$map .= PHP_EOL . "//" . Line::_(__Line__, __Class__)
-								. " the " . $f_function . " Some function";
-							$map .= PHP_EOL . "function " . $a_matchKey
-								. "_SomeFunc(" . $a_matchKey . ")";
-							$map .= PHP_EOL . "{";
-							$map .= PHP_EOL . Indent::_(1) . "//"
-								. Line::_(__Line__, __Class__)
-								. " set the function logic";
-							$map .= PHP_EOL . Indent::_(1) . "if (";
-							$if  = $ifValue[$a_matchKey];
-							if (StringHelper::check($if))
-							{
-								$map .= $if;
-							}
-							$map .= ")";
-							$map .= PHP_EOL . Indent::_(1) . "{";
-							$map .= PHP_EOL . Indent::_(2) . "return true;";
-							$map .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL
-								. Indent::_(1) . "return false;";
-							$map .= PHP_EOL . "}" . PHP_EOL;
-						}
-						$func .= PHP_EOL . PHP_EOL . Indent::_(1) . "//"
-							. Line::_(__Line__, __Class__)
-							. " set this function logic";
-						$func .= PHP_EOL . Indent::_(1) . "if (";
-						// set if counter
-						$aifcounter = 0;
-						foreach ($f_matchKeys as $af_matchKey)
-						{
-							$name = $matchNames[$af_matchKey];
-							if ($aifcounter == 0)
-							{
-								$func .= $name;
-							}
-							else
-							{
-								$func .= ' && ' . $name;
-							}
-							$aifcounter++;
-						}
-						$func .= ")" . PHP_EOL . Indent::_(1) . "{";
-					}
-					else
-					{
-						$func .= PHP_EOL . Indent::_(1) . "//" . Line::_(
-								__LINE__,__CLASS__
-							) . " set the function logic";
-						$func .= PHP_EOL . Indent::_(1) . "if (";
-						// set if counter
-						$ifcounter = 0;
-						foreach ($f_matchKeys as $f_matchKey)
-						{
-							$if = $ifValue[$f_matchKey];
-							if (StringHelper::check($if))
-							{
-								if ($ifcounter == 0)
-								{
-									$func .= $if;
-								}
-								else
-								{
-									$func .= ' && ' . $if;
-								}
-								$ifcounter++;
-							}
-						}
-						$func .= ")" . PHP_EOL . Indent::_(1) . "{";
-					}
-					// get the controles
-					$controls = $targetControls[$f_matchKeys[0]];
-					// get target behavior and default
-					$targetBehavior = $behaviors[$f_matchKeys[0]];
-					$targetDefault  = $defaults[$f_matchKeys[0]];
-					// load the target behavior
-					foreach ($controls as $target => $action)
-					{
-						$func .= $action['behavior'];
-						if (StringHelper::check(
-							$action[$targetBehavior]
-						))
-						{
-							$func .= $action[$targetBehavior];
-							$head .= $action['requiredVar'];
-						}
-					}
-					// check if this is a toggle switch
-					if ($toggleSwitch[$f_matchKeys[0]])
-					{
-						$func .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL
-							. Indent::_(1) . "else" . PHP_EOL . Indent::_(1)
-							. "{";
-						// load the default behavior
-						foreach ($controls as $target => $action)
-						{
-							$func .= $action['default'];
-							if (StringHelper::check(
-								$action[$targetDefault]
-							))
-							{
-								$func .= $action[$targetDefault];
-							}
-						}
-					}
-					$func .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL . "}"
-						. PHP_EOL . $map;
-				}
-				// add the needed validation to file
-				if (isset($this->validationFixBuilder[$nameSingleCode])
-					&& ArrayHelper::check(
-						$this->validationFixBuilder[$nameSingleCode]
-					))
-				{
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Update the \"not required\" field list by adding or removing a field name.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * Mirrors the original jQuery logic exactly but uses pure JavaScript.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {string}  name    The field name to add or remove.";
-					$validation .= PHP_EOL . " * @param  {number}  status  1 to add as not required, 0 to remove.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {void}";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function updateFieldRequired(name, status) {";
-					$validation .= PHP_EOL . Indent::_(1) . "// Check if #jform_not_required exists";
-					$validation .= PHP_EOL . Indent::_(1) . "const notRequiredField = document.getElementById('jform_not_required');";
-					$validation .= PHP_EOL . Indent::_(1) . "if (!notRequiredField) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return;";
-					$validation .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Split the comma-separated list into an array";
-					$validation .= PHP_EOL . Indent::_(1) . "let not_required = notRequiredField.value ? notRequiredField.value.split(',') : [];" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Add or remove the field name from the list";
-					$validation .= PHP_EOL . Indent::_(1) . "if (status == 1) {";
-					$validation .= PHP_EOL . Indent::_(2) . "not_required.push(name);";
-					$validation .= PHP_EOL . Indent::_(1) . "} else {";
-					$validation .= PHP_EOL . Indent::_(2) . "not_required = removeFieldFromNotRequired(not_required, name);";
-					$validation .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Clean and deduplicate the list";
-					$validation .= PHP_EOL . Indent::_(1) . "const fixedList = fixNotRequiredArray(not_required);" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Write back the updated comma-separated list";
-					$validation .= PHP_EOL . Indent::_(1) . "notRequiredField.value = fixedList.toString();";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Remove a specific field name from the \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The list of not-required field names.";
-					$validation .= PHP_EOL . " * @param  {string}        what   The field name to remove.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        The updated array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function removeFieldFromNotRequired(array, what) {";
-					$validation .= PHP_EOL . Indent::_(1) . "return array.filter(function (element) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return element !== what;";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Deduplicate and clean a \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The array to fix.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        A cleaned, unique array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function fixNotRequiredArray(array) {";
-					$validation .= PHP_EOL . Indent::_(1) . "const seen = {};";
-					$validation .= PHP_EOL . Indent::_(1) . "return removeEmptyFromNotRequiredArray(array).filter(function (item) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return seen.hasOwnProperty(item) ? false : (seen[item] = true);";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Remove empty or invalid entries from a \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * Also removes the literal '一_一' token (legacy quirk preserved for compatibility).";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The array to process.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        The cleaned array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function removeEmptyFromNotRequiredArray(array) {";
-					$validation .= PHP_EOL . Indent::_(1) . "return array.filter(function (el) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return el && el.length > 0 && el !== '一_一';";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-				}
-				// set the isSet function
-				$isSet = PHP_EOL . "// the isSet function";
-				$isSet .= PHP_EOL . "function isSet(val)";
-				$isSet .= PHP_EOL . "{";
-				$isSet .= PHP_EOL . Indent::_(1)
-					. "if ((val != undefined) && (val != null) && 0 !== val.length){";
-				$isSet .= PHP_EOL . Indent::_(2) . "return true;";
-				$isSet .= PHP_EOL . Indent::_(1) . "}";
-				$isSet .= PHP_EOL . Indent::_(1) . "return false;";
-				$isSet .= PHP_EOL . "}";
-			}
-			// load to this buket
-			$fileScript   = $initial . $func . $validation . $isSet;
-			$footerScript = $listener;
-		}
-		// add custom script to edit form JS file
-		if (!isset($fileScript))
-		{
-			$fileScript = '';
-		}
-		$fileScript .= CFactory::_('Customcode.Dispenser')->get(
-			'view_file', $nameSingleCode, PHP_EOL . PHP_EOL, null, true, ''
-		);
-		// add custom script to footer
-		if (isset(CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode])
-			&& StringHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode]
-			))
-		{
-			$customFooterScript = PHP_EOL . PHP_EOL . CFactory::_('Placeholder')->update_(
-					CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode]
-				);
-			if (strpos($customFooterScript, '<?php') === false)
-			{
-				// only add now if no php is added to the footer script
-				if (!isset($footerScript))
-				{
-					$footerScript = '';
-				}
-				$footerScript .= $customFooterScript;
-				unset($customFooterScript);
-			}
-		}
-		// set view listname
-		$nameListCode = $viewArray['settings']->name_list_code;
-		// add custom script to list view JS file
-		if (($list_fileScript = CFactory::_('Customcode.Dispenser')->get(
-				'views_file', $nameSingleCode, PHP_EOL . PHP_EOL, null, true,
-				false
-			)) !== false
-			&& StringHelper::check($list_fileScript))
-		{
-			// get dates
-			$_created  = CFactory::_('Model.Createdate')->get($viewArray);
-			$_modified = CFactory::_('Model.Modifieddate')->get($viewArray);
-			// add file to view
-			$_target = array(CFactory::_('Config')->build_target => $nameListCode);
-			$_config = array(Placefix::_h('CREATIONDATE') => $_created,
-				Placefix::_h('BUILDDATE') => $_modified,
-				Placefix::_h('VERSION') => $viewArray['settings']->version);
-			CFactory::_('Utilities.Structure')->build($_target, 'javascript_file', false, $_config);
-			// set path
-			$_path = '/administrator/components/com_' . CFactory::_('Config')->component_code_name
-				. '/assets/js/' . $nameListCode . '.js';
-			// load the file to the list view
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|ADMIN_ADD_JAVASCRIPT_FILE', PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add List View JavaScript File" . PHP_EOL . Indent::_(2)
-				. CFactory::_('Library.IncludeHelper')->get($_path)
-			);
-		}
-		else
-		{
-			$list_fileScript = '';
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|ADMIN_ADD_JAVASCRIPT_FILE', '');
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($list_fileScript)
-			&& StringHelper::check($list_fileScript))
-		{
-			// minify the fileScript javascript
-			$list_fileScript = Minify::js($list_fileScript);
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($fileScript)
-			&& StringHelper::check($fileScript))
-		{
-			// minify the fileScript javascript
-			$fileScript = Minify::js($fileScript);
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($footerScript)
-			&& StringHelper::check($footerScript))
-		{
-			// minify the footerScript javascript
-			$footerScript = Minify::js($footerScript);
-		}
-		// make sure there is script to add
-		if (isset($list_fileScript)
-			&& StringHelper::check(
-				$list_fileScript
-			))
-		{
-			// load the script
-			$this->viewScriptBuilder[$nameListCode]['list_fileScript']
-				= $list_fileScript;
-		}
-		// make sure there is script to add
-		if (isset($fileScript)
-			&& StringHelper::check(
-				$fileScript
-			))
-		{
-			// add the head script if set
-			if (isset($head) && StringHelper::check($head))
-			{
-				$fileScript = "// Some Global Values" . PHP_EOL . $head
-					. PHP_EOL . $fileScript;
-			}
-			// load the script
-			$this->viewScriptBuilder[$nameSingleCode]['fileScript']
-				= $fileScript;
-		}
-		// make sure to add custom footer script if php was found in it, since we canot minfy it with php
-		if (isset($customFooterScript)
-			&& StringHelper::check(
-				$customFooterScript
-			))
-		{
-			if (!isset($footerScript))
-			{
-				$footerScript = '';
-			}
-			$footerScript .= $customFooterScript;
-		}
-		// make sure there is script to add
-		if (isset($footerScript)
-			&& StringHelper::check(
-				$footerScript
-			))
-		{
-			// add the needed script tags
-			$footerScript = PHP_EOL
-				. PHP_EOL . '<script type="text/javascript">' . PHP_EOL
-				. $footerScript . PHP_EOL . "</script>";
-			$this->viewScriptBuilder[$nameSingleCode]['footerScript']
-				= $footerScript;
-		}
+		// the methods still on this helper read the fixes off this property
+		$this->validationFixBuilder = CFactory::_('Compiler.Builder.Validation.Fix')
+			->allActive();
 	}
 
+	/**
+	 * Build the statements that read every watched value and call one function.
+	 *
+	 * @param   string  $function   The name of the function to call.
+	 * @param   array   $matchKeys  The keys of the values the function takes.
+	 * @param   array   $getValue   The read statement of every key.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function buildFunctionCall($function, $matchKeys, $getValue)
 	{
-		$initial  = '';
-		$funcsets = [];
-		$array    = false;
-		foreach ($matchKeys as $matchKey)
-		{
-			$value = $getValue[$matchKey];
-			if ($value['isArray'])
-			{
-				$initial    .= PHP_EOL . Indent::_(1) . $value['get'];
-				$funcsets[] = $matchKey;
-				$array      = true;
-			}
-			else
-			{
-				$initial    .= PHP_EOL . Indent::_(1) . $value['get'];
-				$funcsets[] = $matchKey;
-			}
-		}
-
-		// make sure that the function is loaded only once
-		if (ArrayHelper::check($funcsets))
-		{
-			$initial .= PHP_EOL . Indent::_(1) . $function . "(";
-			$initial .= implode(',', $funcsets);
-			$initial .= ");" . PHP_EOL;
-		}
-
-		return array('code' => $initial, 'array' => $array);
+		return CFactory::_('Architecture.AdminView.ViewScript')->functionCall(
+			(string) $function, (array) $matchKeys, (array) $getValue
+		);
 	}
 
 	/**
@@ -5102,6 +4495,17 @@ class Interpretation extends Fields
 		);
 	}
 
+	/**
+	 * Build the javascript that clears the watched field's value.
+	 *
+	 * @param   string  $type    The type of the field being watched
+	 * @param   string  $name    The name of the field being watched
+	 * @param   string  $unique  The unique key of the condition being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function clearValueScript($type, $name, $unique)
 	{
 		$clear   = '';
@@ -5124,17 +4528,34 @@ class Interpretation extends Fields
 		return $clear;
 	}
 
+	/**
+	 * Read back one of the scripts an admin view was given.
+	 *
+	 * @param   string  $view  The view code name.
+	 * @param   string  $type  Which script: fileScript, footerScript or list_fileScript.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function setViewScript(&$view, $type)
 	{
-		if (isset($this->viewScriptBuilder[$view])
-			&& isset($this->viewScriptBuilder[$view][$type]))
-		{
-			return $this->viewScriptBuilder[$view][$type];
-		}
-
-		return '';
+		return CFactory::_('Architecture.AdminView.ViewScript')->script(
+			(string) $view, (string) $type
+		);
 	}
 
+	/**
+	 * Build the form validation override a view with switched fields needs.
+	 *
+	 * @param   string  $view       The single view name
+	 * @param   mixed   $Component  The component being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setValidationFix($view, $Component)
 	{
 		$fix = '';
@@ -5202,6 +4623,15 @@ class Interpretation extends Fields
 		return $fix;
 	}
 
+	/**
+	 * Build the ajax token declaration a view with ajax makes.
+	 *
+	 * @param   string  $view  The view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxToke(&$view)
 	{
 		$fix = '';
@@ -5266,6 +4696,15 @@ class Interpretation extends Fields
 		return $tasks;
 	}
 
+	/**
+	 * Build the ajax controller cases one build target declares.
+	 *
+	 * @param   string  $target  The build target, site or administrator
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxInputReturn($target)
 	{
 		$cases = '';
@@ -5435,6 +4874,15 @@ class Interpretation extends Fields
 		return $cases;
 	}
 
+	/**
+	 * Build the ajax model methods one build target declares.
+	 *
+	 * @param   string  $target  The build target, site or administrator
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxModelMethods($target)
 	{
 		$methods = '';
@@ -5459,6 +4907,15 @@ class Interpretation extends Fields
 		return $methods;
 	}
 
+	/**
+	 * Build the jQuery framework load the generated view makes.
+	 *
+	 * @param   array  $view  The view being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJquery(&$view)
 	{
 		$addJQuery = '';
@@ -5489,6 +4946,15 @@ class Interpretation extends Fields
 			->get($nameSingleCode, $nameListCode);
 	}
 
+	/**
+	 * Build the generated table's unique field method.
+	 *
+	 * @param   array  $view  The view being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setUniqueFields(&$view)
 	{
 		$fields   = [];
@@ -5542,6 +5008,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in view.html.php
 	 *
+	 * @since   3.2.0
 	 */
 	public function setFilterFieldSidebarDisplayHelper(&$nameSingleCode, &$nameListCode)
 	{
@@ -5718,9 +5185,10 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 * @since   3.2.0
 	 */
 	protected function setDefaultSidebarFilterHelper(&$filter, &$nameSingleCode,
-	                                                 &$nameListCode
+		&$nameListCode
 	)
 	{
 		// add the default filters if we are on the old filter paths (1 = sidebar)
