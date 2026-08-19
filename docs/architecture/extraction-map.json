@@ -81,6 +81,32 @@
       }
     ]
   },
+  "getCategoryContentType": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 3
+      },
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 2
+      }
+    ]
+  },
+  "getContentType": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 1
+      }
+    ]
+  },
   "getCustomAdminViewButtons": {
     "fingerprints": 6,
     "moved_into": [
@@ -270,6 +296,38 @@
     ],
     "shares_generated_text_with": [
       "Architecture/ComHelperClass/CryptKey.php"
+    ]
+  },
+  "setComponentToContentTypes": {
+    "fingerprints": 0,
+    "traced_by": "name, because it only collects and dispatches, and emits nothing of its own; it became ContentTypes::get()",
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setComponentToContentTypesJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/JoomlaThree/Component/UninstallScript.php"
+    ]
+  },
+  "setComponentToContentTypesJ4": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a comment or a punctuation fragment shorter than the fingerprint threshold; it became the shared ContentTypes::script()",
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 0
+      }
     ]
   },
   "setControllerEximportMethod": {
