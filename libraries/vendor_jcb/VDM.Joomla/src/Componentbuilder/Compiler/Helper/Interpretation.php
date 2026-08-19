@@ -1145,187 +1145,24 @@ class Interpretation extends Fields
 	 * @return  string  The generated script.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Component.PostInstallScript instead.
 	 */
 	public function setPostInstallScript()
 	{
-		// reset script
-		$script = $this->setComponentToContentTypes('install');
+		$script = CFactory::_('Architecture.Component.PostInstallScript')->get();
 
-		// add the Intelligent Fix script if needed
-		$script .= $this->getAssetsTableIntelligentInstall();
-
-		if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-		{
-			$script .= $this->setPostInstallScriptJ3();
-		}
-		else
-		{
-			$script .= $this->setPostInstallScriptJ4();
-		}
-
-		// add the custom script
-		$script .= CFactory::_('Customcode.Dispenser')->get(
-			'php_postflight', 'install', PHP_EOL . PHP_EOL, null, true
-		);
-
-		// add the component installation notice
-		if (StringHelper::check($script))
-		{
-			$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-				. 'echo \'<div style="background-color: #fff;" class="alert alert-info"><a target="_blank" href="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('AUTHORWEBSITE') . '" title="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component_name') . '">';
-			$script .= PHP_EOL . Indent::_(4) . '<img src="components/com_'
-				. CFactory::_('Config')->component_code_name . '/assets/images/vdm-component.'
-				. CFactory::_('Architecture.Component.ImageType')->get() . '"/>';
-			$script .= PHP_EOL . Indent::_(4) . '</a></div>\';';
-
-			return $script;
-		}
-
-		return PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " noting to install.";
-	}
-
-	/**
-	 * Set the Joomla 3 post install script of the component.
-	 *
-	 * @return  string  The generated script.
-	 *
-	 * @since   3.2.0
-	 */
-	public function setPostInstallScriptJ3()
-	{
-		// reset script
-		$script = '';
-
-		// set the component name
-		$component = CFactory::_('Config')->component_code_name;
-
-		// add the assets table update for permissions rules
-		if (CFactory::_('Compiler.Builder.Assets.Rules')->isArray('site'))
-		{
-			if (StringHelper::check($script))
-			{
-				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Install the global extenstion assets permission.";
-			}
-			else
-			{
-				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Install the global extension assets permission.";
-				$script .= PHP_EOL . Indent::_(3)
-					. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDbo();";
-			}
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$query = \$db->getQuery(true);";
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Field to update.";
-			$script .= PHP_EOL . Indent::_(3) . "\$fields = array(";
-			$script .= PHP_EOL . Indent::_(4)
-				. "\$db->quoteName('rules') . ' = ' . \$db->quote('{" . implode(
-					',', CFactory::_('Compiler.Builder.Assets.Rules')->get('site')
-				) . "}'),";
-			$script .= PHP_EOL . Indent::_(3) . ");";
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Condition.";
-			$script .= PHP_EOL . Indent::_(3) . "\$conditions = array(";
-			$script .= PHP_EOL . Indent::_(4)
-				. "\$db->quoteName('name') . ' = ' . \$db->quote('com_"
-				. $component . "')";
-			$script .= PHP_EOL . Indent::_(3) . ");";
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$query->update(\$db->quoteName('#__assets'))->set(\$fields)->where(\$conditions);";
-			$script .= PHP_EOL . Indent::_(3) . "\$db->setQuery(\$query);";
-			$script .= PHP_EOL . Indent::_(3) . "\$allDone = \$db->execute();"
-				. PHP_EOL;
-		}
-
-		// add the global params for the component global settings
-		if (CFactory::_('Compiler.Builder.Extensions.Params')->isArray('component'))
-		{
-			if (StringHelper::check($script))
-			{
-				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Install the global extension params.";
-			}
-			else
-			{
-				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Install the global extension params.";
-				$script .= PHP_EOL . Indent::_(3)
-					. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDbo();";
-			}
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$query = \$db->getQuery(true);";
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Field to update.";
-			$script .= PHP_EOL . Indent::_(3) . "\$fields = array(";
-			$script .= PHP_EOL . Indent::_(4)
-				. "\$db->quoteName('params') . ' = ' . \$db->quote('{"
-				. implode(',', CFactory::_('Compiler.Builder.Extensions.Params')->get('component')) . "}'),";
-			$script .= PHP_EOL . Indent::_(3) . ");";
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Condition.";
-			$script .= PHP_EOL . Indent::_(3) . "\$conditions = array(";
-			$script .= PHP_EOL . Indent::_(4)
-				. "\$db->quoteName('element') . ' = ' . \$db->quote('com_"
-				. $component . "')";
-			$script .= PHP_EOL . Indent::_(3) . ");";
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$query->update(\$db->quoteName('#__extensions'))->set(\$fields)->where(\$conditions);";
-			$script .= PHP_EOL . Indent::_(3) . "\$db->setQuery(\$query);";
-			$script .= PHP_EOL . Indent::_(3) . "\$allDone = \$db->execute();"
-				. PHP_EOL;
-		}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
 		return $script;
 	}
 
-	/**
-	 * Set the post install script of the component for targets after Joomla 3.
-	 *
-	 * @return  string  The generated script.
-	 *
-	 * @since   3.2.0
-	 */
-	public function setPostInstallScriptJ4()
-	{
-		// reset script
-		$script = '';
 
-		// add the assets table update for permissions rules
-		if (CFactory::_('Compiler.Builder.Assets.Rules')->isArray('site'))
-		{
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Install the global extension assets permission.";
-			$script .= PHP_EOL . Indent::_(3) . "\$this->setAssetsRules(";
-			$script .= PHP_EOL . Indent::_(4) . "'{" . implode(
-					',', CFactory::_('Compiler.Builder.Assets.Rules')->get('site')
-				) . "}'";
-			$script .= PHP_EOL . Indent::_(3) . ");" . PHP_EOL;
-		}
 
-		// add the global params for the component global settings
-		if (CFactory::_('Compiler.Builder.Extensions.Params')->isArray('component'))
-		{
-			$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Install the global extension params.";
-			$script .= PHP_EOL . Indent::_(3) . "\$this->setExtensionsParams(";
-			$script .= PHP_EOL . Indent::_(4) . "'{"
-				. implode(',', CFactory::_('Compiler.Builder.Extensions.Params')->get('component')
-				) . "}'";
-			$script .= PHP_EOL . Indent::_(3) . ");" . PHP_EOL;
-		}
 
-		return $script;
-	}
 
 	/**
 	 * Set the post update script of the component.
@@ -1333,37 +1170,19 @@ class Interpretation extends Fields
 	 * @return  string  The generated script.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Component.PostUpdateScript instead.
 	 */
 	public function setPostUpdateScript()
 	{
-		// reset script
-		$script = $this->setComponentToContentTypes('update');
-		// add the custom script
-		$script .= CFactory::_('Customcode.Dispenser')->get(
-			'php_postflight', 'update', PHP_EOL . PHP_EOL, null, true
-		);
-		if (CFactory::_('Component')->isArray('admin_views'))
-		{
-			$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-				. 'echo \'<div style="background-color: #fff;" class="alert alert-info"><a target="_blank" href="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('AUTHORWEBSITE') . '" title="'
-				. CFactory::_('Compiler.Builder.Content.One')->get('Component_name') . '">';
-			$script .= PHP_EOL . Indent::_(4) . '<img src="components/com_'
-				. CFactory::_('Config')->component_code_name . '/assets/images/vdm-component.'
-				. CFactory::_('Architecture.Component.ImageType')->get() . '"/>';
-			$script .= PHP_EOL . Indent::_(4) . '</a>';
-			$script .= PHP_EOL . Indent::_(4) . "<h3>Upgrade to Version "
-				. CFactory::_('Compiler.Builder.Content.One')->get('ACTUALVERSION')
-				. " Was Successful! Let us know if anything is not working as expected.</h3></div>';";
-		}
+		$script = CFactory::_('Architecture.Component.PostUpdateScript')->get();
 
-		if (StringHelper::check($script))
-		{
-			return $script;
-		}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-		return PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " noting to update.";
+		return $script;
 	}
 
 	/**

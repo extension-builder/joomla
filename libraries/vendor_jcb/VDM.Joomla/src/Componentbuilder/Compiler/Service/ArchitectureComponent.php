@@ -43,6 +43,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UikitMethod
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderMethodInterface as ComponentMoveFolderMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderMethod as SharedComponentMoveFolderMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderMethod as J3ComponentMoveFolderMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\PostInstallScriptInterface as ComponentPostInstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\PostInstallScript as SharedComponentPostInstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\PostInstallScript as J3ComponentPostInstallScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\PostUpdateScript as ComponentPostUpdateScript;
 
 
 /**
@@ -156,6 +160,18 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3ComponentMoveFolderMethod::class, 'Architecture.Component.J3.MoveFolderMethod')
 			->share('Architecture.Component.J3.MoveFolderMethod', [$this, 'getJ3ComponentMoveFolderMethod'], true);
+
+		$container->alias(ComponentPostInstallScript::class, 'Architecture.Component.PostInstallScript')
+			->share('Architecture.Component.PostInstallScript', [$this, 'getComponentPostInstallScript'], true);
+
+		$container->alias(SharedComponentPostInstallScript::class, 'Architecture.Component.Shared.PostInstallScript')
+			->share('Architecture.Component.Shared.PostInstallScript', [$this, 'getSharedComponentPostInstallScript'], true);
+
+		$container->alias(J3ComponentPostInstallScript::class, 'Architecture.Component.J3.PostInstallScript')
+			->share('Architecture.Component.J3.PostInstallScript', [$this, 'getJ3ComponentPostInstallScript'], true);
+
+		$container->alias(ComponentPostUpdateScript::class, 'Architecture.Component.PostUpdateScript')
+			->share('Architecture.Component.PostUpdateScript', [$this, 'getComponentPostUpdateScript'], true);
 	}
 
 	/**
@@ -720,6 +736,94 @@ class ArchitectureComponent implements ServiceProviderInterface
 		return new J3ComponentMoveFolderMethod(
 			$container->get('Config'),
 			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get The Component PostInstallScript Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentPostInstallScript
+	 * @since   6.1.7
+	 */
+	public function getComponentPostInstallScript(Container $container): ComponentPostInstallScript
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 install script writes the extension permissions itself
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.PostInstallScript');
+		}
+
+		return $container->get('Architecture.Component.Shared.PostInstallScript');
+	}
+
+	/**
+	 * Get The Component PostInstallScript Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedComponentPostInstallScript
+	 * @since   6.1.7
+	 */
+	public function getSharedComponentPostInstallScript(Container $container): SharedComponentPostInstallScript
+	{
+		return new SharedComponentPostInstallScript(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Assets.Rules'),
+			$container->get('Compiler.Builder.Extensions.Params'),
+			$container->get('Architecture.Component.ImageType'),
+			$container->get('Architecture.Component.ContentTypes'),
+			$container->get('Architecture.Component.AssetsTable')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 Component PostInstallScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ComponentPostInstallScript
+	 * @since   6.1.7
+	 */
+	public function getJ3ComponentPostInstallScript(Container $container): J3ComponentPostInstallScript
+	{
+		return new J3ComponentPostInstallScript(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Assets.Rules'),
+			$container->get('Compiler.Builder.Extensions.Params'),
+			$container->get('Architecture.Component.ImageType'),
+			$container->get('Architecture.Component.ContentTypes'),
+			$container->get('Architecture.Component.AssetsTable')
+		);
+	}
+
+	/**
+	 * Get The Component PostUpdateScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentPostUpdateScript
+	 * @since   6.1.7
+	 */
+	public function getComponentPostUpdateScript(Container $container): ComponentPostUpdateScript
+	{
+		return new ComponentPostUpdateScript(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Architecture.Component.ImageType'),
+			$container->get('Architecture.Component.ContentTypes')
 		);
 	}
 
