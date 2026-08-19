@@ -200,15 +200,16 @@ final class StringHelperTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Remove unsafe markup while preserving encoded safe text.
+	 * Escape markup instead of deleting it, and shorten the escaped result.
 	 *
 	 * @return  void
 	 * @since   6.1.6
+	 * @since   6.1.7  html() escapes rather than filters.
 	 */
-	public function testHtmlFiltersMarkupAndCanShortenTheCleanResult(): void
+	public function testHtmlEscapesMarkupAndCanShortenTheResult(): void
 	{
 		$this->assertSame(
-			'alert(1)Safe &amp; sound',
+			'&lt;script&gt;alert(1)&lt;/script&gt;&lt;b&gt;Safe &amp;amp; sound&lt;/b&gt;',
 			StringHelper::html('<script>alert(1)</script><b>Safe &amp; sound</b>')
 		);
 		$this->assertSame(
@@ -219,11 +220,66 @@ final class StringHelperTest extends JoomlaTestCase
 	}
 
 	/**
+	 * Never lose text that only looks like markup.
+	 *
+	 * A tag blacklist deletes anything shaped like a tag, so routing ordinary
+	 * values through one silently destroyed data: "3 < 5" was stored, and "3"
+	 * was displayed. Escaping is lossless.
+	 *
+	 * @param   string  $stored    The value as stored.
+	 * @param   string  $expected  What the page must show.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('losslessValues')]
+	public function testHtmlNeverDropsTextThatLooksLikeATag(string $stored, string $expected): void
+	{
+		$this->assertSame($expected, StringHelper::html($stored));
+	}
+
+	/**
+	 * Ordinary values whose text a tag blacklist would eat.
+	 *
+	 * @return  array<string, array{string,string}>
+	 * @since   6.1.7
+	 */
+	public static function losslessValues(): array
+	{
+		return [
+			'company name in angle brackets' => ['Widgets <Pty> Ltd', 'Widgets &lt;Pty&gt; Ltd'],
+			'comparison' => ['3 < 5', '3 &lt; 5'],
+			'two comparisons' => ['A < B and B > C', 'A &lt; B and B &gt; C'],
+			'literal that is not a tag' => ['<not-a-tag> literal', '&lt;not-a-tag&gt; literal'],
+		];
+	}
+
+	/**
+	 * Keep renderable markup while removing what can execute.
+	 *
+	 * This is the objective html() used to carry as a side effect, and it is
+	 * only correct for a field that genuinely holds authored HTML.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testSanitizeKeepsRenderableMarkupAndDropsTheExecutable(): void
+	{
+		$this->assertSame(
+			'alert(1)<b>bold</b>',
+			StringHelper::sanitize('<script>alert(1)</script><b>bold</b>')
+		);
+		$this->assertSame('<img src="x" />', StringHelper::sanitize('<img src="x" onerror="alert(1)">'));
+		$this->assertSame('<a>click</a>', StringHelper::sanitize('<a href="javascript:alert(1)">click</a>'));
+		$this->assertSame('', StringHelper::sanitize('<iframe src="//evil"></iframe>'));
+		$this->assertSame('', StringHelper::sanitize(null));
+	}
+
+	/**
 	 * Encode the characters that let a value escape its HTML context.
 	 *
-	 * The generated HtmlView::escape() delegates here, and the filter alone
-	 * is a tag and attribute blacklist: it returns quotes and ampersands
-	 * verbatim, so an unencoded value breaks straight out of an attribute.
+	 * The generated HtmlView::escape() delegates here. Without encoding, a
+	 * value carrying a quote breaks straight out of an HTML attribute.
 	 *
 	 * @param   bool  $shorten  Whether the shortening branch is exercised.
 	 * @param   int   $length   The shortening length.
@@ -247,9 +303,10 @@ final class StringHelperTest extends JoomlaTestCase
 			StringHelper::html('Smith & Sons', 'UTF-8', $shorten, $length)
 		);
 
-		// an already encoded value must not gain a second round of encoding
+		// the tables store decoded text, so a stored literal entity is text
+		// and must reach the page as that literal
 		$this->assertSame(
-			'Smith &amp; Sons',
+			'Smith &amp;amp; Sons',
 			StringHelper::html('Smith &amp; Sons', 'UTF-8', $shorten, $length)
 		);
 	}
