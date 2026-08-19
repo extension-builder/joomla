@@ -3544,29 +3544,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.AjaxToken instead.
 	 */
 	public function setAjaxToke(&$view)
 	{
-		$fix = '';
-		if (isset(CFactory::_('Customcode.Dispenser')->hub['token'][$view])
-			&& CFactory::_('Customcode.Dispenser')->hub['token'][$view])
-		{
-			$fix .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Add Ajax Token";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$fix .= PHP_EOL . Indent::_(2)
-					. "\$this->getDocument()->addScriptDeclaration(\"var token = '\" . Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::getFormToken() . \"';\");";
-			}
-			else
-			{
-				$fix .= PHP_EOL . Indent::_(2)
-					. "\$this->getDocument()->getWebAssetManager()->addInlineScript(\"var token = '\" . Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::getFormToken() . \"';\");";
-			}
-		}
-
-		return $fix;
+		return CFactory::_('Architecture.View.AjaxToken')->get($view);
 	}
 
 	/**
@@ -3617,174 +3599,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Controller.AjaxCases instead.
 	 */
 	public function setAjaxInputReturn($target)
 	{
-		$cases = '';
-		if (isset(CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller'])
-			&& ArrayHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller']
-			))
-		{
-			$input      = [];
-			$valueArray = [];
-			$ifArray    = [];
-			$getModel   = [];
-			$userCheck  = [];
-			$prefix     = ($target == 'site') ? 'Site':'Administrator';
-			$isJoomla3  = (CFactory::_('Config')->get('joomla_version', 3) == 3);
-			$failed     = "false";
-			if (!$isJoomla3)
-			{
-				$failed = "['error' => 'There was an error! [149]']";
-			}
-			foreach (
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller'] as $view
-			)
-			{
-				foreach ($view as $task)
-				{
-					$input[$task['task_name']][]      = "\$"
-						. $task['value_name'] . "Value = \$jinput->get('"
-						. $task['value_name'] . "', " . $task['input_default']
-						. ", '" . $task['input_filter'] . "');";
-					$valueArray[$task['task_name']][] = "\$"
-						. $task['value_name'] . "Value";
-					$getModel[$task['task_name']] =
-						"\$result = \$ajaxModule->"
-						. $task['method_name'] . "(" . Placefix::_("valueArray") . ");";
-					// check if null or zero is allowed
-					if (!isset($task['allow_zero']) || 1 != $task['allow_zero'])
-					{
-						$ifArray[$task['task_name']][] = "\$"
-							. $task['value_name'] . "Value";
-					}
-					// see user check is needed
-					if (!isset($userCheck[$task['task_name']])
-						&& isset($task['user_check'])
-						&& 1 == $task['user_check'])
-					{
-						// add it since this means it was not set, and in the old method we assumed it was inplace
-						// or it is set and 1 means we still want it inplace
-						$ifArray[$task['task_name']][] = '$user->id != 0';
-						// add it only once
-						$userCheck[$task['task_name']] = true;
-					}
-				}
-			}
-			if (ArrayHelper::check($getModel))
-			{
-				foreach ($getModel as $task => $getMethod)
-				{
-					$cases .= PHP_EOL . Indent::_(4) . "case '" . $task . "':";
-					$cases .= PHP_EOL . Indent::_(5) . "try";
-					$cases .= PHP_EOL . Indent::_(5) . "{";
-					foreach ($input[$task] as $string)
-					{
-						$cases .= PHP_EOL . Indent::_(6) . $string;
-					}
-					// set the values
-					$values = implode(', ', $valueArray[$task]);
-					// set the values to method
-					$getMethod = str_replace(
-						Placefix::_('valueArray'), $values,
-						$getMethod
-					);
-					// check if we have some values to check
-					if (isset($ifArray[$task])
-						&& ArrayHelper::check($ifArray[$task]))
-					{
-						// set if string
-						$ifvalues = implode(' && ', $ifArray[$task]);
-						// add to case
-						$cases .= PHP_EOL . Indent::_(6) . "if(" . $ifvalues
-							. ")";
-						$cases .= PHP_EOL . Indent::_(6) . "{";
-						if ($isJoomla3)
-						{
-							$cases .= PHP_EOL . Indent::_(7) . "\$ajaxModule = \$this->getModel('ajax');";
-						}
-						else
-						{
-							$cases .= PHP_EOL . Indent::_(7) . "\$ajaxModule = \$this->getModel('ajax', '$prefix');";
-						}
-						$cases .= PHP_EOL . Indent::_(7) . "if (\$ajaxModule)";
-						$cases .= PHP_EOL . Indent::_(7) . "{";
-						$cases .= PHP_EOL . Indent::_(8) . $getMethod;
-						$cases .= PHP_EOL . Indent::_(7) . "}";
-						$cases .= PHP_EOL . Indent::_(7) . "else";
-						$cases .= PHP_EOL . Indent::_(7) . "{";
-						$cases .= PHP_EOL . Indent::_(8) . "\$result = $failed;";
-						$cases .= PHP_EOL . Indent::_(7) . "}";
-						$cases .= PHP_EOL . Indent::_(6) . "}";
-						$cases .= PHP_EOL . Indent::_(6) . "else";
-						$cases .= PHP_EOL . Indent::_(6) . "{";
-						$cases .= PHP_EOL . Indent::_(7) . "\$result = $failed;";
-						$cases .= PHP_EOL . Indent::_(6) . "}";
-					}
-					else
-					{
-						if ($isJoomla3)
-						{
-							$cases .= PHP_EOL . Indent::_(6) . "\$ajaxModule = \$this->getModel('ajax');";
-						}
-						else
-						{
-							$cases .= PHP_EOL . Indent::_(6) . "\$ajaxModule = \$this->getModel('ajax', '$prefix');";
-						}
-						$cases .= PHP_EOL . Indent::_(6) . "if (\$ajaxModule)";
-						$cases .= PHP_EOL . Indent::_(6) . "{";
-						$cases .= PHP_EOL . Indent::_(7) . $getMethod;
-						$cases .= PHP_EOL . Indent::_(6) . "}";
-						$cases .= PHP_EOL . Indent::_(6) . "else";
-						$cases .= PHP_EOL . Indent::_(6) . "{";
-						$cases .= PHP_EOL . Indent::_(7) . "\$result = $failed;";
-						$cases .= PHP_EOL . Indent::_(6) . "}";
-					}
-					// continue the build
-					$cases .= PHP_EOL . Indent::_(6)
-						. "if(\$callback)";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo \$callback . \"(\".json_encode(\$result).\");\";";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(6) . "elseif(\$returnRaw)";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo json_encode(\$result);";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(6) . "else";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo \"(\".json_encode(\$result).\");\";";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(5) . "}";
-					$cases .= PHP_EOL . Indent::_(5) . "catch(\Exception \$e)";
-					$cases .= PHP_EOL . Indent::_(5) . "{";
-					$cases .= PHP_EOL . Indent::_(6)
-						. "if(\$callback)";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo \$callback.\"(\".json_encode(\$e).\");\";";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(6)
-						. "elseif(\$returnRaw)";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo json_encode(\$e);";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(6) . "else";
-					$cases .= PHP_EOL . Indent::_(6) . "{";
-					$cases .= PHP_EOL . Indent::_(7)
-						. "echo \"(\".json_encode(\$e).\");\";";
-					$cases .= PHP_EOL . Indent::_(6) . "}";
-					$cases .= PHP_EOL . Indent::_(5) . "}";
-					$cases .= PHP_EOL . Indent::_(4) . "break;";
-				}
-			}
-		}
-
-		return $cases;
+		return CFactory::_('Architecture.Controller.AjaxCases')->get($target);
 	}
 
 	/**

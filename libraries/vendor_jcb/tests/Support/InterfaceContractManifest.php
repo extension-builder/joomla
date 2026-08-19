@@ -157,6 +157,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '0ae5cf031d2afdfcf6dbd4ba369039b00ab78a109aeb926a1d10de78a5ea39e5',
 			'signature_hash' => '40572d240d841a80e907a386ff0be2cb0734fc7895eb1a8d8fd8c135d4b72db5'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AjaxCasesInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AjaxCasesInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'd4ab69532cb84bd596f50d40a33dc5102e6d9318da5dded15851ea87764b2545',
+			'signature_hash' => 'beb29674b15b82974ea075b60692efdc75637b6198131fe6cec6694e51440ec8'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Dashboard\\ViewInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Dashboard/ViewInterface.php',
 			'implementations' => 4,
@@ -268,6 +275,13 @@ final class InterfaceContractManifest
 			'concrete' => 2,
 			'implementation_hash' => '48bef63ce9c7860637562dce61923636a2bf9fef1d84c24ac8ef3d00157d8bf8',
 			'signature_hash' => '0f86ec26fd3428227028ec8d9c724418cf76b4c42d09328fbe68e85052750ac1'
+		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\AjaxTokenInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/AjaxTokenInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'cf120dc8a2abd488b1bb503abf8fa6c07fb30313443c0a2f3b595ec89fb2f628',
+			'signature_hash' => 'caf2534d3f3efe60c28f0d8ee7880a31e23b884f83536b4069481a76a04cc7ee'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\DocumentInlineAssetsInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/DocumentInlineAssetsInterface.php',

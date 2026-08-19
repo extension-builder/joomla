@@ -123,6 +123,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\Libraries
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as ViewJavaScriptFile;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GetModules as ViewGetModules;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument as ViewPrepareDocument;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface as ViewAjaxTokenInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\AjaxToken as SharedViewAjaxToken;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\AjaxToken as J3ViewAjaxToken;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -505,6 +508,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(ViewPrepareDocument::class, 'Architecture.View.PrepareDocument')
 			->share('Architecture.View.PrepareDocument', [$this, 'getViewPrepareDocument'], true);
+
+		$container->alias(ViewAjaxTokenInterface::class, 'Architecture.View.AjaxToken')
+			->share('Architecture.View.AjaxToken', [$this, 'getViewAjaxToken'], true);
+
+		$container->alias(SharedViewAjaxToken::class, 'Architecture.View.Shared.AjaxToken')
+			->share('Architecture.View.Shared.AjaxToken', [$this, 'getSharedViewAjaxToken'], true);
+
+		$container->alias(J3ViewAjaxToken::class, 'Architecture.View.J3.AjaxToken')
+			->share('Architecture.View.J3.AjaxToken', [$this, 'getJ3ViewAjaxToken'], true);
 	}
 
 	/**
@@ -2759,6 +2771,60 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.CustomButtons'),
 			$container->get('Architecture.View.GetModules'),
 			$container->get('Architecture.View.JavaScriptFile')
+		);
+	}
+
+	/**
+	 * Get The View AjaxToken Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewAjaxTokenInterface
+	 * @since   6.1.7
+	 */
+	public function getViewAjaxToken(Container $container): ViewAjaxTokenInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 declares the token straight on the document
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.View.J3.AjaxToken');
+		}
+
+		return $container->get('Architecture.View.Shared.AjaxToken');
+	}
+
+	/**
+	 * Get The View AjaxToken Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedViewAjaxToken
+	 * @since   6.1.7
+	 */
+	public function getSharedViewAjaxToken(Container $container): SharedViewAjaxToken
+	{
+		return new SharedViewAjaxToken(
+			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 View AjaxToken Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ViewAjaxToken
+	 * @since   6.1.7
+	 */
+	public function getJ3ViewAjaxToken(Container $container): J3ViewAjaxToken
+	{
+		return new J3ViewAjaxToken(
+			$container->get('Customcode.Dispenser')
 		);
 	}
 }

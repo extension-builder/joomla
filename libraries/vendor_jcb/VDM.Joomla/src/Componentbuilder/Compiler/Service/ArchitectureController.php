@@ -34,6 +34,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\All
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface as ControllerEximportMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\EximportMethod as SharedControllerEximportMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\EximportMethod as J3ControllerEximportMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\AjaxCasesInterface as ControllerAjaxCases;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxCases as SharedControllerAjaxCases;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\AjaxCases as J3ControllerAjaxCases;
 /**
  * Architecture Controller Service Provider
  * 
@@ -112,6 +115,15 @@ class ArchitectureController implements ServiceProviderInterface
 
 		$container->alias(J3ControllerEximportMethod::class, 'Architecture.Controller.J3.EximportMethod')
 			->share('Architecture.Controller.J3.EximportMethod', [$this, 'getJ3ControllerEximportMethod'], true);
+
+		$container->alias(ControllerAjaxCases::class, 'Architecture.Controller.AjaxCases')
+			->share('Architecture.Controller.AjaxCases', [$this, 'getControllerAjaxCases'], true);
+
+		$container->alias(SharedControllerAjaxCases::class, 'Architecture.Controller.Shared.AjaxCases')
+			->share('Architecture.Controller.Shared.AjaxCases', [$this, 'getSharedControllerAjaxCases'], true);
+
+		$container->alias(J3ControllerAjaxCases::class, 'Architecture.Controller.J3.AjaxCases')
+			->share('Architecture.Controller.J3.AjaxCases', [$this, 'getJ3ControllerAjaxCases'], true);
 	}
 
 	/**
@@ -445,4 +457,58 @@ class ArchitectureController implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Import.Custom.Scripts')
 		);
 	}
+	/**
+	 * Get The Controller AjaxCases Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ControllerAjaxCases
+	 * @since   6.1.7
+	 */
+	public function getControllerAjaxCases(Container $container): ControllerAjaxCases
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 reaches its models without naming the side they belong to
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Controller.J3.AjaxCases');
+		}
+
+		return $container->get('Architecture.Controller.Shared.AjaxCases');
+	}
+
+	/**
+	 * Get The Controller AjaxCases Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedControllerAjaxCases
+	 * @since   6.1.7
+	 */
+	public function getSharedControllerAjaxCases(Container $container): SharedControllerAjaxCases
+	{
+		return new SharedControllerAjaxCases(
+			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 Controller AjaxCases Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ControllerAjaxCases
+	 * @since   6.1.7
+	 */
+	public function getJ3ControllerAjaxCases(Container $container): J3ControllerAjaxCases
+	{
+		return new J3ControllerAjaxCases(
+			$container->get('Customcode.Dispenser')
+		);
+	}
+
 }

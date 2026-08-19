@@ -67,6 +67,12 @@ return [
 			=> 'taking the entries is what clears them now, so there is nothing left to unset once they have been read',
 		"&&S->get('build.dashboard',null)===null)"
 			=> 'the joomla_version half chose the class, and the dashboard half became the extension point that class overrides',
+		"\$isJoomla3=(S->get('joomla_version',3)==3);"
+			=> 'the version the whole method read from became the class the provider chose',
+		'if(!$isJoomla3)'
+			=> 'what a task that cannot run answers with became the failed() extension point',
+		'if($isJoomla3)'
+			=> 'how the ajax model is asked for became the ajaxModel() extension point',
 		'if(isset($this->viewScriptBuilder[$view])'
 			=> 'the scripts array became a Registry, and its get() returns null for a view that was given no script',
 		'&&isset($this->viewScriptBuilder[$view][$type]))'
