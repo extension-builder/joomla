@@ -5959,432 +5959,67 @@ class Interpretation extends Fields
 			->getCustomIcons($view, $counter, $this->customAdminAdded);
 	}
 
+	/**
+	 * Build the component's administrator sub menu.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.SubMenus service.
+	 */
 	public function setSubMenus()
 	{
-		if (CFactory::_('Component')->isArray('admin_views'))
-		{
-			$menus = '';
-			// main lang prefix
-			$lang = CFactory::_('Config')->lang_prefix . '_SUBMENU';
-			// set the code name
-			$codeName = CFactory::_('Config')->component_code_name;
-			// set default dashboard
-			if (!CFactory::_('Registry')->get('build.dashboard'))
-			{
-				$menus .= "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang
-					. "_DASHBOARD'), 'index.php?option=com_" . $codeName
-					. "&view=" . $codeName . "', \$submenu === '" . $codeName
-					. "');";
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lang . '_DASHBOARD', 'Dashboard'
-				);
-			}
-			$catArray = [];
-			// loop over all the admin views
-			foreach (CFactory::_('Component')->get('admin_views') as $view)
-			{
-				// set custom menu
-				$menus          .= $this->addCustomSubMenu(
-					$view, $codeName, $lang
-				);
-				$nameSingleCode = $view['settings']->name_single_code;
-				$nameListCode   = $view['settings']->name_list_code;
-				$nameUpper      = StringHelper::safe(
-					$view['settings']->name_list, 'U'
-				);
-				// check if view is set to be in the sub-menu
-				if (isset($view['submenu']) && $view['submenu'] == 1)
-				{
-					// setup access defaults
-					$tab      = "";
-					$has_permissions = false;
-					// check if the item has permissions.
-					if (CFactory::_('Compiler.Creator.Permission')->globalExist($nameSingleCode, 'core.access'))
-					{
-						$menus .= PHP_EOL . Indent::_(2)
-							. "if (\$user->authorise('"
-							. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingleCode, 'core.access')
-							. "', 'com_" . $codeName
-							. "') && \$user->authorise('" . $nameSingleCode
-							. ".submenu', 'com_" . $codeName . "'))";
-						$menus .= PHP_EOL . Indent::_(2) . "{";
-						// add tab to lines to follow
-						$tab = Indent::_(1);
-						$has_permissions = true;
-					}
-					$menus .= PHP_EOL . Indent::_(2) . $tab
-						. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-						. $nameUpper . "'), 'index.php?option=com_" . $codeName
-						. "&view=" . $nameListCode . "', \$submenu === '"
-						. $nameListCode . "');";
-					CFactory::_('Language')->set(
-						CFactory::_('Config')->lang_target, $lang . "_" . $nameUpper,
-						$view['settings']->name_list
-					);
-					// check if category has another name
-					$otherViews = CFactory::_('Compiler.Builder.Category.Other.Name')->
-						get($nameListCode . '.views', $nameListCode);
-					// first check if category sub-menu should be added
-					// then check if view has category, if true add sub-menu for it
-					if ($view['settings']->add_category_submenu == 1
-						&& CFactory::_('Compiler.Builder.Category')->exists("{$nameListCode}.extension")
-						&& !in_array($otherViews, $catArray))
-					{
-						// get the extension array
-						$_extension_array = (array) explode(
-							'.',
-							(string) CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-						);
-						// set the menu selection
-						if (isset($_extension_array[1]))
-						{
-							$_menu = "categories." . trim($_extension_array[1]);
-						}
-						else
-						{
-							$_menu = "categories";
-						}
-						// now load the menus
-						$menus .= PHP_EOL . Indent::_(2) . $tab
-							. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-							. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.name", 'error')
-							. "'), 'index.php?option=com_categories&view=categories&extension="
-							. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-							. "', \$submenu === '" . $_menu . "');";
-						// make sure we add a category only once
-						$catArray[] = $otherViews;
-					}
-					// check if the item has permissions.
-					if ($has_permissions)
-					{
-						$menus .= PHP_EOL . Indent::_(2) . "}";
-					}
-				}
-				// set the Joomla custom fields options
-				if (isset($view['joomla_fields'])
-					&& $view['joomla_fields'] == 1)
-				{
-					$menus .= PHP_EOL . Indent::_(2)
-						. "if (ComponentHelper::isEnabled('com_fields'))";
-					$menus .= PHP_EOL . Indent::_(2) . "{";
-					$menus .= PHP_EOL . Indent::_(3)
-						. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-						. $nameUpper
-						. "_FIELDS'), 'index.php?option=com_fields&context=com_"
-						. $codeName . "." . $nameSingleCode
-						. "', \$submenu === 'fields.fields');";
-					$menus .= PHP_EOL . Indent::_(3)
-						. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-						. $nameUpper
-						. "_FIELDS_GROUPS'), 'index.php?option=com_fields&view=groups&context=com_"
-						. $codeName . "." . $nameSingleCode
-						. "', \$submenu === 'fields.groups');";
-					$menus .= PHP_EOL . Indent::_(2) . "}";
-					CFactory::_('Language')->set(
-						CFactory::_('Config')->lang_target, $lang . "_" . $nameUpper . "_FIELDS",
-						$view['settings']->name_list . ' Fields'
-					);
-					CFactory::_('Language')->set(
-						CFactory::_('Config')->lang_target,
-						$lang . "_" . $nameUpper . "_FIELDS_GROUPS",
-						$view['settings']->name_list . ' Field Groups'
-					);
-					// build uninstall script for fields
-					$this->uninstallScriptBuilder[$nameSingleCode] = 'com_'
-						. $codeName . '.' . $nameSingleCode;
-					$this->uninstallScriptFields[$nameSingleCode]
-						= $nameSingleCode;
-				}
-			}
-			if (isset($this->lastCustomSubMenu)
-				&& ArrayHelper::check($this->lastCustomSubMenu))
-			{
-				foreach ($this->lastCustomSubMenu as $menu)
-				{
-					$menus .= $menu;
-				}
-				unset($this->lastCustomSubMenu);
-			}
+		$menus = CFactory::_('Architecture.Menu.SubMenus')->get();
 
-			return $menus;
-		}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptFields = CFactory::_('Compiler.Builder.Uninstall.Script.Fields')
+			->allActive() + $this->uninstallScriptFields;
 
-		return false;
+		return $menus;
 	}
 
+	/**
+	 * Build the custom sub menu entries that sit beside the given admin view.
+	 *
+	 * @param   array   $view      The admin view being walked.
+	 * @param   string  $codeName  The component code name.
+	 * @param   string  $lang      The menu language prefix.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.CustomSubMenu service.
+	 */
 	public function addCustomSubMenu(&$view, &$codeName, &$lang)
 	{
-		// see if we should have custom menus
-		$custom = '';
-		if (CFactory::_('Component')->isArray('custom_admin_views'))
+		$service = CFactory::_('Architecture.Menu.CustomSubMenu');
+		$custom = $service->get(
+			$view, (string) $codeName, (string) $lang, $this->customAdminAdded
+		);
+
+		// the caller reads these off this property once every view is walked,
+		// and unsets it, so they are handed over rather than mirrored
+		foreach ($service->takeDeferred() as $nr => $deferred)
 		{
-			foreach (CFactory::_('Component')->get('custom_admin_views') as $nr => $menu)
-			{
-				if (!isset($this->customAdminAdded[$menu['settings']->code]))
-				{
-					if (($_custom = $this->setCustomAdminSubMenu(
-							$view, $codeName, $lang, $nr, $menu, 'customView'
-						)) !== false)
-					{
-						$custom .= $_custom;
-					}
-				}
-			}
-		}
-		if (CFactory::_('Component')->isArray('custommenus'))
-		{
-			foreach (CFactory::_('Component')->get('custommenus') as $nr => $menu)
-			{
-				if (($_custom = $this->setCustomAdminSubMenu(
-						$view, $codeName, $lang, $nr, $menu, 'customMenu'
-					)) !== false)
-				{
-					$custom .= $_custom;
-				}
-			}
+			$this->lastCustomSubMenu[$nr] = $deferred;
 		}
 
 		return $custom;
 	}
 
-	public function setCustomAdminSubMenu(&$view, &$codeName, &$lang, &$nr, &$menu, $type)
-	{
-		if ($type === 'customMenu')
-		{
-			$name       = $menu['name'];
-			$nameSingle = StringHelper::safe($menu['name']);
-			$nameList   = StringHelper::safe($menu['name']);
-			$nameUpper  = StringHelper::safe(
-				$menu['name'], 'U'
-			);
-		}
-		elseif ($type === 'customView')
-		{
-			$name       = $menu['settings']->name;
-			$nameSingle = $menu['settings']->code;
-			$nameList   = $menu['settings']->code;
-			$nameUpper  = $menu['settings']->CODE;
-		}
-		if (isset($menu['submenu']) && $menu['submenu'] == 1
-			&& $view['adminview'] == $menu['before'])
-		{
-			// setup access defaults
-			$tab = "";
-			$custom = '';
-			// check if the item has permissions.
-			if (CFactory::_('Compiler.Creator.Permission')->globalExist($nameSingle, 'core.access'))
-			{
-				$custom .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Access control (" . CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingle, 'core.access') . " && "
-					. $nameSingle . ".submenu).";
-				$custom .= PHP_EOL . Indent::_(2) . "if (\$user->authorise('"
-					. CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingle, 'core.access') . "', 'com_" . $codeName
-					. "') && \$user->authorise('" . $nameSingle
-					. ".submenu', 'com_" . $codeName . "'))";
-				$custom .= PHP_EOL . Indent::_(2) . "{";
-				// add tab to lines to follow
-				$tab = Indent::_(1);
-			}
-			else
-			{
-				$custom .= PHP_EOL . Indent::_(2) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Access control (" . $nameSingle . ".submenu).";
-				$custom .= PHP_EOL . Indent::_(2) . "if (\$user->authorise('"
-					. $nameSingle . ".submenu', 'com_" . $codeName . "'))";
-				$custom .= PHP_EOL . Indent::_(2) . "{";
-				// add tab to lines to follow
-				$tab = Indent::_(1);
-			}
-			if (isset($menu['link'])
-				&& StringHelper::check(
-					$menu['link']
-				))
-			{
-
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lang . '_' . $nameUpper, $name
-				);
-				// add custom menu
-				$custom .= PHP_EOL . Indent::_(2) . $tab
-					. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-					. $nameUpper . "'), '" . $menu['link']
-					. "', \$submenu === '" . $nameList . "');";
-			}
-			else
-			{
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lang . '_' . $nameUpper, $name
-				);
-				// add custom menu
-				$custom .= PHP_EOL . Indent::_(2) . $tab
-					. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-					. $nameUpper . "'), 'index.php?option=com_" . $codeName
-					. "&view=" . $nameList . "', \$submenu === '" . $nameList
-					. "');";
-			}
-			// check if the item has permissions.
-			$custom .= PHP_EOL . Indent::_(2) . "}";
-
-			return $custom;
-		}
-		elseif (isset($menu['submenu']) && $menu['submenu'] == 1
-			&& empty($menu['before']))
-		{
-			// setup access defaults
-			$tab        = "";
-			$nameSingle = StringHelper::safe($name);
-			$this->lastCustomSubMenu[$nr] = '';
-			// check if the item has permissions.
-			if (CFactory::_('Compiler.Creator.Permission')->globalExist($nameSingle, 'core.access'))
-			{
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2)
-					. "if (\$user->authorise('" . CFactory::_('Compiler.Creator.Permission')->getGlobal($nameSingle, 'core.access')
-					. "', 'com_" . $codeName . "') && \$user->authorise('"
-					. $nameSingle . ".submenu', 'com_" . $codeName . "'))";
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2) . "{";
-				// add tab to lines to follow
-				$tab = Indent::_(1);
-			}
-			else
-			{
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2)
-					. "if (\$user->authorise('" . $nameSingle
-					. ".submenu', 'com_" . $codeName . "'))";
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2) . "{";
-				// add tab to lines to follow
-				$tab = Indent::_(1);
-			}
-			if (isset($menu['link'])
-				&& StringHelper::check(
-					$menu['link']
-				))
-			{
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lang . '_' . $nameUpper, $name
-				);
-				// add custom menu
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2) . $tab
-					. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-					. $nameUpper . "'), '" . $menu['link']
-					. "', \$submenu === '" . $nameList . "');";
-			}
-			else
-			{
-				CFactory::_('Language')->set(
-					CFactory::_('Config')->lang_target, $lang . '_' . $nameUpper, $name
-				);
-				// add custom menu
-				$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2) . $tab
-					. "Joomla__"."_ca5456e1_552c_45fb_bf4c_b751ba6e9fa1___Power::addEntry(Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('" . $lang . "_"
-					. $nameUpper . "'), 'index.php?option=com_" . $codeName
-					. "&view=" . $nameList . "', \$submenu === '" . $nameList
-					. "');";
-			}
-			// check if the item has permissions.
-			$this->lastCustomSubMenu[$nr] .= PHP_EOL . Indent::_(2) . "}";
-		}
-
-		return false;
-	}
-
+	/**
+	 * Build the component's administrator main menu.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Menu.MainMenus service.
+	 */
 	public function setMainMenus()
 	{
-		if (CFactory::_('Component')->isArray('admin_views'))
-		{
-			$menus = '';
-			// main lang prefix
-			$lang = CFactory::_('Config')->lang_prefix . '_MENU';
-			// set the code name
-			$codeName = CFactory::_('Config')->component_code_name;
-			// default prefix is none
-			$prefix = '';
-			// check if local is set
-			if (CFactory::_('Component')->isNumeric('add_menu_prefix'))
-			{
-				// set main menu prefix switch
-				$addPrefix = CFactory::_('Component')->get('add_menu_prefix');
-				if ($addPrefix == 1 && CFactory::_('Component')->isString('menu_prefix'))
-				{
-					$prefix = trim((string) CFactory::_('Component')->get('menu_prefix')) . ' ';
-				}
-			}
-			else
-			{
-				// set main menu prefix switch
-				$addPrefix = CFactory::_('Config')->get('add_menu_prefix', 1);
-				if ($addPrefix == 1)
-				{
-					$prefix = trim((string) CFactory::_('Config')->get('menu_prefix', '&#187;'))
-						. ' ';
-				}
-			}
-			// add the prefix
-			if ($addPrefix == 1)
-			{
-				CFactory::_('Language')->set(
-					'adminsys', $lang, $prefix . CFactory::_('Component')->get('name')
-				);
-			}
-			else
-			{
-				CFactory::_('Language')->set(
-					'adminsys', $lang, CFactory::_('Component')->get('name')
-				);
-			}
-
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3
-				&& CFactory::_('Registry')->get('build.dashboard', null) === null)
-			{
-				$menus .= PHP_EOL . Indent::_(3) . '<menu option="com_'
-					. $codeName . '" view="' . $codeName . '">' . $lang
-					. '_DASHBOARD</menu>';
-
-				CFactory::_('Language')->set(
-					'adminsys', $lang . '_DASHBOARD',
-					'Dashboard'
-				);
-			}
-
-			// loop over the admin views
-			foreach (CFactory::_('Component')->get('admin_views') as $view)
-			{
-				// set custom menu
-				$menus .= $this->addCustomMainMenu($view, $codeName, $lang);
-				if (isset($view['mainmenu']) && $view['mainmenu'] == 1)
-				{
-					$nameList  = StringHelper::safe(
-						$view['settings']->name_list
-					);
-					$nameUpper = StringHelper::safe(
-						$view['settings']->name_list, 'U'
-					);
-					$menus     .= PHP_EOL . Indent::_(3) . '<menu option="com_'
-						. $codeName . '" view="' . $nameList . '">' . $lang
-						. '_' . $nameUpper . '</menu>';
-					CFactory::_('Language')->set(
-						'adminsys', $lang . '_' . $nameUpper,
-						$view['settings']->name_list
-					);
-				}
-			}
-			if (isset($this->lastCustomMainMenu)
-				&& ArrayHelper::check(
-					$this->lastCustomMainMenu
-				))
-			{
-				foreach ($this->lastCustomMainMenu as $menu)
-				{
-					$menus .= $menu;
-				}
-				unset($this->lastCustomMainMenu);
-			}
-
-			return $menus;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Menu.MainMenus')->get();
 	}
 
 	/**

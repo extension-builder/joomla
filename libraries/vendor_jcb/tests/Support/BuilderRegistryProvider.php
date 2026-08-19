@@ -150,6 +150,7 @@ final class BuilderRegistryProvider
 		'UpdateMysql',
 		'UninstallScriptContent',
 		'UninstallScriptContext',
+		'UninstallScriptFields',
 		'ValidationFix',
 		'ViewScript',
 		'ViewsDefaultOrdering'

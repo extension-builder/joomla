@@ -916,6 +916,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/UninstallScriptFields.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/UninstallScriptContent.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
@@ -927,6 +931,26 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/CustomMainMenu.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/CustomSubMenu.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuSubMenusTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/SubMenus.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuSubMenusTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Menu/MainMenus.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMainMenusRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Menu/MainMenus.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMainMenusRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Menu/MainMenusInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedMainMenusRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/IfValueScript.php' => [
 		'mode' => 'contract',

@@ -55,6 +55,18 @@ return [
 			=> 'the property was renamed to $done once the class no longer needed the concern in the name',
 		'if(isset($this->validationFixBuilder[$nameSingleCode])'
 			=> 'the fixes array became a Registry, so the isset half of the guard is now the truthiness of get(), and ArrayHelper::check leads the if',
+		"if((\$_custom=\$this->setCustomAdminSubMenu("
+			=> 'the method moved into the class beside its caller and lost the set prefix it no longer needs',
+		'if(isset($this->lastCustomSubMenu)'
+			=> 'the property the custom sub menus held their deferred entries in became what takeDeferred() returns, so the isset half is the return itself',
+		'unset($this->lastCustomSubMenu);'
+			=> 'taking the entries is what clears them now, so there is nothing left to unset once they have been read',
+		'if(isset($this->lastCustomMainMenu)'
+			=> 'the property the custom main menus held their deferred entries in became what takeDeferred() returns, so the isset half is the return itself',
+		'unset($this->lastCustomMainMenu);'
+			=> 'taking the entries is what clears them now, so there is nothing left to unset once they have been read',
+		"&&S->get('build.dashboard',null)===null)"
+			=> 'the joomla_version half chose the class, and the dashboard half became the extension point that class overrides',
 		'if(isset($this->viewScriptBuilder[$view])'
 			=> 'the scripts array became a Registry, and its get() returns null for a view that was given no script',
 		'&&isset($this->viewScriptBuilder[$view][$type]))'
@@ -162,6 +174,12 @@ return [
 			=> 'the renamed property of the same check',
 		'if(ArrayHelper::check('
 			=> 'the isset half of the validation fix guard became a Registry read, so its ArrayHelper::check half is now the leading if',
+		"if((\$_custom=\$this->customAdminSubMenu("
+			=> 'the renamed helper of the same check',
+		'if(ArrayHelper::check($deferred))'
+			=> 'the entries taken from the custom menus, where the legacy read the property it kept them in',
+		"if(S->get('build.dashboard',null)!==null)"
+			=> 'the early return that carries the dashboard half of the guard it replaced',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],
