@@ -540,90 +540,14 @@ class Interpretation extends Fields
 	 *
 	 * @param   array  $view  The view definition.
 	 *
-	 * @return  string  The generated prepare document method.
+	 * @return  void
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.PrepareDocument instead.
 	 */
 	public function setPrepareDocument(&$view)
 	{
-		// fix just incase we missed it somewhere
-		$tmp = CFactory::_('Config')->lang_target;
-		if ('site' === CFactory::_('Config')->build_target)
-		{
-			CFactory::_('Config')->lang_target = 'site';
-		}
-		else
-		{
-			CFactory::_('Config')->lang_target = 'admin';
-		}
-
-		// ensure correct target is set
-		$TARGET = StringHelper::safe(CFactory::_('Config')->build_target, 'U');
-
-		// set libraries $TARGET.'_LIBRARIES_LOADER
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_LIBRARIES_LOADER',
-			$this->setLibrariesLoader($view)
-		);
-
-		// set uikit $TARGET.'_UIKIT_LOADER
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_UIKIT_LOADER',
-			$this->setUikitLoader($view)
-		);
-
-		// set Google Charts $TARGET.'_GOOGLECHART_LOADER
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' .$TARGET . '_GOOGLECHART_LOADER',
-			$this->setGoogleChartLoader($view)
-		);
-
-		// set Footable FOOTABLE_LOADER
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_FOOTABLE_LOADER',
-			$this->setFootableScriptsLoader($view)
-		);
-
-		// set metadata DOCUMENT_METADATA
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_DOCUMENT_METADATA',
-			$this->setDocumentMetadata($view)
-		);
-
-		// set custom php scripting DOCUMENT_CUSTOM_PHP
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_DOCUMENT_CUSTOM_PHP',
-			$this->setDocumentCustomPHP($view)
-		);
-
-		// set custom css DOCUMENT_CUSTOM_CSS
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' .$TARGET . '_DOCUMENT_CUSTOM_CSS',
-			$this->setDocumentCustomCSS($view)
-		);
-
-		// set custom javascript DOCUMENT_CUSTOM_JS
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_DOCUMENT_CUSTOM_JS',
-			$this->setDocumentCustomJS($view)
-		);
-
-		// set custom css file VIEWCSS
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_VIEWCSS',
-			$this->setCustomCSS($view)
-		);
-
-		// incase no buttons are found
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|SITE_JAVASCRIPT_FOR_BUTTONS', '');
-
-		// set the custom buttons CUSTOM_BUTTONS
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_CUSTOM_BUTTONS',
-			CFactory::_('Architecture.CustomButtons')->get($view)
-		);
-
-		// see if we should add get modules to the view.html
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_GET_MODULE',
-			$this->setGetModules($view, $TARGET)
-		);
-
-		// set a JavaScript file if needed
-		CFactory::_('Compiler.Builder.Content.Multi')->add($view['settings']->code . '|' . $TARGET . '_LIBRARIES_LOADER',
-			$this->setJavaScriptFile($view, $TARGET), false
-		);
-		// fix just incase we missed it somewhere
-		CFactory::_('Config')->lang_target = $tmp;
+		CFactory::_('Architecture.View.PrepareDocument')->set($view);
 	}
 
 	/**

@@ -122,6 +122,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as Sh
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\LibrariesLoader as J3ViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as ViewJavaScriptFile;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GetModules as ViewGetModules;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument as ViewPrepareDocument;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -501,6 +502,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(ViewGetModules::class, 'Architecture.View.GetModules')
 			->share('Architecture.View.GetModules', [$this, 'getViewGetModules'], true);
+
+		$container->alias(ViewPrepareDocument::class, 'Architecture.View.PrepareDocument')
+			->share('Architecture.View.PrepareDocument', [$this, 'getViewPrepareDocument'], true);
 	}
 
 	/**
@@ -2728,6 +2732,33 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Content.Multi'),
 			$container->get('Compiler.Builder.Get.Module')
+		);
+	}
+
+	/**
+	 * Get The View PrepareDocument Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewPrepareDocument
+	 * @since   6.1.7
+	 */
+	public function getViewPrepareDocument(Container $container): ViewPrepareDocument
+	{
+		return new ViewPrepareDocument(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.View.LibrariesLoader'),
+			$container->get('Architecture.View.UikitLoader'),
+			$container->get('Architecture.View.GoogleChartLoader'),
+			$container->get('Architecture.View.FootableScriptsLoader'),
+			$container->get('Architecture.View.DocumentMetadata'),
+			$container->get('Architecture.View.DocumentCustomPHP'),
+			$container->get('Architecture.View.DocumentInlineAssets'),
+			$container->get('Architecture.View.CustomCSS'),
+			$container->get('Architecture.CustomButtons'),
+			$container->get('Architecture.View.GetModules'),
+			$container->get('Architecture.View.JavaScriptFile')
 		);
 	}
 }
