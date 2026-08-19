@@ -170,5 +170,28 @@ class HtmlView extends BaseHtmlView
 		}
 
 		return Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::html($var, $this->_charset ?? 'UTF-8', $shorten, $length);
+	}
+
+	/**
+	 * Sanitises authored HTML for output in a view script.
+	 *
+	 * Escaping and sanitising are different objectives. escape() encodes a
+	 * value so it can never become markup. This keeps markup renderable and
+	 * removes only what can execute, so use it for a field that genuinely
+	 * holds authored HTML, and escape() for every other value.
+	 *
+	 * @param   mixed  $var  The authored HTML to sanitise.
+	 *
+	 * @return  mixed  The markup, with anything executable removed.
+	 * @since   6.1.7
+	 */
+	public function sanitize($var)
+	{
+		if (!is_string($var))
+		{
+			return $var;
+		}
+
+		return Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::sanitize($var);
 	}###CUSTOM_ADMIN_GET_MODULE###
 }
