@@ -52,6 +52,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UserPermiss
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderScriptInterface as ComponentMoveFolderScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderScript as SharedComponentMoveFolderScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderScript as J3ComponentMoveFolderScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Details as ComponentDetails;
 
 
 /**
@@ -165,6 +166,9 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3ComponentMoveFolderScript::class, 'Architecture.Component.J3.MoveFolderScript')
 			->share('Architecture.Component.J3.MoveFolderScript', [$this, 'getJ3ComponentMoveFolderScript'], true);
+
+		$container->alias(ComponentDetails::class, 'Architecture.Component.Details')
+			->share('Architecture.Component.Details', [$this, 'getComponentDetails'], true);
 
 		$container->alias(ComponentMoveFolderMethod::class, 'Architecture.Component.MoveFolderMethod')
 			->share('Architecture.Component.MoveFolderMethod', [$this, 'getComponentMoveFolderMethod'], true);
@@ -754,6 +758,33 @@ class ArchitectureComponent implements ServiceProviderInterface
 	{
 		return new J3ComponentMoveFolderScript(
 			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get The Component Details Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentDetails
+	 * @since   6.1.7
+	 */
+	public function getComponentDetails(Container $container): ComponentDetails
+	{
+		return new ComponentDetails(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Placeholder'),
+			$container->get('Component.Placeholder'),
+			$container->get('Component'),
+			$container->get('Config'),
+			$container->get('Utilities.Counter'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Architecture.Component.ImageType'),
+			$container->get('Compiler.Creator.Access.Sections'),
+			$container->get('Compiler.Creator.Config.Fieldsets'),
+			$container->get('Architecture.ComHelperClass.CreateUser'),
+			$container->get('Compiler.Creator.Helper'),
+			$container->get('Compiler.Creator.Email.Helper')
 		);
 	}
 
