@@ -74,6 +74,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\Foot
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\EditBody as SharedAdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\EditBody as J3AdminViewEditBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields as AdminViewTabLayoutFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as AdminViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Router\RouteHelperInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Router\RouteHelper as SharedRouteHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Router\RouteHelper as J3RouteHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Router\SiteRouter;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as SharedAdminViewsViewBody;
@@ -311,6 +316,21 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewTabLayoutFields::class, 'Architecture.AdminView.TabLayoutFields')
 			->share('Architecture.AdminView.TabLayoutFields', [$this, 'getAdminViewTabLayoutFields'], true);
+
+		$container->alias(AdminViewScript::class, 'Architecture.AdminView.ViewScript')
+			->share('Architecture.AdminView.ViewScript', [$this, 'getAdminViewScript'], true);
+
+		$container->alias(RouteHelperInterface::class, 'Architecture.Router.RouteHelper')
+			->share('Architecture.Router.RouteHelper', [$this, 'getRouteHelper'], true);
+
+		$container->alias(SharedRouteHelper::class, 'Architecture.Router.Shared.RouteHelper')
+			->share('Architecture.Router.Shared.RouteHelper', [$this, 'getSharedRouteHelper'], true);
+
+		$container->alias(J3RouteHelper::class, 'Architecture.Router.J3.RouteHelper')
+			->share('Architecture.Router.J3.RouteHelper', [$this, 'getJ3RouteHelper'], true);
+
+		$container->alias(SiteRouter::class, 'Architecture.Router.SiteRouter')
+			->share('Architecture.Router.SiteRouter', [$this, 'getSiteRouter'], true);
 
 		$container->alias(LayoutView::class, 'Architecture.Layout.View')
 			->share('Architecture.Layout.View', [$this, 'getLayoutView'], true);
@@ -1540,6 +1560,118 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new AdminViewTabLayoutFields(
 			$container->get('Compiler.Builder.Layout')
+		);
+	}
+
+	/**
+	 * Get The AdminViewScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewScript
+	 * @since   6.1.7
+	 */
+	public function getAdminViewScript(Container $container): AdminViewScript
+	{
+		return new AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
+		);
+	}
+
+	/**
+	 * Get The RouteHelper Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  RouteHelperInterface
+	 * @since   6.1.7
+	 */
+	public function getRouteHelper(Container $container): RouteHelperInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 finds a link's menu item through the core needle lookup
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Router.J3.RouteHelper');
+		}
+
+		return $container->get('Architecture.Router.Shared.RouteHelper');
+	}
+
+	/**
+	 * Get The Router RouteHelper Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedRouteHelper
+	 * @since   6.1.7
+	 */
+	public function getSharedRouteHelper(Container $container): SharedRouteHelper
+	{
+		return new SharedRouteHelper(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Has.Menu.Global'),
+			$container->get('Compiler.Builder.Tags')
+		);
+	}
+
+	/**
+	 * Get The RouteHelper Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3RouteHelper
+	 * @since   6.1.7
+	 */
+	public function getJ3RouteHelper(Container $container): J3RouteHelper
+	{
+		return new J3RouteHelper(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Has.Menu.Global'),
+			$container->get('Compiler.Builder.Tags')
+		);
+	}
+
+	/**
+	 * Get The SiteRouter Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteRouter
+	 * @since   6.1.7
+	 */
+	public function getSiteRouter(Container $container): SiteRouter
+	{
+		return new SiteRouter(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Utilities.Structure'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Category.Other.Name'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi')
 		);
 	}
 

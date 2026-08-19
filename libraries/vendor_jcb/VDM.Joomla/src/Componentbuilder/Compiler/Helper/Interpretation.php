@@ -2014,200 +2014,27 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the content type declarations of every admin view that needs one.
+	 *
+	 * @param   string  $action  Whether the component is installing or updating.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function setComponentToContentTypes($action)
 	{
-		if (CFactory::_('Component')->isArray('admin_views'))
-		{
-			// set component name
-			$component = CFactory::_('Config')->component_code_name;
-			// reset
-			$dbStuff = [];
-			// start loading the content type data
-			foreach (CFactory::_('Component')->get('admin_views') as $viewData)
-			{
-				// set main keys
-				$view = StringHelper::safe(
-					$viewData['settings']->name_single
-				);
-				// set list view keys
-				$views = StringHelper::safe(
-					$viewData['settings']->name_list
-				);
-				// get this views content type data
-				$dbStuff[$view] = $this->getContentType($view, $component);
-				// get the correct views name
-				$checkViews = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.views", $views);
-				if (ArrayHelper::check($dbStuff[$view])
-					&& CFactory::_('Compiler.Builder.Category.Code')->exists($view)
-					&& ($checkViews == $views))
-				{
-					$dbStuff[$view . ' category']
-						= $this->getCategoryContentType(
-						$view, $views, $component
-					);
-				}
-				elseif (!isset($dbStuff[$view])
-					|| !ArrayHelper::check($dbStuff[$view]))
-				{
-					// remove if not array
-					unset($dbStuff[$view]);
-				}
-			}
+		$script = CFactory::_('Architecture.Component.ContentTypes')->get((string) $action);
 
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				return $this->setComponentToContentTypesJ3($action, $dbStuff);
-			}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-			return $this->setComponentToContentTypesJ4($action, $dbStuff);
-		}
-
-		return '';
-	}
-
-	protected function setComponentToContentTypesJ3($action, $dbStuff)
-	{
-		// build the db insert query
-		if (ArrayHelper::check($dbStuff))
-		{
-			$script = '';
-			$taabb = '';
-			if ($action === 'update')
-			{
-				$taabb = Indent::_(1);
-			}
-			$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-				. Line::_(__Line__, __Class__) . " Get The Database object";
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDbo();";
-			foreach ($dbStuff as $name => $tables)
-			{
-				if (ArrayHelper::check($tables))
-				{
-					$code   = StringHelper::safe($name);
-					$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__) . " Create the " . $name
-						. " content type object.";
-					$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-						. " = new \stdClass();";
-					foreach ($tables as $table => $data)
-					{
-						$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-							. "->" . $table . " = '" . $data . "';";
-					}
-					if ($action === 'update')
-					{
-						// we first load script to check if data exist
-						$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-							. Line::_(__Line__, __Class__) . " Check if "
-							. $name
-							. " type is already in content_type DB.";
-						$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-							. "_id = null;";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query = \$db->getQuery(true);";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->select(\$db->quoteName(array('type_id')));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->from(\$db->quoteName('#__content_types'));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->where(\$db->quoteName('type_alias') . ' LIKE '. \$db->quote($"
-							. $code . "->type_alias));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$db->setQuery(\$query);";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$db->execute();";
-					}
-					$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__)
-						. " Set the object into the content types table.";
-					if ($action === 'update')
-					{
-						$script .= PHP_EOL . Indent::_(3)
-							. "if (\$db->getNumRows())";
-						$script .= PHP_EOL . Indent::_(3) . "{";
-						$script .= PHP_EOL . Indent::_(4) . "\$" . $code
-							. "->type_id = \$db->loadResult();";
-						$script .= PHP_EOL . Indent::_(4) . "\$" . $code
-							. "_Updated = \$db->updateObject('#__content_types', \$"
-							. $code . ", 'type_id');";
-						$script .= PHP_EOL . Indent::_(3) . "}";
-						$script .= PHP_EOL . Indent::_(3) . "else";
-						$script .= PHP_EOL . Indent::_(3) . "{";
-					}
-					$script .= PHP_EOL . Indent::_(3) . $taabb . "\$"
-						. $code
-						. "_Inserted = \$db->insertObject('#__content_types', \$"
-						. $code . ");";
-					if ($action === 'update')
-					{
-						$script .= PHP_EOL . Indent::_(3) . "}";
-					}
-				}
-			}
-
-			$script .= PHP_EOL . PHP_EOL;
-			return $script;
-		}
-
-		return '';
-	}
-
-	protected function setComponentToContentTypesJ4($action, $dbStuff)
-	{
-		// build the db insert query
-		if (ArrayHelper::check($dbStuff))
-		{
-			$script = PHP_EOL;
-			foreach ($dbStuff as $name => $columns)
-			{
-				if (ArrayHelper::check($columns))
-				{
-					$script .= PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__) . " "
-						. StringHelper::safe($action, 'Ww') . " "
-						. StringHelper::safe($name, 'Ww') . " Content Types.";
-
-					$script .= PHP_EOL . Indent::_(3) .
-						'$this->setContentType(';
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " typeTitle";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['type_title']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " typeAlias";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['type_alias']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " table";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['table']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " rules";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['rules']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " fieldMappings";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['field_mappings']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " router";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['router']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " contentHistoryOptions";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['content_history_options']}'";
-					$script .= PHP_EOL . Indent::_(3) .
-						');';
-
-				}
-			}
-			$script .= PHP_EOL . PHP_EOL;
-			return $script;
-		}
-
-		return '';
+		return $script;
 	}
 
 	public function setPostInstallScript()
@@ -2480,6 +2307,13 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Component.AssetsTable')->uninstall();
 	}
 
+	/**
+	 * Build the folder moving code the install script needs.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setMoveFolderScript()
 	{
 		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
@@ -2503,6 +2337,13 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the folder moving method the install script calls.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setMoveFolderMethod()
 	{
 		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
@@ -2597,484 +2438,113 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build one admin view's content type declaration.
+	 *
+	 * @param   string  $view       The single view code name.
+	 * @param   string  $component  The component code name.
+	 *
+	 * @return  array|false
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function getContentType($view, $component)
 	{
-		// add if history is to be kept or if tags is added
-		if (CFactory::_('Compiler.Builder.History')->exists($view)
-			|| CFactory::_('Compiler.Builder.Tags')->exists($view))
-		{
-			// reset array
-			$array = [];
-			// set needed defaults
-			$alias            = CFactory::_('Compiler.Builder.Alias')->get($view, 'null');
-			$title            = CFactory::_('Compiler.Builder.Title')->get($view, 'null');
-			$category         = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.code", 'null');
-			$categoryHistory  = (CFactory::_('Compiler.Builder.Category.Code')->exists($view))
-				?
-				'{"sourceColumn": "' . $category
-				. '","targetTable": "#__categories","targetColumn": "id","displayColumn": "title"},'
-				: '';
-			$Component        = StringHelper::safe(
-				$component, 'F'
-			);
-			$View             = StringHelper::safe($view, 'F');
-			$maintext         = CFactory::_('Compiler.Builder.Main.Text.Field')->get($view, 'null');
-			$hiddenFields     = CFactory::_('Compiler.Builder.Hidden.Fields')->pathToString($view, '');
-			$dynamicfields    = CFactory::_('Compiler.Builder.Dynamic.Fields')->pathToString($view, ',');
-			$intFields        = CFactory::_('Compiler.Builder.Integer.Fields')->pathToString($view, '');
-			$customfieldlinks = CFactory::_('Compiler.Builder.Custom.Field.Links')->pathToString($view, '');
-			// build uninstall script for content types
-			$this->uninstallScriptBuilder[$View] = 'com_' . $component . '.' . $view;
-			$this->uninstallScriptContent[$view] = $view;
-			// check if this view has metadata
-			if (CFactory::_('Compiler.Builder.Meta.Data')->isString($view))
-			{
-				$core_metadata = 'metadata';
-				$core_metakey  = 'metakey';
-				$core_metadesc = 'metadesc';
-			}
-			else
-			{
-				$core_metadata = 'null';
-				$core_metakey  = 'null';
-				$core_metadesc = 'null';
-			}
-			// check if view has access
-			if (CFactory::_('Compiler.Builder.Access.Switch')->exists($view))
-			{
-				$core_access = 'access';
-				$accessHistory
-					= ',{"sourceColumn": "access","targetTable": "#__viewlevels","targetColumn": "id","displayColumn": "title"}';
-			}
-			else
-			{
-				$core_access   = 'null';
-				$accessHistory = '';
-			}
-			// set the title
-			$array['type_title'] = $Component . ' ' . $View;
-			// set the alias
-			$array['type_alias'] = 'com_' . $component . '.' . $view;
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set the table
-				$array['table'] = '{"special": {"dbtable": "#__' . $component . '_'
-					. $view . '","key": "id","type": "' . $View . '","prefix": "'
-					. $component
-					. 'Table","config": "array()"},"common": {"dbtable": "#__ucm_content","key": "ucm_id","type": "Corecontent","prefix": "JTable","config": "array()"}}';
-			}
-			else
-			{
-				// set the table
-				$array['table'] = '{"special": {"dbtable": "#__' . $component . '_'
-					. $view . '","key": "id","type": "' . $View . 'Table","prefix": "' . CFactory::_('Config')->namespace_prefix
-					. '\\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-					. '\\Administrator\\Table"}}';
+		$type = CFactory::_('Architecture.Component.ContentTypes')->contentType(
+			(string) $view, (string) $component
+		);
 
-				// set rules field
-				$array['rules'] = '';
-			}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-			// set field map
-			$array['field_mappings']
-				= '{"common": {"core_content_item_id": "id","core_title": "'
-				. $title . '","core_state": "published","core_alias": "'
-				. $alias
-				. '","core_created_time": "created","core_modified_time": "modified","core_body": "'
-				. $maintext
-				. '","core_hits": "hits","core_publish_up": "null","core_publish_down": "null","core_access": "'
-				. $core_access
-				. '","core_params": "params","core_featured": "null","core_metadata": "'
-				. $core_metadata
-				. '","core_language": "null","core_images": "null","core_urls": "null","core_version": "version","core_ordering": "ordering","core_metakey": "'
-				. $core_metakey . '","core_metadesc": "' . $core_metadesc
-				. '","core_catid": "' . $category
-				. '","core_xreference": "null","asset_id": "asset_id"},"special": {'
-				. $dynamicfields . '}}';
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set the router class method
-				$array['router'] = $Component . 'HelperRoute::get' . $View
-					. 'Route';
-			}
-			else
-			{
-				// set the router class method
-				$array['router'] = '';
-			}
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set content history
-				$array['content_history_options']
-					= '{"formFile": "administrator/components/com_' . $component
-					. '/models/forms/' . $view
-					. '.xml","hideFields": ["asset_id","checked_out","checked_out_time","version"'
-					. $hiddenFields
-					. '],"ignoreChanges": ["modified_by","modified","checked_out","checked_out_time","version","hits"],"convertToInt": ["published","ordering","version","hits"'
-					. $intFields . '],"displayLookup": [' . $categoryHistory
-					. '{"sourceColumn": "created_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $accessHistory
-					. ',{"sourceColumn": "modified_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $customfieldlinks . ']}';
-			}
-			else
-			{
-				// set content history
-				$array['content_history_options']
-					= '{"formFile": "administrator/components/com_' . $component
-					. '/forms/' . $view
-					. '.xml","hideFields": ["asset_id","checked_out","checked_out_time"'
-					. $hiddenFields
-					. '],"ignoreChanges": ["modified_by","modified","checked_out","checked_out_time","version","hits"],"convertToInt": ["published","ordering","version","hits"'
-					. $intFields . '],"displayLookup": [' . $categoryHistory
-					. '{"sourceColumn": "created_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $accessHistory
-					. ',{"sourceColumn": "modified_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $customfieldlinks . ']}';
-			}
-
-			return $array;
-		}
-
-		return false;
+		return $type;
 	}
 
+	/**
+	 * Build the content type declaration of one view's own category.
+	 *
+	 * @param   string  $view       The single view code name.
+	 * @param   string  $views      The list view code name.
+	 * @param   string  $component  The component code name.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function getCategoryContentType($view, $views, $component)
 	{
-		// get the other view
-		$otherView = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.view", 'error');
-		$category  = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.code", 'error');
-		$Component = StringHelper::safe($component, 'F');
-		$View      = StringHelper::safe($view, 'F');
-		// build uninstall script for content types
-		$this->uninstallScriptBuilder[$View . ' ' . $category] = 'com_'
-			. $component . '.' . $otherView . '.category';
-		$this->uninstallScriptContent[$View . ' ' . $category] = $View . ' '
-			. $category;
-		// set the title
-		$array['type_title'] = $Component . ' ' . $View . ' '
-			. StringHelper::safe($category, 'F');
-		// set the alias
-		$array['type_alias'] = 'com_' . $component . '.' . $otherView
-			. '.category';
-		// set the table
-		$array['table']
-			= '{"special":{"dbtable":"#__categories","key":"id","type":"Category","prefix":"JTable","config":"array()"},"common":{"dbtable":"#__ucm_content","key":"ucm_id","type":"Corecontent","prefix":"JTable","config":"array()"}}';
-		if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-		{
-			// set rules field
-			$array['rules'] = '';
-		}
-		// set field map
-		$array['field_mappings']
-			= '{"common":{"core_content_item_id":"id","core_title":"title","core_state":"published","core_alias":"alias","core_created_time":"created_time","core_modified_time":"modified_time","core_body":"description", "core_hits":"hits","core_publish_up":"null","core_publish_down":"null","core_access":"access", "core_params":"params", "core_featured":"null", "core_metadata":"metadata", "core_language":"language", "core_images":"null", "core_urls":"null", "core_version":"version", "core_ordering":"null", "core_metakey":"metakey", "core_metadesc":"metadesc", "core_catid":"parent_id", "core_xreference":"null", "asset_id":"asset_id"}, "special":{"parent_id":"parent_id","lft":"lft","rgt":"rgt","level":"level","path":"path","extension":"extension","note":"note"}}';
+		$type = CFactory::_('Architecture.Component.ContentTypes')->categoryContentType(
+			(string) $view, (string) $views, (string) $component
+		);
 
-		if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-		{
-			// set the router class method
-			$array['router'] = $Component . 'HelperRoute::getCategoryRoute';
-			// set content history
-			$array['content_history_options']
-				= '{"formFile":"administrator\/components\/com_categories\/models\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
-		}
-		else
-		{
-			// set the router class method
-			$array['router'] = '';
-			// set content history
-			$array['content_history_options']
-				= '{"formFile":"administrator\/components\/com_categories\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
-		}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-		return $array;
+		return $type;
 	}
 
+	/**
+	 * Build the route method one site view offers.
+	 *
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $nameListCode    The list view code name.
+	 * @param   bool    $front           Whether this is a front item view.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.RouteHelper service.
+	 */
 	public function setRouterHelp($nameSingleCode, $nameListCode, $front = false)
 	{
-		// add if tags is added, also for all front item views
-		if ((CFactory::_('Compiler.Builder.Tags')->exists($nameSingleCode) || $front)
-			&& (!in_array($nameSingleCode, $this->setRouterHelpDone)))
-		{
-			// insure we load a view only once
-			$this->setRouterHelpDone[] = $nameSingleCode;
-			// build view route helper
-			$View = StringHelper::safe(
-				$nameSingleCode, 'F'
-			);
-
-			$hasCategory = (CFactory::_('Compiler.Builder.Category.Code')->exists($nameSingleCode) &&
-				'category' !== $nameSingleCode && 'categories' !== $nameSingleCode);
-
-			$routeHelper   = [];
-			$routeHelper[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$routeHelper[] = Indent::_(1) . " * Get the URL route for {$nameSingleCode}";
-			$routeHelper[] = Indent::_(1) . " *";
-			$routeHelper[] = Indent::_(1) . " * @param   integer  \$id     The id of the {$nameSingleCode}";
-
-			if ($hasCategory)
-			{
-				$routeHelper[] = Indent::_(1) . " * @param   integer  \$catid  The id of the {$nameSingleCode}'s category";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @return  string  The link to the {$nameSingleCode}";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @since   1.5";
-				$routeHelper[] = Indent::_(1) . " */";
-				$routeHelper[] = Indent::_(1) . "public static function get" . $View . "Route(\$id = 0, \$catid = 0): string";
-			}
-			else
-			{
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @return  string  The link to the {$nameSingleCode}";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @since   1.5";
-				$routeHelper[] = Indent::_(1) . " */";
-				$routeHelper[] = Indent::_(1) . "public static function get" . $View . "Route(\$id = 0): string";
-			}
-
-			$routeHelper[] = Indent::_(1) . "{";
-			$routeHelper[] = Indent::_(2) . "if (\$id > 0)";
-			$routeHelper[] = Indent::_(2) . "{";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the needel array.";
-				$routeHelper[] = Indent::_(3) . "\$needles = array(";
-				$routeHelper[] = Indent::_(4) . "'" . $nameSingleCode
-					. "'  => array((int) \$id)";
-				$routeHelper[] = Indent::_(3) . ");";
-			}
-
-			$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Create the link";
-			$routeHelper[] = Indent::_(3) . "\$link = 'index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameSingleCode
-				. "&id='. \$id;";
-			$routeHelper[] = Indent::_(2) . "}";
-			$routeHelper[] = Indent::_(2) . "else";
-			$routeHelper[] = Indent::_(2) . "{";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the needel array.";
-				$routeHelper[] = Indent::_(3) . "\$needles = array(";
-				$routeHelper[] = Indent::_(4) . "'" . $nameSingleCode
-					. "'  => array()";
-				$routeHelper[] = Indent::_(3) . ");";
-			}
-
-			$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Create the link but don't add the id.";
-			$routeHelper[] = Indent::_(3) . "\$link = 'index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameSingleCode . "';";
-			$routeHelper[] = Indent::_(2) . "}";
-
-			if ($hasCategory)
-			{
-				$routeHelper[] = Indent::_(2) . "if (\$catid > 1)";
-				$routeHelper[] = Indent::_(2) . "{";
-
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$routeHelper[] = Indent::_(3)
-						. "\$categories = Categories::getInstance('"
-						. CFactory::_('Config')->component_code_name . "." . $nameListCode . "');";
-					$routeHelper[] = Indent::_(3)
-						. "\$category = \$categories->get(\$catid);";
-					$routeHelper[] = Indent::_(3) . "if (\$category)";
-					$routeHelper[] = Indent::_(3) . "{";
-					$routeHelper[] = Indent::_(4)
-						. "\$needles['category'] = array_reverse(\$category->getPath());";
-					$routeHelper[] = Indent::_(4)
-						. "\$needles['categories'] = \$needles['category'];";
-					$routeHelper[] = Indent::_(4) . "\$link .= '&catid='.\$catid;";
-					$routeHelper[] = Indent::_(3) . "}";
-				}
-				else
-				{
-					$routeHelper[] = Indent::_(3) . "\$link .= '&catid='.\$catid;";
-				}
-
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-
-			if (CFactory::_('Compiler.Builder.Has.Menu.Global')->exists($nameSingleCode))
-			{
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$routeHelper[] = PHP_EOL . Indent::_(2)
-						. "if (\$item = self::_findItem(\$needles, '" . $nameSingleCode . "'))";
-				}
-				else
-				{
-					$routeHelper[] = PHP_EOL . Indent::_(2)
-						. "if ((\$item = self::_findItem('" . $nameSingleCode . "')) !== null)";
-				}
-				$routeHelper[] = Indent::_(2) . "{";
-				$routeHelper[] = Indent::_(3) . "\$link .= '&Itemid='.\$item;";
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-			elseif (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = PHP_EOL . Indent::_(2)
-					. "if (\$item = self::_findItem(\$needles))";
-				$routeHelper[] = Indent::_(2) . "{";
-				$routeHelper[] = Indent::_(3) . "\$link .= '&Itemid='.\$item;";
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-
-			$routeHelper[] = PHP_EOL . Indent::_(2) . "return \$link;";
-			$routeHelper[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $routeHelper);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.RouteHelper')->get(
+			(string) $nameSingleCode, (string) $nameListCode, (bool) $front
+		);
 	}
 
+	/**
+	 * Build one view's case in the router's parse switch.
+	 *
+	 * @param   string  $view       The view code name.
+	 * @param   mixed   $viewArray  The view being built.
+	 * @param   bool    $aliasView  Whether the view is reached by an alias.
+	 * @param   bool    $idView     Whether the view is reached by an id.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
+	 */
 	public function routerParseSwitch(&$view, $viewArray = null,
-	                                  $aliasView = true, $idView = true
+		$aliasView = true, $idView = true
 	)
 	{
-		// reset buckets
-		$routerSwitch = [];
-		$isCategory   = '';
-		$viewTable    = false;
-		if ($viewArray && ArrayHelper::check($viewArray)
-			&& isset($viewArray['settings'])
-			&& isset($viewArray['settings']->main_get))
-		{
-			// check if we have custom script for this router parse switch case
-			if (isset($viewArray['settings']->main_get->add_php_router_parse)
-				&& $viewArray['settings']->main_get->add_php_router_parse == 1
-				&& isset($viewArray['settings']->main_get->php_router_parse)
-				&& StringHelper::check(
-					$viewArray['settings']->main_get->php_router_parse
-				))
-			{
-				// load the custom script for the switch based on dynamic get
-				$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view
-					. "':";
-				$routerSwitch[] = CFactory::_('Placeholder')->update_(
-					$viewArray['settings']->main_get->php_router_parse
-				);
-				$routerSwitch[] = Indent::_(4) . "break;";
-
-				return implode(PHP_EOL, $routerSwitch);
-			}
-			// is this a catogory
-			elseif (isset($viewArray['settings']->main_get->db_table_main)
-				&& $viewArray['settings']->main_get->db_table_main
-				=== 'categories')
-			{
-				$isCategory = ', true'; // TODO we will keep an eye on this....
-			}
-			// get the main table name
-			elseif (isset($viewArray['settings']->main_get->main_get)
-				&& ArrayHelper::check(
-					$viewArray['settings']->main_get->main_get
-				))
-			{
-				foreach ($viewArray['settings']->main_get->main_get as $get)
-				{
-					if (isset($get['as']) && $get['as'] === 'a')
-					{
-						if (isset($get['selection'])
-							&& ArrayHelper::check(
-								$get['selection']
-							)
-							&& isset($get['selection']['select_gets'])
-							&& ArrayHelper::check(
-								$get['selection']['select_gets']
-							))
-						{
-							if (isset($get['selection']['table']))
-							{
-								$viewTable = str_replace(
-									'#__' . CFactory::_('Config')->component_code_name . '_', '',
-									(string) $get['selection']['table']
-								);
-							}
-						}
-						break;
-					}
-				}
-			}
-		}
-		// add if tags is added, also for all front item views
-		if ($aliasView)
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4)
-				. "if (is_numeric(\$segments[\$count-1]))";
-			$routerSwitch[] = Indent::_(4) . "{";
-			$routerSwitch[] = Indent::_(5)
-				. "\$vars['id'] = (int) \$segments[\$count-1];";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "elseif (\$segments[\$count-1])";
-			$routerSwitch[] = Indent::_(4) . "{";
-			// we need to get from the table of this views main get the alias so we need the table name
-			if ($viewTable)
-			{
-				$routerSwitch[] = Indent::_(5) . "\$id = \$this->getVar('"
-					. $viewTable . "', \$segments[\$count-1], 'alias', 'id'"
-					. $isCategory . ");";
-			}
-			else
-			{
-				$routerSwitch[] = Indent::_(5) . "\$id = \$this->getVar('"
-					. $view . "', \$segments[\$count-1], 'alias', 'id'"
-					. $isCategory . ");";
-			}
-			$routerSwitch[] = Indent::_(5) . "if(\$id)";
-			$routerSwitch[] = Indent::_(5) . "{";
-			$routerSwitch[] = Indent::_(6) . "\$vars['id'] = \$id;";
-			$routerSwitch[] = Indent::_(5) . "}";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-		elseif ($idView)
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4)
-				. "if (is_numeric(\$segments[\$count-1]))";
-			$routerSwitch[] = Indent::_(4) . "{";
-			$routerSwitch[] = Indent::_(5)
-				. "\$vars['id'] = (int) \$segments[\$count-1];";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-		else
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-
-		return implode(PHP_EOL, $routerSwitch);
+		return CFactory::_('Architecture.Router.SiteRouter')->parseSwitch(
+			$view, $viewArray, $aliasView, $idView
+		);
 	}
 
+	/**
+	 * Build the test that says a view is one this router builds.
+	 *
+	 * @param   string  $view  The view code name.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
+	 */
 	public function routerBuildViews(&$view)
 	{
-		if (CFactory::_('Compiler.Builder.Content.One')->exists('ROUTER_BUILD_VIEWS')
-			&& StringHelper::check(
-				CFactory::_('Compiler.Builder.Content.One')->get('ROUTER_BUILD_VIEWS')
-			))
-		{
-			return " || \$view === '" . $view . "'";
-		}
-		else
-		{
-			return "\$view === '" . $view . "'";
-		}
+		return CFactory::_('Architecture.Router.SiteRouter')->buildViews((string) $view);
 	}
 
 	/**
@@ -3122,6 +2592,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Model.AliasTitleFix')->get($nameSingleCode);
 	}
 
+	/**
+	 * Build the generated model's title generator.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setGenerateNewTitle($nameSingleCode)
 	{
 		// if category is added to this view then do nothing
@@ -3234,6 +2713,15 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the generated model's alias generator.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setGenerateNewAlias($nameSingleCode)
 	{
 		// make sure this view has an alias
@@ -3353,6 +2841,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Language.Admin')->get($componentName);
 	}
 
+	/**
+	 * Build the site language files of the component.
+	 *
+	 * @param   string  $componentName  The component code name
+	 *
+	 * @return  bool
+	 *
+	 * @since   3.2.0
+	 */
 	public function setLangSite(string $componentName): bool
 	{
 		// Trigger Event: jcb_ce_onBeforeBuildSiteLang
@@ -3761,6 +3258,8 @@ class Interpretation extends Fields
 	 * @return  string   The edit body
 	 *
 	 * @deprecated 6.1.7 Use the Architecture.AdminView.EditBody service.
+	 *
+	 * @since   3.2.0
 	 */
 	public function setEditBody(&$view)
 	{
@@ -3894,7 +3393,7 @@ class Interpretation extends Fields
 	 * @deprecated 6.1.7 Use the Architecture.LinkedView.ListHead service.
 	 */
 	public function setListHeadLinked($nameSingleCode, $nameListCode,
-	                                  $addNewButon, $refview
+		$addNewButon, $refview
 	)
 	{
 		return CFactory::_('Architecture.LinkedView.ListHead')->get(
@@ -3944,6 +3443,8 @@ class Interpretation extends Fields
 	 * @param $nameListCode
 	 *
 	 * @return array|string
+	 *
+	 * @since   3.2.0
 	 */
 	public function setCustomAdminDynamicButtonController($nameListCode)
 	{
@@ -4083,6 +3584,16 @@ class Interpretation extends Fields
 			->get($nameSingleCode, $nameListCode);
 	}
 
+	/**
+	 * Build the export button of a list view that allows export.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setExportButton($nameSingleCode, $nameListCode)
 	{
 		$button = '';
@@ -4111,6 +3622,16 @@ class Interpretation extends Fields
 		return $button;
 	}
 
+	/**
+	 * Build the import button of a list view that allows import.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setImportButton($nameSingleCode, $nameListCode)
 	{
 		$button = '';
@@ -4140,6 +3661,15 @@ class Interpretation extends Fields
 		return $button;
 	}
 
+	/**
+	 * Build the custom import scripts of a list view that allows import.
+	 *
+	 * @param   string  $nameListCode  The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setImportCustomScripts($nameListCode)
 	{
 		// setup Ajax files
@@ -4248,8 +3778,8 @@ class Interpretation extends Fields
 	 * @deprecated 6.1.7 Use the Architecture.Model.CustomQuery service.
 	 */
 	public function setCustomQuery($nameListCode, $nameSingleCode,
-	                               $tab = '',
-	                               $just_text = false
+		$tab = '',
+		$just_text = false
 	)
 	{
 		return CFactory::_('Architecture.Model.CustomQuery')->get(
@@ -4308,764 +3838,84 @@ class Interpretation extends Fields
 			->getMultiFilterQuery($filter, $Helper, $a);
 	}
 
+	/**
+	 * Build the javascript this admin view carries.
+	 *
+	 * @param   array  $viewArray  The admin view, as the component data carries it.
+	 *
+	 * @return  void
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function buildTheViewScript($viewArray)
 	{
-		// set the view name
-		$nameSingleCode = $viewArray['settings']->name_single_code;
-		// add conditions to this view
-		if (isset($viewArray['settings']->conditions)
-			&& ArrayHelper::check(
-				$viewArray['settings']->conditions
-			))
-		{
-			// reset defaults
-			$getValue       = [];
-			$ifValue        = [];
-			$targetControls = [];
-			$functions      = [];
+		CFactory::_('Architecture.AdminView.ViewScript')->get((array) $viewArray);
 
-			foreach ($viewArray['settings']->conditions as $condition)
-			{
-				if (isset($condition['match_name'])
-					&& StringHelper::check(
-						$condition['match_name']
-					))
-				{
-					$uniqueVar      = Unique::get(7);
-					$matchName      = $condition['match_name'] . '_'
-						. $uniqueVar;
-					$targetBehavior = ($condition['target_behavior'] == 1
-						|| $condition['target_behavior'] == 3) ? 'show'
-						: 'hide';
-					$targetDefault  = ($condition['target_behavior'] == 1
-						|| $condition['target_behavior'] == 3) ? 'hide'
-						: 'show';
-
-					// set the realtation if any
-					if ($condition['target_relation'])
-					{
-						// chain to other items of the same target
-						$relations = $this->getTargetRelationScript(
-							$viewArray['settings']->conditions, $condition,
-							$nameSingleCode
-						);
-						if (ArrayHelper::check($relations))
-						{
-							// set behavior and default array
-							$behaviors[$matchName] = $targetBehavior;
-							$defaults[$matchName]  = $targetDefault;
-							$toggleSwitch[$matchName]
-								= ($condition['target_behavior']
-								== 1
-								|| $condition['target_behavior'] == 2) ? true
-								: false;
-							// set the type buket
-							$typeBuket[$matchName] = $condition['match_type'];
-							// set function array
-							$functions[$uniqueVar][0] = $matchName;
-							$matchNames[$matchName]
-								= $condition['match_name'];
-							// get the select value
-							$getValue[$matchName] = $this->getValueScript(
-								$condition['match_type'],
-								$condition['match_name'],
-								$condition['match_extends'], $uniqueVar
-							);
-							// get the options
-							$options = $this->getOptionsScript(
-								$condition['match_type'],
-								$condition['match_options']
-							);
-							// set the if values
-							$ifValue[$matchName] = $this->ifValueScript(
-								$matchName, $condition['match_behavior'],
-								$condition['match_type'], $options
-							);
-							// set the target controls
-							$targetControls[$matchName]
-								= $this->setTargetControlsScript(
-								$toggleSwitch[$matchName],
-								$condition['target_field'], $targetBehavior,
-								$targetDefault, $uniqueVar, $nameSingleCode
-							);
-
-							foreach ($relations as $relation)
-							{
-								if (StringHelper::check(
-									$relation['match_name']
-								))
-								{
-									$relationName = $relation['match_name']
-										. '_' . $uniqueVar;
-									// set the type buket
-									$typeBuket[$relationName]
-										= $relation['match_type'];
-									// set function array
-									$functions[$uniqueVar][] = $relationName;
-									$matchNames[$relationName]
-										= $relation['match_name'];
-									// get the relation option
-									$relationOptions = $this->getOptionsScript(
-										$relation['match_type'],
-										$relation['match_options']
-									);
-									$getValue[$relationName]
-										= $this->getValueScript(
-										$relation['match_type'],
-										$relation['match_name'],
-										$condition['match_extends'], $uniqueVar
-									);
-									$ifValue[$relationName]
-										= $this->ifValueScript(
-										$relationName,
-										$relation['match_behavior'],
-										$relation['match_type'],
-										$relationOptions
-									);
-								}
-							}
-						}
-					}
-					else
-					{
-						// set behavior and default array
-						$behaviors[$matchName] = $targetBehavior;
-						$defaults[$matchName]  = $targetDefault;
-						$toggleSwitch[$matchName]
-							= ($condition['target_behavior']
-							== 1
-							|| $condition['target_behavior'] == 2) ? true
-							: false;
-						// set the type buket
-						$typeBuket[$matchName] = $condition['match_type'];
-						// set function array
-						$functions[$uniqueVar][0] = $matchName;
-						$matchNames[$matchName]   = $condition['match_name'];
-						// get the select value
-						$getValue[$matchName] = $this->getValueScript(
-							$condition['match_type'], $condition['match_name'],
-							$condition['match_extends'], $uniqueVar
-						);
-						// get the options
-						$options = $this->getOptionsScript(
-							$condition['match_type'],
-							$condition['match_options']
-						);
-						// set the if values
-						$ifValue[$matchName] = $this->ifValueScript(
-							$matchName, $condition['match_behavior'],
-							$condition['match_type'], $options
-						);
-						// set the target controls
-						$targetControls[$matchName]
-							= $this->setTargetControlsScript(
-							$toggleSwitch[$matchName],
-							$condition['target_field'], $targetBehavior,
-							$targetDefault, $uniqueVar, $nameSingleCode
-						);
-					}
-				}
-			}
-			// reset buckets
-			$initial    = '';
-			$func       = '';
-			$validation = '';
-			$isSet      = '';
-			$listener   = '';
-			if (ArrayHelper::check($functions))
-			{
-				// now build the initial script
-				$initial .= "//" . Line::_(__Line__, __Class__) . " Initial Script"
-					. PHP_EOL . "document.addEventListener('DOMContentLoaded', function()";
-				$initial .= PHP_EOL . "{";
-				foreach ($functions as $function => $matchKeys)
-				{
-					$func_call = $this->buildFunctionCall(
-						$function, $matchKeys, $getValue
-					);
-					$initial   .= $func_call['code'];
-				}
-				$initial .= "});" . PHP_EOL;
-				// for modal fields
-				$modal = '';
-				// now build the listener scripts
-				foreach ($functions as $l_function => $l_matchKeys)
-				{
-					$funcCall = '';
-					foreach ($l_matchKeys as $l_matchKey)
-					{
-						$name         = $matchNames[$l_matchKey];
-						$matchTypeKey = $typeBuket[$l_matchKey];
-						$funcCall     = $this->buildFunctionCall(
-							$l_function, $l_matchKeys, $getValue
-						);
-
-						if (CFactory::_('Compiler.Builder.Script.Media.Switch')->inArray($matchTypeKey))
-						{
-							$modal .= $funcCall['code'];
-						}
-						else
-						{
-							if (CFactory::_('Compiler.Builder.Script.User.Switch')->inArray($matchTypeKey))
-							{
-								$name = $name . '_id';
-							}
-
-							$listener .= PHP_EOL . "//" . Line::_(
-									__LINE__,__CLASS__
-								) . " #jform_" . $name . " listeners for "
-								. $l_matchKey . " function";
-							$listener .= PHP_EOL . "jQuery('#jform_" . $name
-								. "').on('keyup',function()";
-							$listener .= PHP_EOL . "{";
-							$listener .= $funcCall['code'];
-							$listener .= PHP_EOL . "});";
-							$listener .= PHP_EOL
-								. "jQuery('#adminForm').on('change', '#jform_"
-								. $name . "',function (e)";
-							$listener .= PHP_EOL . "{";
-							$listener .= PHP_EOL . Indent::_(1)
-								. "e.preventDefault();";
-							$listener .= $funcCall['code'];
-							$listener .= PHP_EOL . "});" . PHP_EOL;
-						}
-					}
-				}
-				if (StringHelper::check($modal))
-				{
-					$listener .= PHP_EOL . "window.SqueezeBox.initialize({";
-					$listener .= PHP_EOL . Indent::_(1) . "onClose:function(){";
-					$listener .= $modal;
-					$listener .= PHP_EOL . Indent::_(1) . "}";
-					$listener .= PHP_EOL . "});" . PHP_EOL;
-				}
-
-				// now build the function
-				$func = '';
-				$head = '';
-				foreach ($functions as $f_function => $f_matchKeys)
-				{
-					$map = '';
-					// does this function require an array
-					$addArray = false;
-					$func_    = $this->buildFunctionCall(
-						$f_function, $f_matchKeys, $getValue
-					);
-					// set array switch
-					if ($func_['array'])
-					{
-						$addArray = true;
-					}
-					$func      .= PHP_EOL . "//" . Line::_(__Line__, __Class__)
-						. " the " . $f_function . " function";
-					$func      .= PHP_EOL . "function " . $f_function . "(";
-					$fucounter = 0;
-					foreach ($f_matchKeys as $fu_matchKey)
-					{
-						if (StringHelper::check($fu_matchKey))
-						{
-							if ($fucounter == 0)
-							{
-								$func .= $fu_matchKey;
-							}
-							else
-							{
-								$func .= ',' . $fu_matchKey;
-							}
-							$fucounter++;
-						}
-					}
-					$func .= ")";
-					$func .= PHP_EOL . "{";
-					if ($addArray)
-					{
-						foreach ($f_matchKeys as $a_matchKey)
-						{
-							$name = $matchNames[$a_matchKey];
-							$func .= PHP_EOL . Indent::_(1) . "if (isSet("
-								. $a_matchKey . ") && " . $a_matchKey
-								. ".constructor !== Array)" . PHP_EOL
-								. Indent::_(1) . "{" . PHP_EOL . Indent::_(2)
-								. "var temp_" . $f_function . " = "
-								. $a_matchKey . ";" . PHP_EOL . Indent::_(2)
-								. "var " . $a_matchKey . " = [];" . PHP_EOL
-								. Indent::_(2) . $a_matchKey . ".push(temp_"
-								. $f_function . ");" . PHP_EOL . Indent::_(1)
-								. "}";
-							$func .= PHP_EOL . Indent::_(1) . "else if (!isSet("
-								. $a_matchKey . "))" . PHP_EOL . Indent::_(1)
-								. "{";
-							$func .= PHP_EOL . Indent::_(2) . "var "
-								. $a_matchKey . " = [];";
-							$func .= PHP_EOL . Indent::_(1) . "}";
-							$func .= PHP_EOL . Indent::_(1) . "var " . $name
-								. " = " . $a_matchKey . ".some(" . $a_matchKey
-								. "_SomeFunc);" . PHP_EOL;
-
-							// setup the map function
-							$map .= PHP_EOL . "//" . Line::_(__Line__, __Class__)
-								. " the " . $f_function . " Some function";
-							$map .= PHP_EOL . "function " . $a_matchKey
-								. "_SomeFunc(" . $a_matchKey . ")";
-							$map .= PHP_EOL . "{";
-							$map .= PHP_EOL . Indent::_(1) . "//"
-								. Line::_(__Line__, __Class__)
-								. " set the function logic";
-							$map .= PHP_EOL . Indent::_(1) . "if (";
-							$if  = $ifValue[$a_matchKey];
-							if (StringHelper::check($if))
-							{
-								$map .= $if;
-							}
-							$map .= ")";
-							$map .= PHP_EOL . Indent::_(1) . "{";
-							$map .= PHP_EOL . Indent::_(2) . "return true;";
-							$map .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL
-								. Indent::_(1) . "return false;";
-							$map .= PHP_EOL . "}" . PHP_EOL;
-						}
-						$func .= PHP_EOL . PHP_EOL . Indent::_(1) . "//"
-							. Line::_(__Line__, __Class__)
-							. " set this function logic";
-						$func .= PHP_EOL . Indent::_(1) . "if (";
-						// set if counter
-						$aifcounter = 0;
-						foreach ($f_matchKeys as $af_matchKey)
-						{
-							$name = $matchNames[$af_matchKey];
-							if ($aifcounter == 0)
-							{
-								$func .= $name;
-							}
-							else
-							{
-								$func .= ' && ' . $name;
-							}
-							$aifcounter++;
-						}
-						$func .= ")" . PHP_EOL . Indent::_(1) . "{";
-					}
-					else
-					{
-						$func .= PHP_EOL . Indent::_(1) . "//" . Line::_(
-								__LINE__,__CLASS__
-							) . " set the function logic";
-						$func .= PHP_EOL . Indent::_(1) . "if (";
-						// set if counter
-						$ifcounter = 0;
-						foreach ($f_matchKeys as $f_matchKey)
-						{
-							$if = $ifValue[$f_matchKey];
-							if (StringHelper::check($if))
-							{
-								if ($ifcounter == 0)
-								{
-									$func .= $if;
-								}
-								else
-								{
-									$func .= ' && ' . $if;
-								}
-								$ifcounter++;
-							}
-						}
-						$func .= ")" . PHP_EOL . Indent::_(1) . "{";
-					}
-					// get the controles
-					$controls = $targetControls[$f_matchKeys[0]];
-					// get target behavior and default
-					$targetBehavior = $behaviors[$f_matchKeys[0]];
-					$targetDefault  = $defaults[$f_matchKeys[0]];
-					// load the target behavior
-					foreach ($controls as $target => $action)
-					{
-						$func .= $action['behavior'];
-						if (StringHelper::check(
-							$action[$targetBehavior]
-						))
-						{
-							$func .= $action[$targetBehavior];
-							$head .= $action['requiredVar'];
-						}
-					}
-					// check if this is a toggle switch
-					if ($toggleSwitch[$f_matchKeys[0]])
-					{
-						$func .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL
-							. Indent::_(1) . "else" . PHP_EOL . Indent::_(1)
-							. "{";
-						// load the default behavior
-						foreach ($controls as $target => $action)
-						{
-							$func .= $action['default'];
-							if (StringHelper::check(
-								$action[$targetDefault]
-							))
-							{
-								$func .= $action[$targetDefault];
-							}
-						}
-					}
-					$func .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL . "}"
-						. PHP_EOL . $map;
-				}
-				// add the needed validation to file
-				if (isset($this->validationFixBuilder[$nameSingleCode])
-					&& ArrayHelper::check(
-						$this->validationFixBuilder[$nameSingleCode]
-					))
-				{
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Update the \"not required\" field list by adding or removing a field name.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * Mirrors the original jQuery logic exactly but uses pure JavaScript.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {string}  name    The field name to add or remove.";
-					$validation .= PHP_EOL . " * @param  {number}  status  1 to add as not required, 0 to remove.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {void}";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function updateFieldRequired(name, status) {";
-					$validation .= PHP_EOL . Indent::_(1) . "// Check if #jform_not_required exists";
-					$validation .= PHP_EOL . Indent::_(1) . "const notRequiredField = document.getElementById('jform_not_required');";
-					$validation .= PHP_EOL . Indent::_(1) . "if (!notRequiredField) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return;";
-					$validation .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Split the comma-separated list into an array";
-					$validation .= PHP_EOL . Indent::_(1) . "let not_required = notRequiredField.value ? notRequiredField.value.split(',') : [];" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Add or remove the field name from the list";
-					$validation .= PHP_EOL . Indent::_(1) . "if (status == 1) {";
-					$validation .= PHP_EOL . Indent::_(2) . "not_required.push(name);";
-					$validation .= PHP_EOL . Indent::_(1) . "} else {";
-					$validation .= PHP_EOL . Indent::_(2) . "not_required = removeFieldFromNotRequired(not_required, name);";
-					$validation .= PHP_EOL . Indent::_(1) . "}" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Clean and deduplicate the list";
-					$validation .= PHP_EOL . Indent::_(1) . "const fixedList = fixNotRequiredArray(not_required);" . PHP_EOL;
-					$validation .= PHP_EOL . Indent::_(1) . "// Write back the updated comma-separated list";
-					$validation .= PHP_EOL . Indent::_(1) . "notRequiredField.value = fixedList.toString();";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Remove a specific field name from the \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The list of not-required field names.";
-					$validation .= PHP_EOL . " * @param  {string}        what   The field name to remove.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        The updated array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function removeFieldFromNotRequired(array, what) {";
-					$validation .= PHP_EOL . Indent::_(1) . "return array.filter(function (element) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return element !== what;";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Deduplicate and clean a \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The array to fix.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        A cleaned, unique array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function fixNotRequiredArray(array) {";
-					$validation .= PHP_EOL . Indent::_(1) . "const seen = {};";
-					$validation .= PHP_EOL . Indent::_(1) . "return removeEmptyFromNotRequiredArray(array).filter(function (item) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return seen.hasOwnProperty(item) ? false : (seen[item] = true);";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-					$validation .= PHP_EOL . "/**";
-					$validation .= PHP_EOL . " * Remove empty or invalid entries from a \"not required\" array.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * Also removes the literal '一_一' token (legacy quirk preserved for compatibility).";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @param  {Array<string>} array  The array to process.";
-					$validation .= PHP_EOL . " *";
-					$validation .= PHP_EOL . " * @return {Array<string>}        The cleaned array.";
-					$validation .= PHP_EOL . " * @since  3.1.3";
-					$validation .= PHP_EOL . " */";
-					$validation .= PHP_EOL . "function removeEmptyFromNotRequiredArray(array) {";
-					$validation .= PHP_EOL . Indent::_(1) . "return array.filter(function (el) {";
-					$validation .= PHP_EOL . Indent::_(2) . "return el && el.length > 0 && el !== '一_一';";
-					$validation .= PHP_EOL . Indent::_(1) . "});";
-					$validation .= PHP_EOL . "}" . PHP_EOL;
-				}
-				// set the isSet function
-				$isSet = PHP_EOL . "// the isSet function";
-				$isSet .= PHP_EOL . "function isSet(val)";
-				$isSet .= PHP_EOL . "{";
-				$isSet .= PHP_EOL . Indent::_(1)
-					. "if ((val != undefined) && (val != null) && 0 !== val.length){";
-				$isSet .= PHP_EOL . Indent::_(2) . "return true;";
-				$isSet .= PHP_EOL . Indent::_(1) . "}";
-				$isSet .= PHP_EOL . Indent::_(1) . "return false;";
-				$isSet .= PHP_EOL . "}";
-			}
-			// load to this buket
-			$fileScript   = $initial . $func . $validation . $isSet;
-			$footerScript = $listener;
-		}
-		// add custom script to edit form JS file
-		if (!isset($fileScript))
-		{
-			$fileScript = '';
-		}
-		$fileScript .= CFactory::_('Customcode.Dispenser')->get(
-			'view_file', $nameSingleCode, PHP_EOL . PHP_EOL, null, true, ''
-		);
-		// add custom script to footer
-		if (isset(CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode])
-			&& StringHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode]
-			))
-		{
-			$customFooterScript = PHP_EOL . PHP_EOL . CFactory::_('Placeholder')->update_(
-					CFactory::_('Customcode.Dispenser')->hub['view_footer'][$nameSingleCode]
-				);
-			if (strpos($customFooterScript, '<?php') === false)
-			{
-				// only add now if no php is added to the footer script
-				if (!isset($footerScript))
-				{
-					$footerScript = '';
-				}
-				$footerScript .= $customFooterScript;
-				unset($customFooterScript);
-			}
-		}
-		// set view listname
-		$nameListCode = $viewArray['settings']->name_list_code;
-		// add custom script to list view JS file
-		if (($list_fileScript = CFactory::_('Customcode.Dispenser')->get(
-				'views_file', $nameSingleCode, PHP_EOL . PHP_EOL, null, true,
-				false
-			)) !== false
-			&& StringHelper::check($list_fileScript))
-		{
-			// get dates
-			$_created  = CFactory::_('Model.Createdate')->get($viewArray);
-			$_modified = CFactory::_('Model.Modifieddate')->get($viewArray);
-			// add file to view
-			$_target = array(CFactory::_('Config')->build_target => $nameListCode);
-			$_config = array(Placefix::_h('CREATIONDATE') => $_created,
-				Placefix::_h('BUILDDATE') => $_modified,
-				Placefix::_h('VERSION') => $viewArray['settings']->version);
-			CFactory::_('Utilities.Structure')->build($_target, 'javascript_file', false, $_config);
-			// set path
-			$_path = '/administrator/components/com_' . CFactory::_('Config')->component_code_name
-				. '/assets/js/' . $nameListCode . '.js';
-			// load the file to the list view
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|ADMIN_ADD_JAVASCRIPT_FILE', PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add List View JavaScript File" . PHP_EOL . Indent::_(2)
-				. CFactory::_('Library.IncludeHelper')->get($_path)
-			);
-		}
-		else
-		{
-			$list_fileScript = '';
-			CFactory::_('Compiler.Builder.Content.Multi')->set($nameListCode . '|ADMIN_ADD_JAVASCRIPT_FILE', '');
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($list_fileScript)
-			&& StringHelper::check($list_fileScript))
-		{
-			// minify the fileScript javascript
-			$list_fileScript = Minify::js($list_fileScript);
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($fileScript)
-			&& StringHelper::check($fileScript))
-		{
-			// minify the fileScript javascript
-			$fileScript = Minify::js($fileScript);
-		}
-		// minify the script
-		if (CFactory::_('Config')->get('minify', 0) && isset($footerScript)
-			&& StringHelper::check($footerScript))
-		{
-			// minify the footerScript javascript
-			$footerScript = Minify::js($footerScript);
-		}
-		// make sure there is script to add
-		if (isset($list_fileScript)
-			&& StringHelper::check(
-				$list_fileScript
-			))
-		{
-			// load the script
-			$this->viewScriptBuilder[$nameListCode]['list_fileScript']
-				= $list_fileScript;
-		}
-		// make sure there is script to add
-		if (isset($fileScript)
-			&& StringHelper::check(
-				$fileScript
-			))
-		{
-			// add the head script if set
-			if (isset($head) && StringHelper::check($head))
-			{
-				$fileScript = "// Some Global Values" . PHP_EOL . $head
-					. PHP_EOL . $fileScript;
-			}
-			// load the script
-			$this->viewScriptBuilder[$nameSingleCode]['fileScript']
-				= $fileScript;
-		}
-		// make sure to add custom footer script if php was found in it, since we canot minfy it with php
-		if (isset($customFooterScript)
-			&& StringHelper::check(
-				$customFooterScript
-			))
-		{
-			if (!isset($footerScript))
-			{
-				$footerScript = '';
-			}
-			$footerScript .= $customFooterScript;
-		}
-		// make sure there is script to add
-		if (isset($footerScript)
-			&& StringHelper::check(
-				$footerScript
-			))
-		{
-			// add the needed script tags
-			$footerScript = PHP_EOL
-				. PHP_EOL . '<script type="text/javascript">' . PHP_EOL
-				. $footerScript . PHP_EOL . "</script>";
-			$this->viewScriptBuilder[$nameSingleCode]['footerScript']
-				= $footerScript;
-		}
+		// the methods still on this helper read the fixes off this property
+		$this->validationFixBuilder = CFactory::_('Compiler.Builder.Validation.Fix')
+			->allActive();
 	}
 
+	/**
+	 * Build the statements that read every watched value and call one function.
+	 *
+	 * @param   string  $function   The name of the function to call.
+	 * @param   array   $matchKeys  The keys of the values the function takes.
+	 * @param   array   $getValue   The read statement of every key.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function buildFunctionCall($function, $matchKeys, $getValue)
 	{
-		$initial  = '';
-		$funcsets = [];
-		$array    = false;
-		foreach ($matchKeys as $matchKey)
-		{
-			$value = $getValue[$matchKey];
-			if ($value['isArray'])
-			{
-				$initial    .= PHP_EOL . Indent::_(1) . $value['get'];
-				$funcsets[] = $matchKey;
-				$array      = true;
-			}
-			else
-			{
-				$initial    .= PHP_EOL . Indent::_(1) . $value['get'];
-				$funcsets[] = $matchKey;
-			}
-		}
-
-		// make sure that the function is loaded only once
-		if (ArrayHelper::check($funcsets))
-		{
-			$initial .= PHP_EOL . Indent::_(1) . $function . "(";
-			$initial .= implode(',', $funcsets);
-			$initial .= ");" . PHP_EOL;
-		}
-
-		return array('code' => $initial, 'array' => $array);
+		return CFactory::_('Architecture.AdminView.ViewScript')->functionCall(
+			(string) $function, (array) $matchKeys, (array) $getValue
+		);
 	}
 
+	/**
+	 * Find the conditions of this view that steer the same target fields.
+	 *
+	 * @param   array   $relations  Every condition the view declares.
+	 * @param   array   $condition  The condition being chained.
+	 * @param   string  $view       The single view code name.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.TargetRelationScript service.
+	 */
 	public function getTargetRelationScript($relations, $condition, $view)
 	{
-		// reset the buket
-		$buket = [];
-		// convert to name array
-		foreach ($condition['target_field'] as $targetField)
-		{
-			if (ArrayHelper::check($targetField)
-				&& isset($targetField['name']))
-			{
-				$currentTargets[] = $targetField['name'];
-			}
-		}
-		// start the search
-		foreach ($relations as $relation)
-		{
-			// reset found
-			$found = false;
-			// chain only none matching fields
-			if ($relation['match_field'] !== $condition['match_field']
-				&& $relation['target_relation']) // Made this change to see if it improves the expected result (TODO)
-			{
-				if (ArrayHelper::check(
-					$relation['target_field']
-				))
-				{
-					foreach ($relation['target_field'] as $target)
-					{
-						if (ArrayHelper::check($target)
-							&& $this->checkRelationControl(
-								$target['name'], $relation['match_name'],
-								$condition['match_name'], $view
-							))
-						{
-							if (in_array($target['name'], $currentTargets))
-							{
-								$this->targetRelationControl[$view][$target['name']]
-									= array($relation['match_name'],
-									$condition['match_name']);
-								$found = true;
-								break;
-							}
-						}
-					}
-					if ($found)
-					{
-						$buket[] = $relation;
-					}
-				}
-			}
-		}
-
-		return $buket;
+		return CFactory::_('Architecture.Field.TargetRelationScript')->get(
+			(array) $relations, (array) $condition, (string) $view
+		);
 	}
 
+	/**
+	 * Test whether this target may still be claimed by this pair of matches.
+	 *
+	 * @param   string  $targetName          The name of the target field.
+	 * @param   mixed   $relationMatchName   The name the chained condition matches on.
+	 * @param   mixed   $conditionMatchName  The name the condition being chained matches on.
+	 * @param   string  $view                The single view code name.
+	 *
+	 * @return  bool
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.TargetRelationScript service.
+	 */
 	public function checkRelationControl($targetName, $relationMatchName,
-	                                     $conditionMatchName, $view
+		$conditionMatchName, $view
 	)
 	{
-		if (isset($this->targetRelationControl[$view])
-			&& ArrayHelper::check(
-				$this->targetRelationControl[$view]
-			))
-		{
-			if (isset($this->targetRelationControl[$view][$targetName])
-				&& ArrayHelper::check(
-					$this->targetRelationControl[$view][$targetName]
-				))
-			{
-				if (!in_array(
-						$relationMatchName,
-						$this->targetRelationControl[$view][$targetName]
-					)
-					|| !in_array(
-						$conditionMatchName,
-						$this->targetRelationControl[$view][$targetName]
-					))
-				{
-					return true;
-				}
-			}
-			else
-			{
-				return true;
-			}
-		}
-		elseif (!isset($this->targetRelationControl[$view])
-			|| !ArrayHelper::check(
-				$this->targetRelationControl[$view]
-			))
-		{
-			return true;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Field.TargetRelationScript')->checkControl(
+			(string) $targetName, $relationMatchName, $conditionMatchName,
+			(string) $view
+		);
 	}
 
 	/**
@@ -5119,130 +3969,55 @@ class Interpretation extends Fields
 		);
 	}
 
+	/**
+	 * Read the options a watched field declares.
+	 *
+	 * @param   mixed  $type     The type of the field being watched.
+	 * @param   mixed  $options  The options the field declares.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.OptionsScript service.
+	 */
 	public function getOptionsScript($type, $options)
 	{
-		$buket = [];
-		if (StringHelper::check($options))
-		{
-			if (CFactory::_('Field.Groups')->check($type, 'list')
-				|| CFactory::_('Field.Groups')->check($type, 'dynamic')
-				|| !CFactory::_('Field.Groups')->check($type))
-			{
-				$optionsArray = array_map(
-					'trim', (array) explode(PHP_EOL, (string) $options)
-				);
-				if (!ArrayHelper::check($optionsArray))
-				{
-					$optionsArray[] = $optionsArray;
-				}
-				foreach ($optionsArray as $option)
-				{
-					if (strpos($option, '|') !== false)
-					{
-						list($option) = array_map(
-							'trim', (array) explode('|', $option)
-						);
-					}
-					if ($option != 'dynamic_list')
-					{
-						// add option to return buket
-						$buket[] = $option;
-					}
-				}
-			}
-			elseif (CFactory::_('Field.Groups')->check($type, 'text'))
-			{
-				// check to get the key words if set
-				$keywords = GetHelper::between(
-					$options, 'keywords="', '"'
-				);
-				if (StringHelper::check($keywords))
-				{
-					if (strpos((string) $keywords, ',') !== false)
-					{
-						$keywords = array_map(
-							'trim', (array) explode(',', (string) $keywords)
-						);
-						foreach ($keywords as $keyword)
-						{
-							$buket['keywords'][] = trim($keyword);
-						}
-					}
-					else
-					{
-						$buket['keywords'][] = trim((string) $keywords);
-					}
-				}
-				// check to ket string length if set
-				$length = GetHelper::between(
-					$options, 'length="', '"'
-				);
-				if (StringHelper::check($length))
-				{
-					$buket['length'] = $length;
-				}
-				else
-				{
-					$buket['length'] = false;
-				}
-			}
-		}
-
-		return $buket;
+		return CFactory::_('Architecture.Field.OptionsScript')->get(
+			$type, $options
+		);
 	}
 
+	/**
+	 * Build the javascript that reads the watched field's value.
+	 *
+	 * @param   mixed   $type     The type of the field being watched.
+	 * @param   string  $name     The name of the field being watched.
+	 * @param   mixed   $extends  The type the field extends, when it is a custom field.
+	 * @param   string  $unique   The unique key of the condition being built.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Field.ValueScript service.
+	 */
 	public function getValueScript($type, $name, $extends, $unique)
 	{
-		$select  = '';
-		$isArray = false;
-		$keyName = $name . '_' . $unique;
-		if ($type === 'checkboxes' || $extends === 'checkboxes')
-		{
-			$select  = "var " . $keyName . " = [];" . PHP_EOL . Indent::_(1)
-				. "jQuery('#jform_" . $name
-				. " input[type=checkbox]').each(function()" . PHP_EOL
-				. Indent::_(1) . "{" . PHP_EOL . Indent::_(2)
-				. "if (jQuery(this).is(':checked'))" . PHP_EOL . Indent::_(2)
-				. "{" . PHP_EOL . Indent::_(3) . $keyName
-				. ".push(jQuery(this).prop('value'));" . PHP_EOL . Indent::_(2)
-				. "}" . PHP_EOL . Indent::_(1) . "});";
-			$isArray = true;
-		}
-		elseif ($type === 'checkbox')
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").prop(\'checked\');';
-		}
-		elseif ($type === 'radio')
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. ' input[type=\'radio\']:checked").val();';
-		}
-		elseif (CFactory::_('Compiler.Builder.Script.User.Switch')->inArray($type))
-		{
-			// this is only since 3.3.4
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '_id").val();';
-		}
-		elseif ($type === 'list'
-			|| CFactory::_('Field.Groups')->check(
-				$type, 'dynamic'
-			)
-			|| !CFactory::_('Field.Groups')->check($type))
-		{
-			$select  = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").val();';
-			$isArray = true;
-		}
-		elseif (CFactory::_('Field.Groups')->check($type, 'text'))
-		{
-			$select = 'var ' . $keyName . ' = jQuery("#jform_' . $name
-				. '").val();';
-		}
-
-		return array('get' => $select, 'isArray' => $isArray);
+		return CFactory::_('Architecture.Field.ValueScript')->get(
+			$type, (string) $name, $extends, (string) $unique
+		);
 	}
 
+	/**
+	 * Build the javascript that clears the watched field's value.
+	 *
+	 * @param   string  $type    The type of the field being watched
+	 * @param   string  $name    The name of the field being watched
+	 * @param   string  $unique  The unique key of the condition being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function clearValueScript($type, $name, $unique)
 	{
 		$clear   = '';
@@ -5265,17 +4040,34 @@ class Interpretation extends Fields
 		return $clear;
 	}
 
+	/**
+	 * Read back one of the scripts an admin view was given.
+	 *
+	 * @param   string  $view  The view code name.
+	 * @param   string  $type  Which script: fileScript, footerScript or list_fileScript.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.AdminView.ViewScript service.
+	 */
 	public function setViewScript(&$view, $type)
 	{
-		if (isset($this->viewScriptBuilder[$view])
-			&& isset($this->viewScriptBuilder[$view][$type]))
-		{
-			return $this->viewScriptBuilder[$view][$type];
-		}
-
-		return '';
+		return CFactory::_('Architecture.AdminView.ViewScript')->script(
+			(string) $view, (string) $type
+		);
 	}
 
+	/**
+	 * Build the form validation override a view with switched fields needs.
+	 *
+	 * @param   string  $view       The single view name
+	 * @param   mixed   $Component  The component being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setValidationFix($view, $Component)
 	{
 		$fix = '';
@@ -5343,6 +4135,15 @@ class Interpretation extends Fields
 		return $fix;
 	}
 
+	/**
+	 * Build the ajax token declaration a view with ajax makes.
+	 *
+	 * @param   string  $view  The view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxToke(&$view)
 	{
 		$fix = '';
@@ -5407,6 +4208,15 @@ class Interpretation extends Fields
 		return $tasks;
 	}
 
+	/**
+	 * Build the ajax controller cases one build target declares.
+	 *
+	 * @param   string  $target  The build target, site or administrator
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxInputReturn($target)
 	{
 		$cases = '';
@@ -5576,6 +4386,15 @@ class Interpretation extends Fields
 		return $cases;
 	}
 
+	/**
+	 * Build the ajax model methods one build target declares.
+	 *
+	 * @param   string  $target  The build target, site or administrator
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setAjaxModelMethods($target)
 	{
 		$methods = '';
@@ -5600,6 +4419,15 @@ class Interpretation extends Fields
 		return $methods;
 	}
 
+	/**
+	 * Build the jQuery framework load the generated view makes.
+	 *
+	 * @param   array  $view  The view being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJquery(&$view)
 	{
 		$addJQuery = '';
@@ -5630,6 +4458,15 @@ class Interpretation extends Fields
 			->get($nameSingleCode, $nameListCode);
 	}
 
+	/**
+	 * Build the generated table's unique field method.
+	 *
+	 * @param   array  $view  The view being built
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setUniqueFields(&$view)
 	{
 		$fields   = [];
@@ -5683,6 +4520,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in view.html.php
 	 *
+	 * @since   3.2.0
 	 */
 	public function setFilterFieldSidebarDisplayHelper(&$nameSingleCode, &$nameListCode)
 	{
@@ -5859,9 +4697,10 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 * @since   3.2.0
 	 */
 	protected function setDefaultSidebarFilterHelper(&$filter, &$nameSingleCode,
-	                                                 &$nameListCode
+		&$nameListCode
 	)
 	{
 		// add the default filters if we are on the old filter paths (1 = sidebar)
@@ -5905,6 +4744,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setCategorySidebarFilterHelper(&$filter, &$nameListCode)
 	{
@@ -5936,6 +4777,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in view.html.php
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setBatchDisplayHelper(&$nameSingleCode, &$nameListCode)
 	{
@@ -6106,6 +4949,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setDefaultBatchHelper(&$batch, &$nameSingleCode)
 	{
@@ -6158,6 +5003,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  mixed The php to place in view.html.php
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setCategoryBatchHelper(&$batch, &$nameListCode)
 	{
@@ -6185,77 +5032,22 @@ class Interpretation extends Fields
 		}
 	}
 
+	/**
+	 * Build the map entry from a category extension to the view that owns it.
+	 *
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $nameListCode    The list view code name.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
+	 */
 	public function setRouterCategoryViews($nameSingleCode, $nameListCode)
 	{
-		if (CFactory::_('Compiler.Builder.Category')->exists("{$nameListCode}.extension"))
-		{
-			// get the actual extension
-			$_extension = CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension");
-			$_extension = explode('.', (string) $_extension);
-			// set component name
-			if (ArrayHelper::check($_extension))
-			{
-				$component = str_replace('com_', '', $_extension[0]);
-			}
-			else
-			{
-				$component = CFactory::_('Config')->component_code_name;
-			}
-			// check if category has another name
-			$otherViews = CFactory::_('Compiler.Builder.Category.Other.Name')->
-				get($nameListCode . '.views', $nameListCode);
-			$otherView  = CFactory::_('Compiler.Builder.Category.Other.Name')->
-				get($nameListCode . '.view', $nameSingleCode);
-			// set the OtherView value
-			CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|otherview', $otherView);
-			// load the category helper details in not already loaded
-			if (!CFactory::_('Compiler.Builder.Content.Multi')->exists('category' . $otherView . '|view'))
-			{
-				// lets also set the category helper for this view
-				$target = array('site' => 'category' . $otherView);
-				CFactory::_('Utilities.Structure')->build($target, 'category');
-				// insure the file gets updated
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|view', $otherView);
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|View', ucfirst((string) $otherView));
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|views', $otherViews);
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|Views', ucfirst((string) $otherViews));
-				// set script to global helper file
-				$includeHelper   = [];
-				$includeHelper[] = "\n//" . Line::_(__Line__, __Class__)
-					. "Insure this view category file is loaded.";
-				$includeHelper[] = "\$classname = '" . ucfirst((string) $component)
-					. ucfirst((string) $otherView) . "Categories';";
-				$includeHelper[] = "if (!class_exists(\$classname))";
-				$includeHelper[] = "{";
-				$includeHelper[] = Indent::_(1)
-					. "\$path = JPATH_SITE . '/components/com_" . $component
-					. "/helpers/category" . $otherView . ".php';";
-				$includeHelper[] = Indent::_(1) . "if (is_file(\$path))";
-				$includeHelper[] = Indent::_(1) . "{";
-				$includeHelper[] = Indent::_(2) . "include_once \$path;";
-				$includeHelper[] = Indent::_(1) . "}";
-				$includeHelper[] = "}";
-				CFactory::_('Compiler.Builder.Content.One')->add('CATEGORY_CLASS_TREES', implode("\n", $includeHelper));
-			}
-			// return category view string
-			if (CFactory::_('Compiler.Builder.Content.One')->exists('ROUTER_CATEGORY_VIEWS')
-				&& StringHelper::check(
-					CFactory::_('Compiler.Builder.Content.One')->get('ROUTER_CATEGORY_VIEWS')
-				))
-			{
-				return "," . PHP_EOL . Indent::_(3) . '"'
-					. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-					. '" => "' . $otherView . '"';
-			}
-			else
-			{
-				return PHP_EOL . Indent::_(3) . '"'
-					. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-					. '" => "' . $otherView . '"';
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.SiteRouter')->categoryViews(
+			(string) $nameSingleCode, (string) $nameListCode
+		);
 	}
 
 	/**
@@ -6335,6 +5127,16 @@ class Interpretation extends Fields
 			->setPermissionViewFields($allow, $nameSingleCode, $fieldName, $fieldType, $component);
 	}
 
+	/**
+	 * Build the permission object the generated list view checks against.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJviewListCanDo($nameSingleCode, $nameListCode)
 	{
 		$allow = [];
@@ -6371,6 +5173,15 @@ class Interpretation extends Fields
 		return implode(PHP_EOL, $allow);
 	}
 
+	/**
+	 * Build the access control fieldset of a view that has one.
+	 *
+	 * @param   string  $view  The view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setFieldSetAccessControl(&$view)
 	{
 		$access = '';
@@ -6423,6 +5234,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The code for the filter fields array
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setFilterFieldsArray(&$nameSingleCode, &$nameListCode)
 	{
@@ -6481,6 +5294,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string    The code for the filter array
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function getFilterFieldCode(&$filter)
 	{
@@ -6537,6 +5352,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The code for the populate state
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setStoredId(&$nameSingleCode, &$nameListCode)
 	{
@@ -7039,23 +5856,21 @@ class Interpretation extends Fields
 			->get($views);
 	}
 
+	/**
+	 * Build one view's case in the router's own parse switch.
+	 *
+	 * @param   string  $viewsCodeName  The list view code name.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
+	 */
 	public function setRouterCase($viewsCodeName)
 	{
-		if (strlen((string) $viewsCodeName) > 0)
-		{
-			$router = PHP_EOL . Indent::_(2) . "case '" . $viewsCodeName . "':";
-			$router .= PHP_EOL . Indent::_(3)
-				. "\$id = explode(':', \$segments[\$count-1]);";
-			$router .= PHP_EOL . Indent::_(3) . "\$vars['id'] = (int) \$id[0];";
-			$router .= PHP_EOL . Indent::_(3) . "\$vars['view'] = '"
-				. $viewsCodeName
-				. "';";
-			$router .= PHP_EOL . Indent::_(2) . "break;";
-
-			return $router;
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.SiteRouter')->parseCase(
+			(string) $viewsCodeName
+		);
 	}
 
 	public function setDashboardIconAccess()

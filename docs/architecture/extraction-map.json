@@ -8,6 +8,35 @@
       }
     ]
   },
+  "buildFunctionCall": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a punctuation fragment shorter than the fingerprint threshold; it became ViewScript::functionCall()",
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 0
+      }
+    ]
+  },
+  "buildTheViewScript": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 6
+      }
+    ]
+  },
+  "checkRelationControl": {
+    "fingerprints": 0,
+    "traced_by": "name, because it carries no string literal at all; it became TargetRelationScript::checkControl()",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/TargetRelationScript.php",
+        "matched": 0
+      }
+    ]
+  },
   "checkStatmentLicenseLocked": {
     "fingerprints": 3,
     "moved_into": [
@@ -49,6 +78,32 @@
       {
         "class": "Architecture/Component/AssetsTable.php",
         "matched": 3
+      }
+    ]
+  },
+  "getCategoryContentType": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 3
+      },
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 2
+      }
+    ]
+  },
+  "getContentType": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 1
       }
     ]
   },
@@ -108,6 +163,16 @@
       }
     ]
   },
+  "getOptionsScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it reads is shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/OptionsScript.php",
+        "matched": 0
+      }
+    ]
+  },
   "getStoredIdCodeMulti": {
     "fingerprints": 4,
     "moved_into": [
@@ -129,6 +194,26 @@
       }
     ]
   },
+  "getTargetRelationScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because it emits nothing and only reads short array keys",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/TargetRelationScript.php",
+        "matched": 0
+      }
+    ]
+  },
+  "getValueScript": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Field/ValueScript.php",
+        "matched": 4
+      }
+    ],
+    "unmatched": "the Compiler.Builder.Script.User.Switch service key, which became an injected dependency"
+  },
   "ifValueScript": {
     "fingerprints": 0,
     "traced_by": "name, because every literal it emits is shorter than the fingerprint threshold",
@@ -136,6 +221,25 @@
       {
         "class": "Architecture/Field/IfValueScript.php",
         "matched": 0
+      }
+    ]
+  },
+  "routerBuildViews": {
+    "fingerprints": 0,
+    "traced_by": "name, because the one test it emits is shorter than the fingerprint threshold; it became SiteRouter::buildViews()",
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 0
+      }
+    ]
+  },
+  "routerParseSwitch": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 4
       }
     ]
   },
@@ -211,6 +315,38 @@
     ],
     "shares_generated_text_with": [
       "Architecture/ComHelperClass/CryptKey.php"
+    ]
+  },
+  "setComponentToContentTypes": {
+    "fingerprints": 0,
+    "traced_by": "name, because it only collects and dispatches, and emits nothing of its own; it became ContentTypes::get()",
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setComponentToContentTypesJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/ContentTypes.php",
+        "matched": 6
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/JoomlaThree/Component/UninstallScript.php"
+    ]
+  },
+  "setComponentToContentTypesJ4": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a comment or a punctuation fragment shorter than the fingerprint threshold; it became the shared ContentTypes::script()",
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ContentTypes.php",
+        "matched": 0
+      }
     ]
   },
   "setControllerEximportMethod": {
@@ -640,6 +776,38 @@
       }
     ]
   },
+  "setRouterCase": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setRouterCategoryViews": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 3
+      }
+    ],
+    "unmatched": "the three service keys that became injected dependencies"
+  },
+  "setRouterHelp": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/RouteHelper.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/JoomlaThree/Router/RouteHelper.php",
+        "matched": 4
+      }
+    ]
+  },
   "setSearchQuery": {
     "fingerprints": 4,
     "moved_into": [
@@ -745,6 +913,16 @@
       {
         "class": "Architecture/Component/LicenseLock.php",
         "matched": 1
+      }
+    ]
+  },
+  "setViewScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because it emits nothing at all; it became ViewScript::script()",
+    "moved_into": [
+      {
+        "class": "Architecture/AdminView/ViewScript.php",
+        "matched": 0
       }
     ]
   },

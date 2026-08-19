@@ -125,6 +125,7 @@ characterization test, following the
 | Linked list query OR fallback | The `-5` fallback where-clause uses the loop variable after its loop has closed, so only the last OR key receives it. |
 | Linked list ordering | When linked ordering is enabled but every field lookup fails, no ordering clause is emitted at all, because the default lives in the else branch. |
 | Linked list head language | The status and id language keys are registered even when the corresponding headings are suppressed, inflating generated language files. |
+| `getTargetRelationScript` current targets | `$currentTargets` is only assigned inside the loop that reads the condition's named target fields, so a condition that names none reaches `in_array($target['name'], $currentTargets)` with the variable undefined. Under PHP 8 that is a `TypeError` from `in_array()`, not a warning, so it ends the compile rather than chaining nothing. |
 
 ## Dead code observed
 

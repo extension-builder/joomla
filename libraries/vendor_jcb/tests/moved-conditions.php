@@ -51,6 +51,14 @@ return [
 			=> 'the array became a Registry, so isset() && truthy is the truthiness of get()',
 		'||!$isExport)'
 			=> 'second half of the eximport guard above, which folded onto one line',
+		'&&(!in_array($nameSingleCode,$this->setRouterHelpDone)))'
+			=> 'the property was renamed to $done once the class no longer needed the concern in the name',
+		'if(isset($this->validationFixBuilder[$nameSingleCode])'
+			=> 'the fixes array became a Registry, so the isset half of the guard is now the truthiness of get(), and ArrayHelper::check leads the if',
+		'if(isset($this->viewScriptBuilder[$view])'
+			=> 'the scripts array became a Registry, and its get() returns null for a view that was given no script',
+		'&&isset($this->viewScriptBuilder[$view][$type]))'
+			=> 'second half of the guard above: one Registry path carries both keys, so one read answers both',
 		'if(!$this->setLayoutOverride($nameSingleCode,$layoutName,$items))'
 			=> 'the helper was renamed to setOverride once the class no longer needed the concern in the name',
 		"if(\$parent_key==='guid'&&S->get('joomla_version',3)>4)"
@@ -150,6 +158,10 @@ return [
 			=> 'the whole body sat inside the eximport guard, so it became an early return on a falsy Registry read',
 		'if(S->get($nameListCode))'
 			=> 'the Registry read that replaced isset() && truthy on the array it succeeded',
+		'&&(!in_array($nameSingleCode,$this->done)))'
+			=> 'the renamed property of the same check',
+		'if(ArrayHelper::check('
+			=> 'the isset half of the validation fix guard became a Registry read, so its ArrayHelper::check half is now the leading if',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],

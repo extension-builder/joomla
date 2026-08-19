@@ -908,6 +908,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/ViewScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/UninstallScriptContext.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Builder/UninstallScriptContent.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Builder/BuilderRegistryContractTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/TargetControlsScript.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetControlsScriptTest.php'
@@ -919,6 +931,50 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/IfValueScript.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldIfValueScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/ValueScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldValueScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/OptionsScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldOptionsScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/TargetRelationScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FieldTargetRelationScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/ViewScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViewScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/ContentTypes.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedContentTypesRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Component/ContentTypes.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedContentTypesRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/ContentTypesInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Router/RouteHelper.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedRouteHelperRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Router/RouteHelper.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedRouteHelperRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Router/SiteRouter.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/RouterSiteRouterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Router/RouteHelperInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/UikitLoader.php' => [
 		'mode' => 'contract',
