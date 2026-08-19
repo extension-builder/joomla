@@ -75,6 +75,8 @@ return [
 			=> 'how the ajax model is asked for became the ajaxModel() extension point',
 		'&&isset($this->customAdminViewListId[$view]))'
 			=> 'the property was a copy the compiler refreshed by hand, and the class reads the registry it copied',
+		'if(CFactory::_(\'Compiler.Builder.Model.\'.ucfirst($cryptionType).\'.Field\')->exists($view))'
+			=> 'the service name built from the type became the four injected registries and a map, and a type with no registry has no fields to decrypt, so it is skipped the way an empty registry is',
 		'if(isset($this->viewScriptBuilder[$view])'
 			=> 'the scripts array became a Registry, and its get() returns null for a view that was given no script',
 		'&&isset($this->viewScriptBuilder[$view][$type]))'
