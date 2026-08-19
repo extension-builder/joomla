@@ -71,34 +71,48 @@ pull_command() {
 		return 0
 	fi
 
-	printf 'componentbuilder:pull:component --items=%s --repo=%s' \
+	# -i is the items option and -r the repository; both take a bare GUID, which
+	# the command resolves through the repositories the site knows about.
+	printf 'componentbuilder:pull:component -i %s -r %s --no-interaction' \
 		"${component}" "${repository}"
 }
 
-# Run one compile inside the container and keep what it said.
+# Run one Joomla CLI command inside the container and keep what it said.
 #
-# Both compiles go through here, so the only difference between them is which
+# Everything this harness asks of JCB goes through here, which is the same way
+# a person would ask it: the Joomla console, in a process of its own. Both
+# compiles go through it too, so the only difference between them is which
 # compiler is installed at the time. A compile driven one way and compared
 # against one driven another way would be comparing the harness as much as the
 # compilers.
 #
-# $1  a name for this run
-# $2  the compile command
-run_compile() {
-	local name="$1" command="$2"
+# $1  a name for this run, which is also the name of its log
+# $2  what to say we are doing, for the log
+# $3  the command, options and all
+run_cli() {
+	local name="$1" what="$2" command="$3"
 	local log="${OUT_DIR}/${name}.log"
 
-	say "Compiling with the ${name} compiler"
+	say "${what}"
+	say "  joomla.php ${command}"
 
 	if ! compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
 		${command} > "${log}" 2>&1
 	then
-		say "The ${name} compile failed. Its output:"
+		say "${what}: failed. Its output:"
 		cat "${log}"
 		exit 1
 	fi
 
 	tail -20 "${log}"
+}
+
+# Run one compile inside the container and keep what it said.
+#
+# $1  a name for this run
+# $2  the compile command
+run_compile() {
+	run_cli "$1" "Compiling with the $1 compiler" "$2"
 }
 
 # Bring out everything the compiler just wrote.
