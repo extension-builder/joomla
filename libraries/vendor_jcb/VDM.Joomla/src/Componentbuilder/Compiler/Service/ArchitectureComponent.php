@@ -49,6 +49,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\Post
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\PostUpdateScript as ComponentPostUpdateScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImportCustomScripts as ComponentImportCustomScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UserPermissionCheckAccess as ComHelperUserPermissionCheckAccess;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderScriptInterface as ComponentMoveFolderScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderScript as SharedComponentMoveFolderScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderScript as J3ComponentMoveFolderScript;
 
 
 /**
@@ -153,6 +156,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3InstallSql::class, 'Architecture.Component.J3.InstallSql')
 			->share('Architecture.Component.J3.InstallSql', [$this, 'getJ3InstallSql'], true);
+
+		$container->alias(ComponentMoveFolderScript::class, 'Architecture.Component.MoveFolderScript')
+			->share('Architecture.Component.MoveFolderScript', [$this, 'getComponentMoveFolderScript'], true);
+
+		$container->alias(SharedComponentMoveFolderScript::class, 'Architecture.Component.Shared.MoveFolderScript')
+			->share('Architecture.Component.Shared.MoveFolderScript', [$this, 'getSharedComponentMoveFolderScript'], true);
+
+		$container->alias(J3ComponentMoveFolderScript::class, 'Architecture.Component.J3.MoveFolderScript')
+			->share('Architecture.Component.J3.MoveFolderScript', [$this, 'getJ3ComponentMoveFolderScript'], true);
 
 		$container->alias(ComponentMoveFolderMethod::class, 'Architecture.Component.MoveFolderMethod')
 			->share('Architecture.Component.MoveFolderMethod', [$this, 'getComponentMoveFolderMethod'], true);
@@ -691,6 +703,60 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Mysql.Table.Setting')
 		);
 	}
+	/**
+	 * Get The Component MoveFolderScript Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentMoveFolderScript
+	 * @since   6.1.7
+	 */
+	public function getComponentMoveFolderScript(Container $container): ComponentMoveFolderScript
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 install script is handed the application and the parent
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.MoveFolderScript');
+		}
+
+		return $container->get('Architecture.Component.Shared.MoveFolderScript');
+	}
+
+	/**
+	 * Get The Component MoveFolderScript Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedComponentMoveFolderScript
+	 * @since   6.1.7
+	 */
+	public function getSharedComponentMoveFolderScript(Container $container): SharedComponentMoveFolderScript
+	{
+		return new SharedComponentMoveFolderScript(
+			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 Component MoveFolderScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ComponentMoveFolderScript
+	 * @since   6.1.7
+	 */
+	public function getJ3ComponentMoveFolderScript(Container $container): J3ComponentMoveFolderScript
+	{
+		return new J3ComponentMoveFolderScript(
+			$container->get('Registry')
+		);
+	}
+
 	/**
 	 * Get The Component MoveFolderMethod Class of the target being built.
 	 *

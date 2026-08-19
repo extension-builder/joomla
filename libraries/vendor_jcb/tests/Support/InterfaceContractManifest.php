@@ -304,6 +304,20 @@ final class InterfaceContractManifest
 			'implementation_hash' => '46cf3e681b936c25645d8cd10ded1db02b61d2d27119fda5bd7d1034459496ce',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\EximportButtonsInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/EximportButtonsInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => 'a2aa523c798015f1750dcb32d08eb22aecd3e7eab75405a2f34a8644de433500',
+			'signature_hash' => 'e6d785e5c5a289ac12733eb97df3a467901a3e3afb7cda8f35125a9e50be650f'
+		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\MoveFolderScriptInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/MoveFolderScriptInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '0c095cd266f319d220cedc28c0aeb027017c4e974a262ee108b93c43d225bfe0',
+			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\CustomAdminDynamicButtonInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/CustomAdminDynamicButtonInterface.php',
 			'implementations' => 2,

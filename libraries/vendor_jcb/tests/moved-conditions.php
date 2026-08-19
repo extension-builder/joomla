@@ -87,6 +87,10 @@ return [
 			=> 'the helper was renamed to setOverride once the class no longer needed the concern in the name',
 		"if(\$parent_key==='guid'&&S->get('joomla_version',3)>4)"
 			=> 'the version half chose the class, and the $parent_key half became an early return on !== guid',
+		"&&S->get('joomla_version',3)==3)"
+			=> 'the version half of the export and import button guard chose the class, and the eximport half became a Registry read',
+		'if(isset($this->DashboardGetCustomData)'
+			=> 'the method names became a declared ?array on the class that reads them, which is null until they have been read',
 		'if($view[\'settings\']->main_get->pagination==1)'
 			=> 'the guard was written once in each arm of a version branch, and the collapsed class writes it once',
 		'(strlen((string)$leftside)>2||strlen((string)$rightside)>2))'
@@ -194,6 +198,8 @@ return [
 			=> 'the early return that carries the dashboard half of the guard it replaced',
 		'if((int)$this->targetVersion>=6)'
 			=> 'the joomla_version >= 6 branch of the site form became the provider selector that chooses the class',
+		'if($this->customData!==null'
+			=> 'the isset half of the dashboard guard, on the declared nullable property that replaced the helper one',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],
