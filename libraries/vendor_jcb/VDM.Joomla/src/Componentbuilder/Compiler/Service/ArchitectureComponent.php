@@ -40,6 +40,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\CryptKey;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UikitMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderMethodInterface as ComponentMoveFolderMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderMethod as SharedComponentMoveFolderMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderMethod as J3ComponentMoveFolderMethod;
 
 
 /**
@@ -144,6 +147,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(J3InstallSql::class, 'Architecture.Component.J3.InstallSql')
 			->share('Architecture.Component.J3.InstallSql', [$this, 'getJ3InstallSql'], true);
+
+		$container->alias(ComponentMoveFolderMethod::class, 'Architecture.Component.MoveFolderMethod')
+			->share('Architecture.Component.MoveFolderMethod', [$this, 'getComponentMoveFolderMethod'], true);
+
+		$container->alias(SharedComponentMoveFolderMethod::class, 'Architecture.Component.Shared.MoveFolderMethod')
+			->share('Architecture.Component.Shared.MoveFolderMethod', [$this, 'getSharedComponentMoveFolderMethod'], true);
+
+		$container->alias(J3ComponentMoveFolderMethod::class, 'Architecture.Component.J3.MoveFolderMethod')
+			->share('Architecture.Component.J3.MoveFolderMethod', [$this, 'getJ3ComponentMoveFolderMethod'], true);
 	}
 
 	/**
@@ -655,4 +667,60 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Mysql.Table.Setting')
 		);
 	}
+	/**
+	 * Get The Component MoveFolderMethod Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentMoveFolderMethod
+	 * @since   6.1.7
+	 */
+	public function getComponentMoveFolderMethod(Container $container): ComponentMoveFolderMethod
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 install script is handed the application and the parent
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.Component.J3.MoveFolderMethod');
+		}
+
+		return $container->get('Architecture.Component.Shared.MoveFolderMethod');
+	}
+
+	/**
+	 * Get The Component MoveFolderMethod Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedComponentMoveFolderMethod
+	 * @since   6.1.7
+	 */
+	public function getSharedComponentMoveFolderMethod(Container $container): SharedComponentMoveFolderMethod
+	{
+		return new SharedComponentMoveFolderMethod(
+			$container->get('Config'),
+			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 Component MoveFolderMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ComponentMoveFolderMethod
+	 * @since   6.1.7
+	 */
+	public function getJ3ComponentMoveFolderMethod(Container $container): J3ComponentMoveFolderMethod
+	{
+		return new J3ComponentMoveFolderMethod(
+			$container->get('Config'),
+			$container->get('Registry')
+		);
+	}
+
 }

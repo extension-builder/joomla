@@ -26,6 +26,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Language\Translation;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Admin as ArchitectureLanguageAdmin;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Site as ArchitectureLanguageSite;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\SiteSys as ArchitectureLanguageSiteSys;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\AdminSys as ArchitectureLanguageAdminSys;
 /**
  * Compiler Language Service Provider
  * 
@@ -72,6 +75,15 @@ class Language implements ServiceProviderInterface
 
 		$container->alias(ArchitectureLanguageAdmin::class, 'Architecture.Language.Admin')
 			->share('Architecture.Language.Admin', [$this, 'getArchitectureLanguageAdmin'], true);
+
+		$container->alias(ArchitectureLanguageSite::class, 'Architecture.Language.Site')
+			->share('Architecture.Language.Site', [$this, 'getArchitectureLanguageSite'], true);
+
+		$container->alias(ArchitectureLanguageSiteSys::class, 'Architecture.Language.SiteSys')
+			->share('Architecture.Language.SiteSys', [$this, 'getArchitectureLanguageSiteSys'], true);
+
+		$container->alias(ArchitectureLanguageAdminSys::class, 'Architecture.Language.AdminSys')
+			->share('Architecture.Language.AdminSys', [$this, 'getArchitectureLanguageAdminSys'], true);
 	}
 
 	/**
@@ -239,4 +251,58 @@ class Language implements ServiceProviderInterface
 			$container->get('Event')
 		);
 	}
+	/**
+	 * Get The Architecture Language Site Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ArchitectureLanguageSite
+	 * @since   6.1.7
+	 */
+	public function getArchitectureLanguageSite(Container $container): ArchitectureLanguageSite
+	{
+		return new ArchitectureLanguageSite(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Languages'),
+			$container->get('Language'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get The Architecture Language SiteSys Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ArchitectureLanguageSiteSys
+	 * @since   6.1.7
+	 */
+	public function getArchitectureLanguageSiteSys(Container $container): ArchitectureLanguageSiteSys
+	{
+		return new ArchitectureLanguageSiteSys(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Languages'),
+			$container->get('Language'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get The Architecture Language AdminSys Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ArchitectureLanguageAdminSys
+	 * @since   6.1.7
+	 */
+	public function getArchitectureLanguageAdminSys(Container $container): ArchitectureLanguageAdminSys
+	{
+		return new ArchitectureLanguageAdminSys(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Languages'),
+			$container->get('Language'),
+			$container->get('Event')
+		);
+	}
+
 }

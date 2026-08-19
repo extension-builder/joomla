@@ -171,6 +171,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '916edfa0367b131fefc1c44b0c0f2a0faee666c05d5cca0ee846ce8b15dd4ac4',
 			'signature_hash' => '4ece92006a63ea85530b4833a45f8ea911c1ae69c5e7fef192f124d96a987354'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\MoveFolderMethodInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/MoveFolderMethodInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '4512776517039ebe015b9395dc91606ae53040872ed279e57c56a8cef7351dad',
+			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AjaxCasesInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AjaxCasesInterface.php',
 			'implementations' => 2,
