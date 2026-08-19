@@ -28,6 +28,7 @@ use VDM\Joomla\Interfaces\File\DefinitionInterface as FileInterface;
 use VDM\Joomla\Componentbuilder\Interfaces\File\TypeDefinitionInterface as TypeDefinition;
 use VDM\Joomla\Data\Guid;
 use VDM\Joomla\Utilities\MimeHelper;
+use VDM\Joomla\Utilities\Component\Helper;
 use VDM\Joomla\Interfaces\File\PersistentManagerInterface;
 
 
@@ -217,7 +218,7 @@ class Manager implements PersistentManagerInterface
 	public function delete(string $guid): void
 	{
 		if (($file = $this->item->table($this->getTable())->get($guid)) !== null &&
-			in_array($file->access, $this->user->getAuthorisedViewLevels()))
+			$this->allowedToDelete($file))
 		{
 			$this->item->table($this->getTable())->delete($guid); // from DB
 			$this->agent->delete($file->file_path); // from file system
@@ -248,6 +249,42 @@ class Manager implements PersistentManagerInterface
 	public function getTable(): string
 	{
 		return $this->table;
+	}
+
+	/**
+	 * Check that the active user may remove this file.
+	 *
+	 * The view level only decides who may see a file, and it is Public on
+	 * most file types, so on its own it lets any logged in user delete any
+	 * other user's upload. Removing a file additionally requires that the
+	 * user owns it, or holds a component permission that covers other
+	 * people's records.
+	 *
+	 * @param   object  $file  The stored file record.
+	 *
+	 * @return  bool    True when the file may be removed.
+	 * @since   6.1.7
+	 */
+	protected function allowedToDelete(object $file): bool
+	{
+		if (!in_array($file->access, $this->user->getAuthorisedViewLevels()))
+		{
+			return false;
+		}
+
+		$userId = (int) $this->user->id;
+
+		// the uploader may always remove their own file
+		if ($userId > 0 && $userId === (int) ($file->created_by ?? 0))
+		{
+			return true;
+		}
+
+		// anyone else needs a permission that covers other people's records
+		$option = Helper::getOption(null);
+
+		return ($option !== null && $this->user->authorise('core.delete', $option))
+			|| $this->user->authorise('core.manage');
 	}
 
 	/**
@@ -636,4 +673,3 @@ class Manager implements PersistentManagerInterface
 		return $oldest;
 	}
 }
-
