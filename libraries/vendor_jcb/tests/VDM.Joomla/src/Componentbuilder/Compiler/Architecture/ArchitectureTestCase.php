@@ -90,6 +90,14 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 	private Permission $architecturePermission;
 
 	/**
+	 * The final classes being built right now, to keep the graph from looping.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.7
+	 */
+	private array $building = [];
+
+	/**
 	 * Previous static utility state restored after each test.
 	 *
 	 * @var    array<string, array{initialized:bool,value:mixed}>
@@ -432,6 +440,27 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 		if (!$reflection->isFinal())
 		{
 			return $this->createStub($type);
+		}
+
+		// a final class cannot be doubled, so build the real one over its own
+		// collaborators; a graph too deep or too tangled to build falls back to
+		// a dormant instance, which only an exercised path will notice
+		if (count($this->building) < 8 && !in_array($type, $this->building, true))
+		{
+			$this->building[] = $type;
+
+			try
+			{
+				return $this->renderer($type);
+			}
+			catch (\Throwable $failure)
+			{
+				// fall through to the dormant instance below
+			}
+			finally
+			{
+				array_pop($this->building);
+			}
 		}
 
 		return $reflection->newInstanceWithoutConstructor();
