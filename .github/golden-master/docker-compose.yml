@@ -1,11 +1,14 @@
 # Joomla with the last released JCB, from the joomengine image.
 #
 # The entrypoint installs Joomla, then installs the released JCB package, then
-# runs whatever JOOMLA_CLI_COMMANDS holds. That last step is the baseline
-# compile: the released compiler builds the component before this working tree
-# has been anywhere near the container.
+# runs whatever JOOMLA_CLI_COMMANDS holds. That last step fetches the component
+# to be compiled, so that it is on the site before either compiler is asked for
+# it — a compile that has to fetch the component itself does both jobs in one
+# process and runs the site out of memory.
 #
-# run.sh sets JCB_COMPILE_COMMAND and waits for the entrypoint to say it is done.
+# run.sh sets JCB_CLI_COMMANDS and waits for the entrypoint to say it is done.
+# It is empty for a component the site already has, and the entrypoint then has
+# nothing of ours to run.
 services:
   joomla:
     # Joomla 6.1.2 with JCB 6.1.6, pinned. The tag "latest" is the same image
@@ -19,7 +22,7 @@ services:
       JOOMLA_DB_USER: joomengine
       JOOMLA_DB_NAME: joomengine
       JOOMLA_DB_PASSWORD: secure_password12345
-      JOOMLA_CLI_COMMANDS: "${JCB_COMPILE_COMMAND}"
+      JOOMLA_CLI_COMMANDS: "${JCB_CLI_COMMANDS}"
     depends_on:
       - mariadb
 
