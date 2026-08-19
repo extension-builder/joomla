@@ -117,6 +117,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentCustomPHP as 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\CustomCSS as ViewCustomCSS;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as ViewGoogleChartLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\FootableScriptsLoader as ViewFootableScriptsLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\LibrariesLoaderInterface as ViewLibrariesLoaderInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as SharedViewLibrariesLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\LibrariesLoader as J3ViewLibrariesLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as ViewJavaScriptFile;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GetModules as ViewGetModules;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -481,6 +486,21 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(ViewFootableScriptsLoader::class, 'Architecture.View.FootableScriptsLoader')
 			->share('Architecture.View.FootableScriptsLoader', [$this, 'getViewFootableScriptsLoader'], true);
+
+		$container->alias(ViewLibrariesLoaderInterface::class, 'Architecture.View.LibrariesLoader')
+			->share('Architecture.View.LibrariesLoader', [$this, 'getViewLibrariesLoader'], true);
+
+		$container->alias(SharedViewLibrariesLoader::class, 'Architecture.View.Shared.LibrariesLoader')
+			->share('Architecture.View.Shared.LibrariesLoader', [$this, 'getSharedViewLibrariesLoader'], true);
+
+		$container->alias(J3ViewLibrariesLoader::class, 'Architecture.View.J3.LibrariesLoader')
+			->share('Architecture.View.J3.LibrariesLoader', [$this, 'getJ3ViewLibrariesLoader'], true);
+
+		$container->alias(ViewJavaScriptFile::class, 'Architecture.View.JavaScriptFile')
+			->share('Architecture.View.JavaScriptFile', [$this, 'getViewJavaScriptFile'], true);
+
+		$container->alias(ViewGetModules::class, 'Architecture.View.GetModules')
+			->share('Architecture.View.GetModules', [$this, 'getViewGetModules'], true);
 	}
 
 	/**
@@ -2608,6 +2628,106 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Footable.Scripts'),
 			$container->get('Architecture.AdminView.FootableScripts')
+		);
+	}
+
+	/**
+	 * Get The View LibrariesLoader Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewLibrariesLoaderInterface
+	 * @since   6.1.7
+	 */
+	public function getViewLibrariesLoader(Container $container): ViewLibrariesLoaderInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 has to require the header checker before it can be used
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.View.J3.LibrariesLoader');
+		}
+
+		return $container->get('Architecture.View.Shared.LibrariesLoader');
+	}
+
+	/**
+	 * Get The View LibrariesLoader Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedViewLibrariesLoader
+	 * @since   6.1.7
+	 */
+	public function getSharedViewLibrariesLoader(Container $container): SharedViewLibrariesLoader
+	{
+		return new SharedViewLibrariesLoader(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Library.Manager'),
+			$container->get('Library.Document')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 View LibrariesLoader Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ViewLibrariesLoader
+	 * @since   6.1.7
+	 */
+	public function getJ3ViewLibrariesLoader(Container $container): J3ViewLibrariesLoader
+	{
+		return new J3ViewLibrariesLoader(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Library.Manager'),
+			$container->get('Library.Document')
+		);
+	}
+
+	/**
+	 * Get The View JavaScriptFile Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewJavaScriptFile
+	 * @since   6.1.7
+	 */
+	public function getViewJavaScriptFile(Container $container): ViewJavaScriptFile
+	{
+		return new ViewJavaScriptFile(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Utilities.Structure'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Library.IncludeHelper')
+		);
+	}
+
+	/**
+	 * Get The View GetModules Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewGetModules
+	 * @since   6.1.7
+	 */
+	public function getViewGetModules(Container $container): ViewGetModules
+	{
+		return new ViewGetModules(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Get.Module')
 		);
 	}
 }

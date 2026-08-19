@@ -932,6 +932,26 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/LibrariesLoader.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/View/LibrariesLoader.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/LibrariesLoaderInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/GetModules.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/JavaScriptFile.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewJavaScriptFileTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentInlineAssets.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentInlineAssetsTest.php'
