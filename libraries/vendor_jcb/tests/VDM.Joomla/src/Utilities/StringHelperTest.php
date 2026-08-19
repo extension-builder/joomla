@@ -219,6 +219,71 @@ final class StringHelperTest extends JoomlaTestCase
 	}
 
 	/**
+	 * Encode the characters that let a value escape its HTML context.
+	 *
+	 * The generated HtmlView::escape() delegates here, and the filter alone
+	 * is a tag and attribute blacklist: it returns quotes and ampersands
+	 * verbatim, so an unencoded value breaks straight out of an attribute.
+	 *
+	 * @param   bool  $shorten  Whether the shortening branch is exercised.
+	 * @param   int   $length   The shortening length.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('htmlEncodingBranches')]
+	public function testHtmlEncodesAttributeBreakingCharactersOnEveryBranch(bool $shorten, int $length): void
+	{
+		$this->assertSame(
+			'&quot; autofocus onfocus=&quot;alert(1)',
+			StringHelper::html('" autofocus onfocus="alert(1)', 'UTF-8', $shorten, $length)
+		);
+		$this->assertSame(
+			'&#039; autofocus onfocus=&#039;alert(1)',
+			StringHelper::html("' autofocus onfocus='alert(1)", 'UTF-8', $shorten, $length)
+		);
+		$this->assertSame(
+			'Smith &amp; Sons',
+			StringHelper::html('Smith & Sons', 'UTF-8', $shorten, $length)
+		);
+
+		// an already encoded value must not gain a second round of encoding
+		$this->assertSame(
+			'Smith &amp; Sons',
+			StringHelper::html('Smith &amp; Sons', 'UTF-8', $shorten, $length)
+		);
+	}
+
+	/**
+	 * The branches html() can take before it returns.
+	 *
+	 * @return  array<string, array{bool,int}>
+	 * @since   6.1.7
+	 */
+	public static function htmlEncodingBranches(): array
+	{
+		return [
+			'no shortening' => [false, 40],
+			'shortening, value already short enough' => [true, 200],
+		];
+	}
+
+	/**
+	 * Keep the tooltip branch encoded exactly once.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testHtmlEncodesTheShortenedTooltipBranchExactlyOnce(): void
+	{
+		$this->assertSame(
+			'<span class="hasTip" title="Smith &amp; Sons &quot;Ltd&quot; of London"'
+				. ' style="cursor:help">Smith &amp;...</span>',
+			StringHelper::html('Smith & Sons "Ltd" of London', 'UTF-8', true, 10)
+		);
+	}
+
+	/**
 	 * Convert numeric values across every magnitude and sign branch.
 	 *
 	 * @param   mixed   $input     Number or pass-through value.

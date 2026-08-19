@@ -64,10 +64,16 @@ abstract class StringHelper
 	 */
 	public static function shorten($string, int $length = 40, bool $addTip = true)
 	{
-		// Validate string input and return original if invalid or short enough.
-		if (!self::check($string) || mb_strlen($string) <= $length)
+		// Validate string input and return original if invalid.
+		if (!self::check($string))
 		{
 			return $string;
+		}
+
+		// Nothing to shorten, but the value still leaves this method HTML safe.
+		if (mb_strlen($string) <= $length)
+		{
+			return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		}
 
 		// Truncate string to nearest word boundary
@@ -86,18 +92,18 @@ abstract class StringHelper
 		// Add tooltip if requested
 		if ($addTip)
 		{
-			// Safely escape output for HTML
+			// The nested call already returns an HTML safe title.
 			$title = self::shorten($string, 400 , false);
 
 			return sprintf(
 				'<span class="hasTip" title="%s" style="cursor:help">%s</span>',
-				htmlspecialchars($title, ENT_QUOTES, 'UTF-8'),
-				htmlspecialchars($shortened, ENT_QUOTES, 'UTF-8')
+				$title,
+				htmlspecialchars($shortened, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
 			);
 		}
 
 		// Return shortened version without tooltip
-		return $shortened;
+		return htmlspecialchars($shortened, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	}
 
 	/**
@@ -295,22 +301,23 @@ abstract class StringHelper
 	{
 		if (self::check($var))
 		{
+			// Strip unsafe markup first. The filter is a tag and attribute
+			// blacklist, so on its own it still returns quotes and ampersands
+			// verbatim, and a filtered value would break out of an HTML
+			// attribute. Encoding is what actually makes the value safe.
 			$filter = new InputFilter();
-			$string = $filter->clean(
-				html_entity_decode(
-					htmlentities(
-						(string) $var,
-						ENT_COMPAT,
-						$charset
-					)
-				),
-				'HTML'
+			$string = html_entity_decode(
+				$filter->clean((string) $var, 'HTML'),
+				ENT_QUOTES,
+				$charset
 			);
+
 			if ($shorten)
 			{
 				return self::shorten($string, $length, $addTip);
 			}
-			return $string;
+
+			return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
 		}
 		else
 		{
@@ -470,4 +477,3 @@ abstract class StringHelper
 		return implode($key);
 	}
 }
-
