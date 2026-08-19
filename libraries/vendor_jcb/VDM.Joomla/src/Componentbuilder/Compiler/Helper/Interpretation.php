@@ -2492,321 +2492,59 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the route helper methods a view with tags or a front item needs.
+	 * Build the route method one site view offers.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
-	 * @param   bool    $front           Whether this is a front item view
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $nameListCode    The list view code name.
+	 * @param   bool    $front           Whether this is a front item view.
 	 *
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.RouteHelper service.
 	 */
 	public function setRouterHelp($nameSingleCode, $nameListCode, $front = false)
 	{
-		// add if tags is added, also for all front item views
-		if ((CFactory::_('Compiler.Builder.Tags')->exists($nameSingleCode) || $front)
-			&& (!in_array($nameSingleCode, $this->setRouterHelpDone)))
-		{
-			// insure we load a view only once
-			$this->setRouterHelpDone[] = $nameSingleCode;
-			// build view route helper
-			$View = StringHelper::safe(
-				$nameSingleCode, 'F'
-			);
-
-			$hasCategory = (CFactory::_('Compiler.Builder.Category.Code')->exists($nameSingleCode) &&
-				'category' !== $nameSingleCode && 'categories' !== $nameSingleCode);
-
-			$routeHelper   = [];
-			$routeHelper[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$routeHelper[] = Indent::_(1) . " * Get the URL route for {$nameSingleCode}";
-			$routeHelper[] = Indent::_(1) . " *";
-			$routeHelper[] = Indent::_(1) . " * @param   integer  \$id     The id of the {$nameSingleCode}";
-
-			if ($hasCategory)
-			{
-				$routeHelper[] = Indent::_(1) . " * @param   integer  \$catid  The id of the {$nameSingleCode}'s category";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @return  string  The link to the {$nameSingleCode}";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @since   1.5";
-				$routeHelper[] = Indent::_(1) . " */";
-				$routeHelper[] = Indent::_(1) . "public static function get" . $View . "Route(\$id = 0, \$catid = 0): string";
-			}
-			else
-			{
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @return  string  The link to the {$nameSingleCode}";
-				$routeHelper[] = Indent::_(1) . " *";
-				$routeHelper[] = Indent::_(1) . " * @since   1.5";
-				$routeHelper[] = Indent::_(1) . " */";
-				$routeHelper[] = Indent::_(1) . "public static function get" . $View . "Route(\$id = 0): string";
-			}
-
-			$routeHelper[] = Indent::_(1) . "{";
-			$routeHelper[] = Indent::_(2) . "if (\$id > 0)";
-			$routeHelper[] = Indent::_(2) . "{";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the needel array.";
-				$routeHelper[] = Indent::_(3) . "\$needles = array(";
-				$routeHelper[] = Indent::_(4) . "'" . $nameSingleCode
-					. "'  => array((int) \$id)";
-				$routeHelper[] = Indent::_(3) . ");";
-			}
-
-			$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Create the link";
-			$routeHelper[] = Indent::_(3) . "\$link = 'index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameSingleCode
-				. "&id='. \$id;";
-			$routeHelper[] = Indent::_(2) . "}";
-			$routeHelper[] = Indent::_(2) . "else";
-			$routeHelper[] = Indent::_(2) . "{";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the needel array.";
-				$routeHelper[] = Indent::_(3) . "\$needles = array(";
-				$routeHelper[] = Indent::_(4) . "'" . $nameSingleCode
-					. "'  => array()";
-				$routeHelper[] = Indent::_(3) . ");";
-			}
-
-			$routeHelper[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Create the link but don't add the id.";
-			$routeHelper[] = Indent::_(3) . "\$link = 'index.php?option=com_"
-				. CFactory::_('Config')->component_code_name . "&view=" . $nameSingleCode . "';";
-			$routeHelper[] = Indent::_(2) . "}";
-
-			if ($hasCategory)
-			{
-				$routeHelper[] = Indent::_(2) . "if (\$catid > 1)";
-				$routeHelper[] = Indent::_(2) . "{";
-
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$routeHelper[] = Indent::_(3)
-						. "\$categories = Categories::getInstance('"
-						. CFactory::_('Config')->component_code_name . "." . $nameListCode . "');";
-					$routeHelper[] = Indent::_(3)
-						. "\$category = \$categories->get(\$catid);";
-					$routeHelper[] = Indent::_(3) . "if (\$category)";
-					$routeHelper[] = Indent::_(3) . "{";
-					$routeHelper[] = Indent::_(4)
-						. "\$needles['category'] = array_reverse(\$category->getPath());";
-					$routeHelper[] = Indent::_(4)
-						. "\$needles['categories'] = \$needles['category'];";
-					$routeHelper[] = Indent::_(4) . "\$link .= '&catid='.\$catid;";
-					$routeHelper[] = Indent::_(3) . "}";
-				}
-				else
-				{
-					$routeHelper[] = Indent::_(3) . "\$link .= '&catid='.\$catid;";
-				}
-
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-
-			if (CFactory::_('Compiler.Builder.Has.Menu.Global')->exists($nameSingleCode))
-			{
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$routeHelper[] = PHP_EOL . Indent::_(2)
-						. "if (\$item = self::_findItem(\$needles, '" . $nameSingleCode . "'))";
-				}
-				else
-				{
-					$routeHelper[] = PHP_EOL . Indent::_(2)
-						. "if ((\$item = self::_findItem('" . $nameSingleCode . "')) !== null)";
-				}
-				$routeHelper[] = Indent::_(2) . "{";
-				$routeHelper[] = Indent::_(3) . "\$link .= '&Itemid='.\$item;";
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-			elseif (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				$routeHelper[] = PHP_EOL . Indent::_(2)
-					. "if (\$item = self::_findItem(\$needles))";
-				$routeHelper[] = Indent::_(2) . "{";
-				$routeHelper[] = Indent::_(3) . "\$link .= '&Itemid='.\$item;";
-				$routeHelper[] = Indent::_(2) . "}";
-			}
-
-			$routeHelper[] = PHP_EOL . Indent::_(2) . "return \$link;";
-			$routeHelper[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $routeHelper);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.RouteHelper')->get(
+			(string) $nameSingleCode, (string) $nameListCode, (bool) $front
+		);
 	}
 
 	/**
-	 * Build one view's case in the generated router's parse switch.
+	 * Build one view's case in the router's parse switch.
 	 *
-	 * @param   string  $view       The view name
-	 * @param   array   $viewArray  The view being built
-	 * @param   bool    $aliasView  Whether the view is reached by alias
-	 * @param   bool    $idView     Whether the view is reached by id
+	 * @param   string  $view       The view code name.
+	 * @param   mixed   $viewArray  The view being built.
+	 * @param   bool    $aliasView  Whether the view is reached by an alias.
+	 * @param   bool    $idView     Whether the view is reached by an id.
 	 *
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
 	 */
 	public function routerParseSwitch(&$view, $viewArray = null,
 		$aliasView = true, $idView = true
 	)
 	{
-		// reset buckets
-		$routerSwitch = [];
-		$isCategory   = '';
-		$viewTable    = false;
-		if ($viewArray && ArrayHelper::check($viewArray)
-			&& isset($viewArray['settings'])
-			&& isset($viewArray['settings']->main_get))
-		{
-			// check if we have custom script for this router parse switch case
-			if (isset($viewArray['settings']->main_get->add_php_router_parse)
-				&& $viewArray['settings']->main_get->add_php_router_parse == 1
-				&& isset($viewArray['settings']->main_get->php_router_parse)
-				&& StringHelper::check(
-					$viewArray['settings']->main_get->php_router_parse
-				))
-			{
-				// load the custom script for the switch based on dynamic get
-				$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view
-					. "':";
-				$routerSwitch[] = CFactory::_('Placeholder')->update_(
-					$viewArray['settings']->main_get->php_router_parse
-				);
-				$routerSwitch[] = Indent::_(4) . "break;";
-
-				return implode(PHP_EOL, $routerSwitch);
-			}
-			// is this a catogory
-			elseif (isset($viewArray['settings']->main_get->db_table_main)
-				&& $viewArray['settings']->main_get->db_table_main
-				=== 'categories')
-			{
-				$isCategory = ', true'; // TODO we will keep an eye on this....
-			}
-			// get the main table name
-			elseif (isset($viewArray['settings']->main_get->main_get)
-				&& ArrayHelper::check(
-					$viewArray['settings']->main_get->main_get
-				))
-			{
-				foreach ($viewArray['settings']->main_get->main_get as $get)
-				{
-					if (isset($get['as']) && $get['as'] === 'a')
-					{
-						if (isset($get['selection'])
-							&& ArrayHelper::check(
-								$get['selection']
-							)
-							&& isset($get['selection']['select_gets'])
-							&& ArrayHelper::check(
-								$get['selection']['select_gets']
-							))
-						{
-							if (isset($get['selection']['table']))
-							{
-								$viewTable = str_replace(
-									'#__' . CFactory::_('Config')->component_code_name . '_', '',
-									(string) $get['selection']['table']
-								);
-							}
-						}
-						break;
-					}
-				}
-			}
-		}
-		// add if tags is added, also for all front item views
-		if ($aliasView)
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4)
-				. "if (is_numeric(\$segments[\$count-1]))";
-			$routerSwitch[] = Indent::_(4) . "{";
-			$routerSwitch[] = Indent::_(5)
-				. "\$vars['id'] = (int) \$segments[\$count-1];";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "elseif (\$segments[\$count-1])";
-			$routerSwitch[] = Indent::_(4) . "{";
-			// we need to get from the table of this views main get the alias so we need the table name
-			if ($viewTable)
-			{
-				$routerSwitch[] = Indent::_(5) . "\$id = \$this->getVar('"
-					. $viewTable . "', \$segments[\$count-1], 'alias', 'id'"
-					. $isCategory . ");";
-			}
-			else
-			{
-				$routerSwitch[] = Indent::_(5) . "\$id = \$this->getVar('"
-					. $view . "', \$segments[\$count-1], 'alias', 'id'"
-					. $isCategory . ");";
-			}
-			$routerSwitch[] = Indent::_(5) . "if(\$id)";
-			$routerSwitch[] = Indent::_(5) . "{";
-			$routerSwitch[] = Indent::_(6) . "\$vars['id'] = \$id;";
-			$routerSwitch[] = Indent::_(5) . "}";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-		elseif ($idView)
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4)
-				. "if (is_numeric(\$segments[\$count-1]))";
-			$routerSwitch[] = Indent::_(4) . "{";
-			$routerSwitch[] = Indent::_(5)
-				. "\$vars['id'] = (int) \$segments[\$count-1];";
-			$routerSwitch[] = Indent::_(4) . "}";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-		else
-		{
-			$routerSwitch[] = PHP_EOL . Indent::_(3) . "case '" . $view . "':";
-			$routerSwitch[] = Indent::_(4) . "\$vars['view'] = '" . $view
-				. "';";
-			$routerSwitch[] = Indent::_(4) . "break;";
-		}
-
-		return implode(PHP_EOL, $routerSwitch);
+		return CFactory::_('Architecture.Router.SiteRouter')->parseSwitch(
+			$view, $viewArray, $aliasView, $idView
+		);
 	}
 
 	/**
-	 * Add one view to the generated router's build views.
+	 * Build the test that says a view is one this router builds.
 	 *
-	 * @param   string  $view  The view name
+	 * @param   string  $view  The view code name.
 	 *
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
 	 */
 	public function routerBuildViews(&$view)
 	{
-		if (CFactory::_('Compiler.Builder.Content.One')->exists('ROUTER_BUILD_VIEWS')
-			&& StringHelper::check(
-				CFactory::_('Compiler.Builder.Content.One')->get('ROUTER_BUILD_VIEWS')
-			))
-		{
-			return " || \$view === '" . $view . "'";
-		}
-		else
-		{
-			return "\$view === '" . $view . "'";
-		}
+		return CFactory::_('Architecture.Router.SiteRouter')->buildViews((string) $view);
 	}
 
 	/**
@@ -5295,86 +5033,21 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the router entries of a view that carries its own category.
+	 * Build the map entry from a category extension to the view that owns it.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
+	 * @param   string  $nameSingleCode  The single view code name.
+	 * @param   string  $nameListCode    The list view code name.
 	 *
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
 	 */
 	public function setRouterCategoryViews($nameSingleCode, $nameListCode)
 	{
-		if (CFactory::_('Compiler.Builder.Category')->exists("{$nameListCode}.extension"))
-		{
-			// get the actual extension
-			$_extension = CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension");
-			$_extension = explode('.', (string) $_extension);
-			// set component name
-			if (ArrayHelper::check($_extension))
-			{
-				$component = str_replace('com_', '', $_extension[0]);
-			}
-			else
-			{
-				$component = CFactory::_('Config')->component_code_name;
-			}
-			// check if category has another name
-			$otherViews = CFactory::_('Compiler.Builder.Category.Other.Name')->
-				get($nameListCode . '.views', $nameListCode);
-			$otherView  = CFactory::_('Compiler.Builder.Category.Other.Name')->
-				get($nameListCode . '.view', $nameSingleCode);
-			// set the OtherView value
-			CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|otherview', $otherView);
-			// load the category helper details in not already loaded
-			if (!CFactory::_('Compiler.Builder.Content.Multi')->exists('category' . $otherView . '|view'))
-			{
-				// lets also set the category helper for this view
-				$target = array('site' => 'category' . $otherView);
-				CFactory::_('Utilities.Structure')->build($target, 'category');
-				// insure the file gets updated
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|view', $otherView);
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|View', ucfirst((string) $otherView));
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|views', $otherViews);
-				CFactory::_('Compiler.Builder.Content.Multi')->set('category' . $otherView . '|Views', ucfirst((string) $otherViews));
-				// set script to global helper file
-				$includeHelper   = [];
-				$includeHelper[] = "\n//" . Line::_(__Line__, __Class__)
-					. "Insure this view category file is loaded.";
-				$includeHelper[] = "\$classname = '" . ucfirst((string) $component)
-					. ucfirst((string) $otherView) . "Categories';";
-				$includeHelper[] = "if (!class_exists(\$classname))";
-				$includeHelper[] = "{";
-				$includeHelper[] = Indent::_(1)
-					. "\$path = JPATH_SITE . '/components/com_" . $component
-					. "/helpers/category" . $otherView . ".php';";
-				$includeHelper[] = Indent::_(1) . "if (is_file(\$path))";
-				$includeHelper[] = Indent::_(1) . "{";
-				$includeHelper[] = Indent::_(2) . "include_once \$path;";
-				$includeHelper[] = Indent::_(1) . "}";
-				$includeHelper[] = "}";
-				CFactory::_('Compiler.Builder.Content.One')->add('CATEGORY_CLASS_TREES', implode("\n", $includeHelper));
-			}
-			// return category view string
-			if (CFactory::_('Compiler.Builder.Content.One')->exists('ROUTER_CATEGORY_VIEWS')
-				&& StringHelper::check(
-					CFactory::_('Compiler.Builder.Content.One')->get('ROUTER_CATEGORY_VIEWS')
-				))
-			{
-				return "," . PHP_EOL . Indent::_(3) . '"'
-					. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-					. '" => "' . $otherView . '"';
-			}
-			else
-			{
-				return PHP_EOL . Indent::_(3) . '"'
-					. CFactory::_('Compiler.Builder.Category')->get("{$nameListCode}.extension")
-					. '" => "' . $otherView . '"';
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.SiteRouter')->categoryViews(
+			(string) $nameSingleCode, (string) $nameListCode
+		);
 	}
 
 	/**
@@ -5454,6 +5127,16 @@ class Interpretation extends Fields
 			->setPermissionViewFields($allow, $nameSingleCode, $fieldName, $fieldType, $component);
 	}
 
+	/**
+	 * Build the permission object the generated list view checks against.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJviewListCanDo($nameSingleCode, $nameListCode)
 	{
 		$allow = [];
@@ -5490,6 +5173,15 @@ class Interpretation extends Fields
 		return implode(PHP_EOL, $allow);
 	}
 
+	/**
+	 * Build the access control fieldset of a view that has one.
+	 *
+	 * @param   string  $view  The view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setFieldSetAccessControl(&$view)
 	{
 		$access = '';
@@ -5542,6 +5234,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The code for the filter fields array
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setFilterFieldsArray(&$nameSingleCode, &$nameListCode)
 	{
@@ -5600,6 +5294,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string    The code for the filter array
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function getFilterFieldCode(&$filter)
 	{
@@ -5656,6 +5352,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The code for the populate state
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setStoredId(&$nameSingleCode, &$nameListCode)
 	{
@@ -6158,23 +5856,21 @@ class Interpretation extends Fields
 			->get($views);
 	}
 
+	/**
+	 * Build one view's case in the router's own parse switch.
+	 *
+	 * @param   string  $viewsCodeName  The list view code name.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Router.SiteRouter service.
+	 */
 	public function setRouterCase($viewsCodeName)
 	{
-		if (strlen((string) $viewsCodeName) > 0)
-		{
-			$router = PHP_EOL . Indent::_(2) . "case '" . $viewsCodeName . "':";
-			$router .= PHP_EOL . Indent::_(3)
-				. "\$id = explode(':', \$segments[\$count-1]);";
-			$router .= PHP_EOL . Indent::_(3) . "\$vars['id'] = (int) \$id[0];";
-			$router .= PHP_EOL . Indent::_(3) . "\$vars['view'] = '"
-				. $viewsCodeName
-				. "';";
-			$router .= PHP_EOL . Indent::_(2) . "break;";
-
-			return $router;
-		}
-
-		return '';
+		return CFactory::_('Architecture.Router.SiteRouter')->parseCase(
+			(string) $viewsCodeName
+		);
 	}
 
 	public function setDashboardIconAccess()

@@ -108,6 +108,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => 'a1c8d65a1f68055daa2dfab662f6896698b84f3eee10585de6f10785b366e26f',
 			'signature_hash' => '27132aad2cd9c5ae6f0e9237d5624bcec63d85806378d665465f26ddc6538507'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Router\\RouteHelperInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Router/RouteHelperInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '875c8cd2b966f28e78e542bf2b220a77de7ac963c7586498add8fbc9cf8a2605',
+			'signature_hash' => '0c552ad06c8d2852ae5bbd20cbe3d9ed5b1f1535853c6e10473f42407ce3de2d'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\UninstallScriptInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/UninstallScriptInterface.php',
 			'implementations' => 2,
