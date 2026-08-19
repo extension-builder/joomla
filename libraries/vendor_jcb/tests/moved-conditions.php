@@ -115,6 +115,8 @@ return [
 			=> 'the four language areas became classes the file builder is handed, so the helper call is now a read of one of them',
 		'if($this->setLangAdminSys())'
 			=> 'the same, for the area that carries the strings shown before the component is installed',
+		'if(isset($this->secondRunAdmin)'
+			=> 'the deferred second run became the Second Run Admin builder, read into a local that also keeps whatever the property still holds',
 		'if($view[\'settings\']->main_get->pagination==1)'
 			=> 'the guard was written once in each arm of a version branch, and the collapsed class writes it once',
 		'(strlen((string)$leftside)>2||strlen((string)$rightside)>2))'
@@ -228,6 +230,8 @@ return [
 			=> 'the language area that answers whether it had anything to say, which the helper asked itself before',
 		'if(S->get())'
 			=> 'the same, for the area that takes no component name',
+		'if(ArrayHelper::check($secondRunAdmin))'
+			=> 'the isset half of the guard above, on the local the builder read is taken into',
 		'if(!isset($customAdminAdded[$menu[\'settings\']->code]))'
 			=> 'the same isset, on the argument the shim now passes in',
 	],

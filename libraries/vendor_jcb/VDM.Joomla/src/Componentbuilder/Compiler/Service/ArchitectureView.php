@@ -158,6 +158,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Filt
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet as SharedAdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterListSet as J3AdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewPlaceholders;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
 
 
 /**
@@ -424,6 +425,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsFilterListSet::class, 'Architecture.AdminViews.J3.FilterListSet')
 			->share('Architecture.AdminViews.J3.FilterListSet', [$this, 'getJ3AdminViewsFilterListSet'], true);
+
+		$container->alias(AdminViewsEditView::class, 'Architecture.AdminViews.EditView')
+			->share('Architecture.AdminViews.EditView', [$this, 'getAdminViewsEditView'], true);
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
@@ -2197,6 +2201,43 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Field.Names'),
 			$container->get('Compiler.Builder.Sort'),
 			$container->get('Adminview.DefaultOrdering')
+		);
+	}
+
+	/**
+	 * Get The AdminViews EditView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsEditView
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsEditView(Container $container): AdminViewsEditView
+	{
+		return new AdminViewsEditView(
+			$container->get('Config'),
+			$container->get('Event'),
+			$container->get('Header'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Creator.Fieldset'),
+			$container->get('Architecture.AdminView.AddToolBar'),
+			$container->get('Architecture.AdminView.AddModalToolBar'),
+			$container->get('Architecture.AdminView.ViewScript'),
+			$container->get('Architecture.AdminView.TabLayoutFields'),
+			$container->get('Architecture.AdminView.EditBody'),
+			$container->get('Architecture.AdminView.FadeInEffect'),
+			$container->get('Architecture.Menu.AdminView'),
+			$container->get('Architecture.View.AjaxToken'),
+			$container->get('Architecture.View.Jquery'),
+			$container->get('Architecture.Model.CheckboxSave'),
+			$container->get('Architecture.Model.GetItemMethod'),
+			$container->get('Architecture.Model.ItemSave'),
+			$container->get('Architecture.Model.ValidationFix'),
+			$container->get('Architecture.Field.SetAccessControl'),
+			$container->get('Architecture.Table.Constructor'),
+			$container->get('Architecture.Component.LicenseLock')
 		);
 	}
 
