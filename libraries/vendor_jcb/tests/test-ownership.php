@@ -932,6 +932,30 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/Body.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedCustomViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/Form.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedCustomViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/CustomView/Form.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedCustomViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/CustomView/FormInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedCustomViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/TemplateBody.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomViewWritersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/Layouts.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomViewWritersTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/SidebarFilters.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
