@@ -735,83 +735,49 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the custom php a view runs when it prepares its document.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated php.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.DocumentCustomPHP instead.
+	 */
 	public function setDocumentCustomPHP(&$view)
 	{
-		if ($view['settings']->add_php_document == 1)
-		{
-			$view['settings']->php_document = (array) explode(
-				PHP_EOL, (string) $view['settings']->php_document
-			);
-			if (ArrayHelper::check(
-				$view['settings']->php_document
-			))
-			{
-				$_tmp = PHP_EOL . Indent::_(2) . implode(
-					PHP_EOL . Indent::_(2), $view['settings']->php_document
-				);
-
-				return CFactory::_('Placeholder')->update_($_tmp);
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.DocumentCustomPHP')->get($view);
 	}
 
+	/**
+	 * Set the stylesheet of a view.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated stylesheet.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.CustomCSS instead.
+	 */
 	public function setCustomCSS(&$view)
 	{
-		if ($view['settings']->add_css == 1)
-		{
-			if (StringHelper::check($view['settings']->css))
-			{
-				return CFactory::_('Placeholder')->update_(
-					$view['settings']->css
-				);
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.CustomCSS')->get($view);
 	}
 
+	/**
+	 * Set the inline stylesheet a view adds to its document.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated statement.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.DocumentInlineAssets instead.
+	 */
 	public function setDocumentCustomCSS(&$view)
 	{
-		if ($view['settings']->add_css_document == 1)
-		{
-			$view['settings']->css_document = (array) explode(
-				PHP_EOL, (string) $view['settings']->css_document
-			);
-			if (ArrayHelper::check(
-				$view['settings']->css_document
-			))
-			{
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$script      = PHP_EOL . Indent::_(2) . "//" . Line::_(
-						__LINE__,__CLASS__
-						) . " Set the Custom CSS script to view" . PHP_EOL
-						. Indent::_(2) . '$this->document->addStyleDeclaration("';
-				}
-				else
-				{
-					$script = PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Set the Custom JS script to view" . PHP_EOL
-						. Indent::_(2) . '$this->getDocument()->getWebAssetManager()->addInlineStyle("';
-				}
-
-				$cssDocument = PHP_EOL . Indent::_(3) . str_replace(
-					'"', '\"', implode(
-						PHP_EOL . Indent::_(3),
-						$view['settings']->css_document
-					)
-				);
-
-				return $script . CFactory::_('Placeholder')->update_(
-					$cssDocument
-				) . PHP_EOL . Indent::_(2) . '");';
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.DocumentInlineAssets')->css($view);
 	}
 
 	public function setJavaScriptFile(&$view, $TARGET)
@@ -858,57 +824,34 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the inline script a view adds to its document.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated statement.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.DocumentInlineAssets instead.
+	 */
 	public function setDocumentCustomJS(&$view)
 	{
-		if ($view['settings']->add_js_document == 1)
-		{
-			$view['settings']->js_document = (array) explode(
-				PHP_EOL, (string) $view['settings']->js_document
-			);
-			if (ArrayHelper::check(
-				$view['settings']->js_document
-			))
-			{
-				if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-				{
-					$script = PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Set the Custom JS script to view" . PHP_EOL
-						. Indent::_(2) . '$this->getDocument()->addScriptDeclaration("';
-				}
-				else
-				{
-					$script = PHP_EOL . Indent::_(2) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Set the Custom JS script to view" . PHP_EOL
-						. Indent::_(2) . '$this->getDocument()->getWebAssetManager()->addInlineScript("';
-				}
-
-				$jsDocument = PHP_EOL . Indent::_(3) . str_replace(
-						'"', '\"', implode(
-							PHP_EOL . Indent::_(3),
-							$view['settings']->js_document
-						)
-					);
-
-				return $script . CFactory::_('Placeholder')->update_(
-						$jsDocument
-					) . PHP_EOL . Indent::_(2) . '");';
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.DocumentInlineAssets')->js($view);
 	}
 
+	/**
+	 * Set the footable scripts a view loads.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.FootableScriptsLoader instead.
+	 */
 	public function setFootableScriptsLoader(&$view)
 	{
-		if (CFactory::_('Compiler.Builder.Footable.Scripts')->
-			exists(CFactory::_('Config')->build_target . '.' . $view['settings']->code))
-		{
-			return $this->setFootableScripts(false);
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.FootableScriptsLoader')->get($view);
 	}
 
 	/**
@@ -926,31 +869,19 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.View.DocumentMetadata')->get($view);
 	}
 
+	/**
+	 * Set the google chart assets a view loads.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.GoogleChartLoader instead.
+	 */
 	public function setGoogleChartLoader(&$view)
 	{
-		if (CFactory::_('Compiler.Builder.Google.Chart')->
-			exists(CFactory::_('Config')->build_target . '.' . $view['settings']->code))
-		{
-			$chart   = [];
-			$chart[] = PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " add the google chart builder class.";
-			$chart[] = Indent::_(2)
-				. "require_once JPATH_ADMINISTRATOR . '/components/com_" . CFactory::_('Config')->component_code_name . "/helpers/chartbuilder.php';";
-			$chart[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " load the google chart js.";
-			$chart[] = Indent::_(2)
-				. "Html::_('script', 'media/com_"
-				. CFactory::_('Config')->component_code_name . "/js/google.jsapi.js', ['version' => 'auto']);";
-			$chart[] = Indent::_(2)
-				. "Html::_('script', 'https://canvg.googlecode.com/svn/trunk/rgbcolor.js', ['version' => 'auto']);";
-			$chart[] = Indent::_(2)
-				. "Html::_('script', 'https://canvg.googlecode.com/svn/trunk/canvg.js', ['version' => 'auto']);";
-
-			return implode(PHP_EOL, $chart);
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.GoogleChartLoader')->get($view);
 	}
 
 	public function setLibrariesLoader($view)

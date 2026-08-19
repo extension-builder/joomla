@@ -110,6 +110,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoade
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\UikitLoader as SharedViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\UikitLoader as J6ViewUikitLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentMetadataInterface as ViewDocumentMetadataInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentInlineAssetsInterface as ViewDocumentInlineAssetsInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentInlineAssets as SharedViewDocumentInlineAssets;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentInlineAssets as J3ViewDocumentInlineAssets;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentCustomPHP as ViewDocumentCustomPHP;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\CustomCSS as ViewCustomCSS;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as ViewGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\FootableScriptsLoader as ViewFootableScriptsLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -453,6 +460,27 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3ViewDocumentMetadata::class, 'Architecture.View.J3.DocumentMetadata')
 			->share('Architecture.View.J3.DocumentMetadata', [$this, 'getJ3ViewDocumentMetadata'], true);
+
+		$container->alias(ViewDocumentInlineAssetsInterface::class, 'Architecture.View.DocumentInlineAssets')
+			->share('Architecture.View.DocumentInlineAssets', [$this, 'getViewDocumentInlineAssets'], true);
+
+		$container->alias(SharedViewDocumentInlineAssets::class, 'Architecture.View.Shared.DocumentInlineAssets')
+			->share('Architecture.View.Shared.DocumentInlineAssets', [$this, 'getSharedViewDocumentInlineAssets'], true);
+
+		$container->alias(J3ViewDocumentInlineAssets::class, 'Architecture.View.J3.DocumentInlineAssets')
+			->share('Architecture.View.J3.DocumentInlineAssets', [$this, 'getJ3ViewDocumentInlineAssets'], true);
+
+		$container->alias(ViewDocumentCustomPHP::class, 'Architecture.View.DocumentCustomPHP')
+			->share('Architecture.View.DocumentCustomPHP', [$this, 'getViewDocumentCustomPHP'], true);
+
+		$container->alias(ViewCustomCSS::class, 'Architecture.View.CustomCSS')
+			->share('Architecture.View.CustomCSS', [$this, 'getViewCustomCSS'], true);
+
+		$container->alias(ViewGoogleChartLoader::class, 'Architecture.View.GoogleChartLoader')
+			->share('Architecture.View.GoogleChartLoader', [$this, 'getViewGoogleChartLoader'], true);
+
+		$container->alias(ViewFootableScriptsLoader::class, 'Architecture.View.FootableScriptsLoader')
+			->share('Architecture.View.FootableScriptsLoader', [$this, 'getViewFootableScriptsLoader'], true);
 	}
 
 	/**
@@ -2464,5 +2492,122 @@ class ArchitectureView implements ServiceProviderInterface
 	public function getJ3ViewDocumentMetadata(Container $container): J3ViewDocumentMetadata
 	{
 		return new J3ViewDocumentMetadata();
+	}
+
+	/**
+	 * Get The View DocumentInlineAssets Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewDocumentInlineAssetsInterface
+	 * @since   6.1.7
+	 */
+	public function getViewDocumentInlineAssets(Container $container): ViewDocumentInlineAssetsInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 declares its inline assets on the document itself
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.View.J3.DocumentInlineAssets');
+		}
+
+		return $container->get('Architecture.View.Shared.DocumentInlineAssets');
+	}
+
+	/**
+	 * Get The View DocumentInlineAssets Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedViewDocumentInlineAssets
+	 * @since   6.1.7
+	 */
+	public function getSharedViewDocumentInlineAssets(Container $container): SharedViewDocumentInlineAssets
+	{
+		return new SharedViewDocumentInlineAssets(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The Joomla 3 View DocumentInlineAssets Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ViewDocumentInlineAssets
+	 * @since   6.1.7
+	 */
+	public function getJ3ViewDocumentInlineAssets(Container $container): J3ViewDocumentInlineAssets
+	{
+		return new J3ViewDocumentInlineAssets(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The View DocumentCustomPHP Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewDocumentCustomPHP
+	 * @since   6.1.7
+	 */
+	public function getViewDocumentCustomPHP(Container $container): ViewDocumentCustomPHP
+	{
+		return new ViewDocumentCustomPHP(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The View CustomCSS Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewCustomCSS
+	 * @since   6.1.7
+	 */
+	public function getViewCustomCSS(Container $container): ViewCustomCSS
+	{
+		return new ViewCustomCSS(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The View GoogleChartLoader Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewGoogleChartLoader
+	 * @since   6.1.7
+	 */
+	public function getViewGoogleChartLoader(Container $container): ViewGoogleChartLoader
+	{
+		return new ViewGoogleChartLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Google.Chart')
+		);
+	}
+
+	/**
+	 * Get The View FootableScriptsLoader Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewFootableScriptsLoader
+	 * @since   6.1.7
+	 */
+	public function getViewFootableScriptsLoader(Container $container): ViewFootableScriptsLoader
+	{
+		return new ViewFootableScriptsLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Footable.Scripts'),
+			$container->get('Architecture.AdminView.FootableScripts')
+		);
 	}
 }
