@@ -63,7 +63,8 @@ jobs:
               cat "$summary"
               echo '```'
               echo
-              echo "The whole diff is in the artifact, as \`full.diff\`."
+              echo "The whole diff is in the artifact, as \`full.diff\`, and is printed"
+              echo "in the job log too, under *The diff between the two compiles*."
             else
               echo "The two compilers produced the **same** component, byte for byte."
             fi

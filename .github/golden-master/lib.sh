@@ -205,3 +205,84 @@ unpack_packages() {
 		unzip -q "${package}" -d "${into}/$(basename "${package}" .zip)"
 	done
 }
+
+# Print the diff between the two compiles into the workflow log.
+#
+# The whole diff goes to the artifact, but reading it there means downloading
+# it, so what changed is printed here too. A diff can be very large, so each
+# file is given a budget and the whole printout another; whatever is left out
+# is said plainly rather than quietly dropped.
+#
+# $1  the diff to print
+# $2  how many lines to print of any one file
+# $3  how many lines to print in total
+log_diff() {
+	local diff="$1" per_file="$2" total="$3"
+
+	if [[ ! -s "${diff}" ]]
+	then
+		return 0
+	fi
+
+	printf '::group::The diff between the two compiles\n'
+
+	awk -v per_file="${per_file}" -v total="${total}" '
+		function flush_file() {
+			if (path == "") return
+
+			printf "\n--- %s\n", path
+
+			for (i = 1; i <= shown; i++)
+			{
+				print held[i]
+			}
+
+			if (held_count > shown)
+			{
+				printf "    [%d more lines of this file are in full.diff]\n",
+					held_count - shown
+			}
+
+			delete held
+			shown = 0
+			held_count = 0
+		}
+
+		/^diff --git / {
+			flush_file()
+
+			if (printed >= total)
+			{
+				skipped++
+				path = ""
+				next
+			}
+
+			path = $0
+			sub(/^diff --git a\//, "", path)
+			sub(/ b\/.*$/, "", path)
+			next
+		}
+
+		path != "" {
+			held_count++
+
+			if (shown < per_file && printed < total)
+			{
+				held[++shown] = $0
+				printed++
+			}
+		}
+
+		END {
+			flush_file()
+
+			if (skipped > 0)
+			{
+				printf "\n[%d more changed file(s) are in full.diff]\n", skipped
+			}
+		}
+	' "${diff}"
+
+	printf '::endgroup::\n'
+}
