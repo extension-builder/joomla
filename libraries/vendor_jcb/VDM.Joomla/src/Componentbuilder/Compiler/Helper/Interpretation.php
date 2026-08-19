@@ -2014,200 +2014,27 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the content type declarations of every admin view that needs one.
+	 *
+	 * @param   string  $action  Whether the component is installing or updating.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function setComponentToContentTypes($action)
 	{
-		if (CFactory::_('Component')->isArray('admin_views'))
-		{
-			// set component name
-			$component = CFactory::_('Config')->component_code_name;
-			// reset
-			$dbStuff = [];
-			// start loading the content type data
-			foreach (CFactory::_('Component')->get('admin_views') as $viewData)
-			{
-				// set main keys
-				$view = StringHelper::safe(
-					$viewData['settings']->name_single
-				);
-				// set list view keys
-				$views = StringHelper::safe(
-					$viewData['settings']->name_list
-				);
-				// get this views content type data
-				$dbStuff[$view] = $this->getContentType($view, $component);
-				// get the correct views name
-				$checkViews = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.views", $views);
-				if (ArrayHelper::check($dbStuff[$view])
-					&& CFactory::_('Compiler.Builder.Category.Code')->exists($view)
-					&& ($checkViews == $views))
-				{
-					$dbStuff[$view . ' category']
-						= $this->getCategoryContentType(
-						$view, $views, $component
-					);
-				}
-				elseif (!isset($dbStuff[$view])
-					|| !ArrayHelper::check($dbStuff[$view]))
-				{
-					// remove if not array
-					unset($dbStuff[$view]);
-				}
-			}
+		$script = CFactory::_('Architecture.Component.ContentTypes')->get((string) $action);
 
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				return $this->setComponentToContentTypesJ3($action, $dbStuff);
-			}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-			return $this->setComponentToContentTypesJ4($action, $dbStuff);
-		}
-
-		return '';
-	}
-
-	protected function setComponentToContentTypesJ3($action, $dbStuff)
-	{
-		// build the db insert query
-		if (ArrayHelper::check($dbStuff))
-		{
-			$script = '';
-			$taabb = '';
-			if ($action === 'update')
-			{
-				$taabb = Indent::_(1);
-			}
-			$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-				. Line::_(__Line__, __Class__) . " Get The Database object";
-			$script .= PHP_EOL . Indent::_(3)
-				. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDbo();";
-			foreach ($dbStuff as $name => $tables)
-			{
-				if (ArrayHelper::check($tables))
-				{
-					$code   = StringHelper::safe($name);
-					$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__) . " Create the " . $name
-						. " content type object.";
-					$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-						. " = new \stdClass();";
-					foreach ($tables as $table => $data)
-					{
-						$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-							. "->" . $table . " = '" . $data . "';";
-					}
-					if ($action === 'update')
-					{
-						// we first load script to check if data exist
-						$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-							. Line::_(__Line__, __Class__) . " Check if "
-							. $name
-							. " type is already in content_type DB.";
-						$script .= PHP_EOL . Indent::_(3) . "\$" . $code
-							. "_id = null;";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query = \$db->getQuery(true);";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->select(\$db->quoteName(array('type_id')));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->from(\$db->quoteName('#__content_types'));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$query->where(\$db->quoteName('type_alias') . ' LIKE '. \$db->quote($"
-							. $code . "->type_alias));";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$db->setQuery(\$query);";
-						$script .= PHP_EOL . Indent::_(3)
-							. "\$db->execute();";
-					}
-					$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__)
-						. " Set the object into the content types table.";
-					if ($action === 'update')
-					{
-						$script .= PHP_EOL . Indent::_(3)
-							. "if (\$db->getNumRows())";
-						$script .= PHP_EOL . Indent::_(3) . "{";
-						$script .= PHP_EOL . Indent::_(4) . "\$" . $code
-							. "->type_id = \$db->loadResult();";
-						$script .= PHP_EOL . Indent::_(4) . "\$" . $code
-							. "_Updated = \$db->updateObject('#__content_types', \$"
-							. $code . ", 'type_id');";
-						$script .= PHP_EOL . Indent::_(3) . "}";
-						$script .= PHP_EOL . Indent::_(3) . "else";
-						$script .= PHP_EOL . Indent::_(3) . "{";
-					}
-					$script .= PHP_EOL . Indent::_(3) . $taabb . "\$"
-						. $code
-						. "_Inserted = \$db->insertObject('#__content_types', \$"
-						. $code . ");";
-					if ($action === 'update')
-					{
-						$script .= PHP_EOL . Indent::_(3) . "}";
-					}
-				}
-			}
-
-			$script .= PHP_EOL . PHP_EOL;
-			return $script;
-		}
-
-		return '';
-	}
-
-	protected function setComponentToContentTypesJ4($action, $dbStuff)
-	{
-		// build the db insert query
-		if (ArrayHelper::check($dbStuff))
-		{
-			$script = PHP_EOL;
-			foreach ($dbStuff as $name => $columns)
-			{
-				if (ArrayHelper::check($columns))
-				{
-					$script .= PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__) . " "
-						. StringHelper::safe($action, 'Ww') . " "
-						. StringHelper::safe($name, 'Ww') . " Content Types.";
-
-					$script .= PHP_EOL . Indent::_(3) .
-						'$this->setContentType(';
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " typeTitle";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['type_title']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " typeAlias";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['type_alias']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " table";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['table']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " rules";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['rules']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " fieldMappings";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['field_mappings']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " router";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['router']}',";
-					$script .= PHP_EOL . Indent::_(4) .
-						"//" . Line::_(__Line__, __Class__) . " contentHistoryOptions";
-					$script .= PHP_EOL . Indent::_(4) .
-						"'{$columns['content_history_options']}'";
-					$script .= PHP_EOL . Indent::_(3) .
-						');';
-
-				}
-			}
-			$script .= PHP_EOL . PHP_EOL;
-			return $script;
-		}
-
-		return '';
+		return $script;
 	}
 
 	public function setPostInstallScript()
@@ -2480,6 +2307,13 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Component.AssetsTable')->uninstall();
 	}
 
+	/**
+	 * Build the folder moving code the install script needs.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setMoveFolderScript()
 	{
 		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
@@ -2503,6 +2337,13 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build the folder moving method the install script calls.
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setMoveFolderMethod()
 	{
 		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
@@ -2597,200 +2438,70 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build one admin view's content type declaration.
+	 *
+	 * @param   string  $view       The single view code name.
+	 * @param   string  $component  The component code name.
+	 *
+	 * @return  array|false
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function getContentType($view, $component)
 	{
-		// add if history is to be kept or if tags is added
-		if (CFactory::_('Compiler.Builder.History')->exists($view)
-			|| CFactory::_('Compiler.Builder.Tags')->exists($view))
-		{
-			// reset array
-			$array = [];
-			// set needed defaults
-			$alias            = CFactory::_('Compiler.Builder.Alias')->get($view, 'null');
-			$title            = CFactory::_('Compiler.Builder.Title')->get($view, 'null');
-			$category         = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.code", 'null');
-			$categoryHistory  = (CFactory::_('Compiler.Builder.Category.Code')->exists($view))
-				?
-				'{"sourceColumn": "' . $category
-				. '","targetTable": "#__categories","targetColumn": "id","displayColumn": "title"},'
-				: '';
-			$Component        = StringHelper::safe(
-				$component, 'F'
-			);
-			$View             = StringHelper::safe($view, 'F');
-			$maintext         = CFactory::_('Compiler.Builder.Main.Text.Field')->get($view, 'null');
-			$hiddenFields     = CFactory::_('Compiler.Builder.Hidden.Fields')->pathToString($view, '');
-			$dynamicfields    = CFactory::_('Compiler.Builder.Dynamic.Fields')->pathToString($view, ',');
-			$intFields        = CFactory::_('Compiler.Builder.Integer.Fields')->pathToString($view, '');
-			$customfieldlinks = CFactory::_('Compiler.Builder.Custom.Field.Links')->pathToString($view, '');
-			// build uninstall script for content types
-			$this->uninstallScriptBuilder[$View] = 'com_' . $component . '.' . $view;
-			$this->uninstallScriptContent[$view] = $view;
-			// check if this view has metadata
-			if (CFactory::_('Compiler.Builder.Meta.Data')->isString($view))
-			{
-				$core_metadata = 'metadata';
-				$core_metakey  = 'metakey';
-				$core_metadesc = 'metadesc';
-			}
-			else
-			{
-				$core_metadata = 'null';
-				$core_metakey  = 'null';
-				$core_metadesc = 'null';
-			}
-			// check if view has access
-			if (CFactory::_('Compiler.Builder.Access.Switch')->exists($view))
-			{
-				$core_access = 'access';
-				$accessHistory
-					= ',{"sourceColumn": "access","targetTable": "#__viewlevels","targetColumn": "id","displayColumn": "title"}';
-			}
-			else
-			{
-				$core_access   = 'null';
-				$accessHistory = '';
-			}
-			// set the title
-			$array['type_title'] = $Component . ' ' . $View;
-			// set the alias
-			$array['type_alias'] = 'com_' . $component . '.' . $view;
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set the table
-				$array['table'] = '{"special": {"dbtable": "#__' . $component . '_'
-					. $view . '","key": "id","type": "' . $View . '","prefix": "'
-					. $component
-					. 'Table","config": "array()"},"common": {"dbtable": "#__ucm_content","key": "ucm_id","type": "Corecontent","prefix": "JTable","config": "array()"}}';
-			}
-			else
-			{
-				// set the table
-				$array['table'] = '{"special": {"dbtable": "#__' . $component . '_'
-					. $view . '","key": "id","type": "' . $View . 'Table","prefix": "' . CFactory::_('Config')->namespace_prefix
-					. '\\Component\\' . CFactory::_('Compiler.Builder.Content.One')->get('ComponentNamespace')
-					. '\\Administrator\\Table"}}';
+		$type = CFactory::_('Architecture.Component.ContentTypes')->contentType(
+			(string) $view, (string) $component
+		);
 
-				// set rules field
-				$array['rules'] = '';
-			}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-			// set field map
-			$array['field_mappings']
-				= '{"common": {"core_content_item_id": "id","core_title": "'
-				. $title . '","core_state": "published","core_alias": "'
-				. $alias
-				. '","core_created_time": "created","core_modified_time": "modified","core_body": "'
-				. $maintext
-				. '","core_hits": "hits","core_publish_up": "null","core_publish_down": "null","core_access": "'
-				. $core_access
-				. '","core_params": "params","core_featured": "null","core_metadata": "'
-				. $core_metadata
-				. '","core_language": "null","core_images": "null","core_urls": "null","core_version": "version","core_ordering": "ordering","core_metakey": "'
-				. $core_metakey . '","core_metadesc": "' . $core_metadesc
-				. '","core_catid": "' . $category
-				. '","core_xreference": "null","asset_id": "asset_id"},"special": {'
-				. $dynamicfields . '}}';
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set the router class method
-				$array['router'] = $Component . 'HelperRoute::get' . $View
-					. 'Route';
-			}
-			else
-			{
-				// set the router class method
-				$array['router'] = '';
-			}
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				// set content history
-				$array['content_history_options']
-					= '{"formFile": "administrator/components/com_' . $component
-					. '/models/forms/' . $view
-					. '.xml","hideFields": ["asset_id","checked_out","checked_out_time","version"'
-					. $hiddenFields
-					. '],"ignoreChanges": ["modified_by","modified","checked_out","checked_out_time","version","hits"],"convertToInt": ["published","ordering","version","hits"'
-					. $intFields . '],"displayLookup": [' . $categoryHistory
-					. '{"sourceColumn": "created_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $accessHistory
-					. ',{"sourceColumn": "modified_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $customfieldlinks . ']}';
-			}
-			else
-			{
-				// set content history
-				$array['content_history_options']
-					= '{"formFile": "administrator/components/com_' . $component
-					. '/forms/' . $view
-					. '.xml","hideFields": ["asset_id","checked_out","checked_out_time"'
-					. $hiddenFields
-					. '],"ignoreChanges": ["modified_by","modified","checked_out","checked_out_time","version","hits"],"convertToInt": ["published","ordering","version","hits"'
-					. $intFields . '],"displayLookup": [' . $categoryHistory
-					. '{"sourceColumn": "created_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $accessHistory
-					. ',{"sourceColumn": "modified_by","targetTable": "#__users","targetColumn": "id","displayColumn": "name"}'
-					. $customfieldlinks . ']}';
-			}
-
-			return $array;
-		}
-
-		return false;
+		return $type;
 	}
 
+	/**
+	 * Build the content type declaration of one view's own category.
+	 *
+	 * @param   string  $view       The single view code name.
+	 * @param   string  $views      The list view code name.
+	 * @param   string  $component  The component code name.
+	 *
+	 * @return  array
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use the Architecture.Component.ContentTypes service.
+	 */
 	public function getCategoryContentType($view, $views, $component)
 	{
-		// get the other view
-		$otherView = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.view", 'error');
-		$category  = CFactory::_('Compiler.Builder.Category.Code')->getString("{$view}.code", 'error');
-		$Component = StringHelper::safe($component, 'F');
-		$View      = StringHelper::safe($view, 'F');
-		// build uninstall script for content types
-		$this->uninstallScriptBuilder[$View . ' ' . $category] = 'com_'
-			. $component . '.' . $otherView . '.category';
-		$this->uninstallScriptContent[$View . ' ' . $category] = $View . ' '
-			. $category;
-		// set the title
-		$array['type_title'] = $Component . ' ' . $View . ' '
-			. StringHelper::safe($category, 'F');
-		// set the alias
-		$array['type_alias'] = 'com_' . $component . '.' . $otherView
-			. '.category';
-		// set the table
-		$array['table']
-			= '{"special":{"dbtable":"#__categories","key":"id","type":"Category","prefix":"JTable","config":"array()"},"common":{"dbtable":"#__ucm_content","key":"ucm_id","type":"Corecontent","prefix":"JTable","config":"array()"}}';
-		if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-		{
-			// set rules field
-			$array['rules'] = '';
-		}
-		// set field map
-		$array['field_mappings']
-			= '{"common":{"core_content_item_id":"id","core_title":"title","core_state":"published","core_alias":"alias","core_created_time":"created_time","core_modified_time":"modified_time","core_body":"description", "core_hits":"hits","core_publish_up":"null","core_publish_down":"null","core_access":"access", "core_params":"params", "core_featured":"null", "core_metadata":"metadata", "core_language":"language", "core_images":"null", "core_urls":"null", "core_version":"version", "core_ordering":"null", "core_metakey":"metakey", "core_metadesc":"metadesc", "core_catid":"parent_id", "core_xreference":"null", "asset_id":"asset_id"}, "special":{"parent_id":"parent_id","lft":"lft","rgt":"rgt","level":"level","path":"path","extension":"extension","note":"note"}}';
+		$type = CFactory::_('Architecture.Component.ContentTypes')->categoryContentType(
+			(string) $view, (string) $views, (string) $component
+		);
 
-		if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-		{
-			// set the router class method
-			$array['router'] = $Component . 'HelperRoute::getCategoryRoute';
-			// set content history
-			$array['content_history_options']
-				= '{"formFile":"administrator\/components\/com_categories\/models\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
-		}
-		else
-		{
-			// set the router class method
-			$array['router'] = '';
-			// set content history
-			$array['content_history_options']
-				= '{"formFile":"administrator\/components\/com_categories\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
-		}
+		// the uninstall script the helper still builds reads these off the properties
+		$this->uninstallScriptBuilder = CFactory::_('Compiler.Builder.Uninstall.Script.Context')
+			->allActive() + $this->uninstallScriptBuilder;
+		$this->uninstallScriptContent = CFactory::_('Compiler.Builder.Uninstall.Script.Content')
+			->allActive() + $this->uninstallScriptContent;
 
-		return $array;
+		return $type;
 	}
 
+	/**
+	 * Build the route helper methods a view with tags or a front item needs.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 * @param   bool    $front           Whether this is a front item view
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setRouterHelp($nameSingleCode, $nameListCode, $front = false)
 	{
 		// add if tags is added, also for all front item views
@@ -2935,8 +2646,20 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Build one view's case in the generated router's parse switch.
+	 *
+	 * @param   string  $view       The view name
+	 * @param   array   $viewArray  The view being built
+	 * @param   bool    $aliasView  Whether the view is reached by alias
+	 * @param   bool    $idView     Whether the view is reached by id
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function routerParseSwitch(&$view, $viewArray = null,
-	                                  $aliasView = true, $idView = true
+		$aliasView = true, $idView = true
 	)
 	{
 		// reset buckets
@@ -3062,6 +2785,15 @@ class Interpretation extends Fields
 		return implode(PHP_EOL, $routerSwitch);
 	}
 
+	/**
+	 * Add one view to the generated router's build views.
+	 *
+	 * @param   string  $view  The view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function routerBuildViews(&$view)
 	{
 		if (CFactory::_('Compiler.Builder.Content.One')->exists('ROUTER_BUILD_VIEWS')
@@ -3371,6 +3103,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Language.Admin')->get($componentName);
 	}
 
+	/**
+	 * Build the site language files of the component.
+	 *
+	 * @param   string  $componentName  The component code name
+	 *
+	 * @return  bool
+	 *
+	 * @since   3.2.0
+	 */
 	public function setLangSite(string $componentName): bool
 	{
 		// Trigger Event: jcb_ce_onBeforeBuildSiteLang
@@ -3779,6 +3520,8 @@ class Interpretation extends Fields
 	 * @return  string   The edit body
 	 *
 	 * @deprecated 6.1.7 Use the Architecture.AdminView.EditBody service.
+	 *
+	 * @since   3.2.0
 	 */
 	public function setEditBody(&$view)
 	{
@@ -3912,7 +3655,7 @@ class Interpretation extends Fields
 	 * @deprecated 6.1.7 Use the Architecture.LinkedView.ListHead service.
 	 */
 	public function setListHeadLinked($nameSingleCode, $nameListCode,
-	                                  $addNewButon, $refview
+		$addNewButon, $refview
 	)
 	{
 		return CFactory::_('Architecture.LinkedView.ListHead')->get(
@@ -3962,6 +3705,8 @@ class Interpretation extends Fields
 	 * @param $nameListCode
 	 *
 	 * @return array|string
+	 *
+	 * @since   3.2.0
 	 */
 	public function setCustomAdminDynamicButtonController($nameListCode)
 	{
@@ -4101,6 +3846,16 @@ class Interpretation extends Fields
 			->get($nameSingleCode, $nameListCode);
 	}
 
+	/**
+	 * Build the export button of a list view that allows export.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setExportButton($nameSingleCode, $nameListCode)
 	{
 		$button = '';
@@ -4129,6 +3884,16 @@ class Interpretation extends Fields
 		return $button;
 	}
 
+	/**
+	 * Build the import button of a list view that allows import.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setImportButton($nameSingleCode, $nameListCode)
 	{
 		$button = '';
@@ -4158,6 +3923,15 @@ class Interpretation extends Fields
 		return $button;
 	}
 
+	/**
+	 * Build the custom import scripts of a list view that allows import.
+	 *
+	 * @param   string  $nameListCode  The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setImportCustomScripts($nameListCode)
 	{
 		// setup Ajax files
@@ -4266,8 +4040,8 @@ class Interpretation extends Fields
 	 * @deprecated 6.1.7 Use the Architecture.Model.CustomQuery service.
 	 */
 	public function setCustomQuery($nameListCode, $nameSingleCode,
-	                               $tab = '',
-	                               $just_text = false
+		$tab = '',
+		$just_text = false
 	)
 	{
 		return CFactory::_('Architecture.Model.CustomQuery')->get(
@@ -5232,6 +5006,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setCategorySidebarFilterHelper(&$filter, &$nameListCode)
 	{
@@ -5263,6 +5039,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in view.html.php
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	public function setBatchDisplayHelper(&$nameSingleCode, &$nameListCode)
 	{
@@ -5433,6 +5211,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  void
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setDefaultBatchHelper(&$batch, &$nameSingleCode)
 	{
@@ -5485,6 +5265,8 @@ class Interpretation extends Fields
 	 *
 	 * @return  mixed The php to place in view.html.php
 	 *
+	 *
+	 * @since   3.2.0
 	 */
 	protected function setCategoryBatchHelper(&$batch, &$nameListCode)
 	{
@@ -5512,6 +5294,16 @@ class Interpretation extends Fields
 		}
 	}
 
+	/**
+	 * Build the router entries of a view that carries its own category.
+	 *
+	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameListCode    The list view name
+	 *
+	 * @return  string
+	 *
+	 * @since   3.2.0
+	 */
 	public function setRouterCategoryViews($nameSingleCode, $nameListCode)
 	{
 		if (CFactory::_('Compiler.Builder.Category')->exists("{$nameListCode}.extension"))

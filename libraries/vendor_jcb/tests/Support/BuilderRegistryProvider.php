@@ -148,6 +148,8 @@ final class BuilderRegistryProvider
 		'Title',
 		'UikitComp',
 		'UpdateMysql',
+		'UninstallScriptContent',
+		'UninstallScriptContext',
 		'ValidationFix',
 		'ViewScript',
 		'ViewsDefaultOrdering'
