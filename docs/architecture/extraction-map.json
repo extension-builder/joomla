@@ -8,6 +8,16 @@
       }
     ]
   },
+  "checkRelationControl": {
+    "fingerprints": 0,
+    "traced_by": "name, because it carries no string literal at all; it became TargetRelationScript::checkControl()",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/TargetRelationScript.php",
+        "matched": 0
+      }
+    ]
+  },
   "checkStatmentLicenseLocked": {
     "fingerprints": 3,
     "moved_into": [
@@ -108,6 +118,16 @@
       }
     ]
   },
+  "getOptionsScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it reads is shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/OptionsScript.php",
+        "matched": 0
+      }
+    ]
+  },
   "getStoredIdCodeMulti": {
     "fingerprints": 4,
     "moved_into": [
@@ -128,6 +148,26 @@
         "matched": 1
       }
     ]
+  },
+  "getTargetRelationScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because it emits nothing and only reads short array keys",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/TargetRelationScript.php",
+        "matched": 0
+      }
+    ]
+  },
+  "getValueScript": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Field/ValueScript.php",
+        "matched": 4
+      }
+    ],
+    "unmatched": "the Compiler.Builder.Script.User.Switch service key, which became an injected dependency"
   },
   "ifValueScript": {
     "fingerprints": 0,
