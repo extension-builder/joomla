@@ -60,6 +60,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\CheckInNow
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Model\CheckInNow as J5CheckInNow;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Model\CheckInNow as J4CheckInNow;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\CheckInNow as J3CheckInNow;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\StoredId as ModelStoredId;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\PopulateState as ModelPopulateState;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SortFields as ModelSortFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterFields as ModelFilterFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetItemMethod as ModelGetItemMethod;
 
 
 /**
@@ -224,6 +229,21 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3CheckInNow::class, 'Architecture.Model.J3.CheckInNow')
 			->share('Architecture.Model.J3.CheckInNow', [$this, 'getJ3CheckInNow'], true);
+
+		$container->alias(ModelStoredId::class, 'Architecture.Model.StoredId')
+			->share('Architecture.Model.StoredId', [$this, 'getModelStoredId'], true);
+
+		$container->alias(ModelPopulateState::class, 'Architecture.Model.PopulateState')
+			->share('Architecture.Model.PopulateState', [$this, 'getModelPopulateState'], true);
+
+		$container->alias(ModelSortFields::class, 'Architecture.Model.SortFields')
+			->share('Architecture.Model.SortFields', [$this, 'getModelSortFields'], true);
+
+		$container->alias(ModelFilterFields::class, 'Architecture.Model.FilterFields')
+			->share('Architecture.Model.FilterFields', [$this, 'getModelFilterFields'], true);
+
+		$container->alias(ModelGetItemMethod::class, 'Architecture.Model.GetItemMethod')
+			->share('Architecture.Model.GetItemMethod', [$this, 'getModelGetItemMethod'], true);
 	}
 
 	/**
@@ -1132,4 +1152,102 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		return new J3CheckInNow();
 	}
+	/**
+	 * Get The Model StoredId Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelStoredId
+	 * @since   6.1.7
+	 */
+	public function getModelStoredId(Container $container): ModelStoredId
+	{
+		return new ModelStoredId(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Sort')
+		);
+	}
+
+	/**
+	 * Get The Model PopulateState Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelPopulateState
+	 * @since   6.1.7
+	 */
+	public function getModelPopulateState(Container $container): ModelPopulateState
+	{
+		return new ModelPopulateState(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Sort')
+		);
+	}
+
+	/**
+	 * Get The Model SortFields Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelSortFields
+	 * @since   6.1.7
+	 */
+	public function getModelSortFields(Container $container): ModelSortFields
+	{
+		return new ModelSortFields(
+			$container->get('Compiler.Builder.Sort')
+		);
+	}
+
+	/**
+	 * Get The Model FilterFields Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelFilterFields
+	 * @since   6.1.7
+	 */
+	public function getModelFilterFields(Container $container): ModelFilterFields
+	{
+		return new ModelFilterFields(
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Sort')
+		);
+	}
+
+	/**
+	 * Get The Model GetItemMethod Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelGetItemMethod
+	 * @since   6.1.7
+	 */
+	public function getModelGetItemMethod(Container $container): ModelGetItemMethod
+	{
+		return new ModelGetItemMethod(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Base.Six.Four'),
+			$container->get('Compiler.Builder.Json.Item'),
+			$container->get('Compiler.Builder.Json.Item.Array'),
+			$container->get('Compiler.Builder.Json.String'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Model.Basic.Field'),
+			$container->get('Compiler.Builder.Model.Medium.Field'),
+			$container->get('Compiler.Builder.Model.Whmcs.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+		);
+	}
+
 }

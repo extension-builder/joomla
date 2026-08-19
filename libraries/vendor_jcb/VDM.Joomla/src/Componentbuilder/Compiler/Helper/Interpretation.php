@@ -717,6 +717,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.View.UikitLoader')->get($view);
 	}
 
+	/**
+	 * Set the extra display methods a custom view was given.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated methods.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setCustomViewExtraDisplayMethods(&$view)
 	{
 		if ($view['settings']->add_php_jview == 1)
@@ -914,158 +923,19 @@ class Interpretation extends Fields
 		}
 	}
 
+	/**
+	 * Set the getItem method of an item model.
+	 *
+	 * @param   string  $view  The single view code name.
+	 *
+	 * @return  string  The generated method body.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.GetItemMethod instead.
+	 */
 	public function setMethodGetItem(&$view)
 	{
-		$script = '';
-		// get the component name
-		$Component = CFactory::_('Compiler.Builder.Content.One')->get('Component');
-		$component = CFactory::_('Compiler.Builder.Content.One')->get('component');
-		// go from base64 to string
-		if (CFactory::_('Compiler.Builder.Base.Six.Four')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Base.Six.Four')->get($view) as $baseString)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-					. "if (!empty(\$item->" . $baseString
-					. "))"; // TODO && base64_encode(base64_decode(\$item->".$baseString.", true)) === \$item->".$baseString.")";
-				$script .= PHP_EOL . Indent::_(3) . "{";
-				$script .= PHP_EOL . Indent::_(4) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " base64 Decode " . $baseString . ".";
-				$script .= PHP_EOL . Indent::_(4) . "\$item->" . $baseString
-					. " = base64_decode(\$item->" . $baseString . ");";
-				$script .= PHP_EOL . Indent::_(3) . "}";
-			}
-		}
-		// decryption
-		foreach (CFactory::_('Config')->cryption_types as $cryptionType)
-		{
-			if (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->exists($view))
-			{
-				if ('expert' !== $cryptionType)
-				{
-					$script .= PHP_EOL . PHP_EOL . Indent::_(3) . "//"
-						. Line::_(__Line__, __Class__) . " Get the " . $cryptionType
-						. " encryption.";
-					$script .= PHP_EOL . Indent::_(3) . "\$" . $cryptionType
-						. "key = " . $Component . "Helper::getCryptKey('"
-						. $cryptionType . "');";
-					$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
-							__LINE__,__CLASS__
-						) . " Get the encryption object.";
-					$script .= PHP_EOL . Indent::_(3) . "\$" . $cryptionType
-						. " = new Super_" . "__99175f6d_dba8_4086_8a65_5c4ec175e61d___Power(\$" . $cryptionType . "key);";
-					foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->get($view) as $baseString)
-					{
-						$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-							. "if (!empty(\$item->" . $baseString . ") && \$"
-							. $cryptionType . "key && !is_numeric(\$item->"
-							. $baseString . ") && \$item->" . $baseString
-							. " === base64_encode(base64_decode(\$item->"
-							. $baseString . ", true)))";
-						$script .= PHP_EOL . Indent::_(3) . "{";
-						$script .= PHP_EOL . Indent::_(4) . "//"
-							. Line::_(__Line__, __Class__) . " " . $cryptionType
-							. " decrypt data " . $baseString . ".";
-						$script .= PHP_EOL . Indent::_(4) . "\$item->"
-							. $baseString . " = rtrim(\$" . $cryptionType
-							. "->decryptString(\$item->" . $baseString . "), "
-							. '"\0"' . ");";
-						$script .= PHP_EOL . Indent::_(3) . "}";
-					}
-				}
-				else
-				{
-					if (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field.Initiator')->
-						exists("{$view}.get"))
-					{
-						foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field.Initiator')->
-							get("{$view}.get") as $block
-						)
-						{
-							$script .= PHP_EOL . Indent::_(3) . implode(
-								PHP_EOL . Indent::_(3), $block
-							);
-						}
-					}
-					// set the expert script
-					foreach (CFactory::_('Compiler.Builder.Model.' . ucfirst($cryptionType).  '.Field')->
-						get($view) as $baseString => $opener_)
-					{
-						$_placeholder_for_field = array('[[[field]]]' => '$item->' . $baseString);
-						$script .= CFactory::_('Placeholder')->update(
-							PHP_EOL . Indent::_(3) . implode(
-								PHP_EOL . Indent::_(3), $opener_['get']
-							), $_placeholder_for_field
-						);
-					}
-				}
-			}
-		}
-		// go from json to array
-		if (CFactory::_('Compiler.Builder.Json.Item')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Json.Item')->get($view) as $jsonItem)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-					. "if (!empty(\$item->" . $jsonItem . "))";
-				$script .= PHP_EOL . Indent::_(3) . "{";
-				$script .= PHP_EOL . Indent::_(4) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " Convert the " . $jsonItem . " field to an array.";
-				$script .= PHP_EOL . Indent::_(4) . "\$" . $jsonItem
-					. " = new Registry;";
-				$script .= PHP_EOL . Indent::_(4) . "\$" . $jsonItem
-					. "->loadString(\$item->" . $jsonItem . ");";
-				$script .= PHP_EOL . Indent::_(4) . "\$item->" . $jsonItem
-					. " = \$" . $jsonItem . "->toArray();";
-				$script .= PHP_EOL . Indent::_(3) . "}";
-			}
-		}
-		// go from json to string
-		if (CFactory::_('Compiler.Builder.Json.String')->exists($view))
-		{
-			$makeArray = '';
-			foreach (CFactory::_('Compiler.Builder.Json.String')->get($view) as $jsonString)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-					. "if (!empty(\$item->" . $jsonString . "))";
-				$script .= PHP_EOL . Indent::_(3) . "{";
-				$script .= PHP_EOL . Indent::_(4) . "//" . Line::_(
-						__LINE__,__CLASS__
-					) . " JSON Decode " . $jsonString . ".";
-				if (CFactory::_('Compiler.Builder.Json.Item.Array')->inArray($jsonString, $view) ||
-					strpos((string) $jsonString, 'group') !== false)
-				{
-					$makeArray = ',true';
-				}
-				$script .= PHP_EOL . Indent::_(4) . "\$item->" . $jsonString
-					. " = json_decode(\$item->" . $jsonString . $makeArray
-					. ");";
-				$script .= PHP_EOL . Indent::_(3) . "}";
-			}
-		}
-		// add the tag get options
-		if (CFactory::_('Compiler.Builder.Tags')->exists($view))
-		{
-			$script .= PHP_EOL . PHP_EOL . Indent::_(3)
-				. "if (!empty(\$item->id))";
-			$script .= PHP_EOL . Indent::_(3) . "{";
-			$script .= PHP_EOL . Indent::_(4) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Get Tag IDs.";
-			$script .= PHP_EOL . Indent::_(4) . "\$item->tags"
-				. " = new TagsHelper;";
-			$script .= PHP_EOL . Indent::_(4)
-				. "\$item->tags->getTagIds(\$item->id, 'com_$component.$view');";
-			$script .= PHP_EOL . Indent::_(3) . "}";
-		}
-		// add custom php to getitem method
-		$script .= CFactory::_('Customcode.Dispenser')->get(
-			'php_getitem', $view, PHP_EOL . PHP_EOL
-		);
-
-		return $script;
+		return CFactory::_('Architecture.Model.GetItemMethod')->get($view);
 	}
 
 	public function setCheckboxSave(&$view)
@@ -3699,557 +3569,79 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * set the filter fields
+	 * Set the filter fields array of a list model.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
+	 * @param   string  $nameSingleCode  The single view name.
+	 * @param   string  $nameListCode    The list view name.
 	 *
-	 * @return  string The code for the filter fields array
-	 *
+	 * @return  string  The generated array.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.FilterFields instead.
 	 */
 	public function setFilterFieldsArray(&$nameSingleCode, &$nameListCode)
 	{
-		// keep track of all fields already added
-		$donelist = array('id'         => true, 'search' => true,
-			'published'  => true, 'access' => true,
-			'created_by' => true, 'modified_by' => true);
-		// default filter fields
-		$fields = "'a.id','id'";
-		$fields .= "," . PHP_EOL . Indent::_(4) . "'a.published','published'";
-		if (CFactory::_('Compiler.Builder.Access.Switch')->exists($nameSingleCode))
-		{
-			$fields .= "," . PHP_EOL . Indent::_(4) . "'a.access','access'";
-		}
-		$fields .= "," . PHP_EOL . Indent::_(4) . "'a.ordering','ordering'";
-		$fields .= "," . PHP_EOL . Indent::_(4) . "'a.created_by','created_by'";
-		$fields .= "," . PHP_EOL . Indent::_(4)
-			. "'a.modified_by','modified_by'";
-
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Filter')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Filter')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$fields                    .= $this->getFilterFieldCode(
-						$filter
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Sort')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Sort')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$fields .= $this->getFilterFieldCode(
-						$filter
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-
-		return $fields;
+		return CFactory::_('Architecture.Model.FilterFields')
+			->get($nameSingleCode, $nameListCode);
 	}
 
-	/**
-	 * Add the code of the filter field array
-	 *
-	 * @param   array  $filter  The field/filter array
-	 *
-	 * @return  string    The code for the filter array
-	 *
-	 *
-	 * @since   3.2.0
-	 */
-	protected function getFilterFieldCode(&$filter)
-	{
-		// add the category stuff (may still remove these) TODO
-		if ($filter['type'] === 'category')
-		{
-			$field = "," . PHP_EOL . Indent::_(4)
-				. "'c.title','category_title'";
-			$field .= "," . PHP_EOL . Indent::_(4)
-				. "'c.id', 'category_id'";
-			if ($filter['code'] != 'category')
-			{
-				$field .= "," . PHP_EOL . Indent::_(4) . "'a."
-					. $filter['code'] . "','" . $filter['code']
-					. "'";
-			}
-		}
-		else
-		{
-			// check if custom field is set
-			if (ArrayHelper::check(
-					$filter['custom']
-				)
-				&& isset($filter['custom']['db'])
-				&& StringHelper::check(
-					$filter['custom']['db']
-				)
-				&& isset($filter['custom']['text'])
-				&& StringHelper::check(
-					$filter['custom']['text']
-				))
-			{
-				$field = "," . PHP_EOL . Indent::_(4) . "'"
-					. $filter['custom']['db'] . "."
-					. $filter['custom']['text'] . "','" . $filter['code']
-					. "'";
-			}
-			else
-			{
-				$field = "," . PHP_EOL . Indent::_(4) . "'a."
-					. $filter['code'] . "','" . $filter['code']
-					. "'";
-			}
-		}
 
-		return $field;
-	}
 
 	/**
-	 * set the sotred ids
+	 * Set the stored id method of a list model.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
+	 * @param   string  $nameSingleCode  The single view name.
+	 * @param   string  $nameListCode    The list view name.
 	 *
-	 * @return  string The code for the populate state
-	 *
+	 * @return  string  The generated method.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.StoredId instead.
 	 */
 	public function setStoredId(&$nameSingleCode, &$nameListCode)
 	{
-		// set component name
-		$Component = ucwords((string) CFactory::_('Config')->component_code_name);
-		// keep track of all fields already added
-		$donelist = array('id'         => true, 'search' => true,
-			'published'  => true, 'access' => true,
-			'created_by' => true, 'modified_by' => true);
-		// set the defaults first
-		$stored = "//" . Line::_(__Line__, __Class__) . " Compile the store id.";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "\$id .= ':' . \$this->getState('filter.id');";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "\$id .= ':' . \$this->getState('filter.search');";
-		// add this if not already added
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.published'))
-		{
-			$stored .= PHP_EOL . Indent::_(2)
-				. "\$id .= ':' . \$this->getState('filter.published');";
-		}
-		// add if view calls for it, and not already added
-		if (CFactory::_('Compiler.Builder.Access.Switch')->exists($nameSingleCode)
-			&& !CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.access'))
-		{
-			// the side bar option is single
-			if (CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 1)
-			{
-				$stored .= PHP_EOL . Indent::_(2)
-					. "\$id .= ':' . \$this->getState('filter.access');";
-			}
-			else
-			{
-				// top bar selection can result in
-				// an array due to multi selection
-				$stored .= $this->getStoredIdCodeMulti('access', $Component);
-			}
-		}
-		$stored .= PHP_EOL . Indent::_(2)
-			. "\$id .= ':' . \$this->getState('filter.ordering');";
-		// add this if not already added
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.created_by'))
-		{
-			$stored .= PHP_EOL . Indent::_(2)
-				. "\$id .= ':' . \$this->getState('filter.created_by');";
-		}
-		// add this if not already added
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.modified_by'))
-		{
-			$stored .= PHP_EOL . Indent::_(2)
-				. "\$id .= ':' . \$this->getState('filter.modified_by');";
-		}
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Filter')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Filter')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$stored .= $this->getStoredIdCode(
-						$filter, $nameListCode, $Component
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Sort')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Sort')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$stored .= $this->getStoredIdCode(
-						$filter, $nameListCode, $Component
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-
-		return $stored;
+		return CFactory::_('Architecture.Model.StoredId')
+			->get($nameSingleCode, $nameListCode);
 	}
 
-	/**
-	 * Add the code of the stored ids
-	 *
-	 * @param   array   $filter        The field/filter array
-	 * @param   string  $nameListCode  The list view name
-	 * @param   string  $Component     The Component name
-	 *
-	 * @return  string    The code for the stored IDs
-	 *
-	 */
-	protected function getStoredIdCode(&$filter, &$nameListCode, &$Component)
-	{
-		if ($filter['type'] === 'category')
-		{
-			// the side bar option is single (1 = sidebar)
-			if (CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 1)
-			{
-				$stored = PHP_EOL . Indent::_(2)
-					. "\$id .= ':' . \$this->getState('filter.category');";
-				$stored .= PHP_EOL . Indent::_(2)
-					. "\$id .= ':' . \$this->getState('filter.category_id');";
-				if ($filter['code'] != 'category')
-				{
-					$stored .= PHP_EOL . Indent::_(2)
-						. "\$id .= ':' . \$this->getState('filter."
-						. $filter['code'] . "');";
-				}
-			}
-			else
-			{
-				$stored = $this->getStoredIdCodeMulti('category', $Component);
-				$stored .= $this->getStoredIdCodeMulti(
-					'category_id', $Component
-				);
-				if ($filter['code'] != 'category')
-				{
-					$stored .= $this->getStoredIdCodeMulti(
-						$filter['code'], $Component
-					);
-				}
-			}
-		}
-		else
-		{
-			// check if this is the topbar filter, and multi option (2 = topbar)
-			if (isset($filter['multi']) && $filter['multi'] == 2
-				&& CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 2)
-			{
-				// top bar selection can result in
-				// an array due to multi selection
-				$stored = $this->getStoredIdCodeMulti(
-					$filter['code'], $Component
-				);
-			}
-			else
-			{
-				$stored = PHP_EOL . Indent::_(2)
-					. "\$id .= ':' . \$this->getState('filter."
-					. $filter['code'] . "');";
-			}
-		}
 
-		return $stored;
-	}
+
+
 
 	/**
-	 * Add the code of the stored multi ids
+	 * Set the populate state statements of a list model.
 	 *
-	 * @param   string  $key        The key field name
-	 * @param   string  $Component  The Component name
+	 * @param   string  $nameSingleCode  The single view name.
+	 * @param   string  $nameListCode    The list view name.
 	 *
-	 * @return  string    The code for the stored IDs
+	 * @return  string  The generated statements.
 	 *
-	 */
-	protected function getStoredIdCodeMulti($key, &$Component)
-	{
-		// top bar selection can result in
-		// an array due to multi selection
-		$stored = PHP_EOL . Indent::_(2)
-			. "//" . Line::_(__Line__, __Class__)
-			. " Check if the value is an array";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "\$_" . $key . " = \$this->getState('filter."
-			. $key . "');";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "if (Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$_"
-			. $key . "))";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "{";
-		$stored .= PHP_EOL . Indent::_(3)
-			. "\$id .= ':' . implode(':', \$_" . $key . ");";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "}";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "//" . Line::_(__Line__, __Class__)
-			. " Check if this is only an number or string";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "elseif (is_numeric(\$_" . $key . ")";
-		$stored .= PHP_EOL . Indent::_(2)
-			. " || Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$_" . $key . "))";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "{";
-		$stored .= PHP_EOL . Indent::_(3)
-			. "\$id .= ':' . \$_" . $key . ";";
-		$stored .= PHP_EOL . Indent::_(2)
-			. "}";
-
-		return $stored;
-	}
-
-	/**
-	 * set the populate state code
-	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   string  $nameListCode    The list view name
-	 *
-	 * @return  string The code for the populate state
-	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.PopulateState instead.
 	 */
 	public function setPopulateState(&$nameSingleCode, &$nameListCode)
 	{
-		// reset bucket
-		$state = '';
-		// keep track of all fields already added
-		$donelist = [];
-		// we must add the formSubmited code if new above filters is used (2 = topbar)
-		$new_filter = false;
-		if (CFactory::_('Compiler.Builder.Admin.Filter.Type')->get($nameListCode, 1) == 2)
-		{
-			$state      .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__) . " Check if the form was submitted";
-			$state      .= PHP_EOL . Indent::_(2) . "\$formSubmited"
-				. " = \$input->post->get('form_submited');";
-			$new_filter = true;
-		}
-		// add the default populate states (this must be added first)
-		$state .= $this->setDefaultPopulateState($nameSingleCode, $new_filter);
-		// add the filters
-		if (CFactory::_('Compiler.Builder.Filter')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Filter')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$state                     .= $this->getPopulateStateFilterCode(
-						$filter, $new_filter
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Sort')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Sort')->get($nameListCode) as $filter)
-			{
-				if (!isset($donelist[$filter['code']]))
-				{
-					$state .= $this->getPopulateStateFilterCode(
-						$filter, $new_filter
-					);
-					$donelist[$filter['code']] = true;
-				}
-			}
-		}
-
-		return $state;
+		return CFactory::_('Architecture.Model.PopulateState')
+			->get($nameSingleCode, $nameListCode);
 	}
 
-	/**
-	 * Add the code of the filter in the populate state
-	 *
-	 * @param   array   $filter     The field/filter array
-	 * @param   bool    $newFilter  The switch to use the new filter
-	 * @param   string  $extra      The defaults/extra options of the filter
-	 *
-	 * @return  string    The code for the populate state
-	 *
-	 */
-	protected function getPopulateStateFilterCode(&$filter, $newFilter,
-	                                              $extra = ''
-	)
-	{
-		$state = '';
-		// add category stuff (may still remove these) TODO
-		if (isset($filter['type']) && $filter['type'] === 'category')
-		{
-			$state .= PHP_EOL . PHP_EOL . Indent::_(2)
-				. "\$category = \$app->getUserStateFromRequest(\$this->context . '.filter.category', 'filter_category');";
-			$state .= PHP_EOL . Indent::_(2)
-				. "\$this->setState('filter.category', \$category);";
-			$state .= PHP_EOL . PHP_EOL . Indent::_(2)
-				. "\$categoryId = \$this->getUserStateFromRequest(\$this->context . '.filter.category_id', 'filter_category_id');";
-			$state .= PHP_EOL . Indent::_(2)
-				. "\$this->setState('filter.category_id', \$categoryId);";
-		}
-		// always add the default filter
-		$state .= PHP_EOL . PHP_EOL . Indent::_(2) . "\$" . $filter['code']
-			. " = \$this->getUserStateFromRequest(\$this->context . '.filter."
-			. $filter['code'] . "', 'filter_" . $filter['code']
-			. "'" . $extra . ");";
-		if ($newFilter)
-		{
-			// add the new filter option
-			$state .= PHP_EOL . Indent::_(2)
-				. "if (\$formSubmited)";
-			$state .= PHP_EOL . Indent::_(2) . "{";
-			$state .= PHP_EOL . Indent::_(3) . "\$" . $filter['code']
-				. " = \$input->post->get('" . $filter['code'] . "');";
-			$state .= PHP_EOL . Indent::_(3)
-				. "\$this->setState('filter." . $filter['code']
-				. "', \$" . $filter['code'] . ");";
-			$state .= PHP_EOL . Indent::_(2) . "}";
-		}
-		else
-		{
-			// the old filter option
-			$state .= PHP_EOL . Indent::_(2)
-				. "\$this->setState('filter." . $filter['code']
-				. "', \$" . $filter['code'] . ");";
-		}
 
-		return $state;
-	}
+
+
 
 	/**
-	 * set the default populate state code
+	 * Set the sort fields method of a list model.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 * @param   bool    $newFilter       The switch to use the new filter
+	 * @param   string  $nameListCode  The list view name.
 	 *
-	 * @return  string The state code added
+	 * @return  string  The generated method.
 	 *
-	 */
-	protected function setDefaultPopulateState(&$nameSingleCode, $newFilter)
-	{
-		$state = '';
-		// start filter
-		$filter = array('type' => 'text');
-		// if access is not set add its default filter here
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.access'))
-		{
-			$filter['code'] = "access";
-			$state          .= $this->getPopulateStateFilterCode(
-				$filter, $newFilter, ", 0, 'int'"
-			);
-		}
-		// if published is not set add its default filter here
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.published'))
-		{
-			$filter['code'] = "published";
-			$state          .= $this->getPopulateStateFilterCode(
-				$filter, false, ", ''"
-			);
-		}
-		// if created_by is not set add its default filter here
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.created_by'))
-		{
-			$filter['code'] = "created_by";
-			$state          .= $this->getPopulateStateFilterCode(
-				$filter, false, ", ''"
-			);
-		}
-		// if created is not set add its default filter here
-		if (!CFactory::_('Compiler.Builder.Field.Names')->isString($nameSingleCode . '.created'))
-		{
-			$filter['code'] = "created";
-			$state          .= $this->getPopulateStateFilterCode(
-				$filter, false
-			);
-		}
-
-		// the sorting defaults are always added
-		$filter['code'] = "sorting";
-		$state          .= $this->getPopulateStateFilterCode(
-			$filter, false, ", 0, 'int'"
-		);
-		// the search defaults are always added
-		$filter['code'] = "search";
-		$state          .= $this->getPopulateStateFilterCode($filter, false);
-
-		return $state;
-	}
-
-	/**
-	 * set the sorted field array for the getSortFields method
-	 *
-	 * @param   string  $nameSingleCode  The single view name
-	 *
-	 * @return  string The array/string of fields to add to the getSortFields method
-	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.SortFields instead.
 	 */
 	public function setSortFields(&$nameListCode)
 	{
-		// keep track of all fields already added
-		$donelist = array('ordering', 'published');
-		// set the default first
-		$fields = "return array(";
-		$fields .= PHP_EOL . Indent::_(3) . "'a.ordering' => Text:"
-			. ":_('JGRID_HEADING_ORDERING')";
-		$fields .= "," . PHP_EOL . Indent::_(3) . "'a.published' => Text:"
-			. ":_('JSTATUS')";
-
-		// add the rest of the set filters
-		if (CFactory::_('Compiler.Builder.Sort')->exists($nameListCode))
-		{
-			foreach (CFactory::_('Compiler.Builder.Sort')->get($nameListCode) as $filter)
-			{
-				if (!in_array($filter['code'], $donelist))
-				{
-					if ($filter['type'] === 'category')
-					{
-						$fields .= "," . PHP_EOL . Indent::_(3)
-							. "'category_title' => Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-							. $filter['lang'] . "')";
-					}
-					elseif (ArrayHelper::check(
-						$filter['custom']
-					))
-					{
-						$fields .= "," . PHP_EOL . Indent::_(3) . "'"
-							. $filter['custom']['db'] . "."
-							. $filter['custom']['text'] . "' => Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-							. $filter['lang'] . "')";
-					}
-					else
-					{
-						$fields .= "," . PHP_EOL . Indent::_(3) . "'a."
-							. $filter['code'] . "' => Joomla__"."_ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('"
-							. $filter['lang'] . "')";
-					}
-				}
-			}
-		}
-		$fields .= "," . PHP_EOL . Indent::_(3) . "'a.id' => Text:"
-			. ":_('JGRID_HEADING_ID')";
-		$fields .= PHP_EOL . Indent::_(2) . ");";
-
-		// return fields
-		return $fields;
+		return CFactory::_('Architecture.Model.SortFields')->get($nameListCode);
 	}
 
 	/**
