@@ -173,4 +173,64 @@ final class SubformTest extends TestCase
 		));
 		$this->assertTrue(GuidHelper::valid($generated));
 	}
+	/**
+	 * Refuse to adopt a row that belongs to a different parent.
+	 *
+	 * The index value comes from the submitted subform, and the write is an
+	 * UPDATE ... WHERE guid = <submitted>, so a guid copied from another
+	 * parent would re-parent and overwrite that parent's row. Only an index
+	 * value already linked to the saving parent may select an existing row.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testSetTreatsAForeignIndexValueAsANewRow(): void
+	{
+		$items = $this->createMock(ItemsInterface::class);
+		$items->method('table')->with('contacts')->willReturnSelf();
+		$items->method('values')->willReturnCallback(
+			static function (array $values, string $key, string $get = 'id'): ?array
+			{
+				// the ownership lookup: what this parent already links to
+				if ($values === ['parent-guid'] && $key === 'parent')
+				{
+					return ['mine-1'];
+				}
+
+				// the guid uniqueness probe for a freshly generated value
+				return null;
+			}
+		);
+		$items->expects($this->once())
+			->method('set')
+			->with(
+				$this->callback(
+					static function (array $rows): bool
+					{
+						// the row this parent owns keeps its guid and is updated
+						if ($rows[0]['guid'] !== 'mine-1' || $rows[0]['parent'] !== 'parent-guid')
+						{
+							return false;
+						}
+
+						// the stolen guid must have been replaced by a fresh one
+						return $rows[1]['guid'] !== 'victim-guid'
+							&& $rows[1]['guid'] !== ''
+							&& $rows[1]['parent'] === 'parent-guid';
+					}
+				),
+				'guid'
+			)
+			->willReturn(true);
+
+		$this->assertTrue((new Subform($items, 'contacts'))->set(
+			[
+				['name' => 'Mine', 'guid' => 'mine-1'],
+				['name' => 'Stolen', 'guid' => 'victim-guid'],
+			],
+			'guid',
+			'parent',
+			'parent-guid'
+		));
+	}
 }
