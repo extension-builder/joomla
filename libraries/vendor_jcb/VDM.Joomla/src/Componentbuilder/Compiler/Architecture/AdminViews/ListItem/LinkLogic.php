@@ -330,7 +330,7 @@ final class LinkLogic
 			. "."
 			. $nameSingleCode
 			. "\"'";
-		$link .= PHP_EOL . $tab . Indent::_(7) . ". ' data-id=\"' . \$dataId . '\"'";
+		$link .= PHP_EOL . $tab . Indent::_(7) . ". ' data-id=\"' . {$classPointer}escape(\$dataId, false) . '\"'";
 		$link .= PHP_EOL . $tab . Indent::_(7) . ". ' data-title=\"' . {$classPointer}escape(\$item->{$code}, false) . '\"'";
 		$link .= PHP_EOL . $tab . Indent::_(7) . ". ' data-uri=\"' . {$classPointer}escape(\$link, false) . '\"'";
 		$link .= PHP_EOL . $tab . Indent::_(7) . ". ' data-html=\"' . {$classPointer}escape(\$itemHtml, false) . '\"';";
@@ -342,4 +342,3 @@ final class LinkLogic
 		return $link;
 	}
 }
-
