@@ -437,6 +437,98 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Never let the submitted form decide who owns the record.
+	 *
+	 * allowEdit() receives the POSTed jform array on the save path, so a
+	 * created_by taken from $data is the attacker's own claim of ownership.
+	 * The owner has to be read from the stored record, and the record id has
+	 * to be an int before it is concatenated into an ACL asset name.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('versions')]
+	public function testControllerAllowEditNeverTrustsTheSubmittedOwner(string $version, int $major): void
+	{
+		foreach ($this->allowEditVariants($version) as $label => $code)
+		{
+			$this->assertStringNotContainsString(
+				"\$data['created_by']",
+				$code,
+				$label . ': the submitted owner must never be read'
+			);
+			$this->assertStringContainsString(
+				"\$recordId = isset(\$data[\$key]) ? (int) \$data[\$key] : 0;",
+				$code,
+				$label . ': the record id must be cast before it is used'
+			);
+			$this->assertStringNotContainsString(
+				'(int) isset(',
+				$code,
+				$label . ': (int) must not be applied to the isset() result'
+			);
+			$this->assertStringContainsString(
+				"\$ownerId = (int) \$record->created_by;",
+				$code,
+				$label . ': the owner must come from the stored record'
+			);
+			$this->assertStringNotContainsString(
+				".' . \$recordId)",
+				$code,
+				$label . ': every asset name must use the same cast id'
+			);
+		}
+	}
+
+	/**
+	 * Render the category and non-category branches of the controller renderer.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 *
+	 * @return  array<string, string>
+	 * @since   6.1.7
+	 */
+	private function allowEditVariants(string $version): array
+	{
+		$variants = [];
+
+		foreach (['non-category' => false, 'category' => true] as $label => $withCategory)
+		{
+			$dispenser = $this->getMockBuilder(Dispenser::class)
+				->disableOriginalConstructor()
+				->onlyMethods(['get'])
+				->getMock();
+			$dispenser->expects($this->once())
+				->method('get')
+				->with('php_allowedit', 'article')
+				->willReturn('');
+
+			$category = new Category();
+
+			if ($withCategory)
+			{
+				$category->set('articles', ['name' => 'Category']);
+			}
+
+			$subject = $this->renderer(
+				$this->rendererClass($version, 'Controller/AllowEdit'),
+				[
+					'dispenser' => $dispenser,
+					'category' => $category,
+					'categoryothername' => new CategoryOtherName(),
+				]
+			);
+
+			$variants[$label] = $subject->get('article', 'articles');
+		}
+
+		return $variants;
+	}
+
+	/**
 	 * Protect version selection for the view-permission array renderer.
 	 *
 	 * @param   string  $version  Target namespace segment.
