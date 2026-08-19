@@ -932,6 +932,30 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/SidebarFilters.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminViews/SidebarFilters.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/SidebarFiltersInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/BatchOptions.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminViews/BatchOptions.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/BatchOptionsInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedListViewHelpersTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/AjaxToken.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedAjaxTest.php'
