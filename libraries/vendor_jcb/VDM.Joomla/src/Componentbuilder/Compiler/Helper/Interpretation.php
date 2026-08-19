@@ -635,104 +635,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated module loader.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.GetModules instead.
 	 */
 	public function setGetModules($view, $TARGET)
 	{
-		if (CFactory::_('Compiler.Builder.Get.Module')->
-			exists(CFactory::_('Config')->build_target . '.' . $view['settings']->code))
-		{
-			$addModule   = [];
-			$addModule[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$addModule[] = Indent::_(1)
-				. " * Get the modules published in a position";
-			$addModule[] = Indent::_(1) . " */";
-			$addModule[] = Indent::_(1)
-				. "public function getModules(\$position, \$seperator = '', \$class = '')";
-			$addModule[] = Indent::_(1) . "{";
-			$addModule[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " set default";
-			$addModule[] = Indent::_(2) . "\$found = false;";
-			$addModule[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if we aleady have these modules loaded";
-			$addModule[] = Indent::_(2)
-				. "if (isset(\$this->setModules[\$position]))";
-			$addModule[] = Indent::_(2) . "{";
-			$addModule[] = Indent::_(3) . "\$found = true;";
-			$addModule[] = Indent::_(2) . "}";
-			$addModule[] = Indent::_(2) . "else";
-			$addModule[] = Indent::_(2) . "{";
-			$addModule[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " this is where you want to load your module position";
-			$addModule[] = Indent::_(3)
-				. "\$modules = Joomla__"."_f15d556d_33dd_4ee3_a0f7_0653e4a7a1e4___Power::getModules(\$position);";
-			$addModule[] = Indent::_(3) . "if ("
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$modules, true))";
-			$addModule[] = Indent::_(3) . "{";
-			$addModule[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " set the place holder";
-			$addModule[] = Indent::_(4)
-				. "\$this->setModules[\$position] = [];";
-			$addModule[] = Indent::_(4) . "foreach(\$modules as \$module)";
-			$addModule[] = Indent::_(4) . "{";
-			$addModule[] = Indent::_(5)
-				. "\$this->setModules[\$position][] = Joomla__"."_f15d556d_33dd_4ee3_a0f7_0653e4a7a1e4___Power::renderModule(\$module);";
-			$addModule[] = Indent::_(4) . "}";
-			$addModule[] = Indent::_(4) . "\$found = true;";
-			$addModule[] = Indent::_(3) . "}";
-			$addModule[] = Indent::_(2) . "}";
-			$addModule[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if modules were found";
-			$addModule[] = Indent::_(2)
-				. "if (\$found && isset(\$this->setModules[\$position]) && "
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$this->setModules[\$position]))";
-			$addModule[] = Indent::_(2) . "{";
-			$addModule[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " set class";
-			$addModule[] = Indent::_(3) . "if ("
-				. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$class))";
-			$addModule[] = Indent::_(3) . "{";
-			$addModule[] = Indent::_(4)
-				. "\$class = ' class=\"'.\$class.'\" ';";
-			$addModule[] = Indent::_(3) . "}";
-			$addModule[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " set seperating return values";
-			$addModule[] = Indent::_(3) . "switch(\$seperator)";
-			$addModule[] = Indent::_(3) . "{";
-			$addModule[] = Indent::_(4) . "case 'none':";
-			$addModule[] = Indent::_(5)
-				. "return implode('', \$this->setModules[\$position]);";
-			$addModule[] = Indent::_(5) . "break;";
-			$addModule[] = Indent::_(4) . "case 'div':";
-			$addModule[] = Indent::_(5)
-				. "return '<div'.\$class.'>'.implode('</div><div'.\$class.'>', \$this->setModules[\$position]).'</div>';";
-			$addModule[] = Indent::_(5) . "break;";
-			$addModule[] = Indent::_(4) . "case 'list':";
-			$addModule[] = Indent::_(5)
-				. "return '<ul'.\$class.'><li>'.implode('</li><li>', \$this->setModules[\$position]).'</li></ul>';";
-			$addModule[] = Indent::_(5) . "break;";
-			$addModule[] = Indent::_(4) . "case 'array':";
-			$addModule[] = Indent::_(4) . "case 'Array':";
-			$addModule[] = Indent::_(5)
-				. "return \$this->setModules[\$position];";
-			$addModule[] = Indent::_(5) . "break;";
-			$addModule[] = Indent::_(4) . "default:";
-			$addModule[] = Indent::_(5)
-				. "return implode('<br />', \$this->setModules[\$position]);";
-			$addModule[] = Indent::_(5) . "break;";
-			$addModule[] = Indent::_(3) . "}";
-			$addModule[] = Indent::_(2) . "}";
-			$addModule[] = Indent::_(2) . "return false;";
-			$addModule[] = Indent::_(1) . "}";
-
-			CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_GET_MODULE_JIMPORT',
-				PHP_EOL . "use Joomla\CMS\Helper\ModuleHelper;"
-			);
-
-			return implode(PHP_EOL, $addModule);
-		}
-		CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET . '_GET_MODULE_JIMPORT', '');
-
-		return '';
+		return CFactory::_('Architecture.View.GetModules')->get($view, $TARGET);
 	}
 
 	/**
@@ -780,48 +687,20 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.View.DocumentInlineAssets')->css($view);
 	}
 
+	/**
+	 * Set the script file of a view.
+	 *
+	 * @param   array   $view    The view definition.
+	 * @param   string  $TARGET  The upper case build target of the view.
+	 *
+	 * @return  string  The generated statement.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.JavaScriptFile instead.
+	 */
 	public function setJavaScriptFile(&$view, $TARGET)
 	{
-		if ($view['settings']->add_javascript_file == 1
-			&& StringHelper::check(
-				$view['settings']->javascript_file
-			))
-		{
-			// get dates
-			$created  = CFactory::_('Model.Createdate')->get($view);
-			$modified = CFactory::_('Model.Modifieddate')->get($view);
-			// add file to view
-			$target = array(CFactory::_('Config')->build_target => $view['settings']->code);
-			$config = array(Placefix::_h('CREATIONDATE')                          => $created,
-				Placefix::_h('BUILDDATE') => $modified,
-				Placefix::_h('VERSION')                          => $view['settings']->version);
-			CFactory::_('Utilities.Structure')->build($target, 'javascript_file', false, $config);
-			// set path
-			if ('site' === CFactory::_('Config')->build_target)
-			{
-				$path = '/components/com_' . CFactory::_('Config')->component_code_name
-					. '/assets/js/' . $view['settings']->code . '.js';
-			}
-			else
-			{
-				$path = '/administrator/components/com_'
-					. CFactory::_('Config')->component_code_name . '/assets/js/'
-					. $view['settings']->code . '.js';
-			}
-			// add script to file
-			CFactory::_('Compiler.Builder.Content.Multi')->set($view['settings']->code . '|' . $TARGET
-				. '_JAVASCRIPT_FILE', CFactory::_('Placeholder')->update_(
-				$view['settings']->javascript_file
-			));
-
-			// add script to view
-			return PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add View JavaScript File" . PHP_EOL . Indent::_(2)
-				. CFactory::_('Library.IncludeHelper')->get($path);
-		}
-
-		return '';
+		return CFactory::_('Architecture.View.JavaScriptFile')->get($view, $TARGET);
 	}
 
 	/**
@@ -884,94 +763,19 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.View.GoogleChartLoader')->get($view);
 	}
 
+	/**
+	 * Set the libraries a view loads.
+	 *
+	 * @param   mixed  $view  The view definition, or the module asking for them.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.LibrariesLoader instead.
+	 */
 	public function setLibrariesLoader($view)
 	{
-		// check call sig
-		if (isset($view['settings']) && isset($view['settings']->code))
-		{
-			$code        = $view['settings']->code;
-			$view_active = true;
-		}
-		elseif (isset($view->code_name))
-		{
-			$code        = $view->code_name;
-			$view_active = false;
-		}
-		// reset bucket
-		$setter = '';
-		// always load these in
-		if ($view_active)
-		{
-			$setter .= PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Only load jQuery if needed. (default is true)";
-			$setter .= PHP_EOL . Indent::_(2) . "if (\$this->params->get('add_jquery_framework', 1) == 1)";
-			$setter .= PHP_EOL . Indent::_(2) . "{";
-			$setter .= PHP_EOL . Indent::_(3) . "Html::_('jquery.framework');";
-			$setter .= PHP_EOL . Indent::_(2) . "}";
-			$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Load the header checker class.";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) == 3)
-			{
-				if (CFactory::_('Config')->build_target === 'site')
-				{
-					$setter .= PHP_EOL . Indent::_(2)
-						. "require_once( JPATH_SITE . '/components/com_" . CFactory::_('Config')->component_code_name . "/helpers/headercheck.php' );";
-				}
-				else
-				{
-					$setter .= PHP_EOL . Indent::_(2)
-						. "require_once( JPATH_ADMINISTRATOR . '/components/com_" . CFactory::_('Config')->component_code_name . "/helpers/headercheck.php' );";
-				}
-				$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the header checker.";
-				$setter .= PHP_EOL . Indent::_(2) . "\$HeaderCheck = new "
-					. CFactory::_('Config')->component_code_name . "HeaderCheck();";
-			}
-			else
-			{
-				$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " Initialize the header checker.";
-				$setter .= PHP_EOL . Indent::_(2) . "\$HeaderCheck = new HeaderCheck();";
-			}
-		}
-		// check if this view should get libraries
-		if (($data = CFactory::_('Compiler.Builder.Library.Manager')->
-			get(CFactory::_('Config')->build_target . '.' . $code)) !== null)
-		{
-			foreach ($data as $id => $data_item)
-			{
-				// get the library
-				$library = CFactory::_('Registry')->get("builder.libraries.$id", null);
-				if (is_object($library) && isset($library->document)
-					&& StringHelper::check($library->document))
-				{
-					$setter .= PHP_EOL . PHP_EOL . CFactory::_('Placeholder')->update_(
-							str_replace(
-								[
-									'$document->',
-									'$this->document->'
-								],
-								'$this->getDocument()->',
-								(string) $library->document
-							)
-						);
-				}
-				elseif (is_object($library)
-					&& isset($library->how))
-				{
-					$setter .= CFactory::_('Library.Document')->get($id);
-				}
-			}
-		}
-		// convert back to $document if module call (oops :)
-		if (!$view_active)
-		{
-			return str_replace(['$this->getDocument()->', '$this->document->'], '$document->', $setter);
-		}
-
-		return $setter;
+		return CFactory::_('Architecture.View.LibrariesLoader')->get($view);
 	}
 
 	/**

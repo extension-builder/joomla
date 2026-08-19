@@ -262,6 +262,13 @@ final class InterfaceContractManifest
 			'implementation_hash' => '46cf3e681b936c25645d8cd10ded1db02b61d2d27119fda5bd7d1034459496ce',
 			'signature_hash' => '1d0c3d3aa4efe0a01c2deff1b3d698c52e9a48656b35d8f18b8f2c3fb2b9716d'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\LibrariesLoaderInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/LibrariesLoaderInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '48bef63ce9c7860637562dce61923636a2bf9fef1d84c24ac8ef3d00157d8bf8',
+			'signature_hash' => '0f86ec26fd3428227028ec8d9c724418cf76b4c42d09328fbe68e85052750ac1'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\DocumentInlineAssetsInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/DocumentInlineAssetsInterface.php',
 			'implementations' => 2,
