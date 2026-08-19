@@ -31,6 +31,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Files;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\File as CompilerFile;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Folder as CompilerFolder;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure as UtilityStructure;
@@ -190,6 +191,12 @@ final class StructureTest extends CompilerDomainTestCase
 				throw new RuntimeException('Unable to write the single-structure template fixture.');
 			}
 
+			// the folder utility seeds every directory it makes from this file
+			if (file_put_contents($template . '/index.html', '<html><body bgcolor="#FFFFFF"></body></html>') === false)
+			{
+				throw new RuntimeException('Unable to write the single-structure index fixture.');
+			}
+
 			$config = $this->compilerConfig([
 				'component_code_name' => 'example',
 				'joomla_version' => 6
@@ -243,6 +250,7 @@ final class StructureTest extends CompilerDomainTestCase
 				$counter,
 				$paths,
 				$files,
+				new CompilerFolder($counter, new CompilerFile($counter, $paths)),
 				$app
 			);
 
@@ -250,7 +258,12 @@ final class StructureTest extends CompilerDomainTestCase
 			$destination = $componentPath . '/admin/renamed.txt';
 			$this->assertFileExists($destination);
 			$this->assertSame('template-content', file_get_contents($destination));
-			$this->assertSame(1, $counter->file);
+			// the moved file, plus the index.html seeded into the directory
+			// the build had to create for it
+			$this->assertSame(2, $counter->file);
+
+			// a directory the build creates must not be left listable
+			$this->assertFileExists($componentPath . '/admin/index.html');
 			$this->assertSame('renamed.txt', $files->get('static')[0]['name']);
 			$this->assertSame($destination, $files->get('static')[0]['path']);
 			$this->assertContains('LICENSE.txt', $registry->get('files.not.new'));

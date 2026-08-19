@@ -12,6 +12,7 @@
 			"language": {
 				"en-GB": "en-GB"
 			},
+			"layouts": "layouts",
 			"presets": "presets",
 			"services": "services",
 			"src": {

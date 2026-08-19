@@ -298,7 +298,8 @@ class Component implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Content.One'),
 			$container->get('Utilities.Counter'),
 			$container->get('Utilities.Paths'),
-			$container->get('Utilities.Files')
+			$container->get('Utilities.Files'),
+			$container->get('Utilities.Folder')
 		);
 	}
 
@@ -341,4 +342,3 @@ class Component implements ServiceProviderInterface
 		return $container->get('Component.J' . $this->targetVersion . '.Settings');
 	}
 }
-
