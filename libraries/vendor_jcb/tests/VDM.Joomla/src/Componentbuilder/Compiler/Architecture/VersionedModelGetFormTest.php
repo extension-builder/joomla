@@ -111,6 +111,39 @@ final class VersionedModelGetFormTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * The record being saved decides the permissions, not the request.
+	 *
+	 * getForm() receives the data being saved, while the request can name a
+	 * different record through a_id. Keying the permission decision on the
+	 * request let a caller have the field guards evaluated against a record
+	 * they may edit while the values were written to another one.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('versions')]
+	public function testTheSavedRecordIdOutranksTheRequest(string $version, int $major): void
+	{
+		$code = $this->form($version);
+
+		$this->assertStringContainsString(
+			"if (is_array(\$data) && isset(\$data['id']) && (int) \$data['id'] > 0)",
+			$code
+		);
+		$this->assertStringContainsString("\$id = (int) \$data['id'];", $code);
+
+		// the request is only consulted when the data carries no record
+		$this->assertStringContainsString("elseif (\$jinput->get('a_id'))", $code);
+		$this->assertSame(1, substr_count($code, "\$jinput->get('a_id')"));
+
+		// the guarded decisions still key off that one resolved id
+		$this->assertStringContainsString("'com_demo.article.' . (int) \$id", $code);
+	}
+
+	/**
 	 * A field guarded on edit is unset when the user may not edit it.
 	 *
 	 * @return  void

@@ -150,8 +150,17 @@ class GetForm implements GetFormInterface
 		$getForm[] = PHP_EOL . Indent::_(2) . "//" . Line::_(
 				__LINE__,__CLASS__
 			)
+			. " The record being saved decides the permissions, so its id wins over the request.";
+		$getForm[] = Indent::_(2)
+			. "if (is_array(\$data) && isset(\$data['id']) && (int) \$data['id'] > 0)";
+		$getForm[] = Indent::_(2) . "{";
+		$getForm[] = Indent::_(3) . "\$id = (int) \$data['id'];";
+		$getForm[] = Indent::_(2) . "}";
+		$getForm[] = Indent::_(2) . "//" . Line::_(
+				__LINE__,__CLASS__
+			)
 			. " The front end calls this model and uses a_id to avoid id clashes so we need to check for that first.";
-		$getForm[] = Indent::_(2) . "if (\$jinput->get('a_id'))";
+		$getForm[] = Indent::_(2) . "elseif (\$jinput->get('a_id'))";
 		$getForm[] = Indent::_(2) . "{";
 		$getForm[] = Indent::_(3)
 			. "\$id = \$jinput->get('a_id', 0, 'INT');";
