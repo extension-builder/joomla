@@ -65,6 +65,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\PopulateState as Mod
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SortFields as ModelSortFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterFields as ModelFilterFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetItemMethod as ModelGetItemMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewTitle as ModelGenerateNewTitle;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewAlias as ModelGenerateNewAlias;
 
 
 /**
@@ -244,6 +246,12 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(ModelGetItemMethod::class, 'Architecture.Model.GetItemMethod')
 			->share('Architecture.Model.GetItemMethod', [$this, 'getModelGetItemMethod'], true);
+
+		$container->alias(ModelGenerateNewTitle::class, 'Architecture.Model.GenerateNewTitle')
+			->share('Architecture.Model.GenerateNewTitle', [$this, 'getModelGenerateNewTitle'], true);
+
+		$container->alias(ModelGenerateNewAlias::class, 'Architecture.Model.GenerateNewAlias')
+			->share('Architecture.Model.GenerateNewAlias', [$this, 'getModelGenerateNewAlias'], true);
 	}
 
 	/**
@@ -1247,6 +1255,41 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Compiler.Builder.Model.Expert.Field'),
 			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+		);
+	}
+
+	/**
+	 * Get The Model GenerateNewTitle Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelGenerateNewTitle
+	 * @since   6.1.7
+	 */
+	public function getModelGenerateNewTitle(Container $container): ModelGenerateNewTitle
+	{
+		return new ModelGenerateNewTitle(
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Title')
+		);
+	}
+
+	/**
+	 * Get The Model GenerateNewAlias Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelGenerateNewAlias
+	 * @since   6.1.7
+	 */
+	public function getModelGenerateNewAlias(Container $container): ModelGenerateNewAlias
+	{
+		return new ModelGenerateNewAlias(
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Title')
 		);
 	}
 

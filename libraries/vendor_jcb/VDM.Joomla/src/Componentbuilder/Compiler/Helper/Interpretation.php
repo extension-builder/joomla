@@ -34,7 +34,7 @@ use Joomla\CMS\Form\Form;
 
 /**
  * Interpretation class
- * 
+ *
  * @deprecated 3.3
  */
 class Interpretation extends Fields
@@ -42,6 +42,7 @@ class Interpretation extends Fields
 	/**
 	 * The Import & Export View
 	 *
+	 * @since 3.2.0
 	 * @var      array
 	 */
 	public $eximportView = [];
@@ -49,6 +50,7 @@ class Interpretation extends Fields
 	/**
 	 * The Import & Export Custom Script
 	 *
+	 * @since 3.2.0
 	 * @var      array
 	 */
 	public $importCustomScripts = [];
@@ -56,6 +58,7 @@ class Interpretation extends Fields
 	/**
 	 * The contributors
 	 *
+	 * @since 3.2.0
 	 * @var    string
 	 */
 	public $theContributors = '';
@@ -63,6 +66,7 @@ class Interpretation extends Fields
 	/**
 	 * The unistall script builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $uninstallScriptBuilder = [];
@@ -70,6 +74,7 @@ class Interpretation extends Fields
 	/**
 	 * The unistall script fields
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $uninstallScriptFields = [];
@@ -77,6 +82,7 @@ class Interpretation extends Fields
 	/**
 	 * The unistall script content
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $uninstallScriptContent = [];
@@ -84,6 +90,7 @@ class Interpretation extends Fields
 	/**
 	 * The last update url
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $lastupdateURL;
@@ -91,6 +98,7 @@ class Interpretation extends Fields
 	/**
 	 * The List Column Builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $listColnrBuilder = [];
@@ -98,6 +106,7 @@ class Interpretation extends Fields
 	/**
 	 * The customs field builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $customFieldBuilder = [];
@@ -105,6 +114,7 @@ class Interpretation extends Fields
 	/**
 	 * The category builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $buildCategories = [];
@@ -112,6 +122,7 @@ class Interpretation extends Fields
 	/**
 	 * The icon builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $iconBuilder = [];
@@ -119,6 +130,7 @@ class Interpretation extends Fields
 	/**
 	 * The validation fix builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $validationFixBuilder = [];
@@ -126,6 +138,7 @@ class Interpretation extends Fields
 	/**
 	 * The view script builder
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $viewScriptBuilder = [];
@@ -133,6 +146,7 @@ class Interpretation extends Fields
 	/**
 	 * The target relation control
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $targetRelationControl = [];
@@ -140,6 +154,7 @@ class Interpretation extends Fields
 	/**
 	 * The target control script checker
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $targetControlsScriptChecker = [];
@@ -147,6 +162,7 @@ class Interpretation extends Fields
 	/**
 	 * The router helper
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $setRouterHelpDone = [];
@@ -154,6 +170,7 @@ class Interpretation extends Fields
 	/**
 	 * The other where
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $otherWhere = [];
@@ -161,6 +178,7 @@ class Interpretation extends Fields
 	/**
 	 * The dashboard get custom data
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $DashboardGetCustomData = [];
@@ -168,6 +186,7 @@ class Interpretation extends Fields
 	/**
 	 * The custom admin added
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	public $customAdminAdded = [];
@@ -175,6 +194,7 @@ class Interpretation extends Fields
 	/**
 	 * Custom Admin View List Link
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	protected $customAdminViewListLink = [];
@@ -190,6 +210,7 @@ class Interpretation extends Fields
 	/**
 	 * load Tracker of fields to fix
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	protected $loadTracker = [];
@@ -197,6 +218,7 @@ class Interpretation extends Fields
 	/**
 	 * alignment names
 	 *
+	 * @since 3.2.0
 	 * @var    array
 	 */
 	protected $alignmentOptions
@@ -205,6 +227,8 @@ class Interpretation extends Fields
 
 	/**
 	 * Constructor
+	 *
+	 * @since 3.2.0
 	 */
 	public function __construct()
 	{
@@ -221,6 +245,8 @@ class Interpretation extends Fields
 	 * set the lock license
 	 *
 	 * @deprecated 6.1.7 Use the Architecture.Component.LicenseLock service.
+	 *
+	 * @since 3.2.0
 	 */
 	public function setLockLicense()
 	{
@@ -234,6 +260,8 @@ class Interpretation extends Fields
 	 * @param   string  $target
 	 *
 	 * @deprecated 6.1.7 Use the Architecture.Component.LicenseLock service.
+	 *
+	 * @since 3.2.0
 	 */
 	public function setLockLicensePer(&$view, $target)
 	{
@@ -247,6 +275,8 @@ class Interpretation extends Fields
 	 * @param   type  $thIIS
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function checkStatmentLicenseLocked($boolMethod, $thIIS = '$this')
 	{
@@ -261,6 +291,8 @@ class Interpretation extends Fields
 	 * @param   type  $globalbool
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function setBoolLicenseLock($boolMethod, $globalbool)
 	{
@@ -275,6 +307,8 @@ class Interpretation extends Fields
 	 * @param   type  $target
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function setHelperLicenseLock($_WHMCS, $target)
 	{
@@ -288,6 +322,8 @@ class Interpretation extends Fields
 	 * @param   type  $_WHMCS
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function setInitLicenseLock($_WHMCS)
 	{
@@ -299,6 +335,8 @@ class Interpretation extends Fields
 	 * set WHMCS Cryption
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function setWHMCSCryption()
 	{
@@ -309,6 +347,8 @@ class Interpretation extends Fields
 	 * set Get Crypt Key
 	 *
 	 * @return string
+	 *
+	 * @since 3.2.0
 	 */
 	public function setGetCryptKey()
 	{
@@ -317,6 +357,8 @@ class Interpretation extends Fields
 
 	/**
 	 * set Version Controller
+	 *
+	 * @since 3.2.0
 	 */
 	public function setVersionController()
 	{
@@ -333,6 +375,8 @@ class Interpretation extends Fields
 	 *
 	 * @param   array  $updateXML
 	 * @param   bool   $current_version
+	 *
+	 * @since 3.2.0
 	 */
 	public function setDynamicUpdateXMLSQL(&$updateXML, $current_version = false)
 	{
@@ -350,6 +394,8 @@ class Interpretation extends Fields
 	 * @param   array    $update
 	 * @param   array    $updateXML
 	 * @param   boolean  $addDynamicSQL
+	 *
+	 * @since 3.2.0
 	 */
 	public function setUpdateXMLSQL(&$update, &$updateXML, &$addDynamicSQL)
 	{
@@ -426,6 +472,8 @@ class Interpretation extends Fields
 	/**
 	 * @param   type  $view
 	 * @param   type  $type
+	 *
+	 * @since 3.2.0
 	 */
 	public function setUserPermissionCheckAccess($view, $type)
 	{
@@ -513,6 +561,7 @@ class Interpretation extends Fields
 	 *
 	 * @return  string The php to place in view.html.php
 	 *
+	 * @since 3.2.0
 	 */
 	public function setAdminViewDisplayMethod($nameListCode)
 	{
@@ -770,6 +819,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.CustomView.Form')->get($view, $gettype, $type);
 	}
 
+	/**
+	 * Set the submit button script of a custom view.
+	 *
+	 * @param   array $view  The view definition.
+	 *
+	 * @return  string  The generated script.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setCustomViewSubmitButtonScript(&$view)
 	{
 		if (StringHelper::check($view['settings']->default))
@@ -804,6 +862,15 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the php a custom view was drawn with.
+	 *
+	 * @param   array $view  The view definition.
+	 *
+	 * @return  string  The generated php.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setCustomViewCodeBody(&$view)
 	{
 		if ($view['settings']->add_php_view == 1)
@@ -854,6 +921,13 @@ class Interpretation extends Fields
 		CFactory::_('Architecture.CustomView.Layouts')->set();
 	}
 
+	/**
+	 * Get the names the compiler replaces in the generated code.
+	 *
+	 * @return  array  The names.
+	 *
+	 * @since   3.2.0
+	 */
 	public function getReplacementNames()
 	{
 		foreach (CFactory::_('Utilities.Files')->toArray() as $type => $files)
@@ -938,6 +1012,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Model.GetItemMethod')->get($view);
 	}
 
+	/**
+	 * Set the check box handling of the save method of a view.
+	 *
+	 * @param   array $view  The view definition.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setCheckboxSave(&$view)
 	{
 		$script = '';
@@ -975,6 +1058,15 @@ class Interpretation extends Fields
 		return CFactory::_('Architecture.Model.ItemSave')->get($view);
 	}
 
+	/**
+	 * Set the constructor of the table class of a view.
+	 *
+	 * @param   array  $view  The view definition.
+	 *
+	 * @return  string  The generated constructor.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJtableConstructor(&$view)
 	{
 		// reset
@@ -1003,6 +1095,15 @@ class Interpretation extends Fields
 		return $oserver;
 	}
 
+	/**
+	 * Set the alias and category handling of the table class of a view.
+	 *
+	 * @param   array $view  The view definition.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setJtableAliasCategory(&$view)
 	{
 		// only add Observers if both title, alias and category is available in view
@@ -1038,6 +1139,13 @@ class Interpretation extends Fields
 		return $script;
 	}
 
+	/**
+	 * Set the post install script of the component.
+	 *
+	 * @return  string  The generated script.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setPostInstallScript()
 	{
 		// reset script
@@ -1079,6 +1187,13 @@ class Interpretation extends Fields
 			. " noting to install.";
 	}
 
+	/**
+	 * Set the Joomla 3 post install script of the component.
+	 *
+	 * @return  string  The generated script.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setPostInstallScriptJ3()
 	{
 		// reset script
@@ -1171,6 +1286,13 @@ class Interpretation extends Fields
 		return $script;
 	}
 
+	/**
+	 * Set the post install script of the component for targets after Joomla 3.
+	 *
+	 * @return  string  The generated script.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setPostInstallScriptJ4()
 	{
 		// reset script
@@ -1205,6 +1327,13 @@ class Interpretation extends Fields
 		return $script;
 	}
 
+	/**
+	 * Set the post update script of the component.
+	 *
+	 * @return  string  The generated script.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setPostUpdateScript()
 	{
 		// reset script
@@ -1344,99 +1473,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Component.MoveFolderMethod instead.
 	 */
 	public function setMoveFolderMethod()
 	{
-		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
-		{
-			// reset script
-			$script   = [];
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-			{
-				$script[] = Indent::_(1) . "/**";
-				$script[] = Indent::_(1)
-					. " * Method to move folders into place.";
-				$script[] = Indent::_(1) . " *";
-				$script[] = Indent::_(1) . " * @param   InstallerAdapter  \$adapter  The adapter calling this method";
-				$script[] = Indent::_(1) . " *";
-				$script[] = Indent::_(1) . " * @return void";
-				$script[] = Indent::_(1) . " * @since 4.4.2";
-				$script[] = Indent::_(1) . " */";
-				$script[] = Indent::_(1)
-					. "protected function moveFolders(InstallerAdapter \$adapter): void";
-				$script[] = Indent::_(1) . "{";
-				$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " get the installation path";
-				$script[] = Indent::_(2) . "\$installer = \$adapter->getParent();";
-			}
-			else
-			{
-				$script[] = Indent::_(1) . "/**";
-				$script[] = Indent::_(1)
-					. " * Method to set/copy dynamic folders into place (use with caution)";
-				$script[] = Indent::_(1) . " *";
-				$script[] = Indent::_(1) . " * @return void";
-				$script[] = Indent::_(1) . " */";
-				$script[] = Indent::_(1)
-					. "protected function setDynamicF0ld3rs(\$app, \$parent)";
-				$script[] = Indent::_(1) . "{";
-				$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-					. " get the installation path";
-				$script[] = Indent::_(2) . "\$installer = \$parent->getParent();";
-			}
-
-			$script[] = Indent::_(2)
-				. "\$installPath = \$installer->getPath('source');";
-			$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " get all the folders";
-			$script[] = Indent::_(2)
-				. "\$folders = Folder::folders(\$installPath);";
-			$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if we have folders we may want to copy";
-			$script[] = Indent::_(2)
-				. "\$doNotCopy = ['media','admin','site']; // Joomla already deals with these";
-			$script[] = Indent::_(2) . "if (count((array) \$folders) > 1)";
-			$script[] = Indent::_(2) . "{";
-			$script[] = Indent::_(3) . "foreach (\$folders as \$folder)";
-			$script[] = Indent::_(3) . "{";
-			$script[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " Only copy if not a standard folders";
-			$script[] = Indent::_(4) . "if (!in_array(\$folder, \$doNotCopy))";
-			$script[] = Indent::_(4) . "{";
-			$script[] = Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " set the source path";
-			$script[] = Indent::_(5) . "\$src = \$installPath.'/'.\$folder;";
-			$script[] = Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " set the destination path";
-			$script[] = Indent::_(5) . "\$dest = JPATH_ROOT.'/'.\$folder;";
-			$script[] = Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " now try to copy the folder";
-			$script[] = Indent::_(5)
-				. "if (!Folder::copy(\$src, \$dest, '', true))";
-			$script[] = Indent::_(5) . "{";
-
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-			{
-				$script[] = Indent::_(6)
-				. "\$this->app->enqueueMessage('Could not copy '.\$folder.' folder into place, please make sure destination is writable!', 'error');";
-			}
-			else
-			{
-				$script[] = Indent::_(6)
-					. "\$app->enqueueMessage('Could not copy '.\$folder.' folder into place, please make sure destination is writable!', 'error');";
-			}
-
-			$script[] = Indent::_(5) . "}";
-			$script[] = Indent::_(4) . "}";
-			$script[] = Indent::_(3) . "}";
-			$script[] = Indent::_(2) . "}";
-			$script[] = Indent::_(1) . "}";
-
-			// done
-			return PHP_EOL . PHP_EOL . implode(PHP_EOL, $script);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Component.MoveFolderMethod')->get();
 	}
 
 	/**
@@ -1594,211 +1635,33 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the generated model's title generator.
+	 * Set the generate new title method of an admin model.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameSingleCode  The single view name.
 	 *
-	 * @return  string
+	 * @return  string  The generated method.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.GenerateNewTitle instead.
 	 */
 	public function setGenerateNewTitle($nameSingleCode)
 	{
-		// if category is added to this view then do nothing
-		if (CFactory::_('Compiler.Builder.Alias')->exists($nameSingleCode)
-			&& (CFactory::_('Compiler.Builder.Title')->exists($nameSingleCode)
-				|| CFactory::_('Compiler.Builder.Custom.Alias')->exists($nameSingleCode)))
-		{
-			// get component name
-			$Component = CFactory::_('Compiler.Builder.Content.One')->get('Component');
-			// rest the new function
-			$newFunction   = [];
-			$newFunction[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$newFunction[] = Indent::_(1)
-				. " * Method to change the title/s & alias.";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1)
-				. " * @param   string         \$alias        The alias.";
-			$newFunction[] = Indent::_(1)
-				. " * @param   string/array   \$title        The title.";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1)
-				. " * @return	array/string  Contains the modified title/s and/or alias.";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1) . " */";
-			$newFunction[] = Indent::_(1)
-				. "protected function _generateNewTitle(\$alias, \$title = null)";
-			$newFunction[] = Indent::_(1) . "{";
-			$newFunction[] = PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Alter the title/s & alias";
-			$newFunction[] = Indent::_(2) . "\$table = \$this->getTable();";
-			$newFunction[] = PHP_EOL . Indent::_(2)
-				. "while (\$table->load(['alias' => \$alias]))";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Check if this is an array of titles";
-			$newFunction[] = Indent::_(3) . "if ("
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$title))";
-			$newFunction[] = Indent::_(3) . "{";
-			$newFunction[] = Indent::_(4)
-				. "foreach(\$title as \$nr => &\$_title)";
-			$newFunction[] = Indent::_(4) . "{";
-			$newFunction[] = Indent::_(5)
-				. "\$_title = StringHelper::increment(\$_title);";
-			$newFunction[] = Indent::_(4) . "}";
-			$newFunction[] = Indent::_(3) . "}";
-			$newFunction[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " Make sure we have a title";
-			$newFunction[] = Indent::_(3) . "elseif (\$title)";
-			$newFunction[] = Indent::_(3) . "{";
-			$newFunction[] = Indent::_(4)
-				. "\$title = StringHelper::increment(\$title);";
-			$newFunction[] = Indent::_(3) . "}";
-			$newFunction[] = Indent::_(3)
-				. "\$alias = StringHelper::increment(\$alias, 'dash');";
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Check if this is an array of titles";
-			$newFunction[] = Indent::_(2) . "if ("
-				. "Super_" . "__0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check(\$title))";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3) . "\$title[] = \$alias;";
-			$newFunction[] = Indent::_(3) . "return \$title;";
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Make sure we have a title";
-			$newFunction[] = Indent::_(2) . "elseif (\$title)";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3) . "return array(\$title, \$alias);";
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " We only had an alias";
-			$newFunction[] = Indent::_(2) . "return \$alias;";
-			$newFunction[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $newFunction);
-		}
-		elseif (CFactory::_('Compiler.Builder.Title')->exists($nameSingleCode))
-		{
-			$newFunction   = [];
-			$newFunction[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$newFunction[] = Indent::_(1) . " * Method to change the title";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1)
-				. " * @param   string   \$title   The title.";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1)
-				. " * @return	array  Contains the modified title and alias.";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1) . " */";
-			$newFunction[] = Indent::_(1)
-				. "protected function _generateNewTitle(\$title)";
-			$newFunction[] = Indent::_(1) . "{";
-			$newFunction[] = PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Alter the title";
-			$newFunction[] = Indent::_(2) . "\$table = \$this->getTable();";
-			$newFunction[] = PHP_EOL . Indent::_(2)
-				. "while (\$table->load(['title' => \$title]))";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3)
-				. "\$title = StringHelper::increment(\$title);";
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = PHP_EOL . Indent::_(2) . "return \$title;";
-			$newFunction[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $newFunction);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Model.GenerateNewTitle')->get($nameSingleCode);
 	}
 
 	/**
-	 * Build the generated model's alias generator.
+	 * Set the generate new alias method of an admin model.
 	 *
-	 * @param   string  $nameSingleCode  The single view name
+	 * @param   string  $nameSingleCode  The single view name.
 	 *
-	 * @return  string
+	 * @return  string  The generated method.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.GenerateNewAlias instead.
 	 */
 	public function setGenerateNewAlias($nameSingleCode)
 	{
-		// make sure this view has an alias
-		if (CFactory::_('Compiler.Builder.Alias')->exists($nameSingleCode))
-		{
-			// set the title stuff
-			if (($customAliasBuilder = CFactory::_('Compiler.Builder.Custom.Alias')->get($nameSingleCode)) !== null)
-			{
-				$titles = array_values(
-					$customAliasBuilder
-				);
-			}
-			elseif (CFactory::_('Compiler.Builder.Title')->exists($nameSingleCode))
-			{
-				$titles = [CFactory::_('Compiler.Builder.Title')->get($nameSingleCode)];
-			}
-			// reset the bucket
-			$titleData = [];
-			// load the dynamic title builder
-			if (isset($titles) && ArrayHelper::check($titles))
-			{
-				foreach ($titles as $title)
-				{
-					$titleData[] = "\$this->" . $title;
-				}
-			}
-			else
-			{
-				$titleData
-					= array("'-'"); // just encase some mad man does not set a title/customAlias (we fall back on the date)
-			}
-			// rest the new function
-			$newFunction   = [];
-			$newFunction[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$newFunction[] = Indent::_(1)
-				. " * Generate a valid alias from title / date.";
-			$newFunction[] = Indent::_(1)
-				. " * Remains public to be able to check for duplicated alias before saving";
-			$newFunction[] = Indent::_(1) . " *";
-			$newFunction[] = Indent::_(1) . " * @return  string";
-			$newFunction[] = Indent::_(1) . " */";
-			$newFunction[] = Indent::_(1) . "public function generateAlias()";
-			$newFunction[] = Indent::_(1) . "{";
-			$newFunction[] = Indent::_(2) . "if (empty(\$this->alias))";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3) . "\$this->alias = " . implode(
-					".' '.", $titleData
-				) . ';';
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = PHP_EOL . Indent::_(2)
-				. "\$this->alias = ApplicationHelper::stringURLSafe(\$this->alias);";
-			$newFunction[] = PHP_EOL . Indent::_(2)
-				. "if (trim(str_replace('-', '', \$this->alias)) == '')";
-			$newFunction[] = Indent::_(2) . "{";
-			$newFunction[] = Indent::_(3)
-				. "\$this->alias = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDate()->format('Y-m-d-H-i-s');";
-			$newFunction[] = Indent::_(2) . "}";
-			$newFunction[] = PHP_EOL . Indent::_(2) . "return \$this->alias;";
-			$newFunction[] = Indent::_(1) . "}";
-
-			return implode(PHP_EOL, $newFunction);
-		}
-		// rest the new function
-		$newFunction   = [];
-		$newFunction[] = PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-		$newFunction[] = Indent::_(1)
-			. " * This view does not actually have an alias";
-		$newFunction[] = Indent::_(1) . " *";
-		$newFunction[] = Indent::_(1) . " * @return  bool";
-		$newFunction[] = Indent::_(1) . " */";
-		$newFunction[] = Indent::_(1) . "public function generateAlias()";
-		$newFunction[] = Indent::_(1) . "{";
-		$newFunction[] = Indent::_(2) . "return false;";
-		$newFunction[] = Indent::_(1) . "}";
-
-		return implode(PHP_EOL, $newFunction);
+		return CFactory::_('Architecture.Model.GenerateNewAlias')->get($nameSingleCode);
 	}
 
 	/**
@@ -1843,212 +1706,46 @@ class Interpretation extends Fields
 	}
 
 	/**
-	 * Build the site language files of the component.
+	 * Register every language string the site side needs.
 	 *
-	 * @param   string  $componentName  The component code name
+	 * @param   string  $componentName  The component name.
 	 *
 	 * @return  bool
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Language.Site instead.
 	 */
 	public function setLangSite(string $componentName): bool
 	{
-		// Trigger Event: jcb_ce_onBeforeBuildSiteLang
-		CFactory::_('Event')->trigger(
-			'jcb_ce_onBeforeBuildSiteLang'
-		);
-
-		// add final list of needed lang strings
-		CFactory::_('Language')->set('site', CFactory::_('Config')->lang_prefix, $componentName);
-		// some more defaults
-		CFactory::_('Language')->set('site', 'JTOOLBAR_APPLY', "Save");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_SAVE_AS_COPY', "Save as Copy");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_SAVE', "Save & Close");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_SAVE_AND_NEW', "Save & New");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_CANCEL', "Cancel");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_CLOSE', "Close");
-		CFactory::_('Language')->set('site', 'JTOOLBAR_HELP', "Help");
-		CFactory::_('Language')->set('site', 'JGLOBAL_FIELD_ID_LABEL', "ID");
-		CFactory::_('Language')->set(
-			'site', 'JGLOBAL_FIELD_ID_DESC', "Record number in the database."
-		);
-		CFactory::_('Language')->set(
-			'site', 'JGLOBAL_FIELD_MODIFIED_LABEL', "Modified Date"
-		);
-		CFactory::_('Language')->set(
-			'site', 'COM_CONTENT_FIELD_MODIFIED_DESC',
-			"The last date this item was modified."
-		);
-		CFactory::_('Language')->set(
-			'site', 'JGLOBAL_FIELD_MODIFIED_BY_LABEL', "Modified By"
-		);
-		CFactory::_('Language')->set(
-			'site', 'JGLOBAL_FIELD_MODIFIED_BY_DESC',
-			"The user who did the last modification."
-		);
-		CFactory::_('Language')->set('site', CFactory::_('Config')->lang_prefix . '_NEW', "New");
-		CFactory::_('Language')->set(
-			'site', CFactory::_('Config')->lang_prefix . '_CREATE_NEW_S', "Create New %s"
-		);
-		CFactory::_('Language')->set('site', CFactory::_('Config')->lang_prefix . '_EDIT_S', "Edit %s");
-		CFactory::_('Language')->set(
-			'site', CFactory::_('Config')->lang_prefix . '_NO_ACCESS_GRANTED',
-			"No Access Granted!"
-		);
-		CFactory::_('Language')->set(
-			'site', CFactory::_('Config')->lang_prefix . '_NOT_FOUND_OR_ACCESS_DENIED',
-			"Not found or access denied!"
-		);
-
-		// check if the both array is set
-		if (CFactory::_('Language')->exist('both'))
-		{
-			foreach (CFactory::_('Language')->getTarget('both') as $keylang => $langval)
-			{
-				CFactory::_('Language')->set('site', $keylang, $langval);
-			}
-		}
-
-		// check if the both site array is set
-		if (CFactory::_('Language')->exist('bothsite'))
-		{
-			foreach (CFactory::_('Language')->getTarget('bothsite') as $keylang => $langval)
-			{
-				CFactory::_('Language')->set('site', $keylang, $langval);
-			}
-		}
-
-		if (CFactory::_('Language')->exist('site'))
-		{
-			// Trigger Event: jcb_ce_onAfterBuildSiteLang
-			CFactory::_('Event')->trigger(
-				'jcb_ce_onAfterBuildSiteLang'
-			);
-
-			// Get the site language content
-			$langContent = CFactory::_('Language')->getTarget('site');
-			// sort the strings
-			ksort($langContent);
-			// load to global languages
-			$langTag = CFactory::_('Config')->get('lang_tag', 'en-GB');
-			CFactory::_('Compiler.Builder.Languages')->set(
-				"components.{$langTag}.site",
-				$langContent
-			);
-			// remove tmp array
-			CFactory::_('Language')->setTarget('site', null);
-
-			return true;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Language.Site')->get($componentName);
 	}
 
 	/**
-	 * Build the site system language files of the component.
+	 * Register every language string the site side needs before it is installed.
 	 *
 	 * @param   string  $componentName  The component name.
 	 *
-	 * @return  bool  True when a language target was built.
+	 * @return  bool
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Language.SiteSys instead.
 	 */
 	public function setLangSiteSys(string $componentName): bool
 	{
-		// Trigger Event: jcb_ce_onBeforeBuildSiteSysLang
-		CFactory::_('Event')->trigger(
-			'jcb_ce_onBeforeBuildSiteSysLang'
-		);
-
-		// add final list of needed lang strings
-		CFactory::_('Language')->set('sitesys', CFactory::_('Config')->lang_prefix, $componentName);
-		CFactory::_('Language')->set(
-			'sitesys', CFactory::_('Config')->lang_prefix . '_NO_ACCESS_GRANTED',
-			"No Access Granted!"
-		);
-		CFactory::_('Language')->set(
-			'sitesys', CFactory::_('Config')->lang_prefix . '_NOT_FOUND_OR_ACCESS_DENIED',
-			"Not found or access denied!"
-		);
-
-		// check if the both site array is set
-		if (CFactory::_('Language')->exist('bothsite'))
-		{
-			foreach (CFactory::_('Language')->getTarget('bothsite') as $keylang => $langval)
-			{
-				CFactory::_('Language')->set('sitesys', $keylang, $langval);
-			}
-		}
-		if (CFactory::_('Language')->exist('sitesys'))
-		{
-			// Trigger Event: jcb_ce_onAfterBuildSiteSysLang
-			CFactory::_('Event')->trigger(
-				'jcb_ce_onAfterBuildSiteSysLang'
-			);
-			// get site system language content
-			$langContent = CFactory::_('Language')->getTarget('sitesys');
-			// sort strings
-			ksort($langContent);
-			// load to global languages
-			$langTag = CFactory::_('Config')->get('lang_tag', 'en-GB');
-			CFactory::_('Compiler.Builder.Languages')->set(
-				"components.{$langTag}.sitesys",
-				$langContent
-			);
-			// remove tmp array
-			CFactory::_('Language')->setTarget('sitesys', null);
-
-			return true;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Language.SiteSys')->get($componentName);
 	}
 
 	/**
-	 * Build the admin system language files of the component.
+	 * Register every language string the administrator side needs before it is installed.
 	 *
-	 * @return  bool  True when a language target was built.
+	 * @return  bool
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Language.AdminSys instead.
 	 */
 	public function setLangAdminSys(): bool
 	{
-		// Trigger Event: jcb_ce_onBeforeBuildAdminSysLang
-		CFactory::_('Event')->trigger(
-			'jcb_ce_onBeforeBuildAdminSysLang'
-		);
-
-		// check if the both admin array is set
-		if (CFactory::_('Language')->exist('bothadmin'))
-		{
-			foreach (CFactory::_('Language')->getTarget('bothadmin') as $keylang => $langval)
-			{
-				CFactory::_('Language')->set('adminsys', $keylang, $langval);
-			}
-		}
-		if (CFactory::_('Language')->exist('adminsys'))
-		{
-			// Trigger Event: jcb_ce_onAfterBuildAdminSysLang
-			CFactory::_('Event')->trigger(
-				'jcb_ce_onAfterBuildAdminSysLang'
-			);
-			// get admin system langauge content
-			$langContent = CFactory::_('Language')->getTarget('adminsys');
-			// sort strings
-			ksort($langContent);
-			// load to global languages
-			$langTag = CFactory::_('Config')->get('lang_tag', 'en-GB');
-			CFactory::_('Compiler.Builder.Languages')->set(
-				"components.{$langTag}.adminsys",
-				$langContent
-			);
-			// remove tmp array
-			CFactory::_('Language')->setTarget('adminsys', null);
-
-			return true;
-		}
-
-		return false;
+		return CFactory::_('Architecture.Language.AdminSys')->get();
 	}
 
 	/**
@@ -3737,6 +3434,13 @@ class Interpretation extends Fields
 		);
 	}
 
+	/**
+	 * Set the access checks the dashboard icons are shown behind.
+	 *
+	 * @return  string  The generated checks.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setDashboardIconAccess()
 	{
 		return CFactory::_('Compiler.Builder.Permission.Dashboard')->build();
@@ -3757,6 +3461,13 @@ class Interpretation extends Fields
 			->get($this->customAdminAdded);
 	}
 
+	/**
+	 * Set the methods the dashboard model was built with.
+	 *
+	 * @return  string  The generated methods.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setDashboardModelMethods()
 	{
 		if (CFactory::_('Component')->isString('php_dashboard_methods'))
@@ -3779,6 +3490,13 @@ class Interpretation extends Fields
 		return '';
 	}
 
+	/**
+	 * Set the custom data the dashboard was built to show.
+	 *
+	 * @return  string  The generated statements.
+	 *
+	 * @since   3.2.0
+	 */
 	public function setDashboardGetCustomData()
 	{
 		if (isset($this->DashboardGetCustomData)
@@ -3915,6 +3633,17 @@ class Interpretation extends Fields
 		return $customMenu;
 	}
 
+	/**
+	 * Get every string that sits between two markers.
+	 *
+	 * @param   string $str  The string to read.
+	 * @param   string $start  The marker each one opens with.
+	 * @param   string $end  The marker each one closes with.
+	 *
+	 * @return  array  The strings.
+	 *
+	 * @since   3.2.0
+	 */
 	public function getInbetweenStrings($str, $start = '#' . '#' . '#', $end = '#' . '#' . '#')
 	{
 		$matches = [];
