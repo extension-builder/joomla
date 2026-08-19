@@ -126,6 +126,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument as Vi
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface as ViewAjaxTokenInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\AjaxToken as SharedViewAjaxToken;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\AjaxToken as J3ViewAjaxToken;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\SidebarFiltersInterface as AdminViewsSidebarFiltersInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\SidebarFilters as SharedAdminViewsSidebarFilters;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\SidebarFilters as J3AdminViewsSidebarFilters;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\BatchOptionsInterface as AdminViewsBatchOptionsInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\BatchOptions as SharedAdminViewsBatchOptions;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\BatchOptions as J3AdminViewsBatchOptions;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as SharedViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\DocumentMetadata as J3ViewDocumentMetadata;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface as MenuCustomViewInterface;
@@ -517,6 +523,24 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3ViewAjaxToken::class, 'Architecture.View.J3.AjaxToken')
 			->share('Architecture.View.J3.AjaxToken', [$this, 'getJ3ViewAjaxToken'], true);
+
+		$container->alias(AdminViewsSidebarFiltersInterface::class, 'Architecture.AdminViews.SidebarFilters')
+			->share('Architecture.AdminViews.SidebarFilters', [$this, 'getAdminViewsSidebarFilters'], true);
+
+		$container->alias(SharedAdminViewsSidebarFilters::class, 'Architecture.AdminViews.Shared.SidebarFilters')
+			->share('Architecture.AdminViews.Shared.SidebarFilters', [$this, 'getSharedAdminViewsSidebarFilters'], true);
+
+		$container->alias(J3AdminViewsSidebarFilters::class, 'Architecture.AdminViews.J3.SidebarFilters')
+			->share('Architecture.AdminViews.J3.SidebarFilters', [$this, 'getJ3AdminViewsSidebarFilters'], true);
+
+		$container->alias(AdminViewsBatchOptionsInterface::class, 'Architecture.AdminViews.BatchOptions')
+			->share('Architecture.AdminViews.BatchOptions', [$this, 'getAdminViewsBatchOptions'], true);
+
+		$container->alias(SharedAdminViewsBatchOptions::class, 'Architecture.AdminViews.Shared.BatchOptions')
+			->share('Architecture.AdminViews.Shared.BatchOptions', [$this, 'getSharedAdminViewsBatchOptions'], true);
+
+		$container->alias(J3AdminViewsBatchOptions::class, 'Architecture.AdminViews.J3.BatchOptions')
+			->share('Architecture.AdminViews.J3.BatchOptions', [$this, 'getJ3AdminViewsBatchOptions'], true);
 	}
 
 	/**
@@ -2825,6 +2849,121 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new J3ViewAjaxToken(
 			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The AdminViews SidebarFilters Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsSidebarFiltersInterface
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsSidebarFilters(Container $container): AdminViewsSidebarFiltersInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 puts the filters of a list view in a sidebar
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.SidebarFilters');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.SidebarFilters');
+	}
+
+	/**
+	 * Get The AdminViews SidebarFilters Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsSidebarFilters
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsSidebarFilters(Container $container): SharedAdminViewsSidebarFilters
+	{
+		return new SharedAdminViewsSidebarFilters();
+	}
+
+	/**
+	 * Get The Joomla 3 AdminViews SidebarFilters Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsSidebarFilters
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsSidebarFilters(Container $container): J3AdminViewsSidebarFilters
+	{
+		return new J3AdminViewsSidebarFilters(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Category')
+		);
+	}
+
+	/**
+	 * Get The AdminViews BatchOptions Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsBatchOptionsInterface
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsBatchOptions(Container $container): AdminViewsBatchOptionsInterface
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only Joomla 3 builds the batch options of a list view from a helper
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.BatchOptions');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.BatchOptions');
+	}
+
+	/**
+	 * Get The AdminViews BatchOptions Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsBatchOptions
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsBatchOptions(Container $container): SharedAdminViewsBatchOptions
+	{
+		return new SharedAdminViewsBatchOptions();
+	}
+
+	/**
+	 * Get The Joomla 3 AdminViews BatchOptions Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsBatchOptions
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsBatchOptions(Container $container): J3AdminViewsBatchOptions
+	{
+		return new J3AdminViewsBatchOptions(
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Component')
 		);
 	}
 }

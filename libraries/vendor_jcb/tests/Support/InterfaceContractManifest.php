@@ -157,6 +157,20 @@ final class InterfaceContractManifest
 			'implementation_hash' => '0ae5cf031d2afdfcf6dbd4ba369039b00ab78a109aeb926a1d10de78a5ea39e5',
 			'signature_hash' => '40572d240d841a80e907a386ff0be2cb0734fc7895eb1a8d8fd8c135d4b72db5'
 		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\SidebarFiltersInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/SidebarFiltersInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '79085b1eeb47886a96df4bdffa7211d2cc97d66e37a576ad4cdd29869f70e896',
+			'signature_hash' => '4ece92006a63ea85530b4833a45f8ea911c1ae69c5e7fef192f124d96a987354'
+		],
+		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\BatchOptionsInterface' => [
+			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/BatchOptionsInterface.php',
+			'implementations' => 2,
+			'concrete' => 2,
+			'implementation_hash' => '916edfa0367b131fefc1c44b0c0f2a0faee666c05d5cca0ee846ce8b15dd4ac4',
+			'signature_hash' => '4ece92006a63ea85530b4833a45f8ea911c1ae69c5e7fef192f124d96a987354'
+		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\AjaxCasesInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AjaxCasesInterface.php',
 			'implementations' => 2,
