@@ -120,7 +120,7 @@ final class ItemCode
 			$doNotEscape
 			&& $this->shouldNotEscapeField($nameListCode, $item['code'])
 		) {
-			return $this->getRawItemCode($item['code']);
+			return $this->getSanitizedItemCode($item['code'], $classPointer);
 		}
 
 		return $this->getEscapedItemCode($item['code'], $classPointer);
@@ -271,16 +271,23 @@ final class ItemCode
 	}
 
 	/**
-	 * Get the raw item code string.
+	 * Get the sanitised item code string.
 	 *
-	 * @param   string  $code  The field code.
+	 * A field that opts out of escaping holds markup that has to render, so
+	 * the value cannot be encoded. That is not a reason to emit it raw: any
+	 * content author would then be able to place a script into the list. The
+	 * markup is kept and only what can execute is removed.
+	 *
+	 * @param   string  $code          The field code.
+	 * @param   string  $classPointer  The class pointer.
 	 *
 	 * @return  string
 	 * @since   5.1.5
+	 * @since   6.1.7  Sanitises instead of emitting the value raw.
 	 */
-	protected function getRawItemCode(string $code): string
+	protected function getSanitizedItemCode(string $code, string $classPointer): string
 	{
-		return '$item->' . $code;
+		return $classPointer . 'sanitize($item->' . $code . ')';
 	}
 
 	/**
@@ -321,4 +328,3 @@ final class ItemCode
 			. 'loadUserById((int) ($item->' . $code . ' ?? 0))->name';
 	}
 }
-

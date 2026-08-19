@@ -221,8 +221,16 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 			$subject->get($selectionItem, 'articles', false)
 		);
 
-		$raw = $this->item('body');
-		$this->assertSame('$item->body', $subject->get($raw, 'articles', true));
+		// a field that opts out of escaping is sanitised, never emitted raw
+		$notEscaped = $this->item('body');
+		$this->assertSame(
+			'$this->sanitize($item->body)',
+			$subject->get($notEscaped, 'articles', true)
+		);
+		$this->assertSame(
+			'$displayData->sanitize($item->body)',
+			$subject->get($notEscaped, 'articles', true, '$displayData->')
+		);
 		$escaped = $this->item('title');
 		$this->assertSame('$this->escape($item->title)', $subject->get($escaped, 'articles', true));
 

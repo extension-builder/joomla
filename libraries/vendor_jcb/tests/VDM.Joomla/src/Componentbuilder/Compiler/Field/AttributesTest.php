@@ -14,6 +14,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Field;
 
 use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DoNotEscape;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ListFieldClass;
@@ -100,6 +101,70 @@ final class AttributesTest extends CompilerDomainTestCase
 		$this->assertSame('Article Title', $langLabel);
 		$this->assertSame('highlight', $listFieldClass->get('articles.title'));
 		$this->assertTrue($doNotEscape->get('articles.title'));
+	}
+
+	/**
+	 * Only an explicit false takes a field out of escaping.
+	 *
+	 * Any non-empty value used to opt the field out, so escape="true" turned
+	 * escaping off, which is the opposite of what it reads as.
+	 *
+	 * @param   string  $value     The escape attribute value.
+	 * @param   bool    $optedOut  Whether the field should skip escaping.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('escapeAttributeValues')]
+	public function testOnlyAnExplicitFalseOptsAFieldOutOfEscaping(string $value, bool $optedOut): void
+	{
+		$doNotEscape = new DoNotEscape();
+		$subject = new Attributes(
+			$this->compilerConfig(['lang_target' => 'admin']),
+			new Registry(),
+			new ListFieldClass(),
+			$doNotEscape,
+			new Placeholder($this->compilerConfig()),
+			$this->createStub(Customcode::class),
+			$this->inertCompilerCollaborator(Language::class),
+			new Groups($this->createStub(DatabaseInterface::class))
+		);
+		$field = [
+			'settings' => (object) [
+				'xml' => '<field name="title" type="text" label="Article Title" escape="' . $value . '" />',
+				'properties' => [
+					['name' => 'name', 'example' => 'title', 'translatable' => 0, 'mandatory' => 1],
+					['name' => 'type', 'example' => 'text', 'translatable' => 0, 'mandatory' => 1],
+					['name' => 'label', 'example' => 'Title', 'translatable' => 0, 'mandatory' => 1]
+				]
+			]
+		];
+		$multiple = false;
+		$langLabel = 'OLD_LABEL';
+
+		$subject->set($field, 2, 'title', 'text', $multiple, $langLabel, 'COM_DEMO_ARTICLE', 'articles', 'article', []);
+
+		$this->assertSame($optedOut, $doNotEscape->exists('articles.title'));
+	}
+
+	/**
+	 * Values an escape attribute can carry.
+	 *
+	 * @return  array<string, array{string,bool}>
+	 * @since   6.1.7
+	 */
+	public static function escapeAttributeValues(): array
+	{
+		return [
+			'false' => ['false', true],
+			'zero' => ['0', true],
+			'no' => ['no', true],
+			'off' => ['off', true],
+			'mixed case false' => ['False', true],
+			'true' => ['true', false],
+			'one' => ['1', false],
+			'yes' => ['yes', false],
+		];
 	}
 
 	/**
