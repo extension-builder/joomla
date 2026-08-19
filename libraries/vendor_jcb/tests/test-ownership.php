@@ -932,6 +932,34 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/MenuCustomMainMenuTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentInlineAssets.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentInlineAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/View/DocumentInlineAssets.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentInlineAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/DocumentInlineAssetsInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentInlineAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentCustomPHP.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/CustomCSS.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/GoogleChartLoader.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentAssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/FootableScriptsLoader.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentAssetsTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentMetadata.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDocumentMetadataTest.php'
