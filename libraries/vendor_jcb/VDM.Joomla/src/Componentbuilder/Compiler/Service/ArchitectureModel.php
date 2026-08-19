@@ -69,6 +69,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewTitle as 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewAlias as ModelGenerateNewAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix as ModelValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\UniqueFields as ModelUniqueFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CheckboxSave as ModelCheckboxSave;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Table\Constructor as TableConstructor;
 
 
 /**
@@ -233,6 +235,12 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3CheckInNow::class, 'Architecture.Model.J3.CheckInNow')
 			->share('Architecture.Model.J3.CheckInNow', [$this, 'getJ3CheckInNow'], true);
+
+		$container->alias(ModelCheckboxSave::class, 'Architecture.Model.CheckboxSave')
+			->share('Architecture.Model.CheckboxSave', [$this, 'getModelCheckboxSave'], true);
+
+		$container->alias(TableConstructor::class, 'Architecture.Table.Constructor')
+			->share('Architecture.Table.Constructor', [$this, 'getTableConstructor'], true);
 
 		$container->alias(ModelStoredId::class, 'Architecture.Model.StoredId')
 			->share('Architecture.Model.StoredId', [$this, 'getModelStoredId'], true);
@@ -1168,6 +1176,39 @@ class ArchitectureModel implements ServiceProviderInterface
 	{
 		return new J3CheckInNow();
 	}
+	/**
+	 * Get The Model CheckboxSave Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelCheckboxSave
+	 * @since   6.1.7
+	 */
+	public function getModelCheckboxSave(Container $container): ModelCheckboxSave
+	{
+		return new ModelCheckboxSave(
+			$container->get('Compiler.Builder.Check.Box')
+		);
+	}
+
+	/**
+	 * Get The Table Constructor Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  TableConstructor
+	 * @since   6.1.7
+	 */
+	public function getTableConstructor(Container $container): TableConstructor
+	{
+		return new TableConstructor(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Compiler.Builder.History'),
+			$container->get('Compiler.Builder.Category.Code')
+		);
+	}
+
 	/**
 	 * Get The Model StoredId Class.
 	 *

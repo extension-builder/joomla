@@ -20,11 +20,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Dashboard\View a
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Dashboard\View as J5View;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Dashboard\View as J4View;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Dashboard\View as J3View;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Dashboard\ModelMethods;
 
 
 /**
  * Architecture Dashboard Service Provider
- * 
+ *
  * @since 5.1.5
  */
 class ArchitectureDashboard implements ServiceProviderInterface
@@ -50,6 +51,9 @@ class ArchitectureDashboard implements ServiceProviderInterface
 		$container->alias(Icons::class, 'Architecture.Dashboard.Icons')
 			->share('Architecture.Dashboard.Icons', [$this, 'getIcons'], true);
 
+		$container->alias(ModelMethods::class, 'Architecture.Dashboard.ModelMethods')
+			->share('Architecture.Dashboard.ModelMethods', [$this, 'getModelMethods'], true);
+
 		$container->alias(ViewInterface::class, 'Architecture.Dashboard.View')
 			->share('Architecture.Dashboard.View', [$this, 'getViewInterface'], true);
 
@@ -64,6 +68,22 @@ class ArchitectureDashboard implements ServiceProviderInterface
 
 		$container->alias(J3View::class, 'Architecture.Dashboard.J3.View')
 			->share('Architecture.Dashboard.J3.View', [$this, 'getJ3View'], true);
+	}
+
+	/**
+	 * Get The Dashboard ModelMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelMethods
+	 * @since   6.1.7
+	 */
+	public function getModelMethods(Container $container): ModelMethods
+	{
+		return new ModelMethods(
+			$container->get('Component'),
+			$container->get('Placeholder')
+		);
 	}
 
 	/**

@@ -772,39 +772,12 @@ class Interpretation extends Fields
 	 * @return  string  The generated script.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.SubmitButtonScript instead.
 	 */
 	public function setCustomViewSubmitButtonScript(&$view)
 	{
-		if (StringHelper::check($view['settings']->default))
-		{
-			// add the script only if there is none set
-			if (strpos(
-					(string) $view['settings']->default,
-					'Joomla.submitbutton = function('
-				) === false)
-			{
-				$script   = [];
-				$script[] = PHP_EOL . "<script type=\"text/javascript\">";
-				$script[] = Indent::_(1)
-					. "Joomla.submitbutton = function(task) {";
-				$script[] = Indent::_(2) . "if (task === '"
-					. $view['settings']->code . ".back') {";
-				$script[] = Indent::_(3) . "parent.history.back();";
-				$script[] = Indent::_(3) . "return false;";
-				$script[] = Indent::_(2) . "} else {";
-				$script[] = Indent::_(3)
-					. "var form = document.getElementById('adminForm');";
-				$script[] = Indent::_(3) . "form.task.value = task;";
-				$script[] = Indent::_(3) . "form.submit();";
-				$script[] = Indent::_(2) . "}";
-				$script[] = Indent::_(1) . "}";
-				$script[] = "</script>";
-
-				return implode(PHP_EOL, $script);
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.CustomView.SubmitButtonScript')
+			->get($view);
 	}
 
 	/**
@@ -872,74 +845,11 @@ class Interpretation extends Fields
 	 * @return  array  The names.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Placeholder.ReplacementNames instead.
 	 */
 	public function getReplacementNames()
 	{
-		foreach (CFactory::_('Utilities.Files')->toArray() as $type => $files)
-		{
-			foreach ($files as $view => $file)
-			{
-				if (isset($file['path'])
-					&& ArrayHelper::check(
-						$file
-					))
-				{
-					if (@file_exists($file['path']))
-					{
-						$string            = FileHelper::getContent(
-							$file['path']
-						);
-						$buket['static'][] = $this->getInbetweenStrings(
-							$string
-						);
-					}
-				}
-				elseif (ArrayHelper::check($file))
-				{
-					foreach ($file as $nr => $doc)
-					{
-						if (ArrayHelper::check($doc))
-						{
-							if (@file_exists($doc['path']))
-							{
-								$string
-									= FileHelper::getContent(
-									$doc['path']
-								);
-								$buket[$view][] = $this->getInbetweenStrings(
-									$string
-								);
-							}
-						}
-					}
-				}
-			}
-		}
-		foreach ($buket as $type => $array)
-		{
-			foreach ($array as $replacments)
-			{
-				$replacments = array_unique($replacments);
-				foreach ($replacments as $replacment)
-				{
-					if ($type !== 'static')
-					{
-						$echos[$replacment] = "#" . "#" . "#" . $replacment
-							. "#" . "#" . "#<br />";
-					}
-					elseif ($type === 'static')
-					{
-						$echos[$replacment] = "#" . "#" . "#" . $replacment
-							. "#" . "#" . "#<br />";
-					}
-				}
-			}
-		}
-
-		foreach ($echos as $echo)
-		{
-			echo $echo . '<br />';
-		}
+		return CFactory::_('Placeholder.ReplacementNames')->get();
 	}
 
 	/**
@@ -965,27 +875,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.CheckboxSave instead.
 	 */
 	public function setCheckboxSave(&$view)
 	{
-		$script = '';
-		if (CFactory::_('Compiler.Builder.Check.Box')->exists($view))
-		{
-			foreach (CFactory::_('Compiler.Builder.Check.Box')->get($view) as $checkbox)
-			{
-				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-					. Line::_(__Line__, __Class__) . " Set the empty " . $checkbox
-					. " item to data";
-				$script .= PHP_EOL . Indent::_(2) . "if (!isset(\$data['"
-					. $checkbox . "']))";
-				$script .= PHP_EOL . Indent::_(2) . "{";
-				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $checkbox
-					. "'] = '';";
-				$script .= PHP_EOL . Indent::_(2) . "}";
-			}
-		}
-
-		return $script;
+		return CFactory::_('Architecture.Model.CheckboxSave')->get($view);
 	}
 
 	/**
@@ -1011,33 +905,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated constructor.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Table.Constructor instead.
 	 */
 	public function setJtableConstructor(&$view)
 	{
-		// reset
-		$oserver = "";
-		// set component name
-		$component = CFactory::_('Config')->component_code_name;
-		// add the tags observer
-		if (CFactory::_('Compiler.Builder.Tags')->exists($view))
-		{
-			$oserver .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__) . " Adding Tag Options";
-			$oserver .= PHP_EOL . Indent::_(2)
-				. "Joomla__"."_fe63add8_0a40_4b3d_b548_f735fa6072fb___Power::createObserver(\$this, array('typeAlias' => 'com_"
-				. $component . "." . $view . "'));";
-		}
-		// add the history/version observer
-		if (CFactory::_('Compiler.Builder.History')->exists($view))
-		{
-			$oserver .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
-				. Line::_(__Line__, __Class__) . " Adding History Options";
-			$oserver .= PHP_EOL . Indent::_(2)
-				. "Joomla__"."_9ac794c2_f96d_4522_8acf_b8d48c4f51c5___Power::createObserver(\$this, array('typeAlias' => 'com_"
-				. $component . "." . $view . "'));";
-		}
-
-		return $oserver;
+		return CFactory::_('Architecture.Table.Constructor')->get($view);
 	}
 
 	/**
@@ -1048,17 +920,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Table.Constructor instead.
 	 */
 	public function setJtableAliasCategory(&$view)
 	{
-		// only add Observers if both title, alias and category is available in view
-		$code = CFactory::_('Compiler.Builder.Category.Code')->get("{$view}.code");
-		if ($code !== null)
-		{
-			return ", '" . $code . "' => \$this->" . $code;
-		}
-
-		return '';
+		return CFactory::_('Architecture.Table.Constructor')->aliasCategory($view);
 	}
 
 	/**
@@ -1207,28 +1073,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Component.MoveFolderScript instead.
 	 */
 	public function setMoveFolderScript()
 	{
-		if (CFactory::_('Registry')->get('set_move_folders_install_script'))
-		{
-			$function = 'setDynamicF0ld3rs($app, $parent)';
-			if (CFactory::_('Config')->get('joomla_version', 3) != 3)
-			{
-				$function = 'moveFolders($adapter)';
-			}
-			// reset script
-			$script   = [];
-			$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " We check if we have dynamic folders to copy";
-			$script[] = Indent::_(2)
-				. "\$this->{$function};";
-
-			// done
-			return PHP_EOL . implode(PHP_EOL, $script);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Component.MoveFolderScript')->get();
 	}
 
 	/**
@@ -1985,33 +1834,19 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.AdminViews.EximportButtons instead.
 	 */
 	public function setExportButton($nameSingleCode, $nameListCode)
 	{
-		$button = '';
-		if (isset($this->eximportView[$nameListCode])
-			&& $this->eximportView[$nameListCode]
-			&& CFactory::_('Config')->get('joomla_version', 3) == 3) // needs fixing for Joomla 4 and above
+		// Infusion still sets these flags directly on this helper, so they are
+		// carried over to the registry the service reads.
+		foreach ($this->eximportView as $view => $active)
 		{
-			// main lang prefix
-			$langExport = CFactory::_('Config')->lang_prefix . '_'
-				. StringHelper::safe('Export Data', 'U');
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $langExport, 'Export Data');
-			$button   = [];
-			$button[] = PHP_EOL . PHP_EOL . Indent::_(3)
-				. "if (\$this->canDo->get('core.export') && \$this->canDo->get('"
-				. $nameSingleCode . ".export'))";
-			$button[] = Indent::_(3) . "{";
-			$button[] = Indent::_(4) . "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('"
-				. $nameListCode . ".exportData', 'download', '', '"
-				. $langExport . "', true);";
-			$button[] = Indent::_(3) . "}";
-
-			return implode(PHP_EOL, $button);
+			CFactory::_('Compiler.Builder.Eximport.View')->set($view, $active);
 		}
 
-		return $button;
+		return CFactory::_('Architecture.AdminViews.EximportButtons')
+			->export($nameSingleCode, $nameListCode);
 	}
 
 	/**
@@ -2023,34 +1858,19 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.AdminViews.EximportButtons instead.
 	 */
 	public function setImportButton($nameSingleCode, $nameListCode)
 	{
-		$button = '';
-		if (isset($this->eximportView[$nameListCode])
-			&& $this->eximportView[$nameListCode]
-			&& CFactory::_('Config')->get('joomla_version', 3) == 3) // needs fixing for Joomla 4 and above
+		// Infusion still sets these flags directly on this helper, so they are
+		// carried over to the registry the service reads.
+		foreach ($this->eximportView as $view => $active)
 		{
-			// main lang prefix
-			$langImport = CFactory::_('Config')->lang_prefix . '_'
-				. StringHelper::safe('Import Data', 'U');
-			// add to lang array
-			CFactory::_('Language')->set(CFactory::_('Config')->lang_target, $langImport, 'Import Data');
-			$button   = [];
-			$button[] = PHP_EOL . PHP_EOL . Indent::_(2)
-				. "if (\$this->canDo->get('core.import') && \$this->canDo->get('"
-				. $nameSingleCode . ".import'))";
-			$button[] = Indent::_(2) . "{";
-			$button[] = Indent::_(3) . "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('"
-				. $nameListCode . ".importData', 'upload', '', '"
-				. $langImport
-				. "', false);";
-			$button[] = Indent::_(2) . "}";
-
-			return implode(PHP_EOL, $button);
+			CFactory::_('Compiler.Builder.Eximport.View')->set($view, $active);
 		}
 
-		return $button;
+		return CFactory::_('Architecture.AdminViews.EximportButtons')
+			->import($nameSingleCode, $nameListCode);
 	}
 
 	/**
@@ -2353,27 +2173,12 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Field.ClearValueScript instead.
 	 */
 	public function clearValueScript($type, $name, $unique)
 	{
-		$clear   = '';
-		$isArray = false;
-		$keyName = $name . '_' . $unique;
-		if ($type === 'text' || $type === 'password' || $type === 'textarea')
-		{
-			$clear = "jQuery('#jform_" . $name . "').value = '';";
-		}
-		elseif ($type === 'radio')
-		{
-			$clear = "jQuery('#jform_" . $name . "').checked = false;";
-		}
-		elseif ($type === 'checkboxes' || $type === 'checkbox'
-			|| $type === 'checkbox')
-		{
-			$clear = "jQuery('#jform_" . $name . "').selectedIndex = -1;";
-		}
-
-		return $clear;
+		return CFactory::_('Architecture.Field.ClearValueScript')
+			->get($type, $name, $unique);
 	}
 
 	/**
@@ -2521,18 +2326,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.View.Jquery instead.
 	 */
 	public function setJquery(&$view)
 	{
-		$addJQuery = '';
-		if (true) // TODO we just add it everywhere for now.
-		{
-			$addJQuery .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " Load jQuery";
-			$addJQuery .= PHP_EOL . Indent::_(2) . "Html::_('jquery.framework');";
-		}
-
-		return $addJQuery;
+		return CFactory::_('Architecture.View.Jquery')->get($view);
 	}
 
 	/**
@@ -2938,27 +2736,17 @@ class Interpretation extends Fields
 	 * @return  string  The generated methods.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Dashboard.ModelMethods instead.
 	 */
 	public function setDashboardModelMethods()
 	{
-		if (CFactory::_('Component')->isString('php_dashboard_methods'))
-		{
-			// get hte value
-			$php_dashboard_methods = CFactory::_('Component')->get('php_dashboard_methods');
-			// get all the mothods that should load date to the view
-			$this->DashboardGetCustomData
-				= GetHelper::allBetween(
-				$php_dashboard_methods,
-				'public function get', '()'
-			);
+		$methods = CFactory::_('Architecture.Dashboard.ModelMethods')->get();
 
-			// return the methods
-			return PHP_EOL . PHP_EOL . CFactory::_('Placeholder')->update_(
-					$php_dashboard_methods
-				);
-		}
+		// the method names this helper still keeps for anything reading them
+		$this->DashboardGetCustomData = CFactory::_('Architecture.Dashboard.ModelMethods')
+			->names();
 
-		return '';
+		return $methods;
 	}
 
 	/**
@@ -2967,31 +2755,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated statements.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Dashboard.ModelMethods instead.
 	 */
 	public function setDashboardGetCustomData()
 	{
-		if (isset($this->DashboardGetCustomData)
-			&& ArrayHelper::check(
-				$this->DashboardGetCustomData
-			))
-		{
-			// gets array reset
-			$gets = [];
-			// set dashboard gets
-			foreach ($this->DashboardGetCustomData as $get)
-			{
-				$string = StringHelper::safe($get);
-				$gets[] = "\$this->" . $string . " = \$this->get('" . $get
-					. "');";
-			}
-
-			// return the gets
-			return PHP_EOL . Indent::_(2) . implode(
-					PHP_EOL . Indent::_(2), $gets
-				);
-		}
-
-		return '';
+		return CFactory::_('Architecture.Dashboard.ModelMethods')->customData();
 	}
 
 	/**
@@ -3114,13 +2882,11 @@ class Interpretation extends Fields
 	 * @return  array  The strings.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Placeholder.ReplacementNames instead.
 	 */
 	public function getInbetweenStrings($str, $start = '#' . '#' . '#', $end = '#' . '#' . '#')
 	{
-		$matches = [];
-		$regex   = "/$start([a-zA-Z0-9_]*)$end/";
-		preg_match_all($regex, (string) $str, $matches);
-
-		return $matches[1];
+		return CFactory::_('Placeholder.ReplacementNames')
+			->inbetween($str, $start, $end);
 	}
 }

@@ -1868,6 +1868,58 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EximportButtons.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminViews/EximportButtons.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/SubmitButtonScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Field/ClearValueScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/CheckboxSave.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Table/Constructor.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/Jquery.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewPiecesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/MoveFolderScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/MoveFolderScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Component/MoveFolderScript.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/MoveFolderScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Dashboard/ModelMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Dashboard/ModelMethodsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Placeholder/ReplacementNames.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Placeholder/ReplacementNamesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/EximportButtonsInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Component/MoveFolderScriptInterface.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/InterfaceConformanceTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'

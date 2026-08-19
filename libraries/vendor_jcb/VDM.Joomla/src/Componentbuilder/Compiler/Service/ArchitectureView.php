@@ -145,6 +145,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as SharedM
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomView as J3MenuCustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo as AdminViewsCanDo;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\SetAccessControl as FieldSetAccessControl;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\SubmitButtonScript as CustomViewSubmitButtonScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\ClearValueScript as FieldClearValueScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as ViewJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\EximportButtonsInterface as AdminViewsEximportButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EximportButtons as SharedAdminViewsEximportButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\EximportButtons as J3AdminViewsEximportButtons;
 
 
 /**
@@ -558,6 +564,24 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(CustomViewLayouts::class, 'Architecture.CustomView.Layouts')
 			->share('Architecture.CustomView.Layouts', [$this, 'getCustomViewLayouts'], true);
+
+		$container->alias(CustomViewSubmitButtonScript::class, 'Architecture.CustomView.SubmitButtonScript')
+			->share('Architecture.CustomView.SubmitButtonScript', [$this, 'getCustomViewSubmitButtonScript'], true);
+
+		$container->alias(FieldClearValueScript::class, 'Architecture.Field.ClearValueScript')
+			->share('Architecture.Field.ClearValueScript', [$this, 'getFieldClearValueScript'], true);
+
+		$container->alias(ViewJquery::class, 'Architecture.View.Jquery')
+			->share('Architecture.View.Jquery', [$this, 'getViewJquery'], true);
+
+		$container->alias(AdminViewsEximportButtons::class, 'Architecture.AdminViews.EximportButtons')
+			->share('Architecture.AdminViews.EximportButtons', [$this, 'getAdminViewsEximportButtons'], true);
+
+		$container->alias(SharedAdminViewsEximportButtons::class, 'Architecture.AdminViews.Shared.EximportButtons')
+			->share('Architecture.AdminViews.Shared.EximportButtons', [$this, 'getSharedAdminViewsEximportButtons'], true);
+
+		$container->alias(J3AdminViewsEximportButtons::class, 'Architecture.AdminViews.J3.EximportButtons')
+			->share('Architecture.AdminViews.J3.EximportButtons', [$this, 'getJ3AdminViewsEximportButtons'], true);
 
 		$container->alias(CustomViewFormInterface::class, 'Architecture.CustomView.Form')
 			->share('Architecture.CustomView.Form', [$this, 'getCustomViewForm'], true);
@@ -3054,6 +3078,99 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Layout.Data'),
 			$container->get('Utilities.Structure'),
 			$container->get('Header')
+		);
+	}
+
+	/**
+	 * Get The CustomView SubmitButtonScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewSubmitButtonScript
+	 * @since   6.1.7
+	 */
+	public function getCustomViewSubmitButtonScript(Container $container): CustomViewSubmitButtonScript
+	{
+		return new CustomViewSubmitButtonScript();
+	}
+
+	/**
+	 * Get The Field ClearValueScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  FieldClearValueScript
+	 * @since   6.1.7
+	 */
+	public function getFieldClearValueScript(Container $container): FieldClearValueScript
+	{
+		return new FieldClearValueScript();
+	}
+
+	/**
+	 * Get The View Jquery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewJquery
+	 * @since   6.1.7
+	 */
+	public function getViewJquery(Container $container): ViewJquery
+	{
+		return new ViewJquery();
+	}
+
+	/**
+	 * Get The AdminViews EximportButtons Class of the target being built.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsEximportButtons
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsEximportButtons(Container $container): AdminViewsEximportButtons
+	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		// only a Joomla 3 list view was ever given these buttons
+		if ((int) $this->targetVersion === 3)
+		{
+			return $container->get('Architecture.AdminViews.J3.EximportButtons');
+		}
+
+		return $container->get('Architecture.AdminViews.Shared.EximportButtons');
+	}
+
+	/**
+	 * Get The AdminViews EximportButtons Class shared by every remaining target.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SharedAdminViewsEximportButtons
+	 * @since   6.1.7
+	 */
+	public function getSharedAdminViewsEximportButtons(Container $container): SharedAdminViewsEximportButtons
+	{
+		return new SharedAdminViewsEximportButtons();
+	}
+
+	/**
+	 * Get The Joomla 3 AdminViews EximportButtons Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3AdminViewsEximportButtons
+	 * @since   6.1.7
+	 */
+	public function getJ3AdminViewsEximportButtons(Container $container): J3AdminViewsEximportButtons
+	{
+		return new J3AdminViewsEximportButtons(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Eximport.View')
 		);
 	}
 

@@ -15,12 +15,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder\ReplacementNames;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder\Reverse;
 
 
 /**
  * Compiler Placeholder Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class Placeholder implements ServiceProviderInterface
@@ -40,6 +41,9 @@ class Placeholder implements ServiceProviderInterface
 
 		$container->alias(Reverse::class, 'Placeholder.Reverse')
 			->share('Placeholder.Reverse', [$this, 'getPlaceholderReverse'], true);
+
+		$container->alias(ReplacementNames::class, 'Placeholder.ReplacementNames')
+			->share('Placeholder.ReplacementNames', [$this, 'getPlaceholderReplacementNames'], true);
 	}
 
 	/**
@@ -76,5 +80,19 @@ class Placeholder implements ServiceProviderInterface
 			$container->get('Joomla.Power.Extractor')
 		);
 	}
-}
 
+	/**
+	 * Get the Compiler Placeholder Replacement Names
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ReplacementNames
+	 * @since 6.1.7
+	 */
+	public function getPlaceholderReplacementNames(Container $container): ReplacementNames
+	{
+		return new ReplacementNames(
+			$container->get('Utilities.Files')
+		);
+	}
+}
