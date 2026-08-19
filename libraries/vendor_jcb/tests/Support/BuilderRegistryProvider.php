@@ -149,6 +149,7 @@ final class BuilderRegistryProvider
 		'UikitComp',
 		'UpdateMysql',
 		'ValidationFix',
+		'ViewScript',
 		'ViewsDefaultOrdering'
 	];
 

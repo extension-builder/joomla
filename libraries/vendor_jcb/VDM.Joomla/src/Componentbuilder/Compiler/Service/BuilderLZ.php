@@ -72,6 +72,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UikitComp;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UpdateMysql;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
 
 
@@ -266,6 +267,8 @@ class BuilderLZ implements ServiceProviderInterface
 
 		$container->alias(ValidationFix::class, 'Compiler.Builder.Validation.Fix')
 			->share('Compiler.Builder.Validation.Fix', [$this, 'getValidationFix'], true);
+		$container->alias(ViewScript::class, 'Compiler.Builder.View.Script')
+			->share('Compiler.Builder.View.Script', [$this, 'getViewScript'], true);
 		$container->alias(ViewsDefaultOrdering::class, 'Compiler.Builder.Views.Default.Ordering')
 			->share('Compiler.Builder.Views.Default.Ordering', [$this, 'getViewsDefaultOrdering'], true);
 	}
@@ -998,6 +1001,19 @@ class BuilderLZ implements ServiceProviderInterface
 		return new ValidationFix();
 	}
 
+
+	/**
+	 * Get The ViewScript Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewScript
+	 * @since   6.1.7
+	 */
+	public function getViewScript(Container $container): ViewScript
+	{
+		return new ViewScript();
+	}
 	/**
 	 * Get The UpdateMysql Class.
 	 *
