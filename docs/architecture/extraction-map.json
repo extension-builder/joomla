@@ -224,6 +224,25 @@
       }
     ]
   },
+  "routerBuildViews": {
+    "fingerprints": 0,
+    "traced_by": "name, because the one test it emits is shorter than the fingerprint threshold; it became SiteRouter::buildViews()",
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 0
+      }
+    ]
+  },
+  "routerParseSwitch": {
+    "fingerprints": 4,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 4
+      }
+    ]
+  },
   "setAdminViewDisplayMethod": {
     "fingerprints": 6,
     "moved_into": [
@@ -754,6 +773,38 @@
       {
         "class": "Architecture/Model/GetForm.php",
         "matched": 6
+      }
+    ]
+  },
+  "setRouterCase": {
+    "fingerprints": 2,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setRouterCategoryViews": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/SiteRouter.php",
+        "matched": 3
+      }
+    ],
+    "unmatched": "the three service keys that became injected dependencies"
+  },
+  "setRouterHelp": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Router/RouteHelper.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/JoomlaThree/Router/RouteHelper.php",
+        "matched": 4
       }
     ]
   },
