@@ -33,6 +33,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminViews\AddT
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminViews\AddToolBar as J4AdminViewsAddToolBar;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\AddToolBar as J3AdminViewsAddToolBar;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\SiteView\AddToolBarInterface as SiteViewAddToolBar;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\ModelData as SiteViewsModelData;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\Headers as SiteViewsHeaders;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\Builder as SiteViewsBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\SiteView\AddToolBar as J6SiteViewAddToolBar;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\SiteView\AddToolBar as J5SiteViewAddToolBar;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\SiteView\AddToolBar as J4SiteViewAddToolBar;
@@ -442,6 +445,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(CustomAdminViewsBuilder::class, 'Architecture.CustomAdminViews.Builder')
 			->share('Architecture.CustomAdminViews.Builder', [$this, 'getCustomAdminViewsBuilder'], true);
+
+		$container->alias(SiteViewsModelData::class, 'Architecture.SiteViews.ModelData')
+			->share('Architecture.SiteViews.ModelData', [$this, 'getSiteViewsModelData'], true);
+
+		$container->alias(SiteViewsHeaders::class, 'Architecture.SiteViews.Headers')
+			->share('Architecture.SiteViews.Headers', [$this, 'getSiteViewsHeaders'], true);
+
+		$container->alias(SiteViewsBuilder::class, 'Architecture.SiteViews.Builder')
+			->share('Architecture.SiteViews.Builder', [$this, 'getSiteViewsBuilder'], true);
 
 		$container->alias(CustomViewCodeBody::class, 'Architecture.CustomView.CodeBody')
 			->share('Architecture.CustomView.CodeBody', [$this, 'getCustomViewCodeBody'], true);
@@ -2386,6 +2398,79 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.CustomView.CodeBody'),
 			$container->get('Architecture.CustomView.ExtraDisplayMethods'),
 			$container->get('Architecture.View.PrepareDocument')
+		);
+	}
+
+	/**
+	 * Get The SiteViews ModelData Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteViewsModelData
+	 * @since   6.1.7
+	 */
+	public function getSiteViewsModelData(Container $container): SiteViewsModelData
+	{
+		return new SiteViewsModelData(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Dynamicget.GetItem'),
+			$container->get('Dynamicget.GetItems'),
+			$container->get('Dynamicget.ListQuery'),
+			$container->get('Architecture.ComHelperClass.UserPermissionCheckAccess')
+		);
+	}
+
+	/**
+	 * Get The SiteViews Headers Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteViewsHeaders
+	 * @since   6.1.7
+	 */
+	public function getSiteViewsHeaders(Container $container): SiteViewsHeaders
+	{
+		return new SiteViewsHeaders(
+			$container->get('Header'),
+			$container->get('Compiler.Builder.Content.Multi')
+		);
+	}
+
+	/**
+	 * Get The SiteViews Builder Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SiteViewsBuilder
+	 * @since   6.1.7
+	 */
+	public function getSiteViewsBuilder(Container $container): SiteViewsBuilder
+	{
+		return new SiteViewsBuilder(
+			$container->get('Config'),
+			$container->get('Event'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.Component.LicenseLock'),
+			$container->get('Architecture.Router.SiteRouter'),
+			$container->get('Architecture.Router.RouteHelper'),
+			$container->get('Language'),
+			$container->get('Placeholder'),
+			$container->get('Dynamicget.CustomGetMethods'),
+			$container->get('Dynamicget.Methods'),
+			$container->get('Architecture.CustomView.Body'),
+			$container->get('Architecture.CustomView.DisplayMethod'),
+			$container->get('Architecture.CustomView.Form'),
+			$container->get('Architecture.CustomView.TemplateBody'),
+			$container->get('Architecture.CustomView.CodeBody'),
+			$container->get('Architecture.CustomView.ExtraDisplayMethods'),
+			$container->get('Architecture.View.PrepareDocument'),
+			$container->get('Architecture.Menu.CustomView'),
+			$container->get('Architecture.SiteView.AddToolBar'),
+			$container->get('Architecture.SiteViews.ModelData'),
+			$container->get('Architecture.SiteViews.Headers')
 		);
 	}
 
