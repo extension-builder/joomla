@@ -53,6 +53,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveF
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderScript as SharedComponentMoveFolderScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderScript as J3ComponentMoveFolderScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Details as ComponentDetails;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Assembly as ComponentAssembly;
 
 
 /**
@@ -169,6 +170,9 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(ComponentDetails::class, 'Architecture.Component.Details')
 			->share('Architecture.Component.Details', [$this, 'getComponentDetails'], true);
+
+		$container->alias(ComponentAssembly::class, 'Architecture.Component.Assembly')
+			->share('Architecture.Component.Assembly', [$this, 'getComponentAssembly'], true);
 
 		$container->alias(ComponentMoveFolderMethod::class, 'Architecture.Component.MoveFolderMethod')
 			->share('Architecture.Component.MoveFolderMethod', [$this, 'getComponentMoveFolderMethod'], true);
@@ -785,6 +789,45 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Architecture.ComHelperClass.CreateUser'),
 			$container->get('Compiler.Creator.Helper'),
 			$container->get('Compiler.Creator.Email.Helper')
+		);
+	}
+
+	/**
+	 * Get The Component Assembly Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentAssembly
+	 * @since   6.1.7
+	 */
+	public function getComponentAssembly(Container $container): ComponentAssembly
+	{
+		return new ComponentAssembly(
+			$container->get('Config'),
+			$container->get('Header'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.Component.LicenseLock'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Architecture.Controller.AjaxCases'),
+			$container->get('Architecture.Dashboard.Icons'),
+			$container->get('Architecture.ComHelperClass.CryptKey'),
+			$container->get('Architecture.ComHelperClass.ExcelMethods'),
+			$container->get('Architecture.Component.InstallSql'),
+			$container->get('Architecture.Component.UninstallSql'),
+			$container->get('Architecture.Menu.MainMenus'),
+			$container->get('Architecture.Menu.SubMenus'),
+			$container->get('Extension.VersionUpdate'),
+			$container->get('Architecture.Dashboard.ModelMethods'),
+			$container->get('Architecture.Model.AjaxMethods'),
+			$container->get('Architecture.Controller.AjaxTasks'),
+			$container->get('Compiler.Builder.Custom.Admin.Added'),
+			$container->get('Compiler.Builder.Contributors'),
+			$container->get('Compiler.Builder.Permission.Dashboard'),
+			$container->get('Architecture.Controller.AllowEditViews'),
+			$container->get('Architecture.Dashboard.View'),
+			$container->get('Utilities.Structure')
 		);
 	}
 
