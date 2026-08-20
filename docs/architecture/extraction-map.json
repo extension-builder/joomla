@@ -418,19 +418,17 @@
   },
   "setCustomViewSubmitButtonScript": {
     "fingerprints": 4,
+    "traced_by": "name, because every literal it emits is a script fragment shorter than the fingerprint threshold; the four it holds are shared with classes that did not receive it",
     "moved_into": [
       {
-        "class": "Architecture/AdminView/FadeInEffect.php",
-        "matched": 1
-      },
-      {
-        "class": "Architecture/AdminViews/ViewBody.php",
-        "matched": 1
-      },
-      {
-        "class": "Architecture/CustomButtons.php",
-        "matched": 1
+        "class": "Architecture/CustomView/SubmitButtonScript.php",
+        "matched": 0
       }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/AdminView/FadeInEffect.php",
+      "Architecture/AdminViews/ViewBody.php",
+      "Architecture/CustomButtons.php"
     ]
   },
   "setDashboardIcons": {
@@ -909,11 +907,15 @@
   },
   "setUserPermissionCheckAccess": {
     "fingerprints": 5,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
     "moved_into": [
       {
-        "class": "Architecture/Component/LicenseLock.php",
-        "matched": 1
+        "class": "Architecture/ComHelperClass/UserPermissionCheckAccess.php",
+        "matched": 0
       }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Component/LicenseLock.php"
     ]
   },
   "setViewScript": {
@@ -946,6 +948,378 @@
     "shares_generated_text_with": [
       "Architecture/JoomlaFive/Module/MainXML.php",
       "Architecture/JoomlaSix/Module/MainXML.php"
+    ]
+  },
+  "buildFileContent": {
+    "fingerprints": 6,
+    "traced_by": "name, because the method was orchestration: almost every line it held was a service call, so its six long literals reach only three of the thirteen classes it split into. Each block was proved to have moved unchanged with tests/bin/refactor/verbatim.php",
+    "moved_into": [
+      {
+        "class": "Architecture/Component/Details.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/AdminViews/Loop.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/AdminViews/EditView.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/AdminViews/ListView.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/AdminViews/Shared.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/CustomAdminViews/Builder.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/Component/Assembly.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/SiteViews/Builder.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/SiteViews/ModelData.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/SiteViews/Headers.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/Component/SiteStatics.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/Component/InstallScripts.php",
+        "matched": 0
+      },
+      {
+        "class": "Architecture/Component/Finalise.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setViewPlaceholders": {
+    "fingerprints": 1,
+    "traced_by": "name, because its one long literal is the container key the shim now calls, which the providers hold too",
+    "moved_into": [
+      {
+        "class": "Architecture/View/Placeholders.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setLangFileData": {
+    "fingerprints": 4,
+    "traced_by": "content for two of its four literals; the other two are container keys the providers hold too",
+    "moved_into": [
+      {
+        "class": "Architecture/Language/Files.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setCustomAdminDynamicButtonController": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Controller/CustomAdminDynamicButton.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/Controller/CustomAdminDynamicButton.php",
+        "matched": 0
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Controller/EximportMethod.php"
+    ]
+  },
+  "setJviewListCanDo": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/CanDo.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setValidationFix": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/ValidationFix.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setUniqueFields": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Model/UniqueFields.php",
+        "matched": 3
+      }
+    ]
+  },
+  "setFieldSetAccessControl": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Field/SetAccessControl.php",
+        "matched": 5
+      }
+    ]
+  },
+  "setImportCustomScripts": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/ImportCustomScripts.php",
+        "matched": 5
+      }
+    ]
+  },
+  "setCheckboxSave": {
+    "fingerprints": 1,
+    "traced_by": "name, because its one long literal is the container key the shim now calls, which the providers hold too",
+    "moved_into": [
+      {
+        "class": "Architecture/Model/CheckboxSave.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setJtableConstructor": {
+    "fingerprints": 1,
+    "traced_by": "name, because its one long literal is the container key the shim now calls, which the providers hold too",
+    "moved_into": [
+      {
+        "class": "Architecture/Table/Constructor.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setJquery": {
+    "fingerprints": 1,
+    "moved_into": [
+      {
+        "class": "Architecture/View/Jquery.php",
+        "matched": 1
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/View/LibrariesLoader.php"
+    ]
+  },
+  "setMoveFolderScript": {
+    "fingerprints": 3,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/MoveFolderScript.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/JoomlaThree/Component/MoveFolderScript.php",
+        "matched": 1
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Component/MoveFolderMethod.php"
+    ]
+  },
+  "setExportButton": {
+    "fingerprints": 2,
+    "traced_by": "content for the Joomla 3 markup; the shared class asks the button service for the modern toolbar and holds no literal long enough to fingerprint",
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/EximportButtons.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/AdminViews/EximportButtons.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setImportButton": {
+    "fingerprints": 2,
+    "traced_by": "content for the Joomla 3 markup; the shared class asks the button service for the modern toolbar and holds no literal long enough to fingerprint",
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/EximportButtons.php",
+        "matched": 2
+      },
+      {
+        "class": "Architecture/AdminViews/EximportButtons.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setFieldFilterSetJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/FilterSet.php",
+        "matched": 4
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/FilterSet.php",
+        "matched": 3
+      }
+    ]
+  },
+  "setFieldFilterSetJ4": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/FilterSet.php",
+        "matched": 5
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/FilterSet.php",
+        "matched": 2
+      }
+    ]
+  },
+  "setFieldFilterListSetJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/FilterListSet.php",
+        "matched": 6
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/FilterListSet.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setFieldFilterListSetJ4": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/AdminViews/FilterListSet.php",
+        "matched": 6
+      },
+      {
+        "class": "Architecture/JoomlaThree/AdminViews/FilterListSet.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setPostInstallScript": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/PostInstallScript.php",
+        "matched": 3
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Component/PostUpdateScript.php"
+    ]
+  },
+  "setPostInstallScriptJ3": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/JoomlaThree/Component/PostInstallScript.php",
+        "matched": 6
+      }
+    ]
+  },
+  "setPostInstallScriptJ4": {
+    "fingerprints": 5,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/PostInstallScript.php",
+        "matched": 3
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/JoomlaThree/Component/PostInstallScript.php"
+    ]
+  },
+  "setPostUpdateScript": {
+    "fingerprints": 6,
+    "moved_into": [
+      {
+        "class": "Architecture/Component/PostUpdateScript.php",
+        "matched": 4
+      }
+    ],
+    "shares_generated_text_with": [
+      "Architecture/Component/PostInstallScript.php"
+    ]
+  },
+  "setDashboardModelMethods": {
+    "fingerprints": 1,
+    "traced_by": "name, because its one long literal is the container key the shim now calls, which the providers hold too",
+    "moved_into": [
+      {
+        "class": "Architecture/Dashboard/ModelMethods.php",
+        "matched": 0
+      }
+    ]
+  },
+  "clearValueScript": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Field/ClearValueScript.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setRegisterAjaxTask": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Controller/AjaxTasks.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setAjaxModelMethods": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/Model/AjaxMethods.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setCustomViewCodeBody": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/CustomView/CodeBody.php",
+        "matched": 0
+      }
+    ]
+  },
+  "setCustomViewExtraDisplayMethods": {
+    "fingerprints": 0,
+    "traced_by": "name, because every literal it emits is a code fragment shorter than the fingerprint threshold",
+    "moved_into": [
+      {
+        "class": "Architecture/CustomView/ExtraDisplayMethods.php",
+        "matched": 0
+      }
     ]
   }
 }
