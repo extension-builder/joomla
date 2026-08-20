@@ -26,7 +26,7 @@ use VDM\Joomla\Componentbuilder\Crypt\Aes\Legacy;
 
 /**
  * Phpseclib Crypt Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class Crypt implements ServiceProviderInterface
@@ -177,11 +177,7 @@ class Crypt implements ServiceProviderInterface
 	 */
 	public function getFOF(Container $container): FOF
 	{
-		return new FOF(
-			$container->get('Crypt.AESCBC'),
-			$container->get('Crypt.Random')
-		);
+		return new FOF();
 	}
 
 }
-
