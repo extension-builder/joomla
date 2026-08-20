@@ -89,8 +89,10 @@ pull_command() {
 # $1  a name for this run, which is also the name of its log
 # $2  what to say we are doing, for the log
 # $3  the command, options and all
+# $4  'optional' to carry on when the console has no such command; anything
+#     else, or nothing, stops the run on any failure
 run_cli() {
-	local name="$1" what="$2" command="$3"
+	local name="$1" what="$2" command="$3" missing="${4:-}"
 	local log="${OUT_DIR}/${name}.log"
 
 	say "${what}"
@@ -101,6 +103,17 @@ run_cli() {
 	then
 		say "${what}: failed. Its output:"
 		cat "${log}"
+
+		# A command this JCB does not have is the harness asking for something
+		# the installed compiler cannot do, which is not the same as the thing
+		# it asked for going wrong. Where the caller says so, carry on.
+		if [[ "${missing}" == optional ]] \
+			&& grep -q 'is not defined\|does not exist' "${log}"
+		then
+			say "${what}: this JCB has no such command, so carrying on without it."
+
+			return 0
+		fi
 
 		# A command the installed JCB does not have is worth more than the
 		# refusal: say what the console does have, or the next run learns
