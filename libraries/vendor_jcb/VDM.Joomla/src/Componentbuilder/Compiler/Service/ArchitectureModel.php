@@ -71,6 +71,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix as Mod
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\UniqueFields as ModelUniqueFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CheckboxSave as ModelCheckboxSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Table\Constructor as TableConstructor;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AjaxMethods as ModelAjaxMethods;
 
 
 /**
@@ -241,6 +242,9 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(TableConstructor::class, 'Architecture.Table.Constructor')
 			->share('Architecture.Table.Constructor', [$this, 'getTableConstructor'], true);
+
+		$container->alias(ModelAjaxMethods::class, 'Architecture.Model.AjaxMethods')
+			->share('Architecture.Model.AjaxMethods', [$this, 'getModelAjaxMethods'], true);
 
 		$container->alias(ModelStoredId::class, 'Architecture.Model.StoredId')
 			->share('Architecture.Model.StoredId', [$this, 'getModelStoredId'], true);
@@ -1206,6 +1210,22 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Tags'),
 			$container->get('Compiler.Builder.History'),
 			$container->get('Compiler.Builder.Category.Code')
+		);
+	}
+
+	/**
+	 * Get The Model AjaxMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelAjaxMethods
+	 * @since   6.1.7
+	 */
+	public function getModelAjaxMethods(Container $container): ModelAjaxMethods
+	{
+		return new ModelAjaxMethods(
+			$container->get('Customcode.Dispenser'),
+			$container->get('Placeholder')
 		);
 	}
 

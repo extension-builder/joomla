@@ -40,9 +40,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\Aja
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\CustomAdminDynamicButtonInterface as ControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\CustomAdminDynamicButton as SharedControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\CustomAdminDynamicButton as J3ControllerCustomAdminDynamicButton;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxTasks as ControllerAjaxTasks;
 /**
  * Architecture Controller Service Provider
- * 
+ *
  * @since 3.2.0
  */
 class ArchitectureController implements ServiceProviderInterface
@@ -127,6 +128,9 @@ class ArchitectureController implements ServiceProviderInterface
 
 		$container->alias(J3ControllerAjaxCases::class, 'Architecture.Controller.J3.AjaxCases')
 			->share('Architecture.Controller.J3.AjaxCases', [$this, 'getJ3ControllerAjaxCases'], true);
+
+		$container->alias(ControllerAjaxTasks::class, 'Architecture.Controller.AjaxTasks')
+			->share('Architecture.Controller.AjaxTasks', [$this, 'getControllerAjaxTasks'], true);
 
 		$container->alias(ControllerCustomAdminDynamicButton::class, 'Architecture.Controller.CustomAdminDynamicButton')
 			->share('Architecture.Controller.CustomAdminDynamicButton', [$this, 'getControllerCustomAdminDynamicButton'], true);
@@ -223,7 +227,7 @@ class ArchitectureController implements ServiceProviderInterface
 			$container->get('Customcode.Dispenser')
 		);
 	}
-	
+
 		/**
 	 * Get The AllowEditInterface Class.
 	 *
@@ -519,6 +523,21 @@ class ArchitectureController implements ServiceProviderInterface
 	public function getJ3ControllerAjaxCases(Container $container): J3ControllerAjaxCases
 	{
 		return new J3ControllerAjaxCases(
+			$container->get('Customcode.Dispenser')
+		);
+	}
+
+	/**
+	 * Get The Controller AjaxTasks Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ControllerAjaxTasks
+	 * @since   6.1.7
+	 */
+	public function getControllerAjaxTasks(Container $container): ControllerAjaxTasks
+	{
+		return new ControllerAjaxTasks(
 			$container->get('Customcode.Dispenser')
 		);
 	}
