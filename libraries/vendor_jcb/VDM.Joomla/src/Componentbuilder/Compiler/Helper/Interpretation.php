@@ -988,7 +988,10 @@ class Interpretation extends Fields
 	public function setUninstallScript(): string
 	{
 		return CFactory::_('Architecture.Component.UninstallScript')->get(
-			$this->uninstallScriptBuilder, $this->uninstallScriptFields
+			CFactory::_('Compiler.Builder.Uninstall.Script.Context')->allActive()
+				+ $this->uninstallScriptBuilder,
+			CFactory::_('Compiler.Builder.Uninstall.Script.Fields')->allActive()
+				+ $this->uninstallScriptFields
 		);
 	}
 
@@ -1003,7 +1006,10 @@ class Interpretation extends Fields
 	public function setUninstallScriptJ3(): string
 	{
 		return CFactory::_('Architecture.Component.J3.UninstallScript')->get(
-			$this->uninstallScriptBuilder, $this->uninstallScriptFields
+			CFactory::_('Compiler.Builder.Uninstall.Script.Context')->allActive()
+				+ $this->uninstallScriptBuilder,
+			CFactory::_('Compiler.Builder.Uninstall.Script.Fields')->allActive()
+				+ $this->uninstallScriptFields
 		);
 	}
 
@@ -1018,7 +1024,10 @@ class Interpretation extends Fields
 	public function setUninstallScriptJ4(): string
 	{
 		return CFactory::_('Architecture.Component.Shared.UninstallScript')->get(
-			$this->uninstallScriptBuilder, $this->uninstallScriptFields
+			CFactory::_('Compiler.Builder.Uninstall.Script.Context')->allActive()
+				+ $this->uninstallScriptBuilder,
+			CFactory::_('Compiler.Builder.Uninstall.Script.Fields')->allActive()
+				+ $this->uninstallScriptFields
 		);
 	}
 
@@ -2663,9 +2672,10 @@ class Interpretation extends Fields
 	 */
 	public function setDashboardIcons()
 	{
-		// the compiler caches these on this helper, so they are carried over
-		return CFactory::_('Architecture.Dashboard.Icons')
-			->get($this->customAdminAdded);
+		return CFactory::_('Architecture.Dashboard.Icons')->get(
+			CFactory::_('Compiler.Builder.Custom.Admin.Added')->allActive()
+				+ $this->customAdminAdded
+		);
 	}
 
 	/**
@@ -2713,9 +2723,11 @@ class Interpretation extends Fields
 	 */
 	public function addCustomDashboardIcons(&$view, &$counter)
 	{
-		// the compiler caches these on this helper, so they are carried over
-		return CFactory::_('Architecture.Dashboard.Icons')
-			->getCustomIcons($view, $counter, $this->customAdminAdded);
+		return CFactory::_('Architecture.Dashboard.Icons')->getCustomIcons(
+			$view, $counter,
+			CFactory::_('Compiler.Builder.Custom.Admin.Added')->allActive()
+				+ $this->customAdminAdded
+		);
 	}
 
 	/**
@@ -2755,7 +2767,9 @@ class Interpretation extends Fields
 	{
 		$service = CFactory::_('Architecture.Menu.CustomSubMenu');
 		$custom = $service->get(
-			$view, (string) $codeName, (string) $lang, $this->customAdminAdded
+			$view, (string) $codeName, (string) $lang,
+			CFactory::_('Compiler.Builder.Custom.Admin.Added')->allActive()
+				+ $this->customAdminAdded
 		);
 
 		// the caller reads these off this property once every view is walked,
@@ -2797,7 +2811,9 @@ class Interpretation extends Fields
 	{
 		$service = CFactory::_('Architecture.Menu.CustomMainMenu');
 		$customMenu = $service->get(
-			$view, (string) $codeName, (string) $lang, $this->customAdminAdded
+			$view, (string) $codeName, (string) $lang,
+			CFactory::_('Compiler.Builder.Custom.Admin.Added')->allActive()
+				+ $this->customAdminAdded
 		);
 
 		// the caller reads these off this property once every view is walked,

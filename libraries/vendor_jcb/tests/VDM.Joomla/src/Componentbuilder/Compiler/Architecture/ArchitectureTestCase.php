@@ -391,6 +391,31 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 	}
 
 	/**
+	 * Whether one declared method may answer with a string.
+	 *
+	 * @param   class-string  $type    The declaring type.
+	 * @param   string        $method  The method name.
+	 *
+	 * @return  bool
+	 * @since   6.1.7
+	 */
+	private function answersWithAString(string $type, string $method): bool
+	{
+		$return = (new \ReflectionMethod($type, $method))->getReturnType();
+
+		if ($return === null)
+		{
+			return true;
+		}
+
+		$names = $return instanceof \ReflectionNamedType
+			? [$return->getName()]
+			: array_map(static fn($one): string => $one->getName(), $return->getTypes());
+
+		return in_array('string', $names, true) || in_array('mixed', $names, true);
+	}
+
+	/**
 	 * Create an interface double, real registry, or dormant final dependency.
 	 *
 	 * @param   class-string|null  $type  Declared dependency type.
@@ -411,7 +436,9 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 		{
 			$stub = $this->createStub($type);
 
-			if (method_exists($stub, 'get'))
+			// a get() that answers with generated code answers with none, but
+			// one that answers with something else is left to its own default
+			if (method_exists($stub, 'get') && $this->answersWithAString($type, 'get'))
 			{
 				$stub->method('get')->willReturn('');
 			}
