@@ -131,6 +131,25 @@ COMPILE_STUB_STATUS=1
 expect_exit "stops when the command fails" 1 \
 	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b'
 
+# An optional command the console does not have is the harness asking for
+# something this JCB cannot do. Anything else that goes wrong still stops.
+compose_exec_stub() {
+	echo 'Command "componentbuilder:pull:component" is not defined.'
+
+	return "${COMPILE_STUB_STATUS}"
+}
+expect_exit "carries on when an optional command is not defined" 0 \
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b' optional
+
+compose_exec_stub() {
+	echo 'Could not reach the repository.'
+
+	return "${COMPILE_STUB_STATUS}"
+}
+expect_exit "stops when an optional command fails for any other reason" 1 \
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b' optional
+
+compose_exec_stub() { return "${COMPILE_STUB_STATUS}"; }
 COMPILE_STUB_STATUS=0
 
 echo

@@ -117,11 +117,14 @@ wait_for_log \
 # Fetch the component through the Joomla console, in a process of its own. It
 # has to be a separate process from the compile: a compile that fetches the
 # component itself does both jobs at once and runs the site out of memory.
-# run_cli stops the run if the fetch fails, so nothing compiles against a
-# component that never arrived.
+#
+# A fetch that goes wrong stops the run, so nothing compiles against a component
+# that never arrived. A JCB with no fetch command at all is a different thing:
+# the compile fetched for itself before this step existed and still can, so say
+# what is missing and let the run go on rather than reporting nothing at all.
 if [[ -n "${PULL_COMMAND}" ]]
 then
-	run_cli fetch "Fetching the component" "${PULL_COMMAND}"
+	run_cli fetch "Fetching the component" "${PULL_COMMAND}" optional
 fi
 
 run_compile baseline "${COMPILE_COMMAND}"
