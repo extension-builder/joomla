@@ -101,6 +101,18 @@ run_cli() {
 	then
 		say "${what}: failed. Its output:"
 		cat "${log}"
+
+		# A command the installed JCB does not have is worth more than the
+		# refusal: say which ones it does have, or the next run learns nothing
+		# the failed one did not already say.
+		if grep -q 'is not defined\|does not exist' "${log}"
+		then
+			say "The commands this JCB registers:"
+			compose exec -T joomla php "${WEBROOT}/cli/joomla.php" list \
+				--raw 2>&1 | grep '^componentbuilder:' || \
+				say "  none; the console has no componentbuilder commands at all."
+		fi
+
 		exit 1
 	fi
 
