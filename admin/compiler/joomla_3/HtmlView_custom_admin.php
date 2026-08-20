@@ -57,40 +57,19 @@ class ###Component###View###SView### extends HtmlView
 		###CUSTOM_ADMIN_ADDTOOLBAR###
 	}###CUSTOM_ADMIN_GET_MODULE###
 
+
+
 	/**
-	 * Escapes a value for output in a view script.
+	 * Sanitises a value to plain text for output in a view script.
 	 *
 	 * @param   mixed  $var  The output to escape.
 	 *
-	 * @return  mixed  The escaped value.
-	 */
-	public function escape($var)
-	{
-		// use the helper htmlEscape method instead.
-		return Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::html($var, $this->_charset);
-	}
-
-	/**
-	 * Sanitises authored HTML for output in a view script.
-	 *
-	 * Escaping and sanitising are different objectives. escape() encodes a
-	 * value so it can never become markup. This keeps markup renderable and
-	 * removes only what can execute, so use it for a field that genuinely
-	 * holds authored HTML, and escape() for every other value.
-	 *
-	 * @param   mixed  $var  The authored HTML to sanitise.
-	 *
-	 * @return  mixed  The markup, with anything executable removed.
-	 * @since   6.1.7
+	 * @return  mixed  The value as plain text.
 	 */
 	public function sanitize($var)
 	{
-		if (!is_string($var))
-		{
-			return $var;
-		}
-
-		return Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::sanitize($var);
+		// strip every tag, leaving only the text.
+		return Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::sanitize($var, $this->_charset);
 	}
 
 	/**

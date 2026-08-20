@@ -200,86 +200,73 @@ final class StringHelperTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Escape markup instead of deleting it, and shorten the escaped result.
+	 * Strip every tag and encode what is left.
+	 *
+	 * The objective is plain text: not a subset of markup, and not markup
+	 * shown literally. Every tag goes, the text those tags wrapped stays, and
+	 * the result is encoded so it is safe in a text node and in an attribute.
+	 *
+	 * @param   string  $stored    The value as stored.
+	 * @param   string  $expected  What the page must receive.
 	 *
 	 * @return  void
-	 * @since   6.1.6
-	 * @since   6.1.7  html() escapes rather than filters.
+	 * @since   6.1.7
 	 */
-	public function testHtmlEscapesMarkupAndCanShortenTheResult(): void
+	#[DataProvider('sanitizedValues')]
+	public function testSanitizeReducesAValueToEncodedPlainText(string $stored, string $expected): void
 	{
+		$this->assertSame($expected, StringHelper::sanitize($stored));
+	}
+
+	/**
+	 * Values and the plain text they must reduce to.
+	 *
+	 * @return  array<string, array{string,string}>
+	 * @since   6.1.7
+	 */
+	public static function sanitizedValues(): array
+	{
+		return [
+			'script tag' => ['<script>alert(1)</script>bold', 'alert(1)bold'],
+			'formatting tag is removed too' => ['<b>bold</b>', 'bold'],
+			'block tags are removed' => ['<p>para</p><div>block</div>', 'parablock'],
+			'anchor is removed, text kept' => ['<a href="#x">link</a>', 'link'],
+			'event handler attribute' => ['<img src=x onerror=alert(1)>', ''],
+			'ampersand and quotes are encoded' => ['Smith & Sons "Ltd"', 'Smith &amp; Sons &quot;Ltd&quot;'],
+			'attribute breakout is encoded' => ['" autofocus onfocus="x', '&quot; autofocus onfocus=&quot;x'],
+			'single quote is encoded' => ["it's", 'it&#039;s'],
+			'plain text is untouched' => ['Acme Trading', 'Acme Trading'],
+		];
+	}
+
+	/**
+	 * Keep html() working as an alias of sanitize().
+	 *
+	 * html() is called in many places and has always been a sanitiser, so it
+	 * has to keep the same signature and return the same value.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testHtmlIsAnAliasOfSanitize(): void
+	{
+		foreach (self::sanitizedValues() as $case)
+		{
+			$this->assertSame(
+				StringHelper::sanitize($case[0]),
+				StringHelper::html($case[0])
+			);
+		}
+
 		$this->assertSame(
-			'&lt;script&gt;alert(1)&lt;/script&gt;&lt;b&gt;Safe &amp;amp; sound&lt;/b&gt;',
-			StringHelper::html('<script>alert(1)</script><b>Safe &amp; sound</b>')
-		);
-		$this->assertSame(
-			'Alpha beta...',
+			StringHelper::sanitize('Alpha beta gamma delta', 'UTF-8', true, 12, false),
 			StringHelper::html('Alpha beta gamma delta', 'UTF-8', true, 12, false)
 		);
 		$this->assertSame('', StringHelper::html(null));
 	}
 
 	/**
-	 * Never lose text that only looks like markup.
-	 *
-	 * A tag blacklist deletes anything shaped like a tag, so routing ordinary
-	 * values through one silently destroyed data: "3 < 5" was stored, and "3"
-	 * was displayed. Escaping is lossless.
-	 *
-	 * @param   string  $stored    The value as stored.
-	 * @param   string  $expected  What the page must show.
-	 *
-	 * @return  void
-	 * @since   6.1.7
-	 */
-	#[DataProvider('losslessValues')]
-	public function testHtmlNeverDropsTextThatLooksLikeATag(string $stored, string $expected): void
-	{
-		$this->assertSame($expected, StringHelper::html($stored));
-	}
-
-	/**
-	 * Ordinary values whose text a tag blacklist would eat.
-	 *
-	 * @return  array<string, array{string,string}>
-	 * @since   6.1.7
-	 */
-	public static function losslessValues(): array
-	{
-		return [
-			'company name in angle brackets' => ['Widgets <Pty> Ltd', 'Widgets &lt;Pty&gt; Ltd'],
-			'comparison' => ['3 < 5', '3 &lt; 5'],
-			'two comparisons' => ['A < B and B > C', 'A &lt; B and B &gt; C'],
-			'literal that is not a tag' => ['<not-a-tag> literal', '&lt;not-a-tag&gt; literal'],
-		];
-	}
-
-	/**
-	 * Keep renderable markup while removing what can execute.
-	 *
-	 * This is the objective html() used to carry as a side effect, and it is
-	 * only correct for a field that genuinely holds authored HTML.
-	 *
-	 * @return  void
-	 * @since   6.1.7
-	 */
-	public function testSanitizeKeepsRenderableMarkupAndDropsTheExecutable(): void
-	{
-		$this->assertSame(
-			'alert(1)<b>bold</b>',
-			StringHelper::sanitize('<script>alert(1)</script><b>bold</b>')
-		);
-		$this->assertSame('<img src="x" />', StringHelper::sanitize('<img src="x" onerror="alert(1)">'));
-		$this->assertSame('<a>click</a>', StringHelper::sanitize('<a href="javascript:alert(1)">click</a>'));
-		$this->assertSame('', StringHelper::sanitize('<iframe src="//evil"></iframe>'));
-		$this->assertSame('', StringHelper::sanitize(null));
-	}
-
-	/**
-	 * Encode the characters that let a value escape its HTML context.
-	 *
-	 * The generated HtmlView::escape() delegates here. Without encoding, a
-	 * value carrying a quote breaks straight out of an HTML attribute.
+	 * Encode on the shortening branches too.
 	 *
 	 * @param   bool  $shorten  Whether the shortening branch is exercised.
 	 * @param   int   $length   The shortening length.
@@ -287,37 +274,26 @@ final class StringHelperTest extends JoomlaTestCase
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	#[DataProvider('htmlEncodingBranches')]
-	public function testHtmlEncodesAttributeBreakingCharactersOnEveryBranch(bool $shorten, int $length): void
+	#[DataProvider('sanitizeBranches')]
+	public function testSanitizeEncodesOnEveryBranch(bool $shorten, int $length): void
 	{
 		$this->assertSame(
 			'&quot; autofocus onfocus=&quot;alert(1)',
-			StringHelper::html('" autofocus onfocus="alert(1)', 'UTF-8', $shorten, $length)
-		);
-		$this->assertSame(
-			'&#039; autofocus onfocus=&#039;alert(1)',
-			StringHelper::html("' autofocus onfocus='alert(1)", 'UTF-8', $shorten, $length)
+			StringHelper::sanitize('" autofocus onfocus="alert(1)', 'UTF-8', $shorten, $length)
 		);
 		$this->assertSame(
 			'Smith &amp; Sons',
-			StringHelper::html('Smith & Sons', 'UTF-8', $shorten, $length)
-		);
-
-		// the tables store decoded text, so a stored literal entity is text
-		// and must reach the page as that literal
-		$this->assertSame(
-			'Smith &amp;amp; Sons',
-			StringHelper::html('Smith &amp; Sons', 'UTF-8', $shorten, $length)
+			StringHelper::sanitize('Smith & Sons', 'UTF-8', $shorten, $length)
 		);
 	}
 
 	/**
-	 * The branches html() can take before it returns.
+	 * The branches sanitize() can take before it returns.
 	 *
 	 * @return  array<string, array{bool,int}>
 	 * @since   6.1.7
 	 */
-	public static function htmlEncodingBranches(): array
+	public static function sanitizeBranches(): array
 	{
 		return [
 			'no shortening' => [false, 40],
@@ -326,17 +302,17 @@ final class StringHelperTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Keep the tooltip branch encoded exactly once.
+	 * Encode the tooltip branch exactly once.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testHtmlEncodesTheShortenedTooltipBranchExactlyOnce(): void
+	public function testSanitizeEncodesTheShortenedTooltipBranchExactlyOnce(): void
 	{
 		$this->assertSame(
 			'<span class="hasTip" title="Smith &amp; Sons &quot;Ltd&quot; of London"'
 				. ' style="cursor:help">Smith &amp;...</span>',
-			StringHelper::html('Smith & Sons "Ltd" of London', 'UTF-8', true, 10)
+			StringHelper::sanitize('Smith & <b>Sons</b> "Ltd" of London', 'UTF-8', true, 10)
 		);
 	}
 

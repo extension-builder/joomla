@@ -282,77 +282,65 @@ abstract class StringHelper
 	}
 
 	/**
-	 * Escape a value for output inside an HTML document.
+	 * Sanitise a value down to plain text for output.
 	 *
-	 * This method has one objective: make a value safe to place in an HTML
-	 * text node or a quoted attribute without changing what it says. It
-	 * encodes, and it never filters, so a stored value such as "3 < 5" or
-	 * "Widgets <Pty> Ltd" reaches the page intact instead of losing the text
-	 * a tag blacklist mistook for markup.
+	 * Every tag is removed, not only the ones that can execute, so what is
+	 * left is the text those tags wrapped. The result is then encoded, which
+	 * makes it equally safe in a text node and inside a quoted attribute.
 	 *
-	 * It is therefore not the method for a value that is meant to reach the
-	 * browser as markup. Keeping authored HTML renderable while removing what
-	 * can execute is a different objective with a different failure mode, and
-	 * it belongs to sanitize().
+	 * This is the objective the html() method has always carried, and html()
+	 * is now an alias of this one.
 	 *
-	 * @param string  $var      The value to escape.
+	 * @param string  $var      The value to sanitise.
 	 * @param string  $charset  The character set to use for encoding (default: 'UTF-8').
 	 * @param bool    $shorten  Whether to shorten the string to a specified length (default: false).
 	 * @param int     $length   The maximum length for shortening, if enabled (default: 40).
 	 * @param bool    $addTip   Whether to append a tooltip (ellipsis) when shortening (default: true).
 	 *
-	 * @return string The escaped, and optionally shortened, value.
-	 * @since 3.0.9
+	 * @return string The plain text, optionally shortened, value.
+	 * @since 6.1.7
 	 */
-	public static function html($var, $charset = 'UTF-8', $shorten = false, $length = 40, $addTip = true): string
+	public static function sanitize($var, $charset = 'UTF-8', $shorten = false, $length = 40, $addTip = true): string
 	{
 		if (!self::check($var))
 		{
 			return '';
 		}
+
+		// a default InputFilter is a whitelist over an empty tag list, so it
+		// drops every tag and keeps the text they wrapped
+		$filter = new InputFilter();
+		$string = html_entity_decode(
+			$filter->clean((string) $var, 'HTML'),
+			ENT_QUOTES,
+			$charset
+		);
 
 		if ($shorten)
 		{
 			// shorten() encodes every value it returns
-			return self::shorten((string) $var, $length, $addTip);
+			return self::shorten($string, $length, $addTip);
 		}
 
-		return htmlspecialchars((string) $var, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
+		return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
 	}
 
 	/**
-	 * Sanitise authored HTML that is meant to reach the browser as markup.
+	 * Sanitise a value down to plain text for output.
 	 *
-	 * The objective here is the opposite of html(): the markup has to survive,
-	 * so the value cannot be encoded. The filter runs in blacklist mode, the
-	 * same configuration Joomla's own safehtml form filter uses, so <b>, <p>
-	 * and a plain <a href> still render while <script>, <iframe>, on* handlers
-	 * and javascript: URLs are removed.
+	 * @param string  $var      The value to sanitise.
+	 * @param string  $charset  The character set to use for encoding (default: 'UTF-8').
+	 * @param bool    $shorten  Whether to shorten the string to a specified length (default: false).
+	 * @param int     $length   The maximum length for shortening, if enabled (default: 40).
+	 * @param bool    $addTip   Whether to append a tooltip (ellipsis) when shortening (default: true).
 	 *
-	 * Note that a default InputFilter is a whitelist over an empty tag list,
-	 * which strips every tag rather than sanitising, so it cannot serve this
-	 * objective.
-	 *
-	 * Use this only where the field genuinely holds authored HTML, such as an
-	 * editor field. For every value that is not markup, use html(): filtering
-	 * an ordinary value deletes any text shaped like a tag.
-	 *
-	 * @param string  $var  The authored HTML to sanitise.
-	 *
-	 * @return string The markup, with anything executable removed.
-	 * @since 6.1.7
+	 * @return string The plain text, optionally shortened, value.
+	 * @since 3.0.9
+	 * @deprecated 6.1.7  Use sanitize(), which this calls.
 	 */
-	public static function sanitize($var): string
+	public static function html($var, $charset = 'UTF-8', $shorten = false, $length = 40, $addTip = true): string
 	{
-		if (!self::check($var))
-		{
-			return '';
-		}
-
-		// blacklist tags and attributes, so safe markup survives
-		$filter = new InputFilter([], [], 1, 1);
-
-		return $filter->clean((string) $var, 'HTML');
+		return self::sanitize($var, $charset, $shorten, $length, $addTip);
 	}
 
 	/**

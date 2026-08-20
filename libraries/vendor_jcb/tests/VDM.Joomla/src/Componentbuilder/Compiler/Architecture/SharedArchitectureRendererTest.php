@@ -211,7 +211,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 
 		$category = $this->item('catid', 'category', false);
 		$this->assertSame(
-			'$displayData->escape($item->category_title)',
+			'$displayData->sanitize($item->category_title)',
 			$subject->get($category, 'articles', false, '$displayData->')
 		);
 
@@ -221,18 +221,21 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 			$subject->get($selectionItem, 'articles', false)
 		);
 
-		// a field that opts out of escaping is sanitised, never emitted raw
-		$notEscaped = $this->item('body');
+		// a field flagged not to be escaped keeps its HTML, encoded rather
+		// than stripped, and is never emitted raw
+		$keepsHtml = $this->item('body');
 		$this->assertSame(
-			'$this->sanitize($item->body)',
-			$subject->get($notEscaped, 'articles', true)
+			'$this->escape($item->body)',
+			$subject->get($keepsHtml, 'articles', true)
 		);
 		$this->assertSame(
-			'$displayData->sanitize($item->body)',
-			$subject->get($notEscaped, 'articles', true, '$displayData->')
+			'$displayData->escape($item->body)',
+			$subject->get($keepsHtml, 'articles', true, '$displayData->')
 		);
-		$escaped = $this->item('title');
-		$this->assertSame('$this->escape($item->title)', $subject->get($escaped, 'articles', true));
+
+		// every other field is reduced to plain text
+		$sanitised = $this->item('title');
+		$this->assertSame('$this->sanitize($item->title)', $subject->get($sanitised, 'articles', true));
 
 		$user = $this->item('created_by', 'user', false);
 		$this->assertStringContainsString('loadUserById((int) ($item->created_by ?? 0))->name', $subject->get($user, 'articles', false));
@@ -323,7 +326,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 		$subject = new LinkLogic($this->config());
 		$code = $subject->get(
 			$this->item('title'),
-			'$this->escape($item->title)',
+			'$this->sanitize($item->title)',
 			'<?php echo $edit; ?>&id=<?php echo $item->id; ?>',
 			"\$canDo->get('article.edit')",
 			'article',
@@ -342,7 +345,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 		$this->config()->set('joomla_version', 3);
 		$legacy = $subject->get(
 			$this->item('title'),
-			'$this->escape($item->title)',
+			'$this->sanitize($item->title)',
 			'/edit',
 			'$allowed',
 			'article',
@@ -352,7 +355,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 			false
 		);
 		$this->assertStringNotContainsString('data-content-select', $legacy);
-		$this->assertStringContainsString("<?php echo \$this->escape(\$item->title); ?>", $legacy);
+		$this->assertStringContainsString("<?php echo \$this->sanitize(\$item->title); ?>", $legacy);
 	}
 
 	/**
@@ -368,7 +371,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 		$plain = $this->item('title');
 
 		$this->assertSame(
-			PHP_EOL . "\t\t\t<?php echo \$this->escape(\$item->title); ?>",
+			PHP_EOL . "\t\t\t<?php echo \$this->sanitize(\$item->title); ?>",
 			$subject->get($plain, 'article', 'articles', $itemClass, false)
 		);
 		$this->assertSame('initial', $itemClass);
@@ -411,7 +414,7 @@ final class SharedArchitectureRendererTest extends ArchitectureTestCase
 
 		$this->assertSame(
 			PHP_EOL . "\t\t\t<div><strong>"
-			. PHP_EOL . "\t\t\t<?php echo \$this->escape(\$item->title); ?>"
+			. PHP_EOL . "\t\t\t<?php echo \$this->sanitize(\$item->title); ?>"
 			. '</strong>|$item->title|Acme'
 			. PHP_EOL . "\t\t\t</div>",
 			$output

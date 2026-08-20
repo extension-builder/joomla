@@ -71,8 +71,8 @@ final class VersionedDisplayMethodRendererTest extends ArchitectureTestCase
 
 		$this->assertSame(
 			PHP_EOL . "\t\t// Add the list ordering clause." . PHP_EOL
-			. "\t\t\$this->listOrder = \$this->escape(\$this->state->get('list.ordering', 'a.id'));" . PHP_EOL
-			. "\t\t\$this->listDirn = \$this->escape(\$this->state->get('list.direction', 'DESC'));",
+			. "\t\t\$this->listOrder = \$this->sanitize(\$this->state->get('list.ordering', 'a.id'));" . PHP_EOL
+			. "\t\t\$this->listDirn = \$this->sanitize(\$this->state->get('list.direction', 'DESC'));",
 			$code
 		);
 		$this->assertStringNotContainsString('filterForm', $code);
