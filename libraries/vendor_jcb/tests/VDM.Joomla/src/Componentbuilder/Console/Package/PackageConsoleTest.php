@@ -477,7 +477,6 @@ final class PackageConsoleTest extends FilesystemTestCase
 	 * @return  void
 	 * @since   1.0.0
 	 */
-	#[Group('known-defect')]
 	public function testUnresolvedRepositoryGuidUsesLazyMessageBusAndFallsBackToDefault(): void
 	{
 		$guid = '11111111-1111-4111-8111-111111111111';
