@@ -162,6 +162,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet a
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterListSet as J3AdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewPlaceholders;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Loop as AdminViewsLoop;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as AdminViewsListView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Shared as AdminViewsShared;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomAdminViews\Builder as CustomAdminViewsBuilder;
@@ -442,6 +443,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsShared::class, 'Architecture.AdminViews.Shared')
 			->share('Architecture.AdminViews.Shared', [$this, 'getAdminViewsShared'], true);
+
+		$container->alias(AdminViewsLoop::class, 'Architecture.AdminViews.Loop')
+			->share('Architecture.AdminViews.Loop', [$this, 'getAdminViewsLoop'], true);
 
 		$container->alias(CustomAdminViewsBuilder::class, 'Architecture.CustomAdminViews.Builder')
 			->share('Architecture.CustomAdminViews.Builder', [$this, 'getCustomAdminViewsBuilder'], true);
@@ -2358,6 +2362,28 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Router.RouteHelper'),
 			$container->get('Architecture.Model.UniqueFields'),
 			$container->get('Architecture.Controller.CustomAdminDynamicButton')
+		);
+	}
+
+	/**
+	 * Get The AdminViews Loop Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsLoop
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsLoop(Container $container): AdminViewsLoop
+	{
+		return new AdminViewsLoop(
+			$container->get('Config'),
+			$container->get('Component'),
+			$container->get('Compiler.Creator.Helper'),
+			$container->get('Architecture.AdminViews.EditView'),
+			$container->get('Architecture.AdminViews.ListView'),
+			$container->get('Architecture.AdminViews.Shared'),
+			$container->get('Architecture.AdminViews.ListLink'),
+			$container->get('Architecture.View.Placeholders')
 		);
 	}
 
