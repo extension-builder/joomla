@@ -1968,6 +1968,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/SharedTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomAdminViews/Builder.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomAdminViews/BuilderTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/CodeBody.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomViewWritersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomView/ExtraDisplayMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/CustomViewWritersTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AllowEdit.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedPermissionRendererTest.php'

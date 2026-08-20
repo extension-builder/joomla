@@ -15,6 +15,8 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use stdClass;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\CodeBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\ExtraDisplayMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Layouts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\TemplateBody;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
@@ -323,4 +325,103 @@ final class CustomViewWritersTest extends ArchitectureTestCase
 			'echo 2;', (string) $this->content->get('one|ADMIN_LAYOUT_CODE')
 		);
 	}
+
+	/**
+	 * A view drawn with php of its own carries it.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAViewDrawnWithItsOwnPhpCarriesIt(): void
+	{
+		$subject = $this->renderer(CodeBody::class);
+		$view = $this->drawnWith(['add_php_view' => 1, 'php_view' => "echo 1;\necho 2;"]);
+
+		$this->assertSame(
+			PHP_EOL . PHP_EOL . "echo 1;\necho 2;", $subject->get($view)
+		);
+	}
+
+	/**
+	 * A view drawn with no php of its own carries none.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAViewDrawnWithNoPhpCarriesNone(): void
+	{
+		$subject = $this->renderer(CodeBody::class);
+		$view = $this->drawnWith(['add_php_view' => 0, 'php_view' => 'echo 1;']);
+
+		$this->assertSame('', $subject->get($view));
+	}
+
+	/**
+	 * A view drawn with an empty body carries the blank lines around it.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAViewDrawnWithAnEmptyBodyCarriesTheBlankLines(): void
+	{
+		$subject = $this->renderer(CodeBody::class);
+		$view = $this->drawnWith(['add_php_view' => 1, 'php_view' => '']);
+
+		$this->assertSame(PHP_EOL . PHP_EOL, $subject->get($view));
+	}
+
+	/**
+	 * A view given extra view methods carries them.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAViewGivenExtraMethodsCarriesThem(): void
+	{
+		$subject = $this->renderer(ExtraDisplayMethods::class);
+		$view = $this->drawnWith([
+			'add_php_jview' => 1, 'php_jview' => 'public function extra() {}'
+		]);
+
+		$this->assertSame(
+			PHP_EOL . PHP_EOL . 'public function extra() {}', $subject->get($view)
+		);
+	}
+
+	/**
+	 * A view given no extra view methods carries none.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAViewGivenNoExtraMethodsCarriesNone(): void
+	{
+		$subject = $this->renderer(ExtraDisplayMethods::class);
+		$view = $this->drawnWith([
+			'add_php_jview' => 0, 'php_jview' => 'public function extra() {}'
+		]);
+
+		$this->assertSame('', $subject->get($view));
+	}
+
+	/**
+	 * A view drawn with the given settings.
+	 *
+	 * @param   array  $settings  What the view was drawn with.
+	 *
+	 * @return  array
+	 * @since   6.1.7
+	 */
+	private function drawnWith(array $settings): array
+	{
+		$view = new stdClass();
+
+		foreach ($settings as $key => $value)
+		{
+			$view->{$key} = $value;
+		}
+
+		return ['settings' => $view];
+	}
+
 }
