@@ -75,8 +75,12 @@ pull_command() {
 	# each: pull:library, pull:power, pull:joomla_component. A component is a
 	# joomla_component there, the same way push and reset spell it.
 	#
-	# -i is the items option and -r the repository; both take a bare GUID, which
-	# the command resolves through the repositories the site knows about.
+	# -i is the items option and -r the repository. -i takes a bare GUID. -r is
+	# documented as a repository JSON object and only accepts a bare GUID when
+	# the site already knows that repository: it looks the GUID up, and a fresh
+	# container knows none, so the lookup finds nothing and the fetch gives up.
+	# Passing the repository as JSON, through --repo-file, is what makes this
+	# work against a container built from scratch.
 	printf 'componentbuilder:pull:joomla_component -i %s -r %s --no-interaction' \
 		"${component}" "${repository}"
 }
