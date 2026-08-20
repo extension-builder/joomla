@@ -160,6 +160,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\Fil
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewPlaceholders;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as AdminViewsListView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Shared as AdminViewsShared;
 
 
 /**
@@ -432,6 +433,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsListView::class, 'Architecture.AdminViews.ListView')
 			->share('Architecture.AdminViews.ListView', [$this, 'getAdminViewsListView'], true);
+
+		$container->alias(AdminViewsShared::class, 'Architecture.AdminViews.Shared')
+			->share('Architecture.AdminViews.Shared', [$this, 'getAdminViewsShared'], true);
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
@@ -2293,6 +2297,43 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Model.SelectionTranslationMethod'),
 			$container->get('Architecture.Model.SortFields'),
 			$container->get('Architecture.Model.StoredId')
+		);
+	}
+
+	/**
+	 * Get The AdminViews Shared Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsShared
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsShared(Container $container): AdminViewsShared
+	{
+		return new AdminViewsShared(
+			$container->get('Event'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.Router.SiteRouter'),
+			$container->get('Architecture.AdminViews.AddToolBar'),
+			$container->get('Architecture.Controller.AllowAdd'),
+			$container->get('Architecture.Controller.AllowEdit'),
+			$container->get('Architecture.DynamicButtons'),
+			$container->get('Architecture.Model.AllowEdit'),
+			$container->get('Architecture.Model.CanDelete'),
+			$container->get('Architecture.Model.CanEditState'),
+			$container->get('Compiler.Creator.Access.Sections.Category'),
+			$container->get('Compiler.Creator.Access.Sections.Joomla.Fields'),
+			$container->get('Architecture.Model.AliasTitleFix'),
+			$container->get('Architecture.Model.BatchCopy'),
+			$container->get('Architecture.Model.BatchMove'),
+			$container->get('Architecture.Model.GenerateNewAlias'),
+			$container->get('Architecture.Model.GenerateNewTitle'),
+			$container->get('Architecture.Model.GetForm'),
+			$container->get('Architecture.Router.RouteHelper'),
+			$container->get('Architecture.Model.UniqueFields'),
+			$container->get('Architecture.Controller.CustomAdminDynamicButton')
 		);
 	}
 
