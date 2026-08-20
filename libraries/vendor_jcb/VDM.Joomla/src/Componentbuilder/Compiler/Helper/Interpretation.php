@@ -2219,36 +2219,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Controller.AjaxTasks instead.
 	 */
 	public function setRegisterAjaxTask($target)
 	{
-		$tasks = '';
-		if (isset(CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller'])
-			&& ArrayHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller']
-			))
-		{
-			$taskArray = [];
-			foreach (
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_controller'] as $view
-			)
-			{
-				foreach ($view as $task)
-				{
-					$taskArray[$task['task_name']] = $task['task_name'];
-				}
-			}
-			if (ArrayHelper::check($taskArray))
-			{
-				foreach ($taskArray as $name)
-				{
-					$tasks .= PHP_EOL . Indent::_(2) . "\$this->registerTask('"
-						. $name . "', 'ajax');";
-				}
-			}
-		}
-
-		return $tasks;
+		return CFactory::_('Architecture.Controller.AjaxTasks')->get($target);
 	}
 
 	/**
@@ -2274,29 +2249,11 @@ class Interpretation extends Fields
 	 * @return  string
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.Model.AjaxMethods instead.
 	 */
 	public function setAjaxModelMethods($target)
 	{
-		$methods = '';
-		if (isset(CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_model'])
-			&& ArrayHelper::check(
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_model']
-			))
-		{
-			foreach (
-				CFactory::_('Customcode.Dispenser')->hub[$target]['ajax_model'] as $view =>
-				$method
-			)
-			{
-				$methods .= PHP_EOL . PHP_EOL . Indent::_(1) . "//"
-					. Line::_(__Line__, __Class__) . " Used in " . $view . PHP_EOL;
-				$methods .= CFactory::_('Placeholder')->update_(
-					$method
-				);
-			}
-		}
-
-		return $methods;
+		return CFactory::_('Architecture.Model.AjaxMethods')->get($target);
 	}
 
 	/**
