@@ -1972,6 +1972,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/BuilderTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/SiteStatics.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/SiteStaticsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/InstallScripts.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/InstallScriptsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/Finalise.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/FinaliseTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditView.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditViewTest.php'

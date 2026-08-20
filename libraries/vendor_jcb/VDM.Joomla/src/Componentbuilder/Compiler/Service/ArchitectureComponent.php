@@ -54,6 +54,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderScript
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Component\MoveFolderScript as J3ComponentMoveFolderScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Details as ComponentDetails;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Assembly as ComponentAssembly;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\SiteStatics as ComponentSiteStatics;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\InstallScripts as ComponentInstallScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Finalise as ComponentFinalise;
 
 
 /**
@@ -173,6 +176,15 @@ class ArchitectureComponent implements ServiceProviderInterface
 
 		$container->alias(ComponentAssembly::class, 'Architecture.Component.Assembly')
 			->share('Architecture.Component.Assembly', [$this, 'getComponentAssembly'], true);
+
+		$container->alias(ComponentSiteStatics::class, 'Architecture.Component.SiteStatics')
+			->share('Architecture.Component.SiteStatics', [$this, 'getComponentSiteStatics'], true);
+
+		$container->alias(ComponentInstallScripts::class, 'Architecture.Component.InstallScripts')
+			->share('Architecture.Component.InstallScripts', [$this, 'getComponentInstallScripts'], true);
+
+		$container->alias(ComponentFinalise::class, 'Architecture.Component.Finalise')
+			->share('Architecture.Component.Finalise', [$this, 'getComponentFinalise'], true);
 
 		$container->alias(ComponentMoveFolderMethod::class, 'Architecture.Component.MoveFolderMethod')
 			->share('Architecture.Component.MoveFolderMethod', [$this, 'getComponentMoveFolderMethod'], true);
@@ -828,6 +840,72 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Architecture.Controller.AllowEditViews'),
 			$container->get('Architecture.Dashboard.View'),
 			$container->get('Utilities.Structure')
+		);
+	}
+
+	/**
+	 * Get The Component SiteStatics Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentSiteStatics
+	 * @since   6.1.7
+	 */
+	public function getComponentSiteStatics(Container $container): ComponentSiteStatics
+	{
+		return new ComponentSiteStatics(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Component'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The Component InstallScripts Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentInstallScripts
+	 * @since   6.1.7
+	 */
+	public function getComponentInstallScripts(Container $container): ComponentInstallScripts
+	{
+		return new ComponentInstallScripts(
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Uninstall.Script.Context'),
+			$container->get('Compiler.Builder.Uninstall.Script.Fields'),
+			$container->get('Architecture.Component.PostInstallScript'),
+			$container->get('Architecture.Component.PostUpdateScript'),
+			$container->get('Architecture.Component.UninstallScript'),
+			$container->get('Architecture.Component.MoveFolderScript'),
+			$container->get('Architecture.Component.MoveFolderMethod'),
+			$container->get('Architecture.ComHelperClass.UikitMethods')
+		);
+	}
+
+	/**
+	 * Get The Component Finalise Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentFinalise
+	 * @since   6.1.7
+	 */
+	public function getComponentFinalise(Container $container): ComponentFinalise
+	{
+		return new ComponentFinalise(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Config.Fieldsets'),
+			$container->get('Compiler.Builder.Component.Fields'),
+			$container->get('Compiler.Creator.Router'),
+			$container->get('Power.Autoloader'),
+			$container->get('Joomlamodule.Infusion'),
+			$container->get('Joomlaplugin.Infusion')
 		);
 	}
 
