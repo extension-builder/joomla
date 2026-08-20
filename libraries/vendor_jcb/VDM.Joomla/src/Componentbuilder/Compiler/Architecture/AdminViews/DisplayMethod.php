@@ -89,10 +89,10 @@ class DisplayMethod implements DisplayMethodInterface
 				__LINE__,__CLASS__
 			) . " Add the list ordering clause.";
 		$script .= PHP_EOL . Indent::_(2)
-			. "\$this->listOrder = \$this->escape(\$this->state->get('list.ordering', '"
+			. "\$this->listOrder = \$this->sanitize(\$this->state->get('list.ordering', '"
 			. $default_ordering['name'] . "'));";
 		$script .= PHP_EOL . Indent::_(2)
-			. "\$this->listDirn = \$this->escape(\$this->state->get('list.direction', '"
+			. "\$this->listDirn = \$this->sanitize(\$this->state->get('list.direction', '"
 			. $default_ordering['direction'] . "'));";
 
 		return $script;
