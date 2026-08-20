@@ -108,7 +108,7 @@ expect_exit "gives up rather than waiting for ever" 1 \
 
 echo
 echo "pull_command"
-[[ "$(pull_command aaa bbb)" == 'componentbuilder:pull:component -i aaa -r bbb --no-interaction' ]] \
+[[ "$(pull_command aaa bbb)" == 'componentbuilder:pull:joomla_component -i aaa -r bbb --no-interaction' ]] \
 	&& check "names the component and the repository it comes from" pass \
 	|| check "names the component and the repository it comes from" fail
 [[ "$(pull_command aaa bbb)" != *'--items'* ]] \
@@ -123,23 +123,23 @@ echo "run_cli"
 COMPILE_STUB_STATUS=0
 compose_exec_stub() { return "${COMPILE_STUB_STATUS}"; }
 expect_exit "keeps going when the command succeeds" 0 \
-	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b'
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:joomla_component -i a -r b'
 [[ -f "${OUT_DIR}/fetch.log" ]] \
 	&& check "keeps what the command said" pass || check "keeps what the command said" fail
 
 COMPILE_STUB_STATUS=1
 expect_exit "stops when the command fails" 1 \
-	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b'
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:joomla_component -i a -r b'
 
 # An optional command the console does not have is the harness asking for
 # something this JCB cannot do. Anything else that goes wrong still stops.
 compose_exec_stub() {
-	echo 'Command "componentbuilder:pull:component" is not defined.'
+	echo 'Command "componentbuilder:pull:joomla_component" is not defined.'
 
 	return "${COMPILE_STUB_STATUS}"
 }
 expect_exit "carries on when an optional command is not defined" 0 \
-	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b' optional
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:joomla_component -i a -r b' optional
 
 compose_exec_stub() {
 	echo 'Could not reach the repository.'
@@ -147,7 +147,7 @@ compose_exec_stub() {
 	return "${COMPILE_STUB_STATUS}"
 }
 expect_exit "stops when an optional command fails for any other reason" 1 \
-	run_cli fetch 'Fetching the component' 'componentbuilder:pull:component -i a -r b' optional
+	run_cli fetch 'Fetching the component' 'componentbuilder:pull:joomla_component -i a -r b' optional
 
 compose_exec_stub() { return "${COMPILE_STUB_STATUS}"; }
 COMPILE_STUB_STATUS=0
