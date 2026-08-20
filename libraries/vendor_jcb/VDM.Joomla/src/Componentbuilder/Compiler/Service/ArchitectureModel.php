@@ -1372,7 +1372,9 @@ class ArchitectureModel implements ServiceProviderInterface
 	 */
 	public function getModelValidationFix(Container $container): ModelValidationFix
 	{
-		return new ModelValidationFix();
+		return new ModelValidationFix(
+			$container->get('Compiler.Builder.Validation.Fix')
+		);
 	}
 
 	/**
