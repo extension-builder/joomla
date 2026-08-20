@@ -161,6 +161,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewP
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as AdminViewsListView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Shared as AdminViewsShared;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomAdminViews\Builder as CustomAdminViewsBuilder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\CodeBody as CustomViewCodeBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\ExtraDisplayMethods as CustomViewExtraDisplayMethods;
 
 
 /**
@@ -436,6 +439,15 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsShared::class, 'Architecture.AdminViews.Shared')
 			->share('Architecture.AdminViews.Shared', [$this, 'getAdminViewsShared'], true);
+
+		$container->alias(CustomAdminViewsBuilder::class, 'Architecture.CustomAdminViews.Builder')
+			->share('Architecture.CustomAdminViews.Builder', [$this, 'getCustomAdminViewsBuilder'], true);
+
+		$container->alias(CustomViewCodeBody::class, 'Architecture.CustomView.CodeBody')
+			->share('Architecture.CustomView.CodeBody', [$this, 'getCustomViewCodeBody'], true);
+
+		$container->alias(CustomViewExtraDisplayMethods::class, 'Architecture.CustomView.ExtraDisplayMethods')
+			->share('Architecture.CustomView.ExtraDisplayMethods', [$this, 'getCustomViewExtraDisplayMethods'], true);
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
@@ -2334,6 +2346,76 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Router.RouteHelper'),
 			$container->get('Architecture.Model.UniqueFields'),
 			$container->get('Architecture.Controller.CustomAdminDynamicButton')
+		);
+	}
+
+	/**
+	 * Get The CustomAdminViews Builder Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminViewsBuilder
+	 * @since   6.1.7
+	 */
+	public function getCustomAdminViewsBuilder(Container $container): CustomAdminViewsBuilder
+	{
+		return new CustomAdminViewsBuilder(
+			$container->get('Config'),
+			$container->get('Event'),
+			$container->get('Header'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.Component.LicenseLock'),
+			$container->get('Component'),
+			$container->get('Language'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Architecture.CustomAdminView.AddToolBar'),
+			$container->get('Architecture.CustomAdminViews.AddToolBar'),
+			$container->get('Dynamicget.CustomGetMethods'),
+			$container->get('Dynamicget.GetItem'),
+			$container->get('Dynamicget.GetItems'),
+			$container->get('Dynamicget.ListQuery'),
+			$container->get('Dynamicget.Methods'),
+			$container->get('Architecture.CustomView.Body'),
+			$container->get('Architecture.CustomView.DisplayMethod'),
+			$container->get('Architecture.CustomView.Form'),
+			$container->get('Architecture.CustomView.Layouts'),
+			$container->get('Architecture.CustomView.TemplateBody'),
+			$container->get('Architecture.CustomView.SubmitButtonScript'),
+			$container->get('Architecture.CustomView.CodeBody'),
+			$container->get('Architecture.CustomView.ExtraDisplayMethods'),
+			$container->get('Architecture.View.PrepareDocument')
+		);
+	}
+
+	/**
+	 * Get The CustomView CodeBody Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewCodeBody
+	 * @since   6.1.7
+	 */
+	public function getCustomViewCodeBody(Container $container): CustomViewCodeBody
+	{
+		return new CustomViewCodeBody(
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Get The CustomView ExtraDisplayMethods Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewExtraDisplayMethods
+	 * @since   6.1.7
+	 */
+	public function getCustomViewExtraDisplayMethods(Container $container): CustomViewExtraDisplayMethods
+	{
+		return new CustomViewExtraDisplayMethods(
+			$container->get('Placeholder')
 		);
 	}
 

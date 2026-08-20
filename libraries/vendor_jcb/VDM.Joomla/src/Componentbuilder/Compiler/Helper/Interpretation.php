@@ -719,17 +719,12 @@ class Interpretation extends Fields
 	 * @return  string  The generated methods.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.ExtraDisplayMethods instead.
 	 */
 	public function setCustomViewExtraDisplayMethods(&$view)
 	{
-		if ($view['settings']->add_php_jview == 1)
-		{
-			return PHP_EOL . PHP_EOL . CFactory::_('Placeholder')->update_(
-					$view['settings']->php_jview
-				);
-		}
-
-		return '';
+		return CFactory::_('Architecture.CustomView.ExtraDisplayMethods')
+			->get($view);
 	}
 
 	/**
@@ -788,25 +783,11 @@ class Interpretation extends Fields
 	 * @return  string  The generated php.
 	 *
 	 * @since   3.2.0
+	 * @deprecated 6.1.7 Use Architecture.CustomView.CodeBody instead.
 	 */
 	public function setCustomViewCodeBody(&$view)
 	{
-		if ($view['settings']->add_php_view == 1)
-		{
-			$view['settings']->php_view = (array) explode(
-				PHP_EOL, (string) $view['settings']->php_view
-			);
-			if (ArrayHelper::check($view['settings']->php_view))
-			{
-				$_tmp = PHP_EOL . PHP_EOL . implode(
-						PHP_EOL, $view['settings']->php_view
-					);
-
-				return CFactory::_('Placeholder')->update_($_tmp);
-			}
-		}
-
-		return '';
+		return CFactory::_('Architecture.CustomView.CodeBody')->get($view);
 	}
 
 	/**
