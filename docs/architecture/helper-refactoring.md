@@ -142,6 +142,27 @@ services and remain in the helper only as delegating shims:
 | `setCustomAdminViewListLink`, `getCustomAdminViewButtons` | `Architecture.AdminViews.ListLink` with `Compiler.Builder.Custom.Admin.View.List.Link`, `.List.Id` and `Custom.Admin.Added` |
 | `setCustomViewMenu`, `setupFrontendParamFields` | `Architecture.Menu.CustomView` (J3/J4/J5/J6 target family for the fieldset rule/field lookup attributes) |
 
+That table was the first wave. Every method that built generated code has
+since followed it out, and all three helpers now hold nothing but shims and
+orchestration:
+
+| Helper | Baseline | Now |
+| --- | --- | --- |
+| `Helper/Interpretation.php` | 3,655 | 2,846 — every method a shim, none over 18 lines |
+| `Helper/Fields.php` | 749 | 182 — every method a shim |
+| `Helper/Infusion.php` | 2,549 | 193 — `buildFileContent` is 89 lines and builds nothing itself |
+
+`buildFileContent` was the last of it, and it split thirteen ways:
+`Component\Details` opens the run, `AdminViews\Loop` walks the admin views
+through `AdminViews\EditView`, `AdminViews\ListView` and `AdminViews\Shared`,
+`CustomAdminViews\Builder` and `Component\Assembly` finish what the views
+need, `SiteViews\Builder` (with `SiteViews\ModelData` and `SiteViews\Headers`)
+walks the site views, and `Component\SiteStatics`, `Component\InstallScripts`
+and `Component\Finalise` close it. What is left in the helper is the two
+events, those calls in order, the second run that dispatches queued work back
+onto the helper by name, and the second pass over the config fieldsets.
+[`extraction-map.json`](extraction-map.json) records where each method went.
+
 Each extraction ships with unit or family-contract tests, provider catalog
 and interface-conformance fixture updates, and test-ownership entries. Use
 these moves as the template for the remaining clusters.
