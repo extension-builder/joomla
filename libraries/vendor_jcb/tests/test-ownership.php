@@ -1960,6 +1960,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/AssemblyTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/ModelData.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/ModelDataTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/Headers.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/HeadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/Builder.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/SiteViews/BuilderTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditView.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditViewTest.php'
