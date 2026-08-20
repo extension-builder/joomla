@@ -71,9 +71,13 @@ pull_command() {
 		return 0
 	fi
 
+	# The console names its fetches after the entity they fetch, one command
+	# each: pull:library, pull:power, pull:joomla_component. A component is a
+	# joomla_component there, the same way push and reset spell it.
+	#
 	# -i is the items option and -r the repository; both take a bare GUID, which
 	# the command resolves through the repositories the site knows about.
-	printf 'componentbuilder:pull:component -i %s -r %s --no-interaction' \
+	printf 'componentbuilder:pull:joomla_component -i %s -r %s --no-interaction' \
 		"${component}" "${repository}"
 }
 
