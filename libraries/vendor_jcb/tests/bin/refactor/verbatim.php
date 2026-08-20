@@ -24,17 +24,18 @@
  * decide, and what a run through the container proves.
  *
  * usage: php verbatim.php <old.php> <old signature> <new.php> <new signature> \
- *            [Service.Name=$this->property]...
+ *            [<what it was> <what it became>]...
  *
  * The signature is enough of the declaration to find it, e.g.
- * 'public function setLangFileData(): void'.
+ * 'public function setLangFileData(): void'. Each route is two arguments, so
+ * either side may contain anything, newlines and '=' included.
  *
  * exit 0 when the two bodies are identical, 1 when they are not.
  */
 
-if ($argc < 5)
+if ($argc < 5 || ($argc - 5) % 2 !== 0)
 {
-	fwrite(STDERR, "usage: php verbatim.php <old.php> <old signature> <new.php> <new signature> [Service.Name=\$this->property]...\n");
+	fwrite(STDERR, "usage: php verbatim.php <old.php> <old signature> <new.php> <new signature> [<what it was> <what it became>]...\n");
 	exit(2);
 }
 
@@ -105,17 +106,11 @@ function lines(string $body): array
 $old = methodBody($argv[1], $argv[2]);
 $new = methodBody($argv[3], $argv[4]);
 
-foreach (array_slice($argv, 5) as $route)
+$routes = array_slice($argv, 5);
+
+for ($i = 0; $i < count($routes); $i += 2)
 {
-	$at = strpos($route, '=');
-
-	if ($at === false)
-	{
-		fwrite(STDERR, "A route reads Service.Name=\$this->property, not '{$route}'\n");
-		exit(2);
-	}
-
-	$old = str_replace(substr($route, 0, $at), substr($route, $at + 1), $old);
+	$old = str_replace($routes[$i], $routes[$i + 1], $old);
 }
 
 $a = lines($old);
@@ -123,7 +118,7 @@ $b = lines($new);
 
 if ($a === $b)
 {
-	printf("The body moved verbatim: %d lines, %d route(s) named.\n", count($a), $argc - 5);
+	printf("The body moved verbatim: %d lines, %d route(s) named.\n", count($a), intdiv($argc - 5, 2));
 	exit(0);
 }
 
