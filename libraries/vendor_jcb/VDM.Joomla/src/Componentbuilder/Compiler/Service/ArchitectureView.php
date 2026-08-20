@@ -159,6 +159,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet a
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterListSet as J3AdminViewsFilterListSet;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewPlaceholders;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as AdminViewsListView;
 
 
 /**
@@ -428,6 +429,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsEditView::class, 'Architecture.AdminViews.EditView')
 			->share('Architecture.AdminViews.EditView', [$this, 'getAdminViewsEditView'], true);
+
+		$container->alias(AdminViewsListView::class, 'Architecture.AdminViews.ListView')
+			->share('Architecture.AdminViews.ListView', [$this, 'getAdminViewsListView'], true);
 
 		$container->alias(AdminViewsFilterFieldFile::class, 'Architecture.AdminViews.FilterFieldFile')
 			->share('Architecture.AdminViews.FilterFieldFile', [$this, 'getAdminViewsFilterFieldFile'], true);
@@ -2238,6 +2242,57 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Field.SetAccessControl'),
 			$container->get('Architecture.Table.Constructor'),
 			$container->get('Architecture.Component.LicenseLock')
+		);
+	}
+
+	/**
+	 * Get The AdminViews ListView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsListView
+	 * @since   6.1.7
+	 */
+	public function getAdminViewsListView(Container $container): AdminViewsListView
+	{
+		return new AdminViewsListView(
+			$container->get('Config'),
+			$container->get('Event'),
+			$container->get('Header'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.AdminView.ViewScript'),
+			$container->get('Architecture.View.Jquery'),
+			$container->get('Architecture.CustomButtons'),
+			$container->get('Architecture.Model.CheckInNow'),
+			$container->get('Compiler.Builder.Only.Function.Buttons'),
+			$container->get('Compiler.Builder.Eximport.View'),
+			$container->get('Compiler.Builder.Import.Custom.Scripts'),
+			$container->get('Compiler.Builder.List.Column.Number'),
+			$container->get('Architecture.AdminViews.DisplayMethod'),
+			$container->get('Architecture.AdminViews.BatchOptions'),
+			$container->get('Architecture.Controller.EximportMethod'),
+			$container->get('Architecture.AdminViews.ViewBody'),
+			$container->get('Architecture.AdminViews.EximportButtons'),
+			$container->get('Architecture.AdminViews.FilterListSet'),
+			$container->get('Architecture.AdminViews.FilterSet'),
+			$container->get('Architecture.AdminViews.FilterFieldHelper'),
+			$container->get('Architecture.AdminViews.SidebarFilters'),
+			$container->get('Architecture.Model.FilterFields'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.ItemsMethod'),
+			$container->get('Architecture.Component.ImportCustomScripts'),
+			$container->get('Architecture.AdminViews.CanDo'),
+			$container->get('Architecture.AdminViews.ListBody'),
+			$container->get('Architecture.AdminViews.ListHead'),
+			$container->get('Architecture.Model.ListQuery'),
+			$container->get('Architecture.Model.PopulateState'),
+			$container->get('Architecture.Router.SiteRouter'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Architecture.Model.SelectionTranslationMethod'),
+			$container->get('Architecture.Model.SortFields'),
+			$container->get('Architecture.Model.StoredId')
 		);
 	}
 

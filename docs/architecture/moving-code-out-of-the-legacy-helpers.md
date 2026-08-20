@@ -163,8 +163,13 @@ be identical text:
 
 ```
 php verbatim.php <old.php> <old signature> <new.php> <new signature> \
-    [Service.Name=$this->property]...
+    [<what it was> <what it became>]...
 ```
+
+Each route is two arguments, so either side may contain anything — a whole
+wrapped statement, newlines, `=` — which is what a block lifted out of
+`buildFileContent` needs: there a legacy array the helper filled by hand
+becomes a `set()` on the builder that replaced it.
 
 It needs no fixtures, so unlike a replica run it cannot pass because nothing was
 exercised. It says nothing about *which* service reached which property, though:

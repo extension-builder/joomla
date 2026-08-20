@@ -334,10 +334,10 @@ final class EditView
 		{
 			// set license per view if needed
 			$this->licenselock->setView(
-				$nameSingleCode, $this->config->build_target
+				$nameSingleCode
 			);
 			$this->licenselock->setView(
-				$nameListCode, $this->config->build_target
+				$nameListCode
 			);
 
 			// Trigger Event: jcb_ce_onBeforeBuildAdminEditViewContent
