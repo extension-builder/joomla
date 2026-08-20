@@ -1984,6 +1984,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/FinaliseTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/Loop.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/LoopTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditView.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/EditViewTest.php'

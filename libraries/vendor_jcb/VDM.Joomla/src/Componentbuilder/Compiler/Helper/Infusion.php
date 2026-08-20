@@ -85,63 +85,9 @@ class Infusion extends Interpretation
 			// everything the component says about itself, before any view is built
 			CFactory::_('Architecture.Component.Details')->set();
 
-			// reset view array
-			$viewarray            = [];
-			$site_edit_view_array = [];
-			// start dynamic build
-			foreach (CFactory::_('Component')->get('admin_views') as $view)
-			{
-				// set the target
-				CFactory::_('Config')->build_target = 'admin';
-				CFactory::_('Config')->lang_target = 'admin';
-
-				// set local names
-				$nameSingleCode = $view['settings']->name_single_code;
-				$nameListCode   = $view['settings']->name_list_code;
-
-				// set the view placeholders
-				$this->setViewPlaceholders($view['settings']);
-
-				// set site edit view array
-				if (isset($view['edit_create_site_view'])
-					&& is_numeric(
-						$view['edit_create_site_view']
-					)
-					&& $view['edit_create_site_view'] > 0)
-				{
-					$site_edit_view_array[$nameSingleCode] = $nameListCode;
-					CFactory::_('Config')->lang_target = 'both';
-					// insure site view does not get removed
-					CFactory::_('Config')->remove_site_edit_folder = false;
-				}
-
-				// check if help is being loaded
-				CFactory::_('Compiler.Creator.Helper')->set($nameSingleCode);
-
-				// set custom admin view list links
-				$this->setCustomAdminViewListLink(
-					$view, $nameListCode
-				);
-
-				// set view array
-				$viewarray[] = Indent::_(4) . "'"
-					. $nameSingleCode . "' => '"
-					. $nameListCode . "'";
-				// the edit view of this admin view
-				CFactory::_('Architecture.AdminViews.EditView')->build(
-					$view, $nameSingleCode, $nameListCode
-				);
-
-				// the list view of this admin view
-				CFactory::_('Architecture.AdminViews.ListView')->build(
-					$view, $nameSingleCode, $nameListCode
-				);
-
-				// the pieces both views of this admin view share
-				CFactory::_('Architecture.AdminViews.Shared')->build(
-					$view, $nameSingleCode, $nameListCode
-				);
-			}
+			// every admin view the component was given
+			[$viewarray, $site_edit_view_array] =
+				CFactory::_('Architecture.AdminViews.Loop')->build();
 
 			// setup the layouts
 			$this->setCustomViewLayouts();
