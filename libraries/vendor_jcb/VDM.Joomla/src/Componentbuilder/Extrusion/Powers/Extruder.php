@@ -317,6 +317,7 @@ final class Extruder implements PowersExtruderInterface
 				'No class was found in the given library folder(s), so there is '
 				. 'nothing to extrude.'
 			);
+			$this->shortfalls();
 
 			return $this->finish(false);
 		}
@@ -353,6 +354,7 @@ final class Extruder implements PowersExtruderInterface
 				'No class was found in the given library folder(s), so there is '
 				. 'nothing to extrude.'
 			);
+			$this->shortfalls();
 
 			return $this->finish(false);
 		}

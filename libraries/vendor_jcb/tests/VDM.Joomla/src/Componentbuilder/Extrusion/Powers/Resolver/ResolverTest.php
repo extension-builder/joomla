@@ -374,6 +374,33 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * The catalogue follows a change of placeholder values, never staling.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheCatalogueFollowsAChangeOfPlaceholderValues(): void
+	{
+		$this->load->component(3, 'guid-three', 'componentbuilder', 1, 'VDM');
+		$this->load->component(4, 'guid-four', 'componentbuilder', 1, 'Acme');
+		$this->load->power(1, 'aaaaaaaa-1111-4111-8111-111111111111', 'Load',
+			'[[[NamespacePrefix]]]\Joomla\Data.Load');
+		$this->config->set('component', 3);
+		$existing = $this->existing();
+
+		$this->assertNotNull($existing->find('VDM\Joomla\Data\Load'));
+		$this->assertNull($existing->find('Acme\Joomla\Data\Load'));
+
+		$this->config->set('component', 4);
+
+		$this->assertNull(
+			$existing->find('VDM\Joomla\Data\Load'),
+			'A catalogue resolved under other values must not be reused.'
+		);
+		$this->assertNotNull($existing->find('Acme\Joomla\Data\Load'));
+	}
+
+	/**
 	 * The placeholders resolver under test.
 	 *
 	 * @return  Placeholders  The resolver.

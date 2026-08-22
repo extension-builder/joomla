@@ -67,6 +67,14 @@ final class Existing
 	protected ?array $index = null;
 
 	/**
+	 * The placeholder values the catalogue was resolved under.
+	 *
+	 * @var    string|null
+	 * @since  6.1.7
+	 */
+	protected ?string $under = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   LoadInterface  $load        The database loader.
@@ -118,11 +126,16 @@ final class Existing
 	 */
 	protected function index(): array
 	{
-		if ($this->index !== null)
+		// a second run may resolve under other placeholder values, so the
+		// catalogue is only reused while those values still hold
+		$under = $this->namespacer->signature();
+
+		if ($this->index !== null && $this->under === $under)
 		{
 			return $this->index;
 		}
 
+		$this->under = $under;
 		$this->index = [];
 		$rows = $this->load->items(
 			[
