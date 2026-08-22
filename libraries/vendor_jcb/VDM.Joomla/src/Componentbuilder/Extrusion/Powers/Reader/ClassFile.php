@@ -82,6 +82,13 @@ final class ClassFile
 	 */
 	public function read(string $code): ?array
 	{
+		// one text for the lexer, the parser and every offset alike
+		if (strncmp($code, "\xEF\xBB\xBF", 3) === 0)
+		{
+			$code = substr($code, 3);
+		}
+
+		$code = str_replace(["\r\n", "\r"], "\n", $code);
 		$declaration = $this->declaration($code);
 
 		if ($declaration === null)
@@ -89,13 +96,26 @@ final class ClassFile
 			return null;
 		}
 
+		$offset = (int) $declaration['offset'];
+		unset($declaration['offset']);
+
 		$declaration['license'] = $this->license($code);
 		$declaration['uses'] = $this->imports($code);
 
-		// null says the parser could not find the body the lexer promised,
+		// null says the parser could not slice the body the lexer promised,
 		// which is a fact the caller must see -- an empty body is only real
 		// when the declaration itself is empty
-		$declaration['body'] = $this->parser->getClassCode($code);
+		$body = $this->parser->getClassCode($code);
+
+		// a body that does not follow the located declaration was sliced off
+		// something else in the file, such as an anonymous class above it
+		if (is_string($body) && $body !== ''
+			&& strpos($code, $body, $offset) === false)
+		{
+			$body = null;
+		}
+
+		$declaration['body'] = $body;
 
 		return $declaration;
 	}
@@ -107,7 +127,8 @@ final class ClassFile
 	 *
 	 * @return  array{
 	 *              namespace: string, class: string, type: string|null,
-	 *              docblock: string, extends: array<string>, implements: array<string>
+	 *              docblock: string, extends: array<string>, implements: array<string>,
+	 *              offset: int
 	 *          }|null  The declaration parts, or null when none was found.
 	 * @since   6.1.7
 	 */
@@ -195,10 +216,17 @@ final class ClassFile
 						continue 2;
 					}
 
-					return $this->decompose(
+					$parts = $this->decompose(
 						$tokens, $i, $token[0], $namespace,
 						$docblock, $final, $abstract
 					);
+
+					if ($parts !== null)
+					{
+						$parts['offset'] = $this->offset($tokens, $i);
+					}
+
+					return $parts;
 
 				default:
 					// any other statement claims the docblock and the modifiers
@@ -486,6 +514,27 @@ final class ClassFile
 			'alias' => $alias,
 			'kind' => $kind
 		];
+	}
+
+	/**
+	 * The byte offset at which the token at the given index starts.
+	 *
+	 * @param   array<int, mixed>  $tokens  The file's tokens.
+	 * @param   int                $at      The token index.
+	 *
+	 * @return  int  The byte offset in the tokenised text.
+	 * @since   6.1.7
+	 */
+	protected function offset(array $tokens, int $at): int
+	{
+		$offset = 0;
+
+		for ($i = 0; $i < $at; $i++)
+		{
+			$offset += strlen(is_array($tokens[$i]) ? $tokens[$i][1] : $tokens[$i]);
+		}
+
+		return $offset;
 	}
 
 	/**
