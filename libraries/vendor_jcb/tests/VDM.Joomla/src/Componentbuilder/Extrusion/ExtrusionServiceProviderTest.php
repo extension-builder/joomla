@@ -23,6 +23,7 @@ use ReflectionMethod;
 use VDM\Joomla\Componentbuilder\Extrusion\Factory;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Discovery;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Extrusion;
+use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
@@ -53,6 +54,7 @@ use VDM\Tests\Support\ServiceProviderTestCase;
 #[CoversClass(Reader::class)]
 #[CoversClass(Resolver::class)]
 #[CoversClass(Writer::class)]
+#[CoversClass(Powers::class)]
 final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 {
 	/**
@@ -78,7 +80,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 	 * @since  6.1.6
 	 */
 	private const PROVIDERS = [
-		'Registry', 'Discovery', 'Reader', 'Resolver', 'Writer', 'Extrusion'
+		'Registry', 'Discovery', 'Reader', 'Resolver', 'Writer', 'Powers', 'Extrusion'
 	];
 
 	/**
@@ -89,6 +91,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 	 */
 	private const CONTRACTS = [
 		'ExtruderInterface' => ['reset', 'path', 'dump', 'extrude', 'messages'],
+		'PowersExtruderInterface' => ['reset', 'library', 'component', 'harvest', 'extrude', 'messages'],
 		'LayoutInterface' => ['version', 'kinds', 'candidates', 'roots'],
 		'LocatorInterface' => ['kind', 'locate'],
 		'PrecedenceInterface' => ['resolve'],
@@ -125,9 +128,9 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => '3a198de224a88564b42e2a4deedf2ee460b0902849b7d4127592a0b253af0185'
 		]];
 		yield 'registry' => [Registry::class, [
-			'aliases' => 12,
-			'services' => 12,
-			'hash' => '158fa6b9cf4d9602144338bb61f48e5f0f1177520a03920390d54ad61c02428a'
+			'aliases' => 13,
+			'services' => 13,
+			'hash' => '2d6b89c593a87441c3bd5e6d56dd6ac8cb9199d46388070f6b8808dcce346732'
 		]];
 		yield 'discovery' => [Discovery::class, [
 			'aliases' => 14,
@@ -148,6 +151,11 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'aliases' => 12,
 			'services' => 12,
 			'hash' => '4e4ca43941e94303b743189eba8be8d0216faf001e475ea80efcf5f30eb1f14a'
+		]];
+		yield 'powers' => [Powers::class, [
+			'aliases' => 10,
+			'services' => 9,
+			'hash' => 'c5e2be74192b2b6502199122c45835233434412e2c13bc453d8e11dc7e247f01'
 		]];
 	}
 
@@ -224,7 +232,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			}
 		}
 
-		$this->assertSame(68, $namespaced);
+		$this->assertSame(79, $namespaced);
 	}
 
 	/**
