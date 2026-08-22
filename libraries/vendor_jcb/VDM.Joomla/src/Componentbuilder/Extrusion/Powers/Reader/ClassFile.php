@@ -76,7 +76,7 @@ final class ClassFile
 	 *              docblock: string, license: string,
 	 *              extends: array<string>, implements: array<string>,
 	 *              uses: array<int, array{raw: string, name: string, alias: string|null, kind: string}>,
-	 *              body: string
+	 *              body: string|null
 	 *          }|null  The parts, or null when the file declares no class at all.
 	 * @since   6.1.7
 	 */
@@ -91,7 +91,11 @@ final class ClassFile
 
 		$declaration['license'] = $this->license($code);
 		$declaration['uses'] = $this->imports($code);
-		$declaration['body'] = (string) $this->parser->getClassCode($code);
+
+		// null says the parser could not find the body the lexer promised,
+		// which is a fact the caller must see -- an empty body is only real
+		// when the declaration itself is empty
+		$declaration['body'] = $this->parser->getClassCode($code);
 
 		return $declaration;
 	}
@@ -172,8 +176,12 @@ final class ClassFile
 					continue 2;
 
 				case T_READONLY:
-					// a readonly class is still stored as a plain class
-					$previous = $token[0];
+					// a readonly class is still stored as a plain class, and
+					// a readonly anonymous class is still anonymous
+					if ($previous !== T_NEW)
+					{
+						$previous = $token[0];
+					}
 					continue 2;
 
 				case T_CLASS:
@@ -393,7 +401,24 @@ final class ClassFile
 
 			foreach ($branches as $branch)
 			{
-				$import = $this->binding($prefix . '\\' . trim($branch), $kind);
+				$branch = trim($branch);
+
+				// a trailing comma leaves an empty branch behind
+				if ($branch === '')
+				{
+					continue;
+				}
+
+				// a branch may carry its own function or const marker
+				$branchKind = $kind;
+
+				if (preg_match('/^(function|const)\s+/i', $branch, $marked) === 1)
+				{
+					$branchKind = strtolower($marked[1]);
+					$branch = trim(substr($branch, strlen($marked[0])));
+				}
+
+				$import = $this->binding($prefix . '\\' . $branch, $branchKind);
 
 				if ($import !== null)
 				{
@@ -408,7 +433,14 @@ final class ClassFile
 
 		foreach (explode(',', $inner) as $part)
 		{
-			$import = $this->binding(trim($part), $kind);
+			$part = trim($part);
+
+			if ($part === '')
+			{
+				continue;
+			}
+
+			$import = $this->binding($part, $kind);
 
 			if ($import !== null)
 			{
@@ -438,7 +470,7 @@ final class ClassFile
 			$alias = trim($matches[2]);
 		}
 
-		$binding = ltrim(trim($binding), '\\');
+		$binding = trim(trim($binding), '\\');
 
 		if ($binding === '')
 		{
@@ -544,10 +576,12 @@ final class ClassFile
 			return '';
 		}
 
+		$comment = str_replace(["\r\n", "\r"], "\n", $comment);
 		$comment = preg_replace('/^\/\*\*[\r\n\s]*|[\r\n\s]*\*\/$/m', '', $comment);
-		$comment = preg_replace('/^[\s]*\*[\s]?/m', '', (string) $comment);
-		$lines = array_map('trim', preg_split('/\r\n|\r|\n/', (string) $comment));
+		$comment = preg_replace('/^[ \t]*\*[ \t]?/m', '', (string) $comment);
+		$lines = array_map('trim', explode("\n", (string) $comment));
 
-		return implode("\n", array_filter($lines, static fn (string $line): bool => $line !== ''));
+		// a description keeps its blank lines, exactly as a power stores it
+		return trim(implode("\n", $lines));
 	}
 }

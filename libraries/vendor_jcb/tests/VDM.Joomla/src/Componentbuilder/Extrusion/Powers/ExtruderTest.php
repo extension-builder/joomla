@@ -287,26 +287,33 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame(2, $fetch->add_licensing_template);
 		$this->assertStringContainsString('abstract public function fetch();', $fetch->main_class_code);
 		$this->assertStringNotContainsString('class Fetch', $fetch->main_class_code);
-		$this->assertObjectNotHasProperty('extends', $fetch);
-		$this->assertObjectNotHasProperty('use_selection', $fetch);
-		$this->assertObjectNotHasProperty('head', $fetch);
+		$this->assertSame('', $fetch->extends, 'A class without a parent states so, clearing any stale link.');
+		$this->assertSame([], $fetch->use_selection);
+		$this->assertSame('', $fetch->head);
+		$this->assertSame(0, $fetch->add_head);
 
 		$loader = $this->item->definition('power', $this->guid('Demo\Joomla\Data\Loader'));
 
 		$this->assertNotNull($loader);
 		$this->assertSame(
-			$this->guid('Demo\Joomla\Data\Action\Fetch'),
+			'-1',
 			$loader->extends,
-			'A parent inside the harvest links by the identity the harvest assigned.'
+			'An aliased parent keeps its alias as the custom name, because the body may lean on it.'
+		);
+		$this->assertSame('Getter', $loader->extends_custom);
+		$this->assertSame(
+			['use_selection0' => [
+				'use' => $this->guid('Demo\Joomla\Data\Action\Fetch'),
+				'as' => 'Getter'
+			]],
+			$loader->use_selection,
+			'The aliased parent still links by identity, through the use selection.'
 		);
 		$this->assertSame(
 			[self::EXISTING_GUID],
 			$loader->implements,
-			'An interface that already is a power links by its own identity.'
-		);
-		$this->assertObjectNotHasProperty(
-			'use_selection', $loader,
-			'An import the compiler will reintroduce is never also a use selection.'
+			'An interface that already is a power links by its own identity, and its
+			plain import is never also a use selection.'
 		);
 		$this->assertSame('use Joomla\CMS\Factory;', $loader->head);
 		$this->assertSame(1, $loader->add_head);

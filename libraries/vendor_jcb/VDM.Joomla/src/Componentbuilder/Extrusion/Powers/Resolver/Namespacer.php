@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 
+use VDM\Joomla\Utilities\String\ClassfunctionHelper;
 use VDM\Joomla\Utilities\String\NamespaceHelper;
 
 
@@ -82,10 +83,13 @@ final class Namespacer
 			return null;
 		}
 
-		$head = array_slice($segments, 0, count($segments) - $count);
-		$tail = implode('.', array_merge($folders, [$class]));
+		// a stored namespace needs a backslash head to be a namespace at all,
+		// and the convention keeps two segments as the vendor folder name
+		$keep = max(count($segments) - $count, min(2, count($segments)));
+		$head = array_slice($segments, 0, $keep);
+		$tail = implode('.', array_merge(array_slice($segments, $keep), [$class]));
 
-		return $head === [] ? $tail : implode('\\', $head) . '\\' . $tail;
+		return implode('\\', $head) . '\\' . $tail;
 	}
 
 	/**
@@ -197,7 +201,26 @@ final class Namespacer
 			return '';
 		}
 
-		return NamespaceHelper::safe(str_replace('.', '\\', $stored));
+		// the compiler cleans namespace segments harder than the class name:
+		// a segment keeps only letters and digits, while the class keeps its
+		// underscores -- so the same asymmetry applies here, or a class with
+		// an underscore would never recognise its own power
+		$segments = array_values(array_filter(
+			explode('\\', str_replace('.', '\\', trim($stored, '\\'))),
+			'strlen'
+		));
+
+		if ($segments === [])
+		{
+			return '';
+		}
+
+		$class = ClassfunctionHelper::safe(array_pop($segments));
+
+		return implode('\\', array_merge(
+			array_map([NamespaceHelper::class, 'safeSegment'], $segments),
+			[$class]
+		));
 	}
 
 	/**

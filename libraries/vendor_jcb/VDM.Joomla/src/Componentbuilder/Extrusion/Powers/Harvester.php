@@ -141,17 +141,29 @@ final class Harvester
 	}
 
 	/**
-	 * Harvest every library folder the run was given, once.
+	 * Harvest every library folder the run was given, once per identity context.
+	 *
+	 * A harvest settles identities under the placeholder values of its moment,
+	 * so it only stands while those values do: naming another component after
+	 * harvesting quietly regathers, rather than extruding identities the new
+	 * component would never recognise.
 	 *
 	 * @return  int  The number of class candidates harvested.
 	 * @since   6.1.7
 	 */
 	public function harvest(): int
 	{
-		if ((bool) $this->harvest->get('harvested', false))
+		$signature = $this->namespacer->signature();
+
+		if ((bool) $this->harvest->get('harvested', false)
+			&& $this->harvest->get('signature') === $signature)
 		{
 			return (int) $this->report->get('counts.powers.classes', 0);
 		}
+
+		// a fresh gather must see the table as it stands now
+		$this->harvest->clear();
+		$this->existing->refresh();
 
 		$found = 0;
 		$existing = 0;
@@ -164,6 +176,7 @@ final class Harvester
 		}
 
 		$this->harvest->set('harvested', true);
+		$this->harvest->set('signature', $signature);
 		$this->report->set('counts.powers.classes', $found);
 		$this->report->set('counts.powers.existing', $existing);
 		$this->report->set('counts.powers.new', $found - $existing);
@@ -290,6 +303,14 @@ final class Harvester
 			return null;
 		}
 
+		if ($parts['body'] === null)
+		{
+			// writing a power with a silently lost body would be far worse
+			$this->report->set('powers.skipped.unparsable.' . md5($file), $file);
+
+			return null;
+		}
+
 		$relative = ltrim(substr($file, strlen($source)), '/');
 		$bundle = str_contains($relative, '/') ? dirname($relative) : '';
 		$folders = $bundle === '' ? [] : explode('/', $bundle);
@@ -339,7 +360,7 @@ final class Harvester
 			'extends' => $parts['extends'],
 			'implements' => $parts['implements'],
 			'uses' => $parts['uses'],
-			'body' => $parts['body']
+			'body' => (string) $parts['body']
 		]);
 
 		return [

@@ -98,7 +98,7 @@ PHP;
 		$this->assertSame('Demo\Joomla\Data', $parts['namespace']);
 		$this->assertSame('Loader', $parts['class']);
 		$this->assertSame('final class', $parts['type']);
-		$this->assertSame("Demo Loader Class\n@since 1.0.0", $parts['docblock']);
+		$this->assertSame("Demo Loader Class\n\n@since 1.0.0", $parts['docblock']);
 		$this->assertStringStartsWith('/**', $parts['license']);
 		$this->assertStringEndsWith('*/', $parts['license']);
 		$this->assertStringContainsString('@package    Demo.Library', $parts['license']);
@@ -202,7 +202,7 @@ PHP;
 		$this->assertNotNull($parts);
 		$this->assertSame('Real', $parts['class']);
 		$this->assertSame('final class', $parts['type']);
-		$this->assertSame("The real class.\n@since 1.0.0", $parts['docblock']);
+		$this->assertSame("The real class.\n\n@since 1.0.0", $parts['docblock']);
 	}
 
 	/**
@@ -314,6 +314,69 @@ PHP;
 	{
 		$this->assertNull($this->reader->read("<?php\necho 'no class here';\n"));
 		$this->assertNull($this->reader->read(''));
+	}
+
+	/**
+	 * A readonly anonymous class is still anonymous, never the declaration.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAReadonlyAnonymousClassIsStillAnonymous(): void
+	{
+		$code = "<?php\nnamespace Demo;\n\n\$value = new readonly class {\n\tpublic function a(): int\n\t{\n\t\treturn 1;\n\t}\n};\n\nfinal class Genuine {}\n";
+		$parts = $this->reader->read($code);
+
+		$this->assertNotNull($parts);
+		$this->assertSame('Genuine', $parts['class']);
+		$this->assertSame('final class', $parts['type']);
+	}
+
+	/**
+	 * A group import may mark single branches as function or const.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAGroupImportMayMarkSingleBranches(): void
+	{
+		$code = "<?php\nnamespace Demo;\n\nuse Demo\\Sub\\{Widget, function helper, const FLAG,};\n\nclass Consumer {}\n";
+		$parts = $this->reader->read($code);
+
+		$this->assertNotNull($parts);
+		$this->assertSame(
+			[
+				['raw' => 'use Demo\Sub\Widget;', 'name' => 'Demo\Sub\Widget', 'alias' => null, 'kind' => 'class'],
+				['raw' => 'use function Demo\Sub\helper;', 'name' => 'Demo\Sub\helper', 'alias' => null, 'kind' => 'function'],
+				['raw' => 'use const Demo\Sub\FLAG;', 'name' => 'Demo\Sub\FLAG', 'alias' => null, 'kind' => 'const']
+			],
+			$parts['uses'],
+			'Per-branch markers bind, and a trailing comma binds nothing.'
+		);
+	}
+
+	/**
+	 * A body the parser cannot find comes back as a fact, not as empty code.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testABodyTheParserCannotFindIsNullNotEmpty(): void
+	{
+		$single = "<?php namespace Demo; class Inline { public function a(): int { return 1; } }\n";
+		$parts = $this->reader->read($single);
+
+		$this->assertNotNull($parts);
+		$this->assertSame('Inline', $parts['class']);
+		$this->assertNull(
+			$parts['body'],
+			'A declaration mid-line is one the parser cannot slice, and silence would lose the code.'
+		);
+
+		$empty = $this->reader->read("<?php\nnamespace Demo;\n\ninterface Marker\n{\n}\n");
+
+		$this->assertNotNull($empty);
+		$this->assertSame('', $empty['body'], 'A genuinely empty body is real, not lost.');
 	}
 
 	/**
