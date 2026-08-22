@@ -380,6 +380,27 @@ PHP;
 	}
 
 	/**
+	 * A body sliced off something above the declaration is never stored.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testABodySlicedOffSomethingElseIsNeverStored(): void
+	{
+		// the line break puts an anonymous-class header at line start, which
+		// is the one shape that fools the parser's line-anchored slicer
+		$code = "<?php\nnamespace Demo;\n\n\$x = new\nclass extends Base {\n\tpublic function anon(): void {}\n};\n\nfinal class Real\n{\n\tpublic function own(): void {}\n}\n";
+		$parts = $this->reader->read($code);
+
+		$this->assertNotNull($parts);
+		$this->assertSame('Real', $parts['class']);
+		$this->assertNull(
+			$parts['body'],
+			'A body that does not follow the declaration belongs to something else.'
+		);
+	}
+
+	/**
 	 * Only a comment that opens the file states its license.
 	 *
 	 * @return  void
