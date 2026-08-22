@@ -21,6 +21,7 @@ use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
@@ -54,7 +55,7 @@ final class ExtrusionStateContractTest extends TestCase
 	 */
 	private const LEAVES = [
 		'Source', 'Inventory', 'Table', 'Schema', 'Form',
-		'Language', 'View', 'Resolved', 'Report'
+		'Language', 'View', 'Resolved', 'Harvest', 'Report'
 	];
 
 	/**
@@ -167,7 +168,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$config = new Config();
 
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(29, $config);
+		$this->assertCount(30, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertSame(0, $config->get('component'));
 		$this->assertSame('update', $config->get('onExisting'));
@@ -217,14 +218,14 @@ final class ExtrusionStateContractTest extends TestCase
 
 		$this->assertSame('update', $config->get('mode'));
 		$this->assertSame('value', $config->get('custom'));
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 
 		$cleared = $config->clear();
 
 		$this->assertSame($config, $cleared);
 		$this->assertNotSame([], $config->toArray());
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(29, $config);
+		$this->assertCount(30, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertFalse($config->get('dryRun'));
 		$this->assertSame(Config::TIERS, $config->get('precedence'));
@@ -262,7 +263,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('update', $config->get('onExisting'));
 		$this->assertSame(20000, $config->get('maxFiles'));
 		$this->assertSame(Config::BOILERPLATE, $config->get('skipColumns'));
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 
 		$this->assertSame(0, $config->rank('xml'), 'the configured precedence must drive the ranks.');
 		$this->assertSame(5, $config->rank('table'));
@@ -289,7 +290,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertFalse($fromString->selected('note'));
 		$this->assertTrue($fromString->selected('article'));
 		$this->assertSame('en-GB', $fromString->get('languageTag'));
-		$this->assertCount(29, $fromString);
+		$this->assertCount(30, $fromString);
 
 		$fromObject = new Config((object) ['strict' => true, 'tableClass' => 'off']);
 
@@ -297,7 +298,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('off', $fromObject->get('tableClass'));
 		$this->assertTrue($fromObject->get('admin'));
 		$this->assertSame(Config::TIERS, $fromObject->get('precedence'));
-		$this->assertCount(29, $fromObject);
+		$this->assertCount(30, $fromObject);
 
 		$fromNulls = new Config(['layout' => null, 'depth' => null, 'skipColumns' => null]);
 
@@ -338,7 +339,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'defaults() must leave keys outside the catalogue in place.'
 		);
 		$this->assertTrue($config->exists('custom'));
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 
 		$config->clear();
 
@@ -346,7 +347,7 @@ final class ExtrusionStateContractTest extends TestCase
 			$config->exists('custom'),
 			'clear() must drop keys outside the catalogue.'
 		);
-		$this->assertCount(29, $config);
+		$this->assertCount(30, $config);
 	}
 
 	/**
@@ -526,23 +527,23 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * The scope must expose exactly the ten state registries, keyed by name.
+	 * The scope must expose exactly the eleven state registries, keyed by name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheTenStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheElevenStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(10, $exposed);
+		$this->assertCount(11, $exposed);
 		$this->assertSame(
 			[
 				'source', 'inventory', 'table', 'schema', 'form',
-				'language', 'view', 'resolved', 'report', 'message'
+				'language', 'view', 'resolved', 'harvest', 'report', 'message'
 			],
 			array_keys($exposed)
 		);
@@ -701,7 +702,7 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * A fresh set of the ten state registries, in constructor order.
+	 * A fresh set of the eleven state registries, in constructor order.
 	 *
 	 * @return  array<string, Registry>  The registries keyed by scope name.
 	 * @since   6.1.6
@@ -717,6 +718,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'language' => new Language(),
 			'view' => new View(),
 			'resolved' => new Resolved(),
+			'harvest' => new Harvest(),
 			'report' => new Report(),
 			'message' => new Message()
 		];
@@ -807,6 +809,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'siteViews' => true,
 			'adminPath' => '',
 			'sitePath' => '',
+			'libraries' => [],
 			'code' => false,
 			'include' => [],
 			'exclude' => [],
