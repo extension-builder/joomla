@@ -166,12 +166,17 @@ final class Placeholders
 
 		if (isset($this->resolved[$id]))
 		{
+			// a fresh run reads a fresh report, which must still carry the
+			// values that drive every namespace conversion
+			$this->report->set('powers.placeholders', $this->resolved[$id]);
+
 			return $this->resolved[$id];
 		}
 
 		$prefix = '';
 		$component = '';
 		$guid = '';
+		$code = '';
 
 		if ($id > 0)
 		{
@@ -189,7 +194,8 @@ final class Placeholders
 			if ($row !== null)
 			{
 				$guid = trim((string) ($row->guid ?? ''));
-				$component = $this->segment((string) ($row->name_code ?? ''));
+				$code = $this->code((string) ($row->name_code ?? ''));
+				$component = $this->segment($code);
 
 				if ((int) ($row->add_namespace_prefix ?? 0) === 1)
 				{
@@ -207,7 +213,14 @@ final class Placeholders
 			$prefix = $this->fallbackPrefix();
 		}
 
-		[$prefix, $component] = $this->override($guid, $prefix, $component);
+		[$prefix, $component] = $this->override($guid, $prefix, $component, $code);
+
+		// a built class only ever carries the namespace-safe form of these
+		// values, so that form is the one every comparison runs against
+		$prefix = NamespaceHelper::safe($prefix);
+		$component = $component === ''
+			? ''
+			: NamespaceHelper::safeSegment($component);
 
 		$this->report->set('powers.placeholders', [
 			'prefix' => $prefix,
@@ -223,14 +236,19 @@ final class Placeholders
 	/**
 	 * Apply the component's own placeholder overrides, which outrank the rest.
 	 *
+	 * An override value may itself lean on the core placeholders -- the
+	 * compiler substitutes what it already knows into every override before
+	 * using it, so the same substitution happens here.
+	 *
 	 * @param   string  $guid       The component identity, or an empty string.
 	 * @param   string  $prefix     The resolved prefix so far.
 	 * @param   string  $component  The resolved component segment so far.
+	 * @param   string  $code       The component's safe code name.
 	 *
 	 * @return  array{0: string, 1: string}  The prefix and component after overrides.
 	 * @since   6.1.7
 	 */
-	protected function override(string $guid, string $prefix, string $component): array
+	protected function override(string $guid, string $prefix, string $component, string $code): array
 	{
 		if ($guid === '')
 		{
@@ -255,11 +273,17 @@ final class Placeholders
 			return [$prefix, $component];
 		}
 
+		$known = $this->known($code, $prefix, $component);
+
 		foreach ($rows as $row)
 		{
 			$row = (array) $row;
 			$target = $this->target((string) ($row['target'] ?? ''));
-			$value = trim((string) ($row['value'] ?? ''));
+			$value = trim(str_replace(
+				array_keys($known),
+				array_values($known),
+				(string) ($row['value'] ?? '')
+			));
 
 			if ($value === '')
 			{
@@ -277,6 +301,37 @@ final class Placeholders
 		}
 
 		return [$prefix, $component];
+	}
+
+	/**
+	 * The core placeholders an override value may lean on.
+	 *
+	 * @param   string  $code       The component's safe code name.
+	 * @param   string  $prefix     The resolved prefix so far.
+	 * @param   string  $component  The resolved component segment so far.
+	 *
+	 * @return  array<string, string>  Placeholder keyed to its value, both wrapper forms.
+	 * @since   6.1.7
+	 */
+	protected function known(string $code, string $prefix, string $component): array
+	{
+		$values = [
+			'component' => $code,
+			'Component' => ucfirst($code),
+			'COMPONENT' => strtoupper($code),
+			'ComponentNamespace' => $component,
+			'NamespacePrefix' => $prefix,
+			'NAMESPACEPREFIX' => $prefix
+		];
+		$known = [];
+
+		foreach ($values as $target => $value)
+		{
+			$known['[[[' . $target . ']]]'] = $value;
+			$known['###' . $target . '###'] = $value;
+		}
+
+		return $known;
 	}
 
 	/**
@@ -322,19 +377,19 @@ final class Placeholders
 	}
 
 	/**
-	 * The component segment a code name derives, as the compiler derives it.
+	 * The safe code name a raw component code name derives.
 	 *
-	 * This replicates the compiler's derivation -- number words, the safe
-	 * lower name, the first letter raised, the segment stripped -- without
-	 * the transliteration step, because that step needs a running
-	 * application and a code name is plain ASCII by its own convention.
+	 * This replicates the compiler's safe lower name -- number words, the
+	 * stripped characters, the underscored spaces -- without the
+	 * transliteration step, because that step needs a running application
+	 * and a code name is plain ASCII by its own convention.
 	 *
 	 * @param   string  $codeName  The component's raw code name.
 	 *
-	 * @return  string  The namespace-safe component segment.
+	 * @return  string  The safe lower code name.
 	 * @since   6.1.7
 	 */
-	protected function segment(string $codeName): string
+	protected function code(string $codeName): string
 	{
 		if (trim($codeName) === '')
 		{
@@ -345,7 +400,24 @@ final class Placeholders
 		$code = (string) preg_replace('/_+/', ' ', $code);
 		$code = (string) preg_replace('/\s+/', ' ', $code);
 		$code = (string) preg_replace('/[^A-Za-z ]/', '', $code);
-		$code = strtolower((string) preg_replace('/\s+/', '_', trim($code)));
+
+		return strtolower((string) preg_replace('/\s+/', '_', trim($code)));
+	}
+
+	/**
+	 * The component segment a safe code name derives, as the compiler derives it.
+	 *
+	 * @param   string  $code  The component's safe code name.
+	 *
+	 * @return  string  The namespace-safe component segment.
+	 * @since   6.1.7
+	 */
+	protected function segment(string $code): string
+	{
+		if ($code === '')
+		{
+			return '';
+		}
 
 		return NamespaceHelper::safeSegment(ucfirst($code));
 	}

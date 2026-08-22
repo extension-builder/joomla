@@ -219,6 +219,20 @@ final class Assembler
 			$definition->published = 1;
 		}
 
+		// every derived column is stated, empty included, so an update also
+		// clears what the class no longer has instead of keeping stale links
+		$definition->extends = '';
+		$definition->extends_custom = '';
+		$definition->implements = [];
+		$definition->implements_custom = '';
+		$definition->extendsinterfaces = [];
+		$definition->extendsinterfaces_custom = '';
+		$definition->use_selection = [];
+		$definition->head = '';
+		$definition->add_head = 0;
+		$definition->licensing_template = '';
+		$definition->add_licensing_template = 1;
+
 		$license = (string) ($candidate['license'] ?? '');
 
 		if ($license !== '')
@@ -288,8 +302,14 @@ final class Assembler
 			else
 			{
 				$definition->extends = '-1';
-				$definition->extends_custom = $this->short($parent);
+				$definition->extends_custom = $this->written($parent);
 				$this->report->set('powers.custom.extends.' . $this->key($guid), $parent);
+
+				// the column holds 64 characters, and silence would corrupt
+				if (strlen($definition->extends_custom) > 64)
+				{
+					$this->report->set('powers.overflow.extends_custom.' . $this->key($guid), $parent);
+				}
 			}
 		}
 
@@ -390,12 +410,21 @@ final class Assembler
 			}
 
 			$alias = $use['alias'] ?? null;
-			$bound = $alias ?? $this->short($name);
+			$kind = (string) ($use['kind'] ?? 'class');
 			$guid = null;
 
-			if (($use['kind'] ?? 'class') === 'class')
+			if ($kind === 'class')
 			{
 				$guid = $this->find($name);
+			}
+
+			// class, function and const imports live in separate symbol
+			// spaces, so only a class import binds under the bare name
+			$bound = $alias ?? $this->short($name);
+
+			if ($kind !== 'class')
+			{
+				$bound = $kind . ' ' . $bound;
 			}
 
 			$imports[$bound] = [
@@ -435,7 +464,7 @@ final class Assembler
 			}
 			else
 			{
-				$custom[] = $this->short((string) $name);
+				$custom[] = $this->written((string) $name);
 			}
 		}
 
@@ -482,6 +511,14 @@ final class Assembler
 
 		if (isset($imports[$first]))
 		{
+			// an aliased import stays a use selection, because the class body
+			// may lean on the alias -- the power still links through the
+			// selection, and the declaration keeps the alias as its custom name
+			if (count($segments) === 1 && $imports[$first]['alias'] !== null)
+			{
+				return null;
+			}
+
 			$resolved = count($segments) === 1
 				? $imports[$first]['name']
 				: $imports[$first]['name'] . '\\' . implode('\\', array_slice($segments, 1));
@@ -531,6 +568,24 @@ final class Assembler
 		$segments = explode('\\', trim($name, '\\'));
 
 		return (string) end($segments);
+	}
+
+	/**
+	 * The custom name an unresolved reference is stored under.
+	 *
+	 * A qualified name stays exactly as written, because the compiler emits
+	 * the custom name verbatim into the declaration -- truncating
+	 * \Exception to Exception would make the built class extend a class in
+	 * its own namespace instead.
+	 *
+	 * @param   string  $name  The name as written.
+	 *
+	 * @return  string  The name to store.
+	 * @since   6.1.7
+	 */
+	protected function written(string $name): string
+	{
+		return trim($name);
 	}
 
 	/**

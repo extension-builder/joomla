@@ -119,6 +119,24 @@ final class Existing
 	}
 
 	/**
+	 * Drop the catalogue, so the next question reads the table again.
+	 *
+	 * A harvest calls this as it starts gathering: within one run the single
+	 * snapshot is exactly right, but a fresh run must see what the previous
+	 * run's own writes put into the table.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.7
+	 */
+	public function refresh(): self
+	{
+		$this->index = null;
+		$this->under = null;
+
+		return $this;
+	}
+
+	/**
 	 * Read and resolve the whole power catalogue, once.
 	 *
 	 * @return  array<string, array{guid: string, id: int, name: string}>  The catalogue.

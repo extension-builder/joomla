@@ -374,6 +374,86 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * A class keeps its underscores through the round trip.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAClassKeepsItsUnderscoresThroughTheRoundTrip(): void
+	{
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'Acme\Lib\Foo_Bar',
+			$namespacer->resolve('Acme\Lib.Foo_Bar'),
+			'The compiler keeps underscores in the class name, so recognition must too.'
+		);
+		$this->assertSame(
+			'Acme\Lib\Load',
+			$namespacer->resolve('Ac_me\Lib.Load'),
+			'A namespace segment is cleaned harder than the class, exactly as the compiler cleans it.'
+		);
+	}
+
+	/**
+	 * The stored form always keeps a backslash head the compiler accepts.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheStoredFormAlwaysKeepsABackslashHead(): void
+	{
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'Acme\Db\Query',
+			$namespacer->stored('Acme\Db', 'Query', ['Acme', 'Db']),
+			'A path that mirrors the whole namespace must not fold into a dot-only form.'
+		);
+		$this->assertSame(
+			'Acme\Db\Deep.Query',
+			$namespacer->stored('Acme\Db\Deep', 'Query', ['Acme', 'Db', 'Deep'])
+		);
+	}
+
+	/**
+	 * The values are held in the form a built class actually carries.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheValuesAreHeldInTheirBuiltForm(): void
+	{
+		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'My_Vendor');
+		$this->config->set('component', 3);
+		$placeholders = $this->placeholders();
+
+		$this->assertSame(
+			'MyVendor',
+			$placeholders->prefix(),
+			'The compiler strips a prefix to its namespace-safe form at build time.'
+		);
+	}
+
+	/**
+	 * An override value may lean on the core placeholders, as the compiler allows.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAnOverrideValueMayLeanOnTheCorePlaceholders(): void
+	{
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
+		$this->load->overrides('comp-guid', [
+			['target' => '[[[ComponentNamespace]]]', 'value' => '[[[Component]]]Portal']
+		]);
+		$this->config->set('component', 3);
+		$placeholders = $this->placeholders();
+
+		$this->assertSame('DemoPortal', $placeholders->component());
+	}
+
+	/**
 	 * The catalogue follows a change of placeholder values, never staling.
 	 *
 	 * @return  void
