@@ -108,6 +108,9 @@ final class Assembler
 	 */
 	public function assemble(): int
 	{
+		// a second assembly may select differently, so nothing lingers
+		$this->harvest->remove('resolved');
+
 		$candidates = (array) $this->harvest->get('classes', []);
 		$selected = [];
 		$this->local = [];

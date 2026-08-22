@@ -214,6 +214,21 @@ final class Namespacer
 	}
 
 	/**
+	 * A stable signature of the placeholder values conversions run under.
+	 *
+	 * Anything derived from a conversion is only reusable while this stays
+	 * the same, because a new component or a reset can change what every
+	 * placeholder resolves to.
+	 *
+	 * @return  string  The signature.
+	 * @since   6.1.7
+	 */
+	public function signature(): string
+	{
+		return (string) json_encode($this->placeholders->map());
+	}
+
+	/**
 	 * The clean segments of one backslashed namespace.
 	 *
 	 * @param   string  $namespace  The namespace to split.
