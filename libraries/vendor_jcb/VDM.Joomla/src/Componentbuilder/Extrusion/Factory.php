@@ -16,6 +16,7 @@ use Joomla\DI\Container;
 use VDM\Joomla\Abstraction\Factory as ExtendingFactory;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Discovery;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Extrusion;
+use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
@@ -68,6 +69,7 @@ abstract class Factory extends ExtendingFactory implements FactoryInterface
 			->registerServiceProvider(new Reader())
 			->registerServiceProvider(new Resolver())
 			->registerServiceProvider(new Writer())
+			->registerServiceProvider(new Powers())
 			->registerServiceProvider(new Extrusion());
 	}
 }

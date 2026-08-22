@@ -100,6 +100,14 @@ final class Scope
 	protected Resolved $resolved;
 
 	/**
+	 * The Harvest Registry.
+	 *
+	 * @var    Harvest
+	 * @since  6.1.7
+	 */
+	protected Harvest $harvest;
+
+	/**
 	 * The Report Registry.
 	 *
 	 * @var    Report
@@ -127,6 +135,7 @@ final class Scope
 	 * @param   Language   $language   The language catalogue registry.
 	 * @param   View       $view       The classified view registry.
 	 * @param   Resolved   $resolved   The resolved definition registry.
+	 * @param   Harvest    $harvest    The powers harvest registry.
 	 * @param   Report     $report     The run report registry.
 	 * @param   Message    $message    The message bus.
 	 *
@@ -142,6 +151,7 @@ final class Scope
 		Language $language,
 		View $view,
 		Resolved $resolved,
+		Harvest $harvest,
 		Report $report,
 		Message $message
 	)
@@ -155,6 +165,7 @@ final class Scope
 		$this->language = $language;
 		$this->view = $view;
 		$this->resolved = $resolved;
+		$this->harvest = $harvest;
 		$this->report = $report;
 		$this->message = $message;
 	}
@@ -181,7 +192,7 @@ final class Scope
 	/**
 	 * Every state registry in the run, excluding the configuration.
 	 *
-	 * @return  array<string, Source|Inventory|Table|Schema|Form|Language|View|Resolved|Report|Message>  The registries by name.
+	 * @return  array<string, Source|Inventory|Table|Schema|Form|Language|View|Resolved|Harvest|Report|Message>  The registries by name.
 	 * @since   6.1.6
 	 */
 	public function registries(): array
@@ -195,6 +206,7 @@ final class Scope
 			'language' => $this->language,
 			'view' => $this->view,
 			'resolved' => $this->resolved,
+			'harvest' => $this->harvest,
 			'report' => $this->report,
 			'message' => $this->message
 		];

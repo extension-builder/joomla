@@ -50,6 +50,7 @@ final class Config extends Registry implements Registryinterface
 		'siteViews' => true,
 		'adminPath' => '',
 		'sitePath' => '',
+		'libraries' => [],
 		'code' => false,
 		'include' => [],
 		'exclude' => [],
