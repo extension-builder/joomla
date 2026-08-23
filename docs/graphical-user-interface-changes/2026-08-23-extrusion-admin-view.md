@@ -169,12 +169,13 @@ the interface that drives them.
   `buildDecisions()`, `runImport()`, `renderResults()`
 - **What changed:** New script driving the whole journey: serialises the setup
   form, POSTs `ajax.extrusionHarvest`, renders the pairing board as dense
-  nested `<details>` accordions (kinds; admin views with nested field lists;
-  powers grouped by library and bundle), proposes update for name-matched
+  nested `<details>` accordions (kinds; admin views with nested field lists,
+  collapsed; powers grouped by library and bundle, with the bundles open so
+  the rows stand visible on arrival), proposes update for name-matched
   items and create for the rest, gives every row Create new (first), Update
   (opens the one shared searchable picker fed from the catalogue pool of that
   kind), and Ignore, supports tick-based bulk create/ignore/reset and a text
-  filter, re-fetches the catalogue on target-component change and re-pairs
+  filter that also opens every group still holding a match, re-fetches the catalogue on target-component change and re-pairs
   everything by the server's own lowercase name/system rule, builds the
   verdict payload (only overrides and proposed updates travel; untouched new
   candidates keep the engine's deterministic identity), POSTs
