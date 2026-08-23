@@ -82,8 +82,9 @@ test.describe('the extrusion view', () => {
 			page.locator('input[type="radio"][name="dry_run"]').first()
 		).toBeAttached();
 
-		// the noticeboard the compiler view carries stands here too
-		await expect(page.locator('#noticeboard')).toBeAttached();
+		// the noticeboard the compiler view carries stands here too -- twice,
+		// like the compiler page: once on setup, once on the running pane
+		await expect(page.locator('#extrusion-pane-setup #noticeboard')).toBeAttached();
 	});
 
 	test('refuses to harvest thin air, on the page', async ({ page }) => {
