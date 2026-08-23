@@ -160,6 +160,16 @@
 			notice.style.display = 'block';
 			return;
 		}
+		// the powers arrive raw from the harvest, so they take their board
+		// identity here, once -- before anything renders or looks them up
+		if (payload.powers && payload.powers.classes) {
+			payload.powers.classes.forEach((candidate) => {
+				candidate.kind = 'power';
+				candidate.key = candidate.guid;
+				candidate.label = candidate.class;
+				candidate.detail = candidate.fqn;
+			});
+		}
 		state.data = payload;
 		state.decisions = {};
 		state.selected.clear();
@@ -307,13 +317,7 @@
 			(candidates[kind] || []).forEach((candidate) => rows.push(candidate));
 		});
 		if (data.powers && data.powers.classes) {
-			data.powers.classes.forEach((candidate) => {
-				candidate.kind = 'power';
-				candidate.key = candidate.guid;
-				candidate.label = candidate.class;
-				candidate.detail = candidate.fqn;
-				rows.push(candidate);
-			});
+			data.powers.classes.forEach((candidate) => rows.push(candidate));
 		}
 		return rows;
 	}
