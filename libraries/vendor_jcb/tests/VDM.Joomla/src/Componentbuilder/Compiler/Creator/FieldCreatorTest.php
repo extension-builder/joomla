@@ -286,7 +286,10 @@ final class FieldCreatorTest extends CreatorTestCase
 
 		$this->assertStringContainsString('<!-- Title field contract -->', $result);
 		$this->assertStringContainsString('<field name="title"', $result);
-		$this->assertStringContainsString('type="text" />', $result);
+		// Xml::pretty() serialises through ext-tidy when it is loaded and
+		// through DOMDocument when it is not, and only tidy puts a space
+		// before the self-closing slash -- so the assertion must accept both.
+		$this->assertMatchesRegularExpression('/type="text"\s*\/>/', $result);
 	}
 
 	/**
