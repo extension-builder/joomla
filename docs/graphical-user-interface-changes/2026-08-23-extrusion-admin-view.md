@@ -180,7 +180,12 @@ the interface that drives them.
   candidates keep the engine's deterministic identity), POSTs
   `ajax.extrusionImport`, and renders the report: messages by level and the
   written/skipped/failed trees. All user-facing strings come from the
-  template's `Text::_()` map; the script carries none of its own.
+  template's `Text::_()` map; the script carries none of its own. The script
+  loads in the document head, before the template's inline bootstrap defines
+  `window.JCBExtrusion`, so it reads the bootstrap lazily on
+  `DOMContentLoaded` rather than at evaluation time, and it treats only a
+  harvest answer that says success as one -- a missing or malformed payload
+  lands back on setup with a message, never on an empty pairing board.
 - **Why:** The requested pairing moment, bulk actions, dense navigation for
   hundreds-to-thousands of items (one shared modal picker instead of one
   select per row), and the live import report.
