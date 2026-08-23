@@ -388,7 +388,7 @@
 			html += '<details class="extrusion-library" open><summary>' + esc(library) + '</summary>';
 			Object.keys(byLibrary[library]).sort().forEach((bundle) => {
 				const list = byLibrary[library][bundle];
-				html += '<details class="extrusion-bundle"><summary>' + esc(bundle)
+				html += '<details class="extrusion-bundle" open><summary>' + esc(bundle)
 					+ counts(list) + '</summary><div class="extrusion-rows">';
 				list.forEach((candidate) => {
 					html += row(candidate);
@@ -555,13 +555,23 @@
 	}
 
 	/**
-	 * Hide rows the filter does not name.
+	 * Hide rows the filter does not name, and open every group that still
+	 * holds a match -- a hit inside a collapsed group is no hit at all.
 	 */
 	function applyFilter(value) {
 		const wanted = value.trim().toLowerCase();
 		$$('#extrusion-board .extrusion-row').forEach((rowElement) => {
-			const text = rowElement.textContent.toLowerCase();
-			rowElement.style.display = wanted === '' || text.indexOf(wanted) !== -1 ? '' : 'none';
+			const match = wanted === ''
+				|| rowElement.textContent.toLowerCase().indexOf(wanted) !== -1;
+			rowElement.style.display = match ? '' : 'none';
+			if (match && wanted !== '') {
+				let group = rowElement.closest('details');
+				while (group) {
+					group.open = true;
+					group = group.parentElement
+						? group.parentElement.closest('details') : null;
+				}
+			}
 		});
 	}
 
