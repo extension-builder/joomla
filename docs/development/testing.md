@@ -80,6 +80,16 @@ its method-level group; if a class-level group covers other failing contracts,
 move those annotations to the remaining methods or split the class. A passing
 assertion must never remain hidden in the non-blocking lane.
 
+## Graphical user interface suite
+
+The browser-driven Playwright suite is a separate track from this PHPUnit
+project: it lives in `libraries/vendor_jcb/tests/gui`, runs against a real
+Joomla container carrying this working tree, and has its own authoritative
+document — [gui-testing.md](gui-testing.md) — including the rule that every
+GUI change ships GUI test coverage in the same change. Nothing in this
+PHPUnit project's ownership ratchet tracks the GUI suite; the GUI change
+record is where its coverage is declared.
+
 ### Known-defect debt ledger
 
 The following entries correspond to every executable

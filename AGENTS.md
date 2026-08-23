@@ -42,7 +42,14 @@ incomplete and unmergeable.
 
 Read the complete [repository change-boundary policy](docs/development/change-boundaries.md)
 and use the [GUI change-record template](docs/graphical-user-interface-changes/change-record-template.md)
-before proposing work in a protected area.
+before proposing work in a protected area. An authorized interface change
+also ships GUI test coverage of the changed behavior in the same change —
+[docs/development/gui-testing.md](docs/development/gui-testing.md) is the
+authoritative guide, and the change record declares the coverage.
+
+For environment setup — the unit test project, the GUI test harness, the
+golden master, and the gates to run before handoff — start from
+[docs/development/environment.md](docs/development/environment.md).
 
 ## Read before changing compiler or Package code
 
@@ -234,6 +241,14 @@ For compiler changes, the target standard is:
 
 Never update a golden fixture before explaining and reviewing every semantic
 diff.
+
+The browser-driven GUI suite (`libraries/vendor_jcb/tests/gui`, run by the
+`GUI tests` workflow through `.github/gui-tests/run.sh`) is a separate track
+with its own rules in [docs/development/gui-testing.md](docs/development/gui-testing.md):
+one spec file per admin view, natural-string and role selectors, real AJAX
+round-trips, and no durable writes to the site it runs on. Any change under
+`admin/**` or `media/js/**` adds or updates the spec of the touched view in
+the same change.
 
 Tests must protect observable behavior, state transitions, failure paths,
 provider wiring, or generated output. Instantiation-only, `class_exists`, and
