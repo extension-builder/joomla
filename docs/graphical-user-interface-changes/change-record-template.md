@@ -79,6 +79,12 @@ Add one subsection for every affected path. Repeat this block as needed.
 | --- | --- | --- |
 | [Steps and expected behavior] | [Joomla/browser/configuration] | Pass/Fail — [actual observation] |
 
+### GUI test coverage
+
+- **Spec files added/updated:** [`libraries/vendor_jcb/tests/gui/specs/...`
+  paths, or `None` with the reason the change ships without coverage — see
+  [gui-testing.md](../development/gui-testing.md)]
+
 ### Checks not performed
 
 - None
@@ -119,4 +125,6 @@ before assigning a status.
 - [ ] Every path has an authoritative-source mapping and reconciliation status.
 - [ ] `Transfer required` is `No` only for an owner-confirmed `Not applicable`
   path; it is `Yes` for every other status.
+- [ ] The changed interface behavior has GUI test coverage, or the record
+  says plainly why not.
 - [ ] The implementation remains within the cited permission.

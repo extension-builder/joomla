@@ -87,6 +87,10 @@ Every record must contain all sections in the template and provide:
   and no-impact conclusions as applicable;
 - verification commands or manual scenarios, their environment, and their
   actual results;
+- the GUI test coverage of the changed behavior — the spec files added or
+  updated in `libraries/vendor_jcb/tests/gui` per
+  [gui-testing.md](../development/gui-testing.md), or a plain statement that
+  the change ships without coverage and why;
 - risks, limitations, and rollback instructions; and
 - an authoritative-source mapping and reconciliation status for every
   affected protected path.
@@ -128,6 +132,9 @@ used only after the authoritative JCB source has been updated and verified.
   verification, and reconciliation status.
 - [ ] Verification results are factual; skipped checks are identified rather
   than implied to have passed.
+- [ ] The changed interface behavior is covered by the GUI test suite, or the
+  record says plainly that it is not and why
+  (see [gui-testing.md](../development/gui-testing.md)).
 - [ ] The authoritative-source mapping is sufficient for another maintainer to
   transfer the change without reverse-engineering the diff.
 - [ ] `Transfer required` and reconciliation status are consistent; `No` is
