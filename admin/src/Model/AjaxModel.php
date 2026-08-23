@@ -33,6 +33,7 @@ use VDM\Joomla\Utilities\JsonHelper;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Componentbuilder\Search\Factory as SearchFactory;
 use VDM\Joomla\Componentbuilder\Import\Factory as ImportFactory;
+use VDM\Joomla\Componentbuilder\Extrusion\Factory as ExtrusionFactory;
 use VDM\Joomla\Utilities\GuidHelper;
 use VDM\Joomla\Componentbuilder\Remote\Version;
 use VDM\Joomla\Utilities\SessionHelper;
@@ -7034,5 +7035,306 @@ class AjaxModel extends ListModel
 		}
 
 		return ['error' => Text::_('COM_COMPONENTBUILDER_THE_TRANSLATIONS_FILE_COULD_NOT_BE_DELETED')];
+	}
+	/**
+	 * Harvest an extrusion source and return the approval payload.
+	 *
+	 * Nothing is written here. The source is read, resolved and lined up
+	 * against the target component, and the whole tree goes back to the
+	 * page for the pairing step.
+	 *
+	 * Language note: user-facing strings here are natural strings inside
+	 * Text::_() by design, never language constants -- JCB manages these
+	 * strings itself when this code is imported.
+	 *
+	 * @param string $config  The run configuration as a JSON object.
+	 *
+	 * @return array
+	 * @since  6.1.7
+	 */
+	public function extrusionHarvest(string $config): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+		}
+
+		$options = json_decode($config, true);
+
+		if (!is_array($options))
+		{
+			return ['error' => Text::_('The extrusion configuration could not be read.')];
+		}
+
+		try
+		{
+			[$extruder, $powers] = $this->extrusionEngines($options);
+
+			if ($extruder === null && $powers === null)
+			{
+				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+			}
+
+			$extruder?->harvest();
+			$powers?->harvest();
+
+			$candidates = ExtrusionFactory::_('Extrusion.Resolver.Candidates');
+			$component = (int) ($options['component'] ?? 0);
+			$detected = $extruder !== null ? $candidates->detect() : null;
+
+			if (!empty($options['detect']) && $detected !== null)
+			{
+				$component = (int) $detected->id;
+			}
+
+			return [
+				'success' => Text::_('The source was harvested. Review the pairings below, then import.'),
+				'component' => $component,
+				'detected' => $detected,
+				'components' => $candidates->components(),
+				'candidates' => $extruder !== null ? $candidates->candidates($component) : null,
+				'powers' => $powers !== null ? $this->extrusionPowersTree() : null,
+				'messages' => ExtrusionFactory::_('Extruder')->messages(),
+				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
+			];
+		}
+		catch (\Exception $error)
+		{
+			return ['error' => $error->getMessage()];
+		}
+	}
+
+	/**
+	 * Run an extrusion import under the pairing verdicts of the page.
+	 *
+	 * The source is harvested again server-side -- the page's tree is a
+	 * preview, never the payload -- and every identity the writers settle
+	 * is governed by the loaded verdicts.
+	 *
+	 * @param string $config     The run configuration as a JSON object.
+	 * @param string $decisions  The pairing verdicts as a JSON object.
+	 *
+	 * @return array
+	 * @since  6.1.7
+	 */
+	public function extrusionImport(string $config, string $decisions): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.import', 'com_componentbuilder')
+			|| !$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to import with the extrusion tool.')];
+		}
+
+		$options = json_decode($config, true);
+		$verdicts = json_decode($decisions, true);
+
+		if (!is_array($options))
+		{
+			return ['error' => Text::_('The extrusion configuration could not be read.')];
+		}
+
+		try
+		{
+			[$extruder, $powers] = $this->extrusionEngines($options);
+
+			if ($extruder === null && $powers === null)
+			{
+				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+			}
+
+			// the verdicts load after the engines reset, because reset is the run boundary
+			if (is_array($verdicts) && $verdicts !== [])
+			{
+				ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
+			}
+
+			$extruder?->extrude();
+			$powers?->extrude();
+
+			return [
+				'success' => Text::_('The import has run. The full report follows.'),
+				'messages' => ExtrusionFactory::_('Extruder')->messages(),
+				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
+			];
+		}
+		catch (\Exception $error)
+		{
+			return ['error' => $error->getMessage()];
+		}
+	}
+
+	/**
+	 * The catalogue of one component's linked definitions.
+	 *
+	 * The pairing board calls this when the person points the harvest at
+	 * another component, so every proposed pairing can be re-drawn from
+	 * what that component actually links.
+	 *
+	 * @param int $componentId  The component id, zero for none.
+	 *
+	 * @return array
+	 * @since  6.1.7
+	 */
+	public function extrusionCatalogue(int $componentId): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+		}
+
+		try
+		{
+			return ExtrusionFactory::_('Extrusion.Resolver.Candidates')->catalogue($componentId);
+		}
+		catch (\Exception $error)
+		{
+			return ['error' => $error->getMessage()];
+		}
+	}
+
+	/**
+	 * Aim and configure the extrusion engines for one run.
+	 *
+	 * The reset comes first and clears all run state, then every option the
+	 * page sent is applied. An engine that was given nothing to read comes
+	 * back null, so the caller knows which pipelines are in play.
+	 *
+	 * @param array $options  The run configuration.
+	 *
+	 * @return array  The component extruder (or null) and the powers extruder (or null).
+	 * @since  6.1.7
+	 */
+	protected function extrusionEngines(array $options): array
+	{
+		$extruder = ExtrusionFactory::_('Extruder');
+		$powers = ExtrusionFactory::_('Extrusion.Powers.Extruder');
+
+		// one reset clears the shared run state of both engines
+		$extruder->reset();
+
+		$path = trim((string) ($options['path'] ?? ''));
+		$admin = trim((string) ($options['admin_path'] ?? ''));
+		$site = trim((string) ($options['site_path'] ?? ''));
+		$dump = trim((string) ($options['dump'] ?? ''));
+		$libraries = array_values(array_filter(array_map('trim',
+			(array) ($options['libraries'] ?? []))));
+
+		$component = max(0, (int) ($options['component'] ?? 0));
+		$onExisting = (string) ($options['on_existing'] ?? 'update');
+		$dryRun = !empty($options['dry_run']);
+		$depth = max(1, (int) ($options['depth'] ?? 12));
+		$maxFiles = max(1, (int) ($options['max_files'] ?? 20000));
+
+		$aimed = ($path !== '' || $admin !== '' || $site !== '' || $dump !== '');
+
+		if ($aimed)
+		{
+			if ($path !== '')
+			{
+				$extruder->path($path);
+			}
+
+			if ($admin !== '')
+			{
+				$extruder->adminPath($admin);
+			}
+
+			if ($site !== '')
+			{
+				$extruder->sitePath($site);
+			}
+
+			if ($dump !== '')
+			{
+				$extruder->dump($dump);
+			}
+
+			$extruder
+				->component($component)
+				->mode((string) ($options['mode'] ?? 'create'))
+				->onExisting($onExisting)
+				->layout((string) ($options['layout'] ?? 'auto'))
+				->languageTag((string) ($options['language_tag'] ?? 'en-GB'))
+				->tableClass((string) ($options['table_class'] ?? 'auto'))
+				->dryRun($dryRun)
+				->strict(!empty($options['strict']))
+				->limits($depth, $maxFiles);
+
+			foreach (['admin', 'site', 'tabs', 'conditions', 'language',
+				'translations', 'relations', 'component_details'] as $scope)
+			{
+				if (isset($options['scope_' . $scope]))
+				{
+					$extruder->scope($scope, !empty($options['scope_' . $scope]));
+				}
+			}
+
+			if (isset($options['scope_site_views']))
+			{
+				$extruder->scope('siteViews', !empty($options['scope_site_views']));
+			}
+		}
+
+		if ($libraries !== [])
+		{
+			$powers
+				->libraries($libraries)
+				->component($component)
+				->onExisting($onExisting)
+				->dryRun($dryRun)
+				->limits($depth, $maxFiles);
+		}
+
+		return [$aimed ? $extruder : null, $libraries !== [] ? $powers : null];
+	}
+
+	/**
+	 * The powers harvest tree, trimmed for the pairing board.
+	 *
+	 * A harvest can carry hundreds of classes, each with its full body --
+	 * the page needs the identities and the grouping, never the code.
+	 *
+	 * @return array  The libraries and the trimmed class candidates.
+	 * @since  6.1.7
+	 */
+	protected function extrusionPowersTree(): array
+	{
+		$tree = ExtrusionFactory::_('Extrusion.Powers.Extruder')->harvested();
+		$classes = [];
+
+		foreach ((array) ($tree['classes'] ?? []) as $candidate)
+		{
+			$candidate = (array) $candidate;
+			$classes[] = [
+				'guid' => $candidate['guid'] ?? '',
+				'library' => $candidate['library'] ?? '',
+				'bundle' => $candidate['bundle'] ?? '',
+				'relative' => $candidate['relative'] ?? '',
+				'class' => $candidate['class'] ?? '',
+				'type' => $candidate['type'] ?? '',
+				'fqn' => $candidate['fqn'] ?? '',
+				'stored' => $candidate['stored'] ?? '',
+				'exists' => !empty($candidate['exists']),
+				'id' => (int) ($candidate['id'] ?? 0),
+				'action' => $candidate['action'] ?? 'create'
+			];
+		}
+
+		return [
+			'libraries' => (array) ($tree['libraries'] ?? []),
+			'classes' => $classes
+		];
 	}
 }

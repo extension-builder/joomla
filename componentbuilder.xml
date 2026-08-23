@@ -62,6 +62,7 @@ Whether you're a seasoned [Joomla](https://extensions.joomla.org/extension/compo
 			<!-- Instead of link you can specify individual link attributes -->
 			<menu option="com_componentbuilder" view="componentbuilder">COM_COMPONENTBUILDER_MENU_DASHBOARD</menu>
 			<menu option="com_componentbuilder" view="compiler">COM_COMPONENTBUILDER_MENU_COMPILER</menu>
+			<menu option="com_componentbuilder" view="extrusion">COM_COMPONENTBUILDER_MENU_EXTRUSION</menu>
 			<menu option="com_componentbuilder" view="joomla_components">COM_COMPONENTBUILDER_MENU_JOOMLA_COMPONENTS</menu>
 			<menu option="com_componentbuilder" view="joomla_modules">COM_COMPONENTBUILDER_MENU_JOOMLA_MODULES</menu>
 			<menu option="com_componentbuilder" view="joomla_plugins">COM_COMPONENTBUILDER_MENU_JOOMLA_PLUGINS</menu>

@@ -53,7 +53,7 @@ class ComponentbuilderModel extends ListModel
 	 * @since 5.1.1
 	 */
 	protected array $viewGroups = [
-		'main' => ['png.compiler', 'png.joomla_components', 'png.joomla_modules', 'png.joomla_plugins', 'png.powers', 'png.search', 'png.admin_views', 'png.custom_admin_views', 'png.site_views', 'png.template.add', 'png.templates', 'png.layouts', 'png.dynamic_get.add', 'png.dynamic_gets', 'png.custom_codes', 'png.placeholders', 'png.libraries', 'png.snippets', 'png.validation_rules', 'png.field.add', 'png.fields', 'png.fields.catid_qpo0O0oqp_com_componentbuilder_po0O0oq_field', 'png.fieldtypes', 'png.fieldtypes.catid_qpo0O0oqp_com_componentbuilder_po0O0oq_fieldtype', 'png.language_translations', 'png.languages', 'png.servers', 'png.repositories', 'png.help_documents'],
+		'main' => ['png.compiler', 'png.extrusion', 'png.joomla_components', 'png.joomla_modules', 'png.joomla_plugins', 'png.powers', 'png.search', 'png.admin_views', 'png.custom_admin_views', 'png.site_views', 'png.template.add', 'png.templates', 'png.layouts', 'png.dynamic_get.add', 'png.dynamic_gets', 'png.custom_codes', 'png.placeholders', 'png.libraries', 'png.snippets', 'png.validation_rules', 'png.field.add', 'png.fields', 'png.fields.catid_qpo0O0oqp_com_componentbuilder_po0O0oq_field', 'png.fieldtypes', 'png.fieldtypes.catid_qpo0O0oqp_com_componentbuilder_po0O0oq_fieldtype', 'png.language_translations', 'png.languages', 'png.servers', 'png.repositories', 'png.help_documents'],
 	];
 
 	/**
@@ -66,6 +66,9 @@ class ComponentbuilderModel extends ListModel
 		'compiler.access' => 'compiler.access',
 		'compiler.submenu' => 'compiler.submenu',
 		'compiler.dashboard_list' => 'compiler.dashboard_list',
+		'extrusion.access' => 'extrusion.access',
+		'extrusion.submenu' => 'extrusion.submenu',
+		'extrusion.dashboard_list' => 'extrusion.dashboard_list',
 		'search.access' => 'search.access',
 		'search.submenu' => 'search.submenu',
 		'search.dashboard_list' => 'search.dashboard_list',

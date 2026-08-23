@@ -1,0 +1,164 @@
+/**
+ * @package    Joomla.Component.Builder
+ *
+ * @created    23rd August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+/* the tab strip */
+#extrusion-tabs .nav-link {
+	background: none;
+	cursor: pointer;
+}
+#extrusion-tabs .nav-link:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+/* the pairing board */
+#extrusion-board {
+	max-height: 70vh;
+	overflow-y: auto;
+	border: 1px solid rgba(0, 0, 0, 0.125);
+	border-radius: 0.25rem;
+}
+.extrusion-kind > summary,
+.extrusion-library > summary,
+.extrusion-bundle > summary,
+.extrusion-fields > summary {
+	cursor: pointer;
+	padding: 0.4rem 0.6rem;
+	font-weight: 600;
+	background: rgba(0, 0, 0, 0.03);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.extrusion-library,
+.extrusion-bundle {
+	margin-left: 0.75rem;
+}
+.extrusion-fields {
+	margin-left: 2rem;
+}
+.extrusion-fields > summary {
+	font-weight: 400;
+	font-size: 0.85rem;
+	background: none;
+}
+.extrusion-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.15rem 0.6rem;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.extrusion-row.explicit {
+	background: rgba(255, 193, 7, 0.08);
+}
+.extrusion-row:hover {
+	background: rgba(13, 110, 253, 0.05);
+}
+.extrusion-tick {
+	margin: 0;
+}
+.extrusion-identity {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.extrusion-identity small {
+	opacity: 0.6;
+}
+.extrusion-actions {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 0.25rem;
+}
+.extrusion-act {
+	border: 1px solid rgba(0, 0, 0, 0.2);
+	background: none;
+	max-width: 16rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.extrusion-act.active {
+	background: #0d6efd;
+	border-color: #0d6efd;
+	color: #fff;
+}
+.extrusion-act.active[data-extrusion-act="ignore"] {
+	background: #6c757d;
+	border-color: #6c757d;
+}
+.extrusion-act.active[data-extrusion-act="create"] {
+	background: #198754;
+	border-color: #198754;
+}
+
+/* the bulk bar */
+#extrusion-bulk-bar {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	background: var(--body-bg, #fff);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* the shared target picker */
+.extrusion-modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1060;
+}
+.extrusion-modal-card {
+	background: var(--body-bg, #fff);
+	border-radius: 0.5rem;
+	padding: 1rem;
+	width: min(40rem, 90vw);
+	max-height: 80vh;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.extrusion-modal-list {
+	overflow-y: auto;
+	flex: 1 1 auto;
+	min-height: 8rem;
+	border: 1px solid rgba(0, 0, 0, 0.125);
+	border-radius: 0.25rem;
+}
+.extrusion-modal-row {
+	display: block;
+	width: 100%;
+	text-align: left;
+	border: none;
+	background: none;
+	padding: 0.35rem 0.6rem;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	cursor: pointer;
+}
+.extrusion-modal-row:hover {
+	background: rgba(13, 110, 253, 0.08);
+}
+.extrusion-modal-empty {
+	padding: 1rem;
+	text-align: center;
+	opacity: 0.6;
+}
+
+/* the detected component note */
+.extrusion-detected {
+	margin-top: 0.5rem;
+	margin-bottom: 0;
+	padding: 0.35rem 0.6rem;
+	font-size: 0.85rem;
+}
