@@ -75,7 +75,7 @@ class ExtrusionModel extends ListModel
 	protected array $styles = [
 		'administrator/components/com_componentbuilder/assets/css/admin.css',
 		'administrator/components/com_componentbuilder/assets/css/extrusion.css'
- 	];
+	];
 
 	/**
 	 * The scripts array.
@@ -85,7 +85,7 @@ class ExtrusionModel extends ListModel
 	 */
 	protected array $scripts = [
 		'administrator/components/com_componentbuilder/assets/js/admin.js'
- 	];
+	];
 
 	/**
 	 * Constructor
