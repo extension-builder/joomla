@@ -18,7 +18,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language as LanguageResolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
@@ -78,6 +80,12 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Relation::class, 'Extrusion.Resolver.Relation')
 			->share('Extrusion.Resolver.Relation', [$this, 'getRelation'], true);
+
+		$container->alias(Pairing::class, 'Extrusion.Resolver.Pairing')
+			->share('Extrusion.Resolver.Pairing', [$this, 'getPairing'], true);
+
+		$container->alias(Candidates::class, 'Extrusion.Resolver.Candidates')
+			->share('Extrusion.Resolver.Candidates', [$this, 'getCandidates'], true);
 
 		$container->alias(FieldXml::class, 'Extrusion.Resolver.FieldXml')
 			->share('Extrusion.Resolver.FieldXml', [$this, 'getFieldXml'], true);
@@ -302,6 +310,44 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Tab'),
 			$container->get('Extrusion.Resolver.Condition'),
 			$container->get('Extrusion.Resolver.Relation'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the Pairing Resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Pairing
+	 * @since   6.1.7
+	 */
+	public function getPairing(Container $container): Pairing
+	{
+		return new Pairing(
+			$container->get('Extrusion.Registry.Decision'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the Candidates Resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Candidates
+	 * @since   6.1.7
+	 */
+	public function getCandidates(Container $container): Candidates
+	{
+		return new Candidates(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Load'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Report')
 		);

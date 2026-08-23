@@ -335,6 +335,45 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Pairing verdicts govern the powers write: ignore and retarget.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testPairingVerdictsGovernThePowersWrite(): void
+	{
+		$other = 'eeeeeeee-5555-4555-8555-555555555555';
+		$fetch = $this->guid('Demo\Joomla\Data\Action\Fetch');
+		$loader = $this->guid('Demo\Joomla\Data\Loader');
+
+		$extruder = $this->extruder()->reset()
+			->library($this->library)
+			->component(3);
+
+		// verdicts load after the reset, because reset is the run boundary
+		$this->container->get('Extrusion.Resolver.Pairing')->load([
+			'power' => [
+				$loader => ['action' => 'ignore'],
+				$fetch => ['action' => 'update', 'target' => $other]
+			]
+		]);
+		$report = $extruder->extrude();
+
+		$this->assertTrue((bool) $report->get('powers.completed'));
+
+		$written = array_column($this->item->records('power'), 'item');
+		$guids = array_map(static fn (object $definition): string => $definition->guid, $written);
+
+		$this->assertNotContains($loader, $guids, 'An ignored class is never written.');
+		$this->assertContains(
+			$other,
+			$guids,
+			'A retargeted class updates the power the person pointed at.'
+		);
+		$this->assertNotContains($fetch, $guids);
+	}
+
+	/**
 	 * The skip policy mentions an existing power and leaves it untouched.
 	 *
 	 * @return  void

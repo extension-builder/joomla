@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -64,6 +65,14 @@ final class SiteView extends Writer
 	protected Source $source;
 
 	/**
+	 * The Pairing Resolver.
+	 *
+	 * @var    Pairing
+	 * @since  6.1.7
+	 */
+	protected Pairing $pairing;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -73,6 +82,7 @@ final class SiteView extends Writer
 	 * @param   View           $view      The classified view registry.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
+	 * @param   Pairing        $pairing   The pairing resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -83,7 +93,8 @@ final class SiteView extends Writer
 		Report $report,
 		View $view,
 		Guid $guid,
-		Source $source
+		Source $source,
+		Pairing $pairing
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -91,6 +102,7 @@ final class SiteView extends Writer
 		$this->view = $view;
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->pairing = $pairing;
 	}
 
 	/**
@@ -162,7 +174,17 @@ final class SiteView extends Writer
 	 */
 	protected function one(string $name, array $entry): bool
 	{
-		$guid = $this->guid->derive([$this->option(), 'site_view', $name]);
+		$guid = $this->pairing->guid(
+			'site_view',
+			$this->key($name),
+			$this->guid->derive([$this->option(), 'site_view', $name])
+		);
+
+		if ($guid === null)
+		{
+			return false;
+		}
+
 		$readable = (string) ($entry['system_name'] ?? $name);
 
 		$definition = new \stdClass();

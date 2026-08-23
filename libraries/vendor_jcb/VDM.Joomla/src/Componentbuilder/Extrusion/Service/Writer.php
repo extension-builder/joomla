@@ -103,7 +103,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Fieldtype'),
 			$container->get('Extrusion.Resolver.FieldXml'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 
@@ -123,7 +124,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 
@@ -204,7 +206,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 
@@ -285,7 +288,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 
@@ -306,7 +310,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 

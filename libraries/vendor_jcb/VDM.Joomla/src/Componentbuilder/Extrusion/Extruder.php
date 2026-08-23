@@ -484,6 +484,27 @@ final class Extruder implements ExtruderInterface
 	}
 
 	/**
+	 * Gather, read and assemble the source, without writing anything.
+	 *
+	 * This is the first half of a run, split out so a caller can present what
+	 * was found -- and collect pairing approval -- before anything is written.
+	 *
+	 * @return  Report  What was found and resolved.
+	 * @since   6.1.7
+	 */
+	public function harvest(): Report
+	{
+		$views = $this->assembleSource();
+
+		if ($views === null)
+		{
+			return $this->finish(false);
+		}
+
+		return $this->finish(true);
+	}
+
+	/**
 	 * Run the extrusion and return its report.
 	 *
 	 * @return  Report  What was found, resolved, written, and skipped.
@@ -491,39 +512,13 @@ final class Extruder implements ExtruderInterface
 	 */
 	public function extrude(): Report
 	{
-		$roots = $this->roots();
-		$dump = (string) $this->config->get('dump', '');
+		$views = $this->assembleSource();
 
-		if ($roots === [] && $dump === '')
-		{
-			$this->message->error('No component source folder and no schema dump were given.');
-
-			return $this->finish(false);
-		}
-
-		$parsed = $dump !== '' && $this->schema->parse($dump);
-
-		if ($dump !== '' && !$parsed)
-		{
-			$this->message->error('The supplied schema dump declared no table.');
-		}
-
-		$located = $roots !== [] && $this->collector->gather($roots);
-
-		if (!$located && !$parsed)
+		if ($views === null)
 		{
 			return $this->finish(false);
 		}
 
-		if ($roots === [])
-		{
-			$this->collector->identify();
-		}
-
-		$this->report->set('counts.artifacts', $this->readers->dispatch());
-		$this->identity();
-		$views = $this->assembler->assemble();
-		$this->report->set('counts.views', $views);
 		$written = $this->writers->dispatch();
 
 		if ($views === 0 && $written === 0)
@@ -538,6 +533,52 @@ final class Extruder implements ExtruderInterface
 		$this->achieved($views, $written);
 
 		return $this->finish(true);
+	}
+
+	/**
+	 * Collect, read and assemble the configured source into resolved views.
+	 *
+	 * @return  int|null  How many views were assembled, or null when nothing
+	 *                    usable was given.
+	 * @since   6.1.7
+	 */
+	protected function assembleSource(): ?int
+	{
+		$roots = $this->roots();
+		$dump = (string) $this->config->get('dump', '');
+
+		if ($roots === [] && $dump === '')
+		{
+			$this->message->error('No component source folder and no schema dump were given.');
+
+			return null;
+		}
+
+		$parsed = $dump !== '' && $this->schema->parse($dump);
+
+		if ($dump !== '' && !$parsed)
+		{
+			$this->message->error('The supplied schema dump declared no table.');
+		}
+
+		$located = $roots !== [] && $this->collector->gather($roots);
+
+		if (!$located && !$parsed)
+		{
+			return null;
+		}
+
+		if ($roots === [])
+		{
+			$this->collector->identify();
+		}
+
+		$this->report->set('counts.artifacts', $this->readers->dispatch());
+		$this->identity();
+		$views = $this->assembler->assemble();
+		$this->report->set('counts.views', $views);
+
+		return $views;
 	}
 
 	/**

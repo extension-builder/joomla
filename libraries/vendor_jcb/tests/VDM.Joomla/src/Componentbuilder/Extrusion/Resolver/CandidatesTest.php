@@ -1,0 +1,262 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder.Tests
+ *
+ * @created    23rd August, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
+
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Tests\Support\ExtrusionDatabaseFixture;
+use VDM\Tests\Support\TestCase;
+
+
+/**
+ * The resolver that turns one harvest into the approval candidate list.
+ *
+ * The pairing step lives or dies on two properties held here: every candidate
+ * key must be exactly the key the writers will file its verdict under, and the
+ * proposed pairings must come from what the target component actually links --
+ * so a re-import of a known component arrives pre-paired as updates.
+ *
+ * @since  6.1.7
+ */
+#[CoversClass(Candidates::class)]
+#[UsesClass(Config::class)]
+#[UsesClass(Guid::class)]
+#[UsesClass(Report::class)]
+final class CandidatesTest extends TestCase
+{
+	/**
+	 * The existing admin view identity in the catalogue.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const VIEW = 'aaaaaaaa-1111-4111-8111-111111111111';
+
+	/**
+	 * The existing field identity in the catalogue.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const FIELD = 'bbbbbbbb-2222-4222-8222-222222222222';
+
+	/**
+	 * The served database boundary.
+	 *
+	 * @var    ExtrusionDatabaseFixture
+	 * @since  6.1.7
+	 */
+	private ExtrusionDatabaseFixture $load;
+
+	/**
+	 * The resolved definition registry.
+	 *
+	 * @var    Resolved
+	 * @since  6.1.7
+	 */
+	private Resolved $resolved;
+
+	/**
+	 * The source identity registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.7
+	 */
+	private Source $source;
+
+	/**
+	 * The classified view registry.
+	 *
+	 * @var    View
+	 * @since  6.1.7
+	 */
+	private View $view;
+
+	/**
+	 * The resolver under test.
+	 *
+	 * @var    Candidates
+	 * @since  6.1.7
+	 */
+	private Candidates $candidates;
+
+	/**
+	 * Compose the resolver over a served catalogue and one resolved view.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	protected function setUp(): void
+	{
+		parent::setUp();
+
+		$this->load = new ExtrusionDatabaseFixture();
+		$this->load
+			->table('joomla_component', [
+				['id' => 3, 'guid' => 'comp-guid', 'system_name' => 'Demo', 'name_code' => 'demo', 'published' => 1, 'modified' => '2026-01-01']
+			])
+			->table('component_admin_views', [
+				['joomla_component' => 'comp-guid',
+					'addadmin_views' => json_encode(['addadmin_views0' => ['adminview' => self::VIEW]])]
+			])
+			->table('component_site_views', [])
+			->table('admin_view', [
+				['guid' => self::VIEW, 'name_single' => 'Item', 'system_name' => 'Demo Item']
+			])
+			->table('admin_fields', [
+				['admin_view' => self::VIEW,
+					'addfields' => json_encode(['addfields0' => ['field' => self::FIELD]])]
+			])
+			->table('field', [
+				['guid' => self::FIELD, 'name' => 'Title']
+			])
+			->table('site_view', [])
+			->table('layout', [
+				['guid' => 'cccccccc-3333-4333-8333-333333333333', 'name' => 'itemcard']
+			])
+			->table('template', [])
+			->table('power', []);
+
+		$this->resolved = new Resolved();
+		$this->resolved->set('views', ['item']);
+		$this->resolved->set('view.item.name_single', 'Item');
+		$this->resolved->set('view.item.system_name', 'Demo Item');
+		$this->resolved->set('view.item.field.title', [
+			'name' => ['value' => 'title', 'origin' => 'derived'],
+			'label' => ['value' => 'Title', 'origin' => 'xml']
+		]);
+		$this->resolved->set('view.item.field.legacy_flag', [
+			'name' => ['value' => 'legacy_flag', 'origin' => 'derived'],
+			'label' => ['value' => 'Legacy Flag', 'origin' => 'derived']
+		]);
+
+		$this->source = new Source();
+		$this->source->set('code_name', 'com_demo');
+
+		$this->view = new View();
+		$this->view->set('layout', ['itemcard' => ['name' => 'itemcard']]);
+
+		$this->candidates = new Candidates(
+			new Config(),
+			$this->resolved,
+			$this->source,
+			$this->view,
+			$this->load,
+			new Guid(),
+			new Report()
+		);
+	}
+
+	/**
+	 * A known component pre-pairs its views and fields as updates.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAKnownComponentArrivesPrePaired(): void
+	{
+		$candidates = $this->candidates->candidates(3);
+		$view = $candidates['admin_view'][0];
+
+		$this->assertSame('item', $view['key']);
+		$this->assertSame('Item', $view['label']);
+		$this->assertSame(self::VIEW, $view['match']['guid'] ?? null);
+
+		$fields = array_column($view['fields'], null, 'key');
+
+		$this->assertSame(
+			self::FIELD,
+			$fields['item.title']['match']['guid'] ?? null,
+			'A field pairs by name against the fields its paired view already links.'
+		);
+		$this->assertNull(
+			$fields['item.legacy_flag']['match'],
+			'A field the component does not know proposes itself as a creation.'
+		);
+
+		$this->assertSame(
+			'cccccccc-3333-4333-8333-333333333333',
+			$candidates['layout'][0]['match']['guid'] ?? null
+		);
+	}
+
+	/**
+	 * Candidate keys are exactly the keys verdicts are filed under.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testCandidateKeysMatchTheVerdictKeys(): void
+	{
+		$candidates = $this->candidates->candidates(3);
+
+		$this->assertSame('item', $candidates['admin_view'][0]['key']);
+		$this->assertSame(
+			['item.title', 'item.legacy_flag'],
+			array_column($candidates['admin_view'][0]['fields'], 'key')
+		);
+		$this->assertSame('itemcard', $candidates['layout'][0]['key']);
+	}
+
+	/**
+	 * Without a component nothing pairs, and everything proposes creation.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testWithoutAComponentEverythingProposesCreation(): void
+	{
+		$candidates = $this->candidates->candidates(0);
+
+		$this->assertNull($candidates['admin_view'][0]['match']);
+		$this->assertNull($candidates['admin_view'][0]['fields'][0]['match']);
+	}
+
+	/**
+	 * The harvested source detects the component it appears to be.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheSourceDetectsItsOwnComponent(): void
+	{
+		$detected = $this->candidates->detect();
+
+		$this->assertSame('comp-guid', $detected->guid ?? null);
+
+		$this->source->set('code_name', 'com_unknown');
+
+		$this->assertNull($this->candidates->detect());
+	}
+
+	/**
+	 * The published components stand ready as targets.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testThePublishedComponentsStandReadyAsTargets(): void
+	{
+		$components = $this->candidates->components();
+
+		$this->assertCount(1, $components);
+		$this->assertSame('Demo', $components[0]->name ?? null);
+	}
+}

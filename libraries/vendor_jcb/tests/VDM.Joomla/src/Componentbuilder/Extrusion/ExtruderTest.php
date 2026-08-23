@@ -411,12 +411,108 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
-	 * A full run over a modern tree produces the whole definition set.
+	 * Harvesting assembles the whole source and writes none of it.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testHarvestAssemblesTheSourceWithoutWriting(): void
+	{
+		$resolved = $this->resolved();
+		$report = $this->extruder()->path($this->modern())->component(7)->harvest();
+
+		$this->assertTrue($report->get('completed'));
+		$this->assertSame(2, $report->get('counts.views'));
+		$this->assertSame(['item', 'category'], $resolved->get('views'));
+		$this->assertSame(
+			[],
+			$this->item->records(),
+			'Harvesting must present the run, never perform it.'
+		);
+	}
+
+	/**
+	 * Pairing verdicts govern the write: ignore, retarget, and force new.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testPairingVerdictsGovernWhatIsWritten(): void
+	{
+		$target = 'dddddddd-4444-4444-8444-444444444444';
+		$root = $this->modern();
+
+		// a plain run settles the identities the verdicts will overrule
+		$this->extruder()->path($root)->component(7)->extrude();
+		$plainItem = null;
+
+		foreach ($this->item->definitions('admin_view') as $definition)
+		{
+			if ($definition->name_single === 'item')
+			{
+				$plainItem = $definition->guid;
+			}
+		}
+
+		$this->assertNotNull($plainItem);
+		$before = count($this->item->records());
+
+		$this->container->get('Extrusion.Resolver.Pairing')->load([
+			'admin_view' => [
+				'category' => ['action' => 'ignore'],
+				'item' => ['action' => 'create']
+			],
+			'field' => [
+				'item.name' => ['action' => 'update', 'target' => $target]
+			]
+		]);
+		$report = $this->extruder()->path($root)->component(7)->extrude();
+
+		$this->assertTrue($report->get('completed'));
+
+		$written = array_slice($this->item->records(), $before);
+		$views = [];
+		$fields = [];
+
+		foreach ($written as $record)
+		{
+			if ($record['table'] === 'admin_view')
+			{
+				$views[$record['item']->name_single] = $record['item']->guid;
+			}
+
+			if ($record['table'] === 'field')
+			{
+				$fields[] = $record['item']->guid;
+			}
+		}
+
+		$this->assertArrayNotHasKey(
+			'category',
+			$views,
+			'An ignored view is mentioned in the report, never written.'
+		);
+		$this->assertTrue((bool) $report->get('skipped.decision.admin_view.category'));
+		$this->assertArrayHasKey('item', $views);
+		$this->assertNotSame(
+			$plainItem,
+			$views['item'],
+			'A create verdict forces a fresh identity, even where a match existed.'
+		);
+		$this->assertContains(
+			$target,
+			$fields,
+			'An update verdict writes the candidate onto the definition the person chose.'
+		);
+	}
+
+	/**
+	 * The whole modern tree becomes the complete definition set.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testFullRunAgainstTheModernTreeProducesTheDefinitionSet(): void
+		public function testFullRunAgainstTheModernTreeProducesTheDefinitionSet(): void
 	{
 		$resolved = $this->resolved();
 		$report = $this->extruder()->path($this->modern())->component(7)->extrude();
