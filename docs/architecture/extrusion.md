@@ -957,7 +957,11 @@ sequencing the [helper refactoring playbook](helper-refactoring.md) prescribes.
   `php bin/check-test-ownership.php --base=<merge-base>` run from the test
   project on every phase.
 - Nothing in phases 0–5 edits `admin/**` or `media/**`. The interface session
-  will need those paths and therefore a GUI change record.
+  will need those paths and therefore a GUI change record. (Delivered: the
+  `extrusion` admin view — harvest, pairing board, import — with its engine
+  seams `Registry\Decision`, `Resolver\Pairing` and `Resolver\Candidates`;
+  see `docs/graphical-user-interface-changes/2026-08-23-extrusion-admin-view.md`
+  and `docs/development/user-interface-language-strings.md`.)
 
 ## 6. Open decisions
 
