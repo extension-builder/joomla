@@ -1,0 +1,13 @@
+{
+  "name": "jcb-gui-tests",
+  "description": "Playwright GUI tests for Joomla Component Builder, run against a joomengine container carrying this working tree.",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

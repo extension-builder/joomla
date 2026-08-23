@@ -1,0 +1,30 @@
+# Joomla with the released JCB, from the joomengine image, for the GUI tests.
+#
+# The entrypoint installs Joomla and then installs the released JCB package.
+# run.sh waits for that, installs this working tree over it — the same way the
+# golden master does — and then drives the administrator with Playwright.
+#
+# Unlike the golden master, this stack rides the moving "latest" tag on
+# purpose: the GUI suite is meant to prove this working tree against the
+# environment people actually install into today, not against a pinned
+# baseline.
+services:
+  joomla:
+    image: octoleo/joomengine:latest
+    ports:
+      - "8080:80"
+    environment:
+      JOOMLA_DB_HOST: mariadb:3306
+      JOOMLA_DB_USER: joomengine
+      JOOMLA_DB_NAME: joomengine
+      JOOMLA_DB_PASSWORD: secure_password12345
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:latest
+    environment:
+      MARIADB_USER: joomengine
+      MARIADB_DATABASE: joomengine
+      MARIADB_PASSWORD: secure_password12345
+      MARIADB_ROOT_PASSWORD: your_root_secure_password12345
