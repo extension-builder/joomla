@@ -203,10 +203,15 @@ the interface that drives them.
 
 - **Change type:** Created
 - **Stable location(s):** Whole file
-- **What changed:** Dashboard icon for the new tile; a copy of the existing
-  `joomla_components.png`.
+- **What changed:** Dashboard icon for the new tile, derived from the
+  existing `joomla_components.png` (the JCB product box) by recolouring only
+  its saturated tool pixels from amber to teal — the box, label and shading
+  are untouched, so the icon sits in the existing family while standing
+  apart from the components tile beside it.
 - **Why:** `ComponentbuilderModel::parseViewDefinition()` derives
-  `extrusion.png` from the `png.extrusion` view-group entry.
+  `extrusion.png` from the `png.extrusion` view-group entry, and the tile
+  stands directly next to the compiler and components tiles, so it must
+  match their style without duplicating either.
 - **Related paths/symbols:** `ComponentbuilderModel::$viewGroups`.
 
 ### `admin/src/Controller/AjaxController.php`
@@ -399,6 +404,21 @@ the interface that drives them.
 | --- | --- | --- |
 | Render the view, run a harvest, pair, and import in a Joomla admin | Not available in this container (no Joomla installation/database) | Not performed — see below |
 
+### GUI test coverage
+
+- **Spec files added/updated:**
+  `libraries/vendor_jcb/tests/gui/specs/extrusion.spec.js` (with
+  `specs/global.setup.js`, `helpers/jcb.js`, `playwright.config.js` as the
+  suite's shared foundation) — the first spec of the GUI suite, covering the
+  dashboard tile placement next to the compiler, the menu link, the full
+  setup surface including the advanced-options reveal, the empty-source
+  error path, and the whole AJAX journey: harvest, pairing board
+  (per-row decisions, explicit-mark and reset, bulk actions, filter, shared
+  target picker), and a dry-run import through to the on-page report. The
+  suite runs in the `GUI tests` workflow via `.github/gui-tests/run.sh`; it
+  was not executed inside the authoring container (no docker), so its first
+  execution evidence is that workflow's run on this change's pull request.
+
 ### Checks not performed
 
 - In-browser exercise of the view (form render, harvest round-trip, pairing
@@ -460,4 +480,6 @@ the interface that drives them.
 - [x] Every path has an authoritative-source mapping and reconciliation status.
 - [x] `Transfer required` is `No` only for an owner-confirmed `Not applicable`
   path; it is `Yes` for every other status.
+- [x] The changed interface behavior has GUI test coverage, or the record
+  says plainly why not.
 - [x] The implementation remains within the cited permission.
