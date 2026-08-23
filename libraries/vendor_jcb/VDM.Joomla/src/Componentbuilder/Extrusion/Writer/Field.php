@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -84,6 +85,14 @@ final class Field extends Writer
 	protected Source $source;
 
 	/**
+	 * The Pairing Resolver.
+	 *
+	 * @var    Pairing
+	 * @since  6.1.7
+	 */
+	protected Pairing $pairing;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config     The extrusion configuration.
@@ -94,6 +103,7 @@ final class Field extends Writer
 	 * @param   FieldXml       $fieldxml   The field XML composer.
 	 * @param   Guid           $guid       The identity resolver.
 	 * @param   Source         $source     The source identity registry.
+	 * @param   Pairing        $pairing   The pairing resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -105,7 +115,8 @@ final class Field extends Writer
 		Fieldtype $fieldtype,
 		FieldXml $fieldxml,
 		Guid $guid,
-		Source $source
+		Source $source,
+		Pairing $pairing
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -114,6 +125,7 @@ final class Field extends Writer
 		$this->fieldxml = $fieldxml;
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->pairing = $pairing;
 	}
 
 	/**
@@ -213,6 +225,19 @@ final class Field extends Writer
 			$this->value($properties, 'guid'),
 			[$this->option(), 'field', $view, $column]
 		);
+
+		// the caller's pairing verdict outranks the derived identity
+		$guid = $this->pairing->guid(
+			'field',
+			$this->key($view) . '.' . $this->key($column),
+			$guid
+		);
+
+		if ($guid === null)
+		{
+			return false;
+		}
+
 		$label = (string) $this->value($properties, 'label', $column);
 		$size = (string) $this->value($properties, 'size', '');
 		$default = (string) $this->value($properties, 'default', '');

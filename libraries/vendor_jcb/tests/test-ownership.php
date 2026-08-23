@@ -4060,6 +4060,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Decision.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Form.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
@@ -4112,6 +4116,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/AssemblerTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Candidates.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CandidatesTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Condition.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
@@ -4131,6 +4139,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Language.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Pairing.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/PairingTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Precedence.php' => [
 		'mode' => 'unit',

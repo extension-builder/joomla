@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -58,6 +59,14 @@ final class Template extends Writer
 	protected Source $source;
 
 	/**
+	 * The Pairing Resolver.
+	 *
+	 * @var    Pairing
+	 * @since  6.1.7
+	 */
+	protected Pairing $pairing;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -67,6 +76,7 @@ final class Template extends Writer
 	 * @param   View           $view      The classified view registry.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
+	 * @param   Pairing        $pairing   The pairing resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -77,7 +87,8 @@ final class Template extends Writer
 		Report $report,
 		View $view,
 		Guid $guid,
-		Source $source
+		Source $source,
+		Pairing $pairing
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -85,6 +96,7 @@ final class Template extends Writer
 		$this->view = $view;
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->pairing = $pairing;
 	}
 
 	/**
@@ -119,8 +131,19 @@ final class Template extends Writer
 				continue;
 			}
 
+			$guid = $this->pairing->guid(
+				'template',
+				$this->key($name),
+				$this->guid->derive([$this->option(), 'template', $name])
+			);
+
+			if ($guid === null)
+			{
+				continue;
+			}
+
 			$definition = new \stdClass();
-			$definition->guid = $this->guid->derive([$this->option(), 'template', $name]);
+			$definition->guid = $guid;
 			$definition->name = $name;
 			$definition->description = $name . ' (extruded)';
 			$definition->php_view = (string) ($entry['php_view'] ?? '');

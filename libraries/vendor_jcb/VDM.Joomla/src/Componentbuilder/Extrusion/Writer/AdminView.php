@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -58,6 +59,14 @@ final class AdminView extends Writer
 	protected Source $source;
 
 	/**
+	 * The Pairing Resolver.
+	 *
+	 * @var    Pairing
+	 * @since  6.1.7
+	 */
+	protected Pairing $pairing;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -66,6 +75,7 @@ final class AdminView extends Writer
 	 * @param   Report         $report    The run report registry.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
+	 * @param   Pairing        $pairing   The pairing resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -75,13 +85,15 @@ final class AdminView extends Writer
 		ItemInterface $item,
 		Report $report,
 		Guid $guid,
-		Source $source
+		Source $source,
+		Pairing $pairing
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->pairing = $pairing;
 	}
 
 	/**
@@ -135,6 +147,15 @@ final class AdminView extends Writer
 			$path . '.guid',
 			$this->guid->derive([$this->option(), 'admin_view', $single])
 		);
+
+		// the caller's pairing verdict outranks the derived identity
+		$guid = $this->pairing->guid('admin_view', $this->key($view), $guid);
+
+		if ($guid === null)
+		{
+			return false;
+		}
+
 		$seed = $this->resolved->get($path . '.seed');
 
 		$definition = new \stdClass();

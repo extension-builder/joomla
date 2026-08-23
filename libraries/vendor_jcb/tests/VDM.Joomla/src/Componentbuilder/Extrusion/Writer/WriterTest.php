@@ -27,7 +27,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View as ViewRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
@@ -1524,6 +1526,17 @@ HTML;
 	}
 
 	/**
+	 * A pairing resolver with no verdicts, over the current boundary.
+	 *
+	 * @return  Pairing  The resolver.
+	 * @since   6.1.7
+	 */
+	private function pairing(): Pairing
+	{
+		return new Pairing(new Decision(), $this->guid, $this->report);
+	}
+
+	/**
 	 * The field writer over the current boundary.
 	 *
 	 * @return  Field  The writer.
@@ -1541,7 +1554,8 @@ HTML;
 			$fieldtype,
 			new FieldXml($fieldtype, $this->report),
 			$this->guid,
-			$this->source
+			$this->source,
+			$this->pairing()
 		);
 	}
 
@@ -1559,7 +1573,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->guid,
-			$this->source
+			$this->source,
+			$this->pairing()
 		);
 	}
 
@@ -1650,7 +1665,8 @@ HTML;
 			$this->report,
 			$this->view,
 			$this->guid,
-			$this->source
+			$this->source,
+			$this->pairing()
 		);
 	}
 
@@ -1669,7 +1685,8 @@ HTML;
 			$this->report,
 			$this->view,
 			$this->guid,
-			$this->source
+			$this->source,
+			$this->pairing()
 		);
 	}
 
@@ -1713,7 +1730,8 @@ HTML;
 			$this->report,
 			$this->view,
 			$this->guid,
-			$this->source
+			$this->source,
+			$this->pairing()
 		);
 	}
 

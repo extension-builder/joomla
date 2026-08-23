@@ -16,6 +16,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 
 
 /**
@@ -62,6 +63,14 @@ final class Assembler
 	protected Existing $existing;
 
 	/**
+	 * The Pairing Resolver.
+	 *
+	 * @var    Pairing
+	 * @since  6.1.7
+	 */
+	protected Pairing $pairing;
+
+	/**
 	 * The Report Registry.
 	 *
 	 * @var    Report
@@ -83,6 +92,7 @@ final class Assembler
 	 * @param   Config    $config    The extrusion configuration.
 	 * @param   Harvest   $harvest   The harvest registry.
 	 * @param   Existing  $existing  The existing power resolver.
+	 * @param   Pairing   $pairing   The pairing resolver.
 	 * @param   Report    $report    The run report registry.
 	 *
 	 * @since   6.1.7
@@ -91,12 +101,14 @@ final class Assembler
 		Config $config,
 		Harvest $harvest,
 		Existing $existing,
+		Pairing $pairing,
 		Report $report
 	)
 	{
 		$this->config = $config;
 		$this->harvest = $harvest;
 		$this->existing = $existing;
+		$this->pairing = $pairing;
 		$this->report = $report;
 	}
 
@@ -132,9 +144,25 @@ final class Assembler
 				continue;
 			}
 
+			// the caller's pairing verdict outranks the harvested identity
+			$decided = $this->pairing->guid('power', $guid, $guid);
+
+			if ($decided === null)
+			{
+				continue;
+			}
+
+			$verdict = $this->pairing->verdict('power', $guid);
+
+			if ($verdict !== null)
+			{
+				$candidate['guid'] = $decided;
+				$candidate['exists'] = $verdict['action'] === 'update';
+			}
+
 			// every selected candidate claims its identity before any linking
-			$this->local[strtolower((string) $candidate['fqn'])] = $guid;
-			$selected[$guid] = $candidate;
+			$this->local[strtolower((string) $candidate['fqn'])] = $decided;
+			$selected[$decided] = $candidate;
 		}
 
 		$assembled = 0;

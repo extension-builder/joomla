@@ -20,6 +20,7 @@ use ReflectionClass;
 use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
@@ -55,7 +56,7 @@ final class ExtrusionStateContractTest extends TestCase
 	 */
 	private const LEAVES = [
 		'Source', 'Inventory', 'Table', 'Schema', 'Form',
-		'Language', 'View', 'Resolved', 'Harvest', 'Report'
+		'Language', 'View', 'Resolved', 'Harvest', 'Decision', 'Report'
 	];
 
 	/**
@@ -527,23 +528,23 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * The scope must expose exactly the eleven state registries, keyed by name.
+	 * The scope must expose exactly the twelve state registries, keyed by name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheElevenStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheTwelveStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(11, $exposed);
+		$this->assertCount(12, $exposed);
 		$this->assertSame(
 			[
 				'source', 'inventory', 'table', 'schema', 'form',
-				'language', 'view', 'resolved', 'harvest', 'report', 'message'
+				'language', 'view', 'resolved', 'harvest', 'decision', 'report', 'message'
 			],
 			array_keys($exposed)
 		);
@@ -702,7 +703,7 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * A fresh set of the eleven state registries, in constructor order.
+	 * A fresh set of the twelve state registries, in constructor order.
 	 *
 	 * @return  array<string, Registry>  The registries keyed by scope name.
 	 * @since   6.1.6
@@ -719,6 +720,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'view' => new View(),
 			'resolved' => new Resolved(),
 			'harvest' => new Harvest(),
+			'decision' => new Decision(),
 			'report' => new Report(),
 			'message' => new Message()
 		];

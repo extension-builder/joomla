@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
@@ -82,6 +83,9 @@ class Registry implements ServiceProviderInterface
 		$container->alias(Harvest::class, 'Extrusion.Registry.Harvest')
 			->share('Extrusion.Registry.Harvest', [$this, 'getHarvest'], true);
 
+		$container->alias(Decision::class, 'Extrusion.Registry.Decision')
+			->share('Extrusion.Registry.Decision', [$this, 'getDecision'], true);
+
 		$container->alias(Report::class, 'Extrusion.Registry.Report')
 			->share('Extrusion.Registry.Report', [$this, 'getReport'], true);
 
@@ -123,6 +127,7 @@ class Registry implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Extrusion.Registry.Harvest'),
+			$container->get('Extrusion.Registry.Decision'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Message')
 		);
@@ -243,6 +248,19 @@ class Registry implements ServiceProviderInterface
 	public function getHarvest(Container $container): Harvest
 	{
 		return new Harvest();
+	}
+
+	/**
+	 * Get the Decision Registry.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Decision
+	 * @since   6.1.7
+	 */
+	public function getDecision(Container $container): Decision
+	{
+		return new Decision();
 	}
 
 	/**
