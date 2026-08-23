@@ -21,8 +21,11 @@
 (function () {
 	'use strict';
 
-	const E = window.JCBExtrusion || { url: '', canImport: false, text: {} };
-	const T = E.text || {};
+	// This file loads in the document head, before the template's inline
+	// bootstrap defines window.JCBExtrusion -- so the bootstrap is read
+	// lazily, once the page stands, never at evaluation time.
+	let E = { url: '', canImport: false, text: {} };
+	let T = E.text;
 
 	/**
 	 * The page state: the harvest payload, the current catalogue of the
@@ -148,7 +151,10 @@
 		} catch (error) {
 			payload = { error: error.message || T.requestFailed };
 		}
-		if (!payload || payload.error) {
+		// only an answer that says success is one: a missing or malformed
+		// payload must land back on setup with a message, never on an empty
+		// pairing board
+		if (!payload || payload.error || !payload.success) {
 			showPane('setup');
 			notice.textContent = (payload && payload.error) ? payload.error : T.harvestFailed;
 			notice.style.display = 'block';
@@ -682,6 +688,8 @@
 		if (!$('extrusion-page')) {
 			return;
 		}
+		E = window.JCBExtrusion || E;
+		T = E.text || {};
 		$('extrusion-harvest-button').addEventListener('click', harvest);
 		wireBoard();
 		$('extrusion-back-button').addEventListener('click', () => showPane('setup'));
