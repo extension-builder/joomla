@@ -783,6 +783,61 @@ final class DiscoveryTest extends FilesystemTestCase
 	}
 
 	/**
+	 * An installed component's catalogue is found in the site's own folders.
+	 *
+	 * Joomla moves an installed component's language files to the central
+	 * administrator/language and language folders under the site root, so a
+	 * harvest aimed at an installed component folder holds not one ini file
+	 * of its own. The locator probes those exact central names for exactly
+	 * this component -- never a scan of the site -- or every label the whole
+	 * run resolves would stay a constant.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testLanguageLocatorFindsTheInstalledSitesCentralCatalogue(): void
+	{
+		$this->writeTemporaryFile(
+			'site/administrator/components/com_example/example.php',
+			"<?php\n"
+		);
+		$this->writeTemporaryFile(
+			'site/administrator/language/en-GB/com_example.ini',
+			ExtrusionComponentFixture::LANGUAGE
+		);
+		$this->writeTemporaryFile(
+			'site/administrator/language/en-GB/com_example.sys.ini',
+			"COM_EXAMPLE=\"Example\"\n"
+		);
+		$this->writeTemporaryFile(
+			'site/language/en-GB/com_example.ini',
+			"COM_EXAMPLE_FRONT=\"Front\"\n"
+		);
+		$this->writeTemporaryFile(
+			'site/administrator/language/en-GB/com_other.ini',
+			"COM_OTHER=\"Other\"\n"
+		);
+		$root = $this->temporaryPath('site/administrator/components/com_example');
+		$this->source->set('code_name', 'com_example');
+
+		$found = $this->locator(Language::class)->locate($root);
+
+		$this->assertSame(
+			[
+				$this->temporaryPath('site/administrator/language/en-GB/com_example.ini'),
+				$this->temporaryPath('site/administrator/language/en-GB/com_example.sys.ini'),
+				$this->temporaryPath('site/language/en-GB/com_example.ini')
+			],
+			array_column($found, 'path'),
+			'Exactly this component\'s central files, and no other extension\'s.'
+		);
+		$this->assertSame(
+			['central', 'central', 'central'],
+			array_column($found, 'tier')
+		);
+	}
+
+	/**
 	 * A table definition class is found by signature inside a vendored namespace.
 	 *
 	 * @return  void
