@@ -241,6 +241,18 @@ final class CustomAdminView extends Writer
 	{
 		$name = strtolower(trim($name));
 
+		// the database is the ground truth for what the component already
+		// has: a folder answering to any of its own admin views' real names
+		// is that view's territory, whether or not this run resolved it
+		if (in_array(
+			$name,
+			(array) $this->resolved->get('existing.admin_view_names', []),
+			true
+		))
+		{
+			return true;
+		}
+
 		foreach ($this->views() as $view)
 		{
 			$path = $this->path($view);

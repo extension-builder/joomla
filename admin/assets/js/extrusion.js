@@ -269,12 +269,21 @@
 		const catalogue = state.catalogue || {};
 		(candidates.admin_view || []).forEach((view) => {
 			view.match = match(view, [view.label, view.detail], catalogue.admin_views);
-			const pool = view.match
+			// the fields the paired view already links are its own wiring: a
+			// column answering to one of them is that wiring rediscovered, so
+			// it weighs like an identity rather than a mere resemblance
+			const scoped = view.match
 				? (catalogue.fields || []).filter((row) => row.view === view.match.guid)
-				: (catalogue.fields || []);
+				: [];
 			(view.fields || []).forEach((field) => {
-				field.match = matchByGuid(field.guid, catalogue.fields)
-					|| matchByName([field.label, field.detail], pool)
+				let found = matchByGuid(field.guid, catalogue.fields);
+				if (!found) {
+					found = matchByName([field.label, field.detail], scoped);
+					if (found) {
+						found.by = 'scoped';
+					}
+				}
+				field.match = found
 					|| matchByName([field.label, field.detail], catalogue.fields);
 			});
 		});
@@ -308,7 +317,8 @@
 				? { action: 'update', target: candidate.guid, label: candidate.fqn }
 				: { action: 'create' };
 		}
-		return candidate.match && candidate.match.by === 'guid'
+		return candidate.match
+			&& (candidate.match.by === 'guid' || candidate.match.by === 'scoped')
 			? { action: 'update', target: candidate.match.guid, label: candidate.match.label }
 			: { action: 'create' };
 	}
@@ -390,7 +400,8 @@
 		let matched = 0;
 		let similar = 0;
 		(list || []).forEach((candidate) => {
-			if ((candidate.match && candidate.match.by === 'guid')
+			if ((candidate.match
+				&& (candidate.match.by === 'guid' || candidate.match.by === 'scoped'))
 				|| (candidate.kind === 'power' && candidate.exists)) {
 				matched++;
 			} else if (candidate.match) {

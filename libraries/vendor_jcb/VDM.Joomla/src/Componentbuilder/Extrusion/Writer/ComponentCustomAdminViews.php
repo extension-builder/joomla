@@ -167,7 +167,7 @@ final class ComponentCustomAdminViews extends Writer
 
 		$definition = new \stdClass();
 		$definition->joomla_component = $componentGuid;
-		$definition->addcustom_admin_views = $subform;
+		$definition->addcustom_admin_views = $this->merge($componentGuid, $subform);
 		$definition->published = 1;
 
 		if (!$this->store($definition))
@@ -178,6 +178,65 @@ final class ComponentCustomAdminViews extends Writer
 		$this->report->set('counts.component_custom_admin_views', $number);
 
 		return $number;
+	}
+
+	/**
+	 * Merge the harvested view links into what the component already links.
+	 *
+	 * The existing rows are the person's own settings and are kept exactly as
+	 * they stand; only screens the component does not yet link are appended.
+	 *
+	 * @param   string                               $componentGuid  The component the links belong to.
+	 * @param   array<string, array<string, mixed>>  $subform        The harvested view links.
+	 *
+	 * @return  array<string, array<string, mixed>>  The merged subform.
+	 * @since   6.1.8
+	 */
+	protected function merge(string $componentGuid, array $subform): array
+	{
+		$stored = $this->load->value(
+			['a.addcustom_admin_views' => 'addcustom_admin_views'],
+			['a' => 'component_custom_admin_views'],
+			['a.joomla_component' => $componentGuid]
+		);
+		$existing = is_string($stored) ? json_decode($stored, true) : null;
+
+		if (!is_array($existing) || $existing === [])
+		{
+			return $subform;
+		}
+
+		$linked = [];
+
+		foreach ($existing as $row)
+		{
+			$view = strtolower(trim((string) (((array) $row)['customadminview'] ?? '')));
+
+			if ($view !== '')
+			{
+				$linked[$view] = true;
+			}
+		}
+
+		$merged = $existing;
+		$number = 0;
+
+		foreach ($subform as $row)
+		{
+			if (isset($linked[strtolower(trim((string) $row['customadminview']))]))
+			{
+				continue;
+			}
+
+			while (isset($merged['addcustom_admin_views' . $number]))
+			{
+				$number++;
+			}
+
+			$merged['addcustom_admin_views' . $number] = $row;
+		}
+
+		return $merged;
 	}
 
 	/**

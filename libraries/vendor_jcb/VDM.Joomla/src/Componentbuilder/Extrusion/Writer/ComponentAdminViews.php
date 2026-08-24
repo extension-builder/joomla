@@ -174,7 +174,7 @@ final class ComponentAdminViews extends Writer
 
 		$definition = new \stdClass();
 		$definition->joomla_component = $componentGuid;
-		$definition->addadmin_views = $subform;
+		$definition->addadmin_views = $this->merge($componentGuid, $subform);
 		$definition->published = 1;
 
 		if (!$this->store($definition))
@@ -185,6 +185,73 @@ final class ComponentAdminViews extends Writer
 		$this->report->set('counts.component_admin_views', $number);
 
 		return $number;
+	}
+
+	/**
+	 * Merge the harvested view links into what the component already links.
+	 *
+	 * The existing rows are the person's own settings -- the icons, dashboard
+	 * and menu switches they chose per view -- and are kept exactly as they
+	 * stand. A view already linked adds nothing; one the component does not
+	 * yet link is appended, its order counted on from what already stands.
+	 *
+	 * @param   string                               $componentGuid  The component the links belong to.
+	 * @param   array<string, array<string, mixed>>  $subform        The harvested view links.
+	 *
+	 * @return  array<string, array<string, mixed>>  The merged subform.
+	 * @since   6.1.8
+	 */
+	protected function merge(string $componentGuid, array $subform): array
+	{
+		$stored = $this->load->value(
+			['a.addadmin_views' => 'addadmin_views'],
+			['a' => 'component_admin_views'],
+			['a.joomla_component' => $componentGuid]
+		);
+		$existing = is_string($stored) ? json_decode($stored, true) : null;
+
+		if (!is_array($existing) || $existing === [])
+		{
+			return $subform;
+		}
+
+		$linked = [];
+		$order = 0;
+
+		foreach ($existing as $row)
+		{
+			$row = (array) $row;
+			$view = strtolower(trim((string) ($row['adminview'] ?? '')));
+
+			if ($view !== '')
+			{
+				$linked[$view] = true;
+			}
+
+			$order = max($order, (int) ($row['order'] ?? 0));
+		}
+
+		$merged = $existing;
+		$number = 0;
+
+		foreach ($subform as $row)
+		{
+			if (isset($linked[strtolower(trim((string) $row['adminview']))]))
+			{
+				continue;
+			}
+
+			$row['order'] = (string) (++$order);
+
+			while (isset($merged['addadmin_views' . $number]))
+			{
+				$number++;
+			}
+
+			$merged['addadmin_views' . $number] = $row;
+		}
+
+		return $merged;
 	}
 
 	/**

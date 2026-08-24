@@ -168,7 +168,7 @@ final class ComponentSiteViews extends Writer
 
 		$definition = new \stdClass();
 		$definition->joomla_component = $componentGuid;
-		$definition->addsite_views = $subform;
+		$definition->addsite_views = $this->merge($componentGuid, $subform);
 		$definition->published = 1;
 
 		if (!$this->store($definition))
@@ -183,6 +183,68 @@ final class ComponentSiteViews extends Writer
 		);
 
 		return $number;
+	}
+
+	/**
+	 * Merge the harvested view links into what the component already links.
+	 *
+	 * The existing rows are the person's own settings and are kept exactly as
+	 * they stand -- the default front end view among them, so an appended view
+	 * never claims a default the component already gave to another.
+	 *
+	 * @param   string                               $componentGuid  The component the links belong to.
+	 * @param   array<string, array<string, mixed>>  $subform        The harvested view links.
+	 *
+	 * @return  array<string, array<string, mixed>>  The merged subform.
+	 * @since   6.1.8
+	 */
+	protected function merge(string $componentGuid, array $subform): array
+	{
+		$stored = $this->load->value(
+			['a.addsite_views' => 'addsite_views'],
+			['a' => 'component_site_views'],
+			['a.joomla_component' => $componentGuid]
+		);
+		$existing = is_string($stored) ? json_decode($stored, true) : null;
+
+		if (!is_array($existing) || $existing === [])
+		{
+			return $subform;
+		}
+
+		$linked = [];
+
+		foreach ($existing as $row)
+		{
+			$view = strtolower(trim((string) (((array) $row)['siteview'] ?? '')));
+
+			if ($view !== '')
+			{
+				$linked[$view] = true;
+			}
+		}
+
+		$merged = $existing;
+		$number = 0;
+
+		foreach ($subform as $row)
+		{
+			if (isset($linked[strtolower(trim((string) $row['siteview']))]))
+			{
+				continue;
+			}
+
+			$row['default_view'] = '';
+
+			while (isset($merged['addsite_views' . $number]))
+			{
+				$number++;
+			}
+
+			$merged['addsite_views' . $number] = $row;
+		}
+
+		return $merged;
 	}
 
 	/**

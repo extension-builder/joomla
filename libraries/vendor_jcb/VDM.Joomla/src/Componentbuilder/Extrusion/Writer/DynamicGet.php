@@ -127,10 +127,16 @@ final class DynamicGet extends Writer
 				$answered = $this->answered($name);
 
 				// a custom candidate a table view answers for -- by an editor
-				// beside its template or by name -- is that view's own
-				// generated output, so no custom view and no get is owed
+				// beside its template, by a resolved view's name, or by one of
+				// the component's own admin views in the database -- is that
+				// view's own generated output: no custom view and no get is owed
 				if ($kind === 'custom_admin_view'
-					&& ($answered !== null || !empty($entry['crud'])))
+					&& ($answered !== null || !empty($entry['crud'])
+						|| in_array(
+							strtolower(trim($name)),
+							(array) $this->resolved->get('existing.admin_view_names', []),
+							true
+						)))
 				{
 					continue;
 				}

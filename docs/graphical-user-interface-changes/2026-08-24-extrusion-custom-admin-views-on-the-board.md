@@ -73,11 +73,13 @@ is the whole point of the pairing step.
 
   Matching now speaks identity the way JCB does: a candidate whose guid
   already stands in the catalogue matches **by guid** and proposes an
-  update -- it IS that definition. A candidate that merely shares a name
-  matches **by name**: the section counts it as *similar*, the default
-  stays *create new*, and the Update modal opens pre-searched on the
-  lookalike so reusing it is one confirmation away. The counts line reads
-  `(N items, G matched, S similar, K new)`.
+  update -- it IS that definition. A field answering to one the paired
+  view **already links** is that view's own wiring rediscovered and
+  weighs the same. A candidate that merely shares a name with something
+  elsewhere matches **by name**: the section counts it as *similar*, the
+  default stays *create new*, and the Update modal opens pre-searched on
+  the lookalike so reusing it is one confirmation away. The counts line
+  reads `(N items, G matched, S similar, K new)`.
 - **Why:** Everything in JCB is linked by guid, so only a guid in common
   is the same definition; forcing an update onto a name lookalike would
   misstate identity, and hiding it would recreate what may well be meant

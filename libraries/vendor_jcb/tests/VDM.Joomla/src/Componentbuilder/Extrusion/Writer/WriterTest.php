@@ -1808,7 +1808,8 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->source
+			$this->source,
+			$this->componentLoad()
 		);
 	}
 
@@ -2234,6 +2235,9 @@ HTML;
 		$this->view->set('custom_admin_view.editor.name', 'editor');
 		$this->view->set('custom_admin_view.editor.default', '<p>edited</p>');
 		$this->view->set('custom_admin_view.editor.crud', 1);
+		$this->view->set('custom_admin_view.venues.name', 'venues');
+		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
+		$this->resolved->set('existing.admin_view_names', ['venues']);
 
 		$this->assertSame(1, $this->customAdminView()->write());
 
@@ -2261,6 +2265,12 @@ HTML;
 			'A folder an editor marked as a table view\'s own is refused even when '
 			. 'no resolved view answers for its name.'
 		);
+		$this->assertSame(
+			'a table view answers for this template',
+			$this->report->get('skipped.custom_admin_view.venues'),
+			'A folder answering to one of the component\'s own admin views in the '
+			. 'database is that view\'s territory, whether or not this run resolved it.'
+		);
 		$this->assertSame(1, $this->report->get('counts.custom_admin_view'));
 
 		$this->assertSame(1, $this->componentCustomAdminViews()->write());
@@ -2286,6 +2296,153 @@ HTML;
 		$this->assertSame('1', $subform['addcustom_admin_views0']['dashboard_list']);
 		$this->assertSame('1', $subform['addcustom_admin_views0']['access']);
 		$this->assertSame(1, $this->report->get('counts.component_custom_admin_views'));
+	}
+
+	/**
+	 * What the view already links is discovered and kept, never replaced.
+	 *
+	 * The person's own wiring -- here the Globally Unique ID field standing
+	 * on the publishing tab -- survives the import exactly as it was, and a
+	 * harvested field already linked adds nothing. Only fields the view does
+	 * not yet link are appended, their edit order counted on from what each
+	 * tab already holds.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAdminFieldsKeepsWhatTheViewAlreadyLinks(): void
+	{
+		$standing = '5aa57bbe-7b19-4db9-915c-561863458d2b';
+		$this->seedItemView();
+		$this->seedField('item', 'name', ['xml_type' => 'text'], 1);
+		$this->seedField('item', 'guid', ['xml_type' => 'text'], 1);
+		$this->resolved->set('view.item.roles', [
+			'name' => ['title' => true, 'list' => true, 'order' => 0],
+			'guid' => ['order' => 1]
+		]);
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-000000000001');
+		// the guid column was matched to the field the view already links
+		$this->resolved->set('view.item.linked.guid.guid', $standing);
+
+		$load = (new ExtrusionDatabaseFixture())->table('admin_fields', [
+			['admin_view' => self::VIEW_GUID, 'addfields' => json_encode([
+				'addfields0' => [
+					'field' => $standing,
+					'list' => '',
+					'order_list' => '0',
+					'filter' => '',
+					'tab' => '15',
+					'alignment' => 4,
+					'order_edit' => '3'
+				]
+			])]
+		]);
+		$writer = new AdminFields(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			$load
+		);
+
+		$this->assertSame(1, $writer->write());
+
+		$subform = $this->decode($this->item->definitions('admin_fields')[0]->addfields);
+
+		$this->assertSame(
+			[
+				'field' => $standing,
+				'list' => '',
+				'order_list' => '0',
+				'filter' => '',
+				'tab' => '15',
+				'alignment' => 4,
+				'order_edit' => '3'
+			],
+			$subform['addfields0'],
+			'The standing link survives verbatim -- its tab, order and flags untouched.'
+		);
+		$this->assertCount(
+			2,
+			$subform,
+			'A harvested field already linked adds nothing; only the new field appends.'
+		);
+		$this->assertSame(
+			'ffffffff-0000-4000-8000-000000000001',
+			$subform['addfields1']['field'],
+			'The field the view does not yet link is appended after what stands.'
+		);
+		$this->assertSame(
+			'1',
+			$subform['addfields1']['order_edit'],
+			'An appended field counts its order on within its own tab.'
+		);
+	}
+
+	/**
+	 * What the component already links is discovered and kept, never replaced.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testComponentLinksKeepExistingSettingsAndAppendOnlyNewViews(): void
+	{
+		$this->config->set('component', 9);
+		$this->resolved->set('views', ['item', 'category']);
+		$this->resolved->set('view.item.written.view.guid', self::VIEW_GUID);
+		$this->resolved->set(
+			'view.category.written.view.guid',
+			'cccccccc-3333-4333-8333-cccccccccccc'
+		);
+
+		$existing = [
+			'addadmin_views0' => [
+				'adminview' => self::VIEW_GUID,
+				'icomoon' => 'shield',
+				'mainmenu' => '',
+				'dashboard_add' => '',
+				'dashboard_list' => '1',
+				'order' => '4'
+			]
+		];
+		$load = (new ExtrusionDatabaseFixture())
+			->table('joomla_component', [['id' => 9, 'guid' => self::COMPONENT_GUID]])
+			->table('component_admin_views', [
+				['joomla_component' => self::COMPONENT_GUID,
+					'addadmin_views' => json_encode($existing)]
+			]);
+		$writer = new ComponentAdminViews(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			$load
+		);
+
+		$this->assertSame(2, $writer->write());
+
+		$subform = $this->decode(
+			$this->item->definitions('component_admin_views')[0]->addadmin_views
+		);
+
+		$this->assertSame(
+			$existing['addadmin_views0'],
+			$subform['addadmin_views0'],
+			'The person\'s own settings -- their icon, their switches -- survive verbatim.'
+		);
+		$this->assertCount(2, $subform, 'A view already linked adds nothing.');
+		$this->assertSame(
+			'cccccccc-3333-4333-8333-cccccccccccc',
+			$subform['addadmin_views1']['adminview']
+		);
+		$this->assertSame(
+			'5',
+			$subform['addadmin_views1']['order'],
+			'An appended view counts its order on from what already stands.'
+		);
 	}
 
 	/**

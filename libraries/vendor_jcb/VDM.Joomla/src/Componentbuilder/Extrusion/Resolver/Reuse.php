@@ -20,14 +20,15 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 /**
  * Makes every matched candidate reuse what JCB already holds.
  *
- * Everything in JCB is linked by guid, so only a guid in common says two
- * definitions are the same thing. This step turns those identity matches
- * into standing verdicts before anything is written: a guid-matched
- * candidate the caller left undecided updates the definition it already is,
- * and a guid-matched field records that identity so its view links it even
- * when the field itself is left untouched. A candidate that merely shares a
- * name stays a fresh creation -- the resemblance is offered on the board,
- * never acted on, because linking a lookalike would misstate identity.
+ * Everything in JCB is linked by guid, so a guid in common says two
+ * definitions are the same thing -- and a field the paired view already
+ * links is that view's own wiring rediscovered, which weighs the same.
+ * This step turns those matches into standing verdicts before anything is
+ * written: left undecided they update what already stands, and the identity
+ * is recorded so the view links it even when the field itself is left
+ * untouched. A candidate that merely shares a name with something elsewhere
+ * in the system stays a fresh creation -- the resemblance is offered on the
+ * board, never acted on, because linking a lookalike would misstate identity.
  *
  * An explicit verdict from the pairing board always outranks these defaults;
  * this layer only speaks where the caller stayed silent.
@@ -111,9 +112,15 @@ final class Reuse
 	public function apply(): int
 	{
 		$component = (int) $this->config->get('component', 0);
+		$catalogue = $this->candidates->catalogue($component);
 		$reused = 0;
 
-		foreach ($this->candidates->candidates($component) as $entries)
+		// the database is the ground truth for what the component already
+		// has: its admin views' real single and list names are recorded so
+		// every writer can tell a table view's territory from a custom screen
+		$this->existing((array) ($catalogue['admin_views'] ?? []));
+
+		foreach ($this->candidates->candidates($component, $catalogue) as $entries)
 		{
 			foreach ((array) $entries as $entry)
 			{
@@ -127,6 +134,39 @@ final class Reuse
 		}
 
 		return $reused;
+	}
+
+	/**
+	 * Record the component's own admin view names for the writers to consult.
+	 *
+	 * @param   array<int, object|array>  $views  The component's admin views.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function existing(array $views): void
+	{
+		$names = [];
+
+		foreach ($views as $row)
+		{
+			$row = (array) $row;
+
+			foreach (['name', 'list'] as $field)
+			{
+				$name = strtolower(trim((string) ($row[$field] ?? '')));
+
+				if ($name !== '')
+				{
+					$names[$name] = true;
+				}
+			}
+		}
+
+		if ($names !== [])
+		{
+			$this->resolved->set('existing.admin_view_names', array_keys($names));
+		}
 	}
 
 	/**
@@ -145,7 +185,7 @@ final class Reuse
 		$reused = 0;
 
 		if ($kind !== '' && $key !== '' && is_array($match)
-			&& ($match['by'] ?? '') === 'guid')
+			&& in_array($match['by'] ?? '', ['guid', 'scoped'], true))
 		{
 			$target = (string) ($match['guid'] ?? '');
 

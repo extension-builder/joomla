@@ -126,14 +126,20 @@ final class CandidatesTest extends TestCase
 			])
 			->table('component_admin_views', [
 				['joomla_component' => 'comp-guid',
-					'addadmin_views' => json_encode(['addadmin_views0' => ['adminview' => self::VIEW]])]
+					'addadmin_views' => json_encode([
+						'addadmin_views0' => ['adminview' => self::VIEW],
+						'addadmin_views1' => ['adminview' => 'dddddddd-4444-4444-8444-dddddddddddd']
+					])]
 			])
 			->table('component_site_views', [
 				['joomla_component' => 'comp-guid',
 					'addsite_views' => json_encode(['addsite_views0' => ['siteview' => self::SITE]])]
 			])
 			->table('admin_view', [
-				['guid' => self::VIEW, 'name_single' => 'Item', 'system_name' => 'Demo Item']
+				['guid' => self::VIEW, 'name_single' => 'Item', 'name_list' => 'Items',
+					'system_name' => 'Demo Item'],
+				['guid' => 'dddddddd-4444-4444-8444-dddddddddddd', 'name_single' => 'Venue',
+					'name_list' => 'Venues', 'system_name' => 'Demo Venue']
 			])
 			->table('admin_fields', [
 				['admin_view' => self::VIEW,
@@ -207,9 +213,10 @@ final class CandidatesTest extends TestCase
 			'A field pairs by name against the fields its paired view already links.'
 		);
 		$this->assertSame(
-			'name',
+			'scoped',
 			$fields['item.title']['match']['by'] ?? null,
-			'A shared name is marked as a resemblance, never as an identity.'
+			'A field the paired view already links is its own wiring rediscovered, '
+			. 'and weighs like an identity.'
 		);
 		$this->assertNull(
 			$fields['item.legacy_flag']['match'],
@@ -270,21 +277,23 @@ final class CandidatesTest extends TestCase
 	}
 
 	/**
-	 * Only a guid in common is an identity; a shared name is a suggestion.
+	 * A guid or the paired view's own wiring reuses; a bare name never does.
 	 *
-	 * A field whose stated guid already stands in JCB IS that field: left
-	 * undecided it updates its match, and the identity is recorded so its
-	 * view links what already stands. A field that merely shares a name gets
-	 * no default at all -- the resemblance is offered on the board, never
-	 * acted on. An explicit verdict is never overruled either way.
+	 * A field whose stated guid already stands in JCB IS that field, and a
+	 * field the paired view already links is that view's own wiring
+	 * rediscovered -- both update what stands, and the identity is recorded
+	 * so the view links it. A field that merely shares a name with something
+	 * elsewhere gets no default at all. An explicit verdict is never
+	 * overruled either way.
 	 *
 	 * @return  void
 	 * @since   6.1.8
 	 */
-	public function testOnlyAGuidMatchDefaultsToReusingWhatAlreadyStands(): void
+	public function testOnlyAnIdentityOrTheViewsOwnWiringDefaultsToReuse(): void
 	{
-		// the legacy_flag field states the very identity JCB already holds,
-		// while title merely shares its name with an existing field
+		// legacy_flag states the very identity JCB already holds, and title
+		// answers to a field the paired view already links -- while the
+		// existing component's real view names are recorded for the writers
 		$this->resolved->set('view.item.field.legacy_flag.guid', [
 			'value' => self::FIELD,
 			'origin' => 'table'
@@ -300,7 +309,7 @@ final class CandidatesTest extends TestCase
 
 		$reuse = new Reuse($this->candidates, $pairing, $this->resolved, $report, $config);
 
-		$this->assertSame(1, $reuse->apply());
+		$this->assertSame(2, $reuse->apply());
 		$this->assertSame(
 			['action' => 'create', 'target' => ''],
 			$decision->get('admin_view.item'),
@@ -312,19 +321,20 @@ final class CandidatesTest extends TestCase
 			'A field whose stated guid already stands IS that field, and updates it.'
 		);
 		$this->assertSame(
+			['action' => 'update', 'target' => self::FIELD],
+			$decision->get('field.item_title'),
+			'A field the paired view already links is its wiring, and is reused.'
+		);
+		$this->assertSame(
 			self::FIELD,
-			$this->resolved->get('view.item.linked.legacy_flag.guid'),
+			$this->resolved->get('view.item.linked.title.guid'),
 			'The identity is recorded so the view links the standing field.'
 		);
 		$this->assertSame(self::FIELD, $report->get('reuse.field.item_legacy_flag'));
-		$this->assertNull(
-			$decision->get('field.item_title'),
-			'A shared name is a resemblance, not an identity: no default is recorded, '
-			. 'so the lookalike is created new unless a person decides otherwise.'
-		);
-		$this->assertNull(
-			$this->resolved->get('view.item.linked.title.guid'),
-			'A name lookalike is never silently linked in place of a new field.'
+		$this->assertContains(
+			'item',
+			(array) $this->resolved->get('existing.admin_view_names', []),
+			'The component\'s own view names are recorded for the writers to consult.'
 		);
 	}
 
@@ -367,14 +377,21 @@ final class CandidatesTest extends TestCase
 		$this->view->set('custom_admin_view.editor.crud', 1);
 		$this->view->set('custom_admin_view.wizard.name', 'wizard');
 		$this->view->set('custom_admin_view.wizard.default', '<p>wizard</p>');
+		$this->view->set('custom_admin_view.items.name', 'items');
+		$this->view->set('custom_admin_view.items.default', '<p>list</p>');
+		// venues answers to a view the component links in the DATABASE alone:
+		// this run never resolved it, so only the ground truth can refuse it
+		$this->view->set('custom_admin_view.venues.name', 'venues');
+		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
 
 		$candidates = $this->candidates->candidates(3);
 
 		$this->assertSame(
 			['wizard'],
 			array_column($candidates['custom_admin_view'], 'label'),
-			'A folder a resolved view answers for, or one an editor marked as a '
-			. 'table view\'s own, must never be offered as a custom admin view.'
+			'A folder a resolved view answers for, one an editor marked as a table '
+			. 'view\'s own, or one of the component\'s own admin views by its real '
+			. 'list name from the database, must never be offered as a custom admin view.'
 		);
 	}
 
