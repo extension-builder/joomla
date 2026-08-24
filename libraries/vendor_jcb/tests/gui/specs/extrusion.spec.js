@@ -20,6 +20,8 @@ const { openView, setRadio } = require('../helpers/jcb');
 const WEBROOT = process.env.JCB_WEBROOT || '/var/www/html';
 const LIBRARY = WEBROOT
 	+ '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/Registry';
+const COMPONENT_ADMIN = WEBROOT + '/administrator/components/com_componentbuilder';
+const COMPONENT_SITE = WEBROOT + '/components/com_componentbuilder';
 
 test.describe('the JCB dashboard and menu', () => {
 	test('offer the extrusion view next to the compiler', async ({ page }) => {
@@ -57,10 +59,14 @@ test.describe('the extrusion view', () => {
 		await expect(page.locator('#extrusion-tab-pairing')).toBeDisabled();
 		await expect(page.locator('#extrusion-tab-results')).toBeDisabled();
 
-		// the source fieldset
-		for (const name of ['path', 'admin_path', 'site_path', 'libraries', 'dump']) {
+		// the source fieldset: two component folders and the libraries, each
+		// with its own select button -- and no combined path, no SQL dump
+		for (const name of ['admin_path', 'site_path', 'libraries']) {
 			await expect(page.locator('[name="' + name + '"]')).toBeAttached();
+			await expect(page.locator('[data-extrusion-pick="' + name + '"]')).toBeVisible();
 		}
+		await expect(page.locator('[name="path"]')).toHaveCount(0);
+		await expect(page.locator('[name="dump"]')).toHaveCount(0);
 		await expect(page.locator('select[name="component_id"]')).toBeAttached();
 
 		// the switches
@@ -82,9 +88,28 @@ test.describe('the extrusion view', () => {
 			page.locator('input[type="radio"][name="dry_run"]').first()
 		).toBeAttached();
 
-		// the noticeboard the compiler view carries stands here too -- twice,
-		// like the compiler page: once on setup, once on the running pane
-		await expect(page.locator('#extrusion-pane-setup #noticeboard')).toBeAttached();
+		// the social feed is gone -- its script never loaded on this page --
+		// while the banner block stays
+		await expect(page.locator('#noticeboard')).toHaveCount(0);
+	});
+
+	test('walks the site to select a folder, never typing it', async ({ page }) => {
+		await page.locator('[data-extrusion-pick="admin_path"]').click();
+
+		const modal = page.locator('#extrusion-folder-modal');
+		await expect(modal).toBeVisible();
+		await expect(page.locator('#extrusion-folder-path')).toHaveText('Site root');
+
+		// walk root -> administrator -> components -> com_componentbuilder
+		for (const folder of ['administrator', 'administrator/components',
+			'administrator/components/com_componentbuilder']) {
+			await modal.locator('[data-extrusion-folder="' + folder + '"]').click();
+			await expect(page.locator('#extrusion-folder-path')).toHaveText(folder);
+		}
+
+		await page.locator('#extrusion-folder-choose').click();
+		await expect(modal).toBeHidden();
+		await expect(page.locator('[name="admin_path"]')).toHaveValue(COMPONENT_ADMIN);
 	});
 
 	test('refuses to harvest thin air, on the page', async ({ page }) => {
@@ -111,7 +136,9 @@ test.describe('the extrusion view', () => {
 		await expect(pairing).toBeVisible({ timeout: 120_000 });
 		await expect(page.locator('#extrusion-tab-pairing')).toBeEnabled();
 
-		// the powers of that folder stand in the board, grouped and counted
+		// the powers of that folder stand in the board, grouped and counted,
+		// and the catalogue of existing definitions loaded without complaint
+		await expect(page.locator('[data-extrusion-warning="catalogue"]')).toHaveCount(0);
 		const powers = page.locator('details[data-extrusion-kind="power"]');
 		await expect(powers).toBeVisible();
 		const rows = powers.locator('.extrusion-row');
@@ -176,6 +203,40 @@ test.describe('the extrusion view', () => {
 			.toBeVisible();
 
 		// and the way back to setup stays open
+		await page.locator('#extrusion-tab-setup').click();
+		await expect(page.locator('#extrusion-pane-setup')).toBeVisible();
+	});
+
+	test('harvests the installed component against the real schema', async ({ page }) => {
+		// the heaviest journey on the board: a real component, both folders,
+		// resolved and paired against the live database -- the run that a
+		// fabricated fixture schema can never stand in for
+		test.setTimeout(420_000);
+
+		await page.locator('[name="admin_path"]').fill(COMPONENT_ADMIN);
+		await page.locator('[name="site_path"]').fill(COMPONENT_SITE);
+		// the language sweep of a component this size is work the pairing
+		// assertions do not need -- and switching it off exercises a scope
+		await setRadio(page, 'scope_language', '0');
+		await setRadio(page, 'scope_translations', '0');
+
+		await page.getByRole('button', { name: 'Harvest the source' }).click();
+
+		// the harvest lands on the pairing board with no error on the page
+		const pairing = page.locator('#extrusion-pane-pairing');
+		await expect(pairing).toBeVisible({ timeout: 300_000 });
+
+		// the catalogue of existing definitions answered from the real
+		// database -- a schema mismatch anywhere in its queries shows here
+		await expect(page.locator('[data-extrusion-warning="catalogue"]')).toHaveCount(0);
+
+		// the component's admin views stand in the board with their fields
+		const views = page.locator('details[data-extrusion-kind="admin_view"]');
+		await expect(views).toBeVisible();
+		expect(await views.locator('.extrusion-row').count()).toBeGreaterThan(10);
+		await expect(views.locator('details.extrusion-fields').first()).toBeAttached();
+
+		// nothing was imported: this journey proves harvest and pairing only
 		await page.locator('#extrusion-tab-setup').click();
 		await expect(page.locator('#extrusion-pane-setup')).toBeVisible();
 	});

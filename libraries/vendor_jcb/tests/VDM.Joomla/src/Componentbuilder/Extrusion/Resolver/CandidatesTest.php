@@ -58,6 +58,14 @@ final class CandidatesTest extends TestCase
 	private const FIELD = 'bbbbbbbb-2222-4222-8222-222222222222';
 
 	/**
+	 * The existing site view identity in the catalogue.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const SITE = 'eeeeeeee-5555-4555-8555-555555555555';
+
+	/**
 	 * The served database boundary.
 	 *
 	 * @var    ExtrusionDatabaseFixture
@@ -116,7 +124,10 @@ final class CandidatesTest extends TestCase
 				['joomla_component' => 'comp-guid',
 					'addadmin_views' => json_encode(['addadmin_views0' => ['adminview' => self::VIEW]])]
 			])
-			->table('component_site_views', [])
+			->table('component_site_views', [
+				['joomla_component' => 'comp-guid',
+					'addsite_views' => json_encode(['addsite_views0' => ['siteview' => self::SITE]])]
+			])
 			->table('admin_view', [
 				['guid' => self::VIEW, 'name_single' => 'Item', 'system_name' => 'Demo Item']
 			])
@@ -127,7 +138,9 @@ final class CandidatesTest extends TestCase
 			->table('field', [
 				['guid' => self::FIELD, 'name' => 'Title']
 			])
-			->table('site_view', [])
+			->table('site_view', [
+				['guid' => self::SITE, 'name' => 'Itemcard Page', 'system_name' => 'Demo Itemcard Page']
+			])
 			->table('layout', [
 				['guid' => 'cccccccc-3333-4333-8333-333333333333', 'name' => 'itemcard']
 			])
@@ -152,6 +165,7 @@ final class CandidatesTest extends TestCase
 
 		$this->view = new View();
 		$this->view->set('layout', ['itemcard' => ['name' => 'itemcard']]);
+		$this->view->set('site_view', ['itemcard_page' => ['name' => 'Itemcard Page']]);
 
 		$this->candidates = new Candidates(
 			new Config(),
@@ -194,6 +208,11 @@ final class CandidatesTest extends TestCase
 		$this->assertSame(
 			'cccccccc-3333-4333-8333-333333333333',
 			$candidates['layout'][0]['match']['guid'] ?? null
+		);
+		$this->assertSame(
+			self::SITE,
+			$candidates['site_view'][0]['match']['guid'] ?? null,
+			'A site view pairs by name against the site views the component links.'
 		);
 	}
 
