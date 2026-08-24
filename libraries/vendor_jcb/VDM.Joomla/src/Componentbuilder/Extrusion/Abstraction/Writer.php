@@ -134,42 +134,61 @@ abstract class Writer implements WriterInterface
 	 */
 	protected function store(object $definition): bool
 	{
-		$guid = (string) ($definition->guid ?? '');
+		$key = $this->linkKey();
+		$identity = (string) ($definition->{$key} ?? '');
 
-		if ($guid === '')
+		if ($identity === '')
 		{
-			$this->report->set('failed.' . $this->table() . '.missing_guid', true);
+			$this->report->set('failed.' . $this->table() . '.missing_' . $key, true);
 
 			return false;
 		}
 
 		if ($this->config->get('dryRun', false))
 		{
-			$this->report->set('dryrun.' . $this->table() . '.' . $guid, true);
+			$this->report->set('dryrun.' . $this->table() . '.' . $identity, true);
 
 			return true;
 		}
 
-		$existing = $this->item->table($this->table())->value($guid, 'guid', 'id');
+		$existing = $this->item->table($this->table())->value($identity, $key, 'id');
 		$policy = (string) $this->config->get('onExisting', 'update');
 
 		if ($existing !== null && $existing > 0 && $policy === 'skip')
 		{
-			$this->report->set('skipped.existing.' . $this->table() . '.' . $guid, true);
+			$this->report->set('skipped.existing.' . $this->table() . '.' . $identity, true);
 
 			return true;
 		}
 
-		if (!$this->item->table($this->table())->set($definition, 'guid'))
+		if (!$this->item->table($this->table())->set($definition, $key))
 		{
-			$this->report->set('failed.' . $this->table() . '.' . $guid, true);
+			$this->report->set('failed.' . $this->table() . '.' . $identity, true);
 
 			return false;
 		}
 
-		$this->report->set('written.' . $this->table() . '.' . $guid, true);
+		$this->report->set('written.' . $this->table() . '.' . $identity, true);
 
 		return true;
+	}
+
+	/**
+	 * The column this writer's table is keyed by.
+	 *
+	 * The entity tables carry their own guid, so guid is the default. A
+	 * linked-map table (admin_fields, component_admin_views, and their kin)
+	 * holds no guid at all -- the Table class defines none for it -- and is
+	 * keyed by the column that names its parent, exactly as JCB's Package
+	 * import declares a key field per area. A writer for such a table
+	 * declares that column by overriding this method.
+	 *
+	 * @return  string  The key column of this writer's table.
+	 * @since   6.1.7
+	 */
+	protected function linkKey(): string
+	{
+		return 'guid';
 	}
 
 	/**

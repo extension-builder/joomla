@@ -603,8 +603,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertStringContainsString("First; not a split", $seeded->sql);
 		$this->assertSame(1, $seeded->add_sql);
 		$this->assertSame(
-			7,
-			$this->item->definitions('component_admin_views')[0]->joomla_component
+			ExtrusionCatalogueFixture::componentGuid(7),
+			$this->item->definitions('component_admin_views')[0]->joomla_component,
+			'The link column speaks the component guid, never its id.'
 		);
 	}
 
@@ -760,8 +761,9 @@ SQL;
 			. 'to draw on simply write nothing.'
 		);
 		$this->assertSame(
-			6,
-			$this->item->definitions('component_admin_views')[0]->joomla_component
+			ExtrusionCatalogueFixture::componentGuid(6),
+			$this->item->definitions('component_admin_views')[0]->joomla_component,
+			'The link column speaks the component guid, never its id.'
 		);
 
 		$this->extruder()->reset()->dump($dump)->component(6)->extrude();

@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
-use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -33,14 +33,6 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
 final class ComponentAdminViews extends Writer
 {
 	/**
-	 * The Guid Resolver.
-	 *
-	 * @var    Guid
-	 * @since  6.1.6
-	 */
-	protected Guid $guid;
-
-	/**
 	 * The Source Registry.
 	 *
 	 * @var    Source
@@ -49,13 +41,20 @@ final class ComponentAdminViews extends Writer
 	protected Source $source;
 
 	/**
+	 * The database load boundary.
+	 *
+	 * @var    LoadInterface
+	 * @since  6.1.7
+	 */
+	protected LoadInterface $load;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
-	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
 	 *
 	 * @since   6.1.6
@@ -65,14 +64,14 @@ final class ComponentAdminViews extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
-		Guid $guid,
-		Source $source
+		Source $source,
+		LoadInterface $load
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
-		$this->guid = $guid;
 		$this->source = $source;
+		$this->load = $load;
 	}
 
 	/**
@@ -84,6 +83,17 @@ final class ComponentAdminViews extends Writer
 	protected function table(): string
 	{
 		return 'component_admin_views';
+	}
+
+	/**
+	 * The column this writer's table is keyed by.
+	 *
+	 * @return  string  The key column of this writer's table.
+	 * @since   6.1.7
+	 */
+	protected function linkKey(): string
+	{
+		return 'joomla_component';
 	}
 
 	/**
@@ -99,6 +109,22 @@ final class ComponentAdminViews extends Writer
 		if ($component <= 0)
 		{
 			$this->report->set('failed.component_admin_views.no_component', true);
+
+			return 0;
+		}
+
+		// the link column holds the component's guid -- the Table class
+		// defines it as the joomla_component entity's guid key -- so the
+		// configured id is resolved to the identity the link speaks
+		$componentGuid = trim((string) ($this->load->value(
+			['a.guid' => 'guid'],
+			['a' => 'joomla_component'],
+			['a.id' => $component]
+		) ?? ''));
+
+		if ($componentGuid === '')
+		{
+			$this->report->set('failed.component_admin_views.unknown_component', true);
 
 			return 0;
 		}
@@ -142,10 +168,7 @@ final class ComponentAdminViews extends Writer
 		}
 
 		$definition = new \stdClass();
-		$definition->guid = $this->guid->derive(
-			[$this->option(), 'component_admin_views', (string) $component]
-		);
-		$definition->joomla_component = $component;
+		$definition->joomla_component = $componentGuid;
 		$definition->addadmin_views = json_encode($subform, JSON_FORCE_OBJECT);
 		$definition->published = 1;
 

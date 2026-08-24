@@ -144,7 +144,6 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source')
 		);
 	}
@@ -164,7 +163,6 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source')
 		);
 	}
@@ -184,7 +182,6 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source')
 		);
 	}
@@ -226,8 +223,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Load')
 		);
 	}
 
@@ -266,8 +263,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Load')
 		);
 	}
 
