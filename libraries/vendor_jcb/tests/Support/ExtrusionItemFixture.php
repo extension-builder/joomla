@@ -12,6 +12,7 @@
 namespace VDM\Tests\Support;
 
 
+use VDM\Joomla\Componentbuilder\Table;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -27,6 +28,12 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  *
  * A recorded definition is cloned on the way in, so a later mutation of the same
  * object cannot rewrite history.
+ *
+ * The JCB Table class is the source of truth for what every table holds, and
+ * this boundary enforces it: an unknown table, a key column the table does not
+ * define, or a written property the Table class does not know all throw --
+ * loudly, where the real pipeline would silently drop the value or let the
+ * database refuse the query on a live site.
  *
  * @since  6.1.6
  */
@@ -71,6 +78,14 @@ final class ExtrusionItemFixture implements ItemInterface
 	 * @since  6.1.6
 	 */
 	private array $lookups = [];
+
+	/**
+	 * The real JCB table definitions, the source of truth for every column.
+	 *
+	 * @var    Table|null
+	 * @since  6.1.7
+	 */
+	private static ?Table $tables = null;
 
 	/**
 	 * Declare that one identity already exists in a table.
@@ -204,6 +219,14 @@ final class ExtrusionItemFixture implements ItemInterface
 	 */
 	public function table(string $table): self
 	{
+		if (self::tables()->get($table) === null)
+		{
+			throw new \RuntimeException(
+				"The JCB Table class defines no table '" . $table
+				. "'. A live site holds no such table."
+			);
+		}
+
 		$this->active = $table;
 
 		return $this;
@@ -235,6 +258,9 @@ final class ExtrusionItemFixture implements ItemInterface
 	 */
 	public function value(string $value, string $key = 'guid', string $get = 'id')
 	{
+		$this->column($key);
+		$this->column($get);
+
 		$this->lookups[] = $this->active . ':' . $key . ':' . $value . ':' . $get;
 
 		return $this->identities[$this->active . ':' . $value] ?? null;
@@ -252,9 +278,16 @@ final class ExtrusionItemFixture implements ItemInterface
 	 */
 	public function set(object $item, string $key = 'guid', ?string $action = null): bool
 	{
-		$guid = (string) ($item->guid ?? '');
+		$this->column($key);
 
-		if (isset($this->refused[$this->active . ':' . $guid]))
+		foreach (array_keys(get_object_vars($item)) as $property)
+		{
+			$this->column($property, 'writes');
+		}
+
+		$identity = (string) ($item->{$key} ?? '');
+
+		if (isset($this->refused[$this->active . ':' . $identity]))
 		{
 			return false;
 		}
@@ -292,5 +325,40 @@ final class ExtrusionItemFixture implements ItemInterface
 	public function getTable(): string
 	{
 		return $this->active;
+	}
+
+	/**
+	 * Refuse any column the active table does not define.
+	 *
+	 * @param   string  $column  The column to validate.
+	 * @param   string  $what    What the caller is doing, for the message.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	private function column(string $column, string $what = 'keys by'): void
+	{
+		$fields = (array) (self::tables()->fields($this->active, true) ?? []);
+
+		if (!in_array($column, $fields, true))
+		{
+			throw new \RuntimeException(
+				'The writer ' . $what . " column '" . $column . "' on '"
+				. $this->active . "', but the JCB Table class defines no such "
+				. 'column there. On a live site the value would be silently '
+				. 'dropped or the query refused.'
+			);
+		}
+	}
+
+	/**
+	 * The real JCB table definitions, loaded once per process.
+	 *
+	 * @return  Table  The Table class, the source of truth.
+	 * @since   6.1.7
+	 */
+	private static function tables(): Table
+	{
+		return self::$tables ??= new Table();
 	}
 }

@@ -265,7 +265,29 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	public function value(array $select, array $tables, ?array $where = null,
 		?array $order = null)
 	{
+		// the component linkers resolve the target component's guid by its
+		// id, because the link columns speak guid -- serve one per id, the
+		// same way every install holds one
+		if (($tables['a'] ?? null) === 'joomla_component'
+			&& isset($select['a.guid'], $where['a.id']))
+		{
+			return self::componentGuid((int) $where['a.id']);
+		}
+
 		return null;
+	}
+
+	/**
+	 * The served component guid for one component id.
+	 *
+	 * @param   int  $id  The component id.
+	 *
+	 * @return  string  The stable guid this fixture serves for that id.
+	 * @since   6.1.7
+	 */
+	public static function componentGuid(int $id): string
+	{
+		return sprintf('eeeeeeee-%04d-4999-8999-999999999999', $id);
 	}
 
 	/**

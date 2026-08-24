@@ -44,6 +44,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Template;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
+use VDM\Tests\Support\ExtrusionDatabaseFixture;
 use VDM\Tests\Support\ExtrusionItemFixture;
 use VDM\Tests\Support\TestCase;
 
@@ -104,6 +105,14 @@ final class WriterTest extends TestCase
 	 * @since  6.1.6
 	 */
 	private const VIEW_GUID = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+
+	/**
+	 * The target component's guid, as the Table class keys the link columns.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const COMPONENT_GUID = 'eeeeeeee-9999-4999-8999-999999999999';
 
 	/**
 	 * A per-field identity a JCB-built source carried, in upper case.
@@ -646,10 +655,12 @@ HTML;
 		$subform = $this->decode($definition->addfields);
 
 		$this->assertSame(self::VIEW_GUID, $definition->admin_view);
-		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'admin_fields', 'item']),
-			$definition->guid
+		$this->assertObjectNotHasProperty(
+			'guid',
+			$definition,
+			'A linked-map table holds no guid; its key is the view it links.'
 		);
+		$this->assertSame('admin_view', $this->item->records('admin_fields')[0]['key']);
 		$this->assertSame(
 			['addfields0', 'addfields1', 'addfields2', 'addfields3'],
 			array_keys($subform)
@@ -834,10 +845,12 @@ HTML;
 		$subform = $this->decode($definition->addconditions);
 
 		$this->assertSame(self::VIEW_GUID, $definition->admin_view);
-		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'admin_fields_conditions', 'item']),
-			$definition->guid
+		$this->assertObjectNotHasProperty(
+			'guid',
+			$definition,
+			'A linked-map table holds no guid; its key is the view it links.'
 		);
+		$this->assertSame('admin_view', $this->item->records('admin_fields_conditions')[0]['key']);
 		$this->assertSame(
 			['addconditions0', 'addconditions1'],
 			array_keys($subform),
@@ -940,10 +953,12 @@ HTML;
 		$definition = $this->item->definitions('admin_custom_tabs')[0];
 
 		$this->assertSame(self::VIEW_GUID, $definition->admin_view);
-		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'admin_custom_tabs', 'item']),
-			$definition->guid
+		$this->assertObjectNotHasProperty(
+			'guid',
+			$definition,
+			'A linked-map table holds no guid; its key is the view it links.'
 		);
+		$this->assertSame('admin_view', $this->item->records('admin_custom_tabs')[0]['key']);
 		$this->assertSame(
 			[
 				'tabs0' => ['name' => 'Item Details', 'html' => '', 'php' => ''],
@@ -1002,11 +1017,17 @@ HTML;
 		$definition = $this->item->definitions('component_admin_views')[0];
 		$subform = $this->decode($definition->addadmin_views);
 
-		$this->assertSame(9, $definition->joomla_component);
 		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'component_admin_views', '9']),
-			$definition->guid
+			self::COMPONENT_GUID,
+			$definition->joomla_component,
+			'The link column speaks the component guid the Table class defines, never its id.'
 		);
+		$this->assertObjectNotHasProperty(
+			'guid',
+			$definition,
+			'A linked-map table holds no guid; its key is the component it links.'
+		);
+		$this->assertSame('joomla_component', $this->item->records('component_admin_views')[0]['key']);
 		$this->assertSame(['addadmin_views0', 'addadmin_views1'], array_keys($subform));
 		$this->assertSame(
 			[self::VIEW_GUID, 'cccccccc-3333-4333-8333-cccccccccccc'],
@@ -1591,7 +1612,6 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->guid,
 			$this->source
 		);
 	}
@@ -1609,7 +1629,6 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->guid,
 			$this->source
 		);
 	}
@@ -1627,7 +1646,6 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->guid,
 			$this->source
 		);
 	}
@@ -1645,8 +1663,8 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->guid,
-			$this->source
+			$this->source,
+			$this->componentLoad()
 		);
 	}
 
@@ -1748,8 +1766,8 @@ HTML;
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$this->guid,
-			$this->source
+			$this->source,
+			$this->componentLoad()
 		);
 	}
 
@@ -1818,7 +1836,11 @@ HTML;
 		$link = $this->item->definitions('component_site_views')[0];
 		$subform = $this->decode($link->addsite_views);
 
-		$this->assertSame(9, $link->joomla_component);
+		$this->assertSame(
+			self::COMPONENT_GUID,
+			$link->joomla_component,
+			'The link column speaks the component guid the Table class defines, never its id.'
+		);
 		$this->assertSame(['addsite_views0', 'addsite_views1'], array_keys($subform));
 		$this->assertSame($app->guid, $subform['addsite_views0']['siteview']);
 		$this->assertSame(
@@ -1870,5 +1892,21 @@ HTML;
 			'A view cannot be linked to a component the run was never given.'
 		);
 		$this->assertTrue($this->report->get('failed.component_site_views.no_component'));
+	}
+
+	/**
+	 * The database boundary serving the target component's identity.
+	 *
+	 * @return  ExtrusionDatabaseFixture  The served component row.
+	 * @since   6.1.7
+	 */
+	private function componentLoad(): ExtrusionDatabaseFixture
+	{
+		return (new ExtrusionDatabaseFixture())->table('joomla_component', [
+			['id' => 9, 'guid' => self::COMPONENT_GUID],
+			['id' => 3, 'guid' => 'eeeeeeee-0003-4999-8999-999999999999'],
+			['id' => 4, 'guid' => 'eeeeeeee-0004-4999-8999-999999999999'],
+			['id' => 12, 'guid' => 'eeeeeeee-0012-4999-8999-999999999999']
+		]);
 	}
 }

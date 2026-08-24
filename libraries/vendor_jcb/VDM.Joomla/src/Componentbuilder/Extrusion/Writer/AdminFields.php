@@ -17,7 +17,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
-use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -34,14 +33,6 @@ final class AdminFields extends Writer
 {
 
 	/**
-	 * The Guid Resolver.
-	 *
-	 * @var    Guid
-	 * @since  6.1.6
-	 */
-	protected Guid $guid;
-
-	/**
 	 * The Source Registry.
 	 *
 	 * @var    Source
@@ -56,7 +47,6 @@ final class AdminFields extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
-	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
 	 *
 	 * @since   6.1.6
@@ -66,13 +56,11 @@ final class AdminFields extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
-		Guid $guid,
 		Source $source
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
-		$this->guid = $guid;
 		$this->source = $source;
 	}
 
@@ -85,6 +73,17 @@ final class AdminFields extends Writer
 	protected function table(): string
 	{
 		return 'admin_fields';
+	}
+
+	/**
+	 * The column this writer's table is keyed by.
+	 *
+	 * @return  string  The key column of this writer's table.
+	 * @since   6.1.7
+	 */
+	protected function linkKey(): string
+	{
+		return 'admin_view';
 	}
 
 	/**
@@ -184,7 +183,6 @@ final class AdminFields extends Writer
 		}
 
 		$definition = new \stdClass();
-		$definition->guid = $this->guid->derive([$this->option(), 'admin_fields', $view]);
 		$definition->admin_view = $viewGuid;
 		$definition->addfields = json_encode($subform, JSON_FORCE_OBJECT);
 		$definition->published = 1;
