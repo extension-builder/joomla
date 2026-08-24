@@ -40,7 +40,13 @@ final class AdminView extends Writer
 	 * @var    string
 	 * @since  6.1.6
 	 */
-	private const PERMISSIONS = '{"action":["view.edit","view.edit.own","view.edit.state","view.create","view.delete","view.access"],"implementation":["3","3","3","3","3","3"]}';
+	private const PERMISSIONS = [
+		'action' => [
+			'view.edit', 'view.edit.own', 'view.edit.state',
+			'view.create', 'view.delete', 'view.access'
+		],
+		'implementation' => ['3', '3', '3', '3', '3', '3']
+	];
 
 	/**
 	 * The Guid Resolver.
@@ -168,7 +174,7 @@ final class AdminView extends Writer
 		$definition->type = 1;
 		$definition->add_fadein = 1;
 		$definition->addpermissions = self::PERMISSIONS;
-		$definition->addtabs = json_encode($this->tabs($path), JSON_FORCE_OBJECT);
+		$definition->addtabs = $this->tabs($path);
 		$definition->published = 1;
 
 		if (is_string($seed) && $seed !== '')

@@ -277,7 +277,7 @@ final class Field extends Writer
 		$definition->indexes = (int) $this->value($properties, 'key', 0);
 		$definition->null_switch = (string) $this->value($properties, 'null', 'NULL');
 		$definition->store = $this->storeCode((string) $this->value($properties, 'store', ''));
-		$definition->xml = json_encode($this->fieldxml->build($column, $properties));
+		$definition->xml = $this->fieldxml->build($column, $properties);
 		$definition->published = 1;
 
 		$definition->datalenght = in_array($size, self::SIZES, true) || $size === ''

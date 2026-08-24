@@ -184,7 +184,7 @@ final class AdminFields extends Writer
 
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
-		$definition->addfields = json_encode($subform, JSON_FORCE_OBJECT);
+		$definition->addfields = $subform;
 		$definition->published = 1;
 
 		return $this->store($definition);
