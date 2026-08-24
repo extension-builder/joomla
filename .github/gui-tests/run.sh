@@ -179,6 +179,14 @@ then
 	fi
 fi
 
+# A whole-component harvest is one long PHP request; the image's default
+# execution and memory limits are sized for page views, not for that.
+say "Raising the PHP limits for heavy harvests"
+compose exec -T joomla sh -c \
+	'printf "max_execution_time=300\nmemory_limit=1024M\n" \
+		> /usr/local/etc/php/conf.d/zz-gui-tests.ini && apache2ctl -k graceful' \
+	|| say "Could not raise the PHP limits; the image defaults stand"
+
 say "Waiting for the site to answer over HTTP"
 DEADLINE=$(( SECONDS + 120 ))
 until curl -fsS -o /dev/null "${JCB_BASE_URL}/administrator/index.php"
