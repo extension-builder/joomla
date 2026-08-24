@@ -7205,6 +7205,69 @@ class AjaxModel extends ListModel
 	}
 
 	/**
+	 * List the folders below one folder of this site.
+	 *
+	 * The extrusion setup selects its folders by walking the site from its
+	 * root, never by typing paths. Only folders below the site root answer;
+	 * anything else -- traversal, symlinks out, files -- is refused.
+	 *
+	 * @param string $path  The folder relative to the site root, '' for the root.
+	 *
+	 * @return array
+	 * @since  6.1.7
+	 */
+	public function extrusionFolders(string $path): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+		}
+
+		$base = realpath(JPATH_ROOT);
+
+		if ($base === false)
+		{
+			return ['error' => Text::_('The site root could not be resolved.')];
+		}
+
+		$relative = trim(str_replace('\\', '/', $path), '/');
+		$target = $relative === '' ? $base : realpath($base . '/' . $relative);
+
+		if ($target === false || !is_dir($target)
+			|| ($target !== $base && !str_starts_with($target, $base . DIRECTORY_SEPARATOR)))
+		{
+			return ['error' => Text::_('That folder does not exist below the site root.')];
+		}
+
+		$relative = trim(str_replace('\\', '/', substr($target, strlen($base))), '/');
+		$folders = [];
+
+		foreach (scandir($target) ?: [] as $entry)
+		{
+			if ($entry !== '.' && $entry !== '..' && is_dir($target . '/' . $entry))
+			{
+				$folders[] = $entry;
+			}
+		}
+
+		sort($folders, SORT_NATURAL | SORT_FLAG_CASE);
+
+		return [
+			'base' => $base,
+			'path' => $relative,
+			'parent' => $relative === ''
+				? null
+				: (str_contains($relative, '/')
+					? substr($relative, 0, strrpos($relative, '/')) : ''),
+			'folders' => $folders
+		];
+	}
+
+	/**
 	 * Aim and configure the extrusion engines for one run.
 	 *
 	 * The reset comes first and clears all run state, then every option the

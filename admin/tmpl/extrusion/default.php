@@ -14,6 +14,7 @@ use Joomla\CMS\HTML\HTMLHelper as Html;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
+use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 
 /** @var Joomla\CMS\WebAsset\WebAssetManager $wa */
 $wa = $this->getDocument()->getWebAssetManager();
@@ -65,7 +66,7 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 			<div class="row">
 				<div class="col-md-5 p-md-3">
 					<h3><?php echo Text::_('Pull an existing extension into JCB'); ?></h3>
-					<p><?php echo Text::_('Aim the tool at a Joomla component folder, an SQL dump, or any library of PHP classes. It harvests everything it understands, shows you exactly what it found, and lets you decide item by item what becomes new, what updates something you already have, and what stays out.'); ?></p>
+					<p><?php echo Text::_('Select the folders of a Joomla component, or any library of PHP classes, straight from this site. The tool discovers everything inside them on its own, including the install SQL, shows you exactly what it found, and lets you decide item by item what becomes new, what updates something you already have, and what stays out.'); ?></p>
 					<?php if ($this->form): ?>
 						<?php echo $this->form->renderFieldset('source'); ?>
 					<?php endif; ?>
@@ -93,7 +94,10 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 							</div>
 						</div>
 					</div>
-					<?php echo LayoutHelper::render('jcbnoticeboard', ['dankie' => $this->dankie]); ?>
+					<div class="p-md-3"><?php if ($this->dankie == 2): ?>
+<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
+<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
+			</div>
 				</div>
 			</div>
 			<input type="hidden" name="task" value="" />
@@ -111,8 +115,10 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 				<p style="font-size: smaller;"><?php echo Text::_('A large source can carry hundreds of classes and views, so this may take a moment.'); ?></p>
 			</div>
 			<div class="col-md-8 p-md-3">
-				<?php echo LayoutHelper::render('jcbnoticeboard',
-					['id' => 'mastodon-feed-2', 'button_id' => 'refresh-feed-2', 'posts' => 7, 'dankie' => $this->dankie]); ?>
+				<div class="p-md-3"><?php if ($this->dankie == 2): ?>
+<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
+<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
+			</div>
 			</div>
 		</div>
 	</div>
@@ -163,6 +169,18 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 		</div>
 	</div>
 
+	<div id="extrusion-folder-modal" class="extrusion-modal" style="display:none;">
+		<div class="extrusion-modal-card">
+			<h4><?php echo Text::_('Select a folder'); ?></h4>
+			<div id="extrusion-folder-path" class="extrusion-folder-path"></div>
+			<div id="extrusion-folder-list" class="extrusion-modal-list"></div>
+			<div>
+				<button type="button" class="btn btn-success" id="extrusion-folder-choose"><?php echo Text::_('Choose this folder'); ?></button>
+				<button type="button" class="btn btn-outline-secondary" id="extrusion-folder-close"><?php echo Text::_('Cancel'); ?></button>
+			</div>
+		</div>
+	</div>
+
 	<div id="extrusion-modal" class="extrusion-modal" style="display:none;">
 		<div class="extrusion-modal-card">
 			<h4 id="extrusion-modal-title"><?php echo Text::_('Choose the target'); ?></h4>
@@ -186,7 +204,7 @@ window.JCBExtrusion = {
 		harvestFailed: '<?php echo Text::_('The harvest failed', true); ?>',
 		importFailed: '<?php echo Text::_('The import failed', true); ?>',
 		requestFailed: '<?php echo Text::_('The request could not reach the server. Please try again.', true); ?>',
-		needSource: '<?php echo Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.', true); ?>',
+		needSource: '<?php echo Text::_('Select at least an admin folder, a site folder, or a library folder to harvest.', true); ?>',
 		createNew: '<?php echo Text::_('Create new', true); ?>',
 		update: '<?php echo Text::_('Update', true); ?>',
 		ignore: '<?php echo Text::_('Ignore', true); ?>',
@@ -211,7 +229,14 @@ window.JCBExtrusion = {
 		importDone: '<?php echo Text::_('The import has run', true); ?>',
 		harvestAgain: '<?php echo Text::_('Harvest again', true); ?>',
 		messages: '<?php echo Text::_('Messages', true); ?>',
-		report: '<?php echo Text::_('The full report', true); ?>'
+		report: '<?php echo Text::_('The full report', true); ?>',
+		selectFolder: '<?php echo Text::_('Select', true); ?>',
+		addLibrary: '<?php echo Text::_('Add a library folder', true); ?>',
+		siteRoot: '<?php echo Text::_('Site root', true); ?>',
+		upOneFolder: '<?php echo Text::_('Up one folder', true); ?>',
+		emptyFolder: '<?php echo Text::_('This folder holds no folders', true); ?>',
+		folderFailed: '<?php echo Text::_('The folder list could not be loaded.', true); ?>',
+		catalogueFailed: '<?php echo Text::_('The existing definitions could not be loaded, so nothing could be matched against this component.', true); ?>'
 	}
 };
 </script>

@@ -162,3 +162,16 @@
 	padding: 0.35rem 0.6rem;
 	font-size: 0.85rem;
 }
+
+/* the folder picker */
+.extrusion-folder-path {
+	font-family: monospace;
+	font-size: 0.85rem;
+	padding: 0.25rem 0.5rem;
+	background: rgba(0, 0, 0, 0.04);
+	border-radius: 0.25rem;
+	word-break: break-all;
+}
+.extrusion-folder-select {
+	margin-top: 0.25rem;
+}
