@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
@@ -90,6 +91,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Reuse::class, 'Extrusion.Resolver.Reuse')
 			->share('Extrusion.Resolver.Reuse', [$this, 'getReuse'], true);
+
+		$container->alias(Constants::class, 'Extrusion.Resolver.Constants')
+			->share('Extrusion.Resolver.Constants', [$this, 'getConstants'], true);
 
 		$container->alias(FieldXml::class, 'Extrusion.Resolver.FieldXml')
 			->share('Extrusion.Resolver.FieldXml', [$this, 'getFieldXml'], true);
@@ -315,6 +319,22 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Condition'),
 			$container->get('Extrusion.Resolver.Relation'),
 			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the Constants Resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Constants
+	 * @since   6.1.8
+	 */
+	public function getConstants(Container $container): Constants
+	{
+		return new Constants(
+			$container->get('Extrusion.Resolver.Language'),
 			$container->get('Extrusion.Registry.Report')
 		);
 	}

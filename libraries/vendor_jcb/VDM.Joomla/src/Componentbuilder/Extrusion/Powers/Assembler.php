@@ -16,6 +16,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 
 
@@ -102,7 +103,8 @@ final class Assembler
 		Harvest $harvest,
 		Existing $existing,
 		Pairing $pairing,
-		Report $report
+		Report $report,
+		Constants $constants
 	)
 	{
 		$this->config = $config;
@@ -110,6 +112,7 @@ final class Assembler
 		$this->existing = $existing;
 		$this->pairing = $pairing;
 		$this->report = $report;
+		$this->constants = $constants;
 	}
 
 	/**
@@ -218,6 +221,14 @@ final class Assembler
 	}
 
 	/**
+	 * The Constants Resolver.
+	 *
+	 * @var    Constants
+	 * @since  6.1.8
+	 */
+	protected Constants $constants;
+
+	/**
 	 * Build the definition one candidate is written as.
 	 *
 	 * @param   array<string, mixed>  $candidate  The harvest candidate.
@@ -237,8 +248,16 @@ final class Assembler
 		$definition->name = (string) $candidate['class'];
 		$definition->namespace = (string) $candidate['placeholder'];
 		$definition->type = $type;
-		$definition->description = (string) $candidate['docblock'];
-		$definition->main_class_code = (string) $candidate['body'];
+		// JCB stores code speaking text and lets its compiler make the
+		// constant, so a class harvested out of a compiled component has to
+		// speak text again -- otherwise the compiler builds a key from a key
+		// and the component shows a constant to its users
+		$definition->main_class_code = $this->constants->reverse(
+			(string) $candidate['body']
+		);
+		$definition->description = $this->constants->reverse(
+			(string) $candidate['docblock']
+		);
 
 		if (!(bool) ($candidate['exists'] ?? false))
 		{
