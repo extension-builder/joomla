@@ -19,6 +19,10 @@ on:
       - 'admin/**'
       - 'media/**'
       - 'componentbuilder.xml'
+      # the engine drives what the browser journeys see -- the live import
+      # writes what these classes resolve, so an engine change without a GUI
+      # run is a regression the suite exists to catch
+      - 'libraries/vendor_jcb/VDM.Joomla/**'
       - 'libraries/vendor_jcb/tests/gui/**'
       - '.github/gui-tests/**'
       - '.github/workflows/gui-tests.yml'
