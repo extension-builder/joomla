@@ -26,6 +26,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\CustomAdminView as CustomAdminViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Split;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
@@ -60,6 +61,7 @@ use VDM\Tests\Support\FilesystemTestCase;
 #[CoversClass(Literal::class)]
 #[CoversClass(Split::class)]
 #[CoversClass(LayoutReader::class)]
+#[CoversClass(CustomAdminViewReader::class)]
 #[CoversClass(SiteViewReader::class)]
 #[CoversClass(TemplateReader::class)]
 #[CoversClass(Dispatcher::class)]
@@ -1437,7 +1439,8 @@ SQL);
 			$this->formReader(),
 			$this->layoutReader(),
 			$this->templateReader(),
-			$this->siteViewReader()
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
 		);
 
 		$this->assertSame(1, $dispatcher->dispatch());
@@ -1495,10 +1498,11 @@ SQL);
 			$this->formReader(),
 			$this->layoutReader(),
 			$this->templateReader(),
-			$this->siteViewReader()
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
 		);
 
-		$this->assertSame(2, $dispatcher->dispatch());
+		$this->assertSame(3, $dispatcher->dispatch());
 		$this->assertSame(['summary'], array_keys((array) $this->view->get('layout')));
 		$this->assertSame(
 			['extra'],
@@ -1508,9 +1512,15 @@ SQL);
 		);
 		$this->assertSame('$a = 1;', $this->view->get('template.extra.php_view'));
 		$this->assertSame(
-			$this->temporaryPath('tmpl/item/default.php'),
-			$this->report->get('view.skipped.main.' . md5($this->temporaryPath('tmpl/item/default.php'))),
-			'The view own template is named in the report rather than quietly dropped.'
+			['item'],
+			array_keys((array) $this->view->get('custom_admin_view')),
+			'An administrator view\'s own template is read as a custom admin view '
+			. 'candidate named after its view folder, because the views a component '
+			. 'builds outside its tables live in exactly these files.'
+		);
+		$this->assertSame(
+			'<p>main</p>',
+			$this->view->get('custom_admin_view.item.default')
 		);
 
 		$this->assertFalse($this->view->exists('template.item_default.template'));
@@ -1523,7 +1533,7 @@ SQL);
 			$this->report->get('layout.absent.error')
 		);
 		$this->assertFalse($this->view->exists('layout.absent.name'));
-		$this->assertSame(2, $this->report->get('counts.read'));
+		$this->assertSame(3, $this->report->get('counts.read'));
 	}
 
 	/**
@@ -1556,7 +1566,8 @@ SQL);
 			$this->formReader(),
 			$this->layoutReader(),
 			$this->templateReader(),
-			$this->siteViewReader()
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
 		);
 
 		$this->assertSame([
@@ -1670,6 +1681,17 @@ SQL);
 	}
 
 	/**
+	 * The custom admin view reader over the shared registries.
+	 *
+	 * @return  CustomAdminViewReader  The reader.
+	 * @since   6.1.8
+	 */
+	private function customAdminViewReader(): CustomAdminViewReader
+	{
+		return new CustomAdminViewReader($this->view, new Split(), new Text(), $this->report);
+	}
+
+	/**
 	 * An inventory holding one artifact of every readable kind.
 	 *
 	 * @return  Inventory  The located artifact registry.
@@ -1711,7 +1733,8 @@ SQL);
 			$this->recorder($order, 'form'),
 			$this->layoutReader(),
 			$this->templateReader(),
-			$this->siteViewReader()
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
 		);
 	}
 
@@ -1933,7 +1956,8 @@ SQL);
 			$this->formReader(),
 			$this->layoutReader(),
 			$this->templateReader(),
-			$this->siteViewReader()
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
 		);
 
 		$this->assertSame(1, $dispatcher->dispatch());

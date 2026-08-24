@@ -262,6 +262,9 @@
 		(candidates.site_view || []).forEach((candidate) => {
 			candidate.match = matchByName([candidate.label], catalogue.site_views);
 		});
+		(candidates.custom_admin_view || []).forEach((candidate) => {
+			candidate.match = matchByName([candidate.label], catalogue.custom_admin_views);
+		});
 		(candidates.layout || []).forEach((candidate) => {
 			candidate.match = matchByName([candidate.label], catalogue.layouts);
 		});
@@ -316,7 +319,7 @@
 			rows.push(view);
 			(view.fields || []).forEach((field) => rows.push(field));
 		});
-		['site_view', 'layout', 'template'].forEach((kind) => {
+		['site_view', 'custom_admin_view', 'layout', 'template'].forEach((kind) => {
 			(candidates[kind] || []).forEach((candidate) => rows.push(candidate));
 		});
 		if (data.powers && data.powers.classes) {
@@ -340,8 +343,13 @@
 		if ((candidates.admin_view || []).length) {
 			html += kindSection('admin_view', T.adminViews, candidates.admin_view, true);
 		}
-		['site_view', 'layout', 'template'].forEach((kind) => {
-			const label = { site_view: T.siteViews, layout: T.layouts, template: T.templates }[kind];
+		['site_view', 'custom_admin_view', 'layout', 'template'].forEach((kind) => {
+			const label = {
+				site_view: T.siteViews,
+				custom_admin_view: T.customAdminViews,
+				layout: T.layouts,
+				template: T.templates
+			}[kind];
 			if ((candidates[kind] || []).length) {
 				html += kindSection(kind, label, candidates[kind], false);
 			}
@@ -499,6 +507,7 @@
 			admin_view: catalogue.admin_views,
 			field: catalogue.fields,
 			site_view: catalogue.site_views,
+			custom_admin_view: catalogue.custom_admin_views,
 			layout: catalogue.layouts,
 			template: catalogue.templates,
 			power: catalogue.powers

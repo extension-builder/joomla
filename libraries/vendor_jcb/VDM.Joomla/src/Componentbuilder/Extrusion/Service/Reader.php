@@ -25,6 +25,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\CreateTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\CustomAdminView as CustomAdminViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Split;
@@ -89,6 +90,9 @@ class Reader implements ServiceProviderInterface
 
 		$container->alias(SiteViewReader::class, 'Extrusion.Reader.SiteView')
 			->share('Extrusion.Reader.SiteView', [$this, 'getSiteViewReader'], true);
+
+		$container->alias(CustomAdminViewReader::class, 'Extrusion.Reader.CustomAdminView')
+			->share('Extrusion.Reader.CustomAdminView', [$this, 'getCustomAdminViewReader'], true);
 
 		$container->alias(TemplateReader::class, 'Extrusion.Reader.Template')
 			->share('Extrusion.Reader.Template', [$this, 'getTemplateReader'], true);
@@ -292,6 +296,24 @@ class Reader implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Custom Admin View Reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminViewReader
+	 * @since   6.1.8
+	 */
+	public function getCustomAdminViewReader(Container $container): CustomAdminViewReader
+	{
+		return new CustomAdminViewReader(
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.View.Split'),
+			$container->get('Extrusion.Resolver.Text'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
 	 * Get the Template Reader.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -328,7 +350,8 @@ class Reader implements ServiceProviderInterface
 			$container->get('Extrusion.Reader.Form'),
 			$container->get('Extrusion.Reader.Layout'),
 			$container->get('Extrusion.Reader.Template'),
-			$container->get('Extrusion.Reader.SiteView')
+			$container->get('Extrusion.Reader.SiteView'),
+			$container->get('Extrusion.Reader.CustomAdminView')
 		);
 	}
 }

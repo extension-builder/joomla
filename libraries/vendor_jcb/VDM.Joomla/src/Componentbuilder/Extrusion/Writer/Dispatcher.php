@@ -134,6 +134,30 @@ final class Dispatcher
 	protected WriterInterface $template;
 
 	/**
+	 * The Dynamic Get Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.8
+	 */
+	protected WriterInterface $dynamicget;
+
+	/**
+	 * The Custom Admin View Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.8
+	 */
+	protected WriterInterface $customadminview;
+
+	/**
+	 * The Component Custom Admin Views Writer.
+	 *
+	 * @var    WriterInterface
+	 * @since  6.1.8
+	 */
+	protected WriterInterface $customlink;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config           $config       The extrusion configuration.
@@ -147,8 +171,11 @@ final class Dispatcher
 	 * @param   WriterInterface  $details      The component details writer.
 	 * @param   WriterInterface  $siteview     The site view writer.
 	 * @param   WriterInterface  $sitelink     The component site views writer.
-	 * @param   WriterInterface  $layout       The layout writer.
-	 * @param   WriterInterface  $template     The template writer.
+	 * @param   WriterInterface  $layout           The layout writer.
+	 * @param   WriterInterface  $template         The template writer.
+	 * @param   WriterInterface  $dynamicget       The dynamic get writer.
+	 * @param   WriterInterface  $customadminview  The custom admin view writer.
+	 * @param   WriterInterface  $customlink       The component custom admin views writer.
 	 *
 	 * @since   6.1.6
 	 */
@@ -165,7 +192,10 @@ final class Dispatcher
 		WriterInterface $layout,
 		WriterInterface $template,
 		WriterInterface $siteview,
-		WriterInterface $sitelink
+		WriterInterface $sitelink,
+		WriterInterface $dynamicget,
+		WriterInterface $customadminview,
+		WriterInterface $customlink
 	)
 	{
 		$this->config = $config;
@@ -181,6 +211,9 @@ final class Dispatcher
 		$this->template = $template;
 		$this->siteview = $siteview;
 		$this->sitelink = $sitelink;
+		$this->dynamicget = $dynamicget;
+		$this->customadminview = $customadminview;
+		$this->customlink = $customlink;
 	}
 
 	/**
@@ -226,11 +259,14 @@ final class Dispatcher
 
 		$order['layout'] = $this->layout;
 		$order['template'] = $this->template;
+		$order['dynamic_get'] = $this->dynamicget;
 		$order['site_view'] = $this->siteview;
 		$order['component_site_views'] = $this->sitelink;
 
 		if ($this->config->get('admin', true))
 		{
+			$order['custom_admin_view'] = $this->customadminview;
+			$order['component_custom_admin_views'] = $this->customlink;
 			$order['component_admin_views'] = $this->component;
 		}
 

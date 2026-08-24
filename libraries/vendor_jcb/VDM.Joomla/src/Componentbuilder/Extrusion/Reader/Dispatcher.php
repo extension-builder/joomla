@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\CustomAdminView as CustomAdminViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
@@ -114,6 +115,14 @@ final class Dispatcher
 	protected SiteViewReader $siteview;
 
 	/**
+	 * The Custom Admin View Reader.
+	 *
+	 * @var    CustomAdminViewReader
+	 * @since  6.1.8
+	 */
+	protected CustomAdminViewReader $customadminview;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config           $config     The extrusion configuration.
@@ -138,7 +147,8 @@ final class Dispatcher
 		ReaderInterface $form,
 		LayoutReader $layout,
 		TemplateReader $template,
-		SiteViewReader $siteview
+		SiteViewReader $siteview,
+		CustomAdminViewReader $customadminview
 	)
 	{
 		$this->config = $config;
@@ -151,6 +161,7 @@ final class Dispatcher
 		$this->layout = $layout;
 		$this->template = $template;
 		$this->siteview = $siteview;
+		$this->customadminview = $customadminview;
 	}
 
 	/**
@@ -290,9 +301,10 @@ final class Dispatcher
 			{
 				// On the site side a view's default template is the site view itself: JCB
 				// keeps its body in the view's own default column, so this is where a front
-				// end view comes from. On the administrator side the same file is compiled
-				// from the view's field set, so it is generated output belonging to nothing
-				// and is recorded as passed over rather than read.
+				// end view comes from. On the administrator side the same file is either
+				// generated output -- when a resolved table view answers for it -- or the
+				// whole body of a custom admin view; every one is read as a candidate and
+				// the writer keeps only the views no table view answers for.
 				if (($entry['scope'] ?? '') === 'site')
 				{
 					$read += $this->siteview->read(
@@ -303,7 +315,10 @@ final class Dispatcher
 					continue;
 				}
 
-				$this->skipped('main', $entry['path']);
+				$read += $this->customadminview->read(
+					$entry['path'],
+					$entry['view'] ?? null
+				) ? 1 : 0;
 			}
 		}
 

@@ -215,9 +215,10 @@ test.describe('the extrusion view', () => {
 
 		await page.locator('[name="admin_path"]').fill(COMPONENT_ADMIN);
 		await page.locator('[name="site_path"]').fill(COMPONENT_SITE);
-		// the language sweep of a component this size is work the pairing
-		// assertions do not need -- and switching it off exercises a scope
-		await setRadio(page, 'scope_language', '0');
+		// the language sweep stays ON: an installed component keeps its
+		// catalogue in the site's central language folders, and resolving
+		// those constants is what lets harvested fields match by their real
+		// names -- the translations scope alone is not under test here
 		await setRadio(page, 'scope_translations', '0');
 
 		await page.getByRole('button', { name: 'Harvest the source' }).click();
@@ -235,6 +236,24 @@ test.describe('the extrusion view', () => {
 		await expect(views).toBeVisible();
 		expect(await views.locator('.extrusion-row').count()).toBeGreaterThan(10);
 		await expect(views.locator('details.extrusion-fields').first()).toBeAttached();
+
+		// the administrator screens outside the tables -- compiler, import and
+		// their kin -- stand on the board as custom admin views, because a
+		// component is more than its tables and losing these screens was
+		// exactly the failure this section exists to prevent
+		const custom = page.locator('details[data-extrusion-kind="custom_admin_view"]');
+		await expect(custom).toBeVisible();
+		expect(await custom.locator('.extrusion-row').count()).toBeGreaterThan(0);
+
+		// and the fields of this very component match what JCB already holds,
+		// so the board proposes reuse instead of creating twins
+		const matched = await views.locator('details.extrusion-fields summary')
+			.allTextContents();
+		expect(
+			matched.some((text) => !text.includes(' 0 matched')),
+			'At least one view\'s fields must match the fields JCB already holds: '
+			+ matched.slice(0, 5).join(' | ')
+		).toBe(true);
 
 		// and the import runs FOR REAL against the live database -- a dry run
 		// returns before the writers ever query, which is exactly how a broken

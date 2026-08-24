@@ -2,7 +2,7 @@
 /**
  * @package    Joomla.Component.Builder
  *
- * @created    17th August, 2026
+ * @created    24th August, 2026
  * @author     Llewellyn van der Merwe <https://dev.vdm.io>
  * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
  * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
@@ -20,31 +20,30 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
 /**
- * Writes the front end views a component's site templates describe.
+ * Writes the administrator views a component builds outside its tables.
  *
- * A site view is the front end counterpart of an admin view, but it is not built
- * from a database table: its body is the default template of its own folder. That
- * makes it recoverable from any component with a site folder, whether or not JCB
- * built it and whether or not the run ever saw a schema.
+ * An import screen, a dashboard, a wizard: administrator views with no table
+ * behind them are JCB's custom admin views, and their whole body is the
+ * template the reader recovered. Every recovered administrator template is a
+ * candidate; the ones a resolved table view answers for are that view's own
+ * generated output and are passed over, and what remains is written whole --
+ * body, php, name and its dynamic get -- so the component's administrator
+ * arrives with every screen it really has, not only the tables.
  *
- * The view's data source is the dynamic get the run wrote for it: a real back
- * end source when an admin view of this run answers for the view's name, and a
- * custom-get scaffold when none does -- either way main_get names it, because a
- * site view without a source displays nothing at all.
- *
- * @since 6.1.6
+ * @since 6.1.8
  */
-final class SiteView extends Writer
+final class CustomAdminView extends Writer
 {
 	/**
 	 * The View Registry.
 	 *
 	 * @var    View
-	 * @since  6.1.6
+	 * @since  6.1.8
 	 */
 	protected View $view;
 
@@ -52,7 +51,7 @@ final class SiteView extends Writer
 	 * The Guid Resolver.
 	 *
 	 * @var    Guid
-	 * @since  6.1.6
+	 * @since  6.1.8
 	 */
 	protected Guid $guid;
 
@@ -60,7 +59,7 @@ final class SiteView extends Writer
 	 * The Source Registry.
 	 *
 	 * @var    Source
-	 * @since  6.1.6
+	 * @since  6.1.8
 	 */
 	protected Source $source;
 
@@ -68,9 +67,17 @@ final class SiteView extends Writer
 	 * The Pairing Resolver.
 	 *
 	 * @var    Pairing
-	 * @since  6.1.7
+	 * @since  6.1.8
 	 */
 	protected Pairing $pairing;
+
+	/**
+	 * The Text Resolver.
+	 *
+	 * @var    Text
+	 * @since  6.1.8
+	 */
+	protected Text $text;
 
 	/**
 	 * Constructor.
@@ -83,8 +90,9 @@ final class SiteView extends Writer
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
 	 * @param   Pairing        $pairing   The pairing resolver.
+	 * @param   Text           $text      The readable text resolver.
 	 *
-	 * @since   6.1.6
+	 * @since   6.1.8
 	 */
 	public function __construct(
 		Config $config,
@@ -94,7 +102,8 @@ final class SiteView extends Writer
 		View $view,
 		Guid $guid,
 		Source $source,
-		Pairing $pairing
+		Pairing $pairing,
+		Text $text
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -103,35 +112,36 @@ final class SiteView extends Writer
 		$this->guid = $guid;
 		$this->source = $source;
 		$this->pairing = $pairing;
+		$this->text = $text;
 	}
 
 	/**
 	 * The JCB table this writer persists into.
 	 *
 	 * @return  string  The table name without its prefix.
-	 * @since   6.1.6
+	 * @since   6.1.8
 	 */
 	protected function table(): string
 	{
-		return 'site_view';
+		return 'custom_admin_view';
 	}
 
 	/**
-	 * Write every site view the reader recovered.
+	 * Write every custom admin view the reader recovered.
 	 *
 	 * @return  int  The number of definitions written.
-	 * @since   6.1.6
+	 * @since   6.1.8
 	 */
 	public function write(): int
 	{
-		if (!$this->config->get('siteViews', true))
+		if (!$this->config->get('admin', true))
 		{
 			return 0;
 		}
 
 		$written = 0;
 
-		foreach ((array) $this->view->get('site_view') as $key => $entry)
+		foreach ((array) $this->view->get('custom_admin_view') as $key => $entry)
 		{
 			$entry = (array) $entry;
 			$name = (string) ($entry['name'] ?? $key);
@@ -141,33 +151,46 @@ final class SiteView extends Writer
 				continue;
 			}
 
+			if ($this->answered($name))
+			{
+				$this->report->set(
+					'skipped.custom_admin_view.' . $this->key($name),
+					'a resolved table view answers for this template'
+				);
+
+				continue;
+			}
+
 			if ($this->one($name, (string) $key, $entry))
 			{
 				$written++;
 			}
 		}
 
-		$this->report->set('counts.site_view', $written);
+		if ($written > 0)
+		{
+			$this->report->set('counts.custom_admin_view', $written);
+		}
 
 		return $written;
 	}
 
 	/**
-	 * Write one site view.
+	 * Write one custom admin view.
 	 *
 	 * @param   string                $name   The view code name.
 	 * @param   string                $key    The view's registry key.
 	 * @param   array<string, mixed>  $entry  What the reader recovered.
 	 *
 	 * @return  bool  True when the definition was written.
-	 * @since   6.1.6
+	 * @since   6.1.8
 	 */
 	protected function one(string $name, string $key, array $entry): bool
 	{
 		$guid = $this->pairing->guid(
-			'site_view',
+			'custom_admin_view',
 			$this->key($name),
-			$this->guid->derive([$this->option(), 'site_view', $name])
+			$this->guid->derive([$this->option(), 'custom_admin_view', $name])
 		);
 
 		if ($guid === null)
@@ -175,20 +198,19 @@ final class SiteView extends Writer
 			return false;
 		}
 
-		$readable = (string) ($entry['system_name'] ?? $name);
+		$readable = (string) ($entry['system_name'] ?? $this->text->humanise($name));
 
 		$definition = new \stdClass();
 		$definition->guid = $guid;
-		$definition->name = $name;
+		$definition->name = $readable;
 		$definition->codename = $name;
-		$definition->context = (string) ($entry['context'] ?? $name);
 		$definition->system_name = $readable;
 		$definition->description = (string) ($entry['description'] ?? $readable);
 		$definition->default = (string) ($entry['default'] ?? '');
 		$definition->php_view = (string) ($entry['php_view'] ?? '');
 		$definition->add_php_view = (int) ($entry['add_php_view'] ?? 0);
 		$definition->main_get = (string) $this->resolved->get(
-			'dynamic_get.site_view.' . $this->key($key) . '.guid',
+			'dynamic_get.custom_admin_view.' . $this->key($key) . '.guid',
 			''
 		);
 		$definition->published = 1;
@@ -198,17 +220,44 @@ final class SiteView extends Writer
 			return false;
 		}
 
-		$this->resolved->set('site_view.' . $this->key($name) . '.guid', $guid);
-		$this->resolved->set('site_view.' . $this->key($name) . '.name', $name);
+		$this->resolved->set('custom_admin_view.' . $this->key($name) . '.guid', $guid);
+		$this->resolved->set('custom_admin_view.' . $this->key($name) . '.name', $name);
 
 		return true;
+	}
+
+	/**
+	 * Whether a resolved table view answers for this template's name.
+	 *
+	 * @param   string  $name  The recovered view's code name.
+	 *
+	 * @return  bool  True when an admin view of this run answers for it.
+	 * @since   6.1.8
+	 */
+	protected function answered(string $name): bool
+	{
+		$name = strtolower(trim($name));
+
+		foreach ($this->views() as $view)
+		{
+			$path = $this->path($view);
+			$single = strtolower((string) $this->resolved->get($path . '.name_single', $view));
+			$list = strtolower((string) $this->resolved->get($path . '.name_list', $single . 's'));
+
+			if ($name === $single || $name === $list || $name === strtolower($view))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
 	 * The component option, when it is known.
 	 *
 	 * @return  string  The com_ prefixed option, or an empty string.
-	 * @since   6.1.6
+	 * @since   6.1.8
 	 */
 	protected function option(): string
 	{

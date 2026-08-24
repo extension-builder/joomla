@@ -216,6 +216,7 @@ window.JCBExtrusion = {
 		adminViews: '<?php echo Text::_('Admin views', true); ?>',
 		fields: '<?php echo Text::_('Fields', true); ?>',
 		siteViews: '<?php echo Text::_('Site views', true); ?>',
+		customAdminViews: '<?php echo Text::_('Custom admin views', true); ?>',
 		layouts: '<?php echo Text::_('Layouts', true); ?>',
 		templates: '<?php echo Text::_('Templates', true); ?>',
 		powers: '<?php echo Text::_('Powers', true); ?>',

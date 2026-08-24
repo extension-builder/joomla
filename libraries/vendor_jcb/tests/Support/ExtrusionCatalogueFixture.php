@@ -172,6 +172,14 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	public function items(array $select, array $tables, ?array $where = null,
 		?array $order = null, ?int $limit = null): ?array
 	{
+		// this boundary serves the field type catalogue; any other table a
+		// resolver asks about simply has no rows here, and only a real
+		// catalogue read counts toward the once-per-request expectation
+		if (!in_array('fieldtype', $tables, true))
+		{
+			return [];
+		}
+
 		$this->calls++;
 		$rows = [];
 

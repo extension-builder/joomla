@@ -142,6 +142,10 @@ final class Candidates
 		return [
 			'admin_view' => $this->adminViews($catalogue),
 			'site_view' => $this->classified('site_view', $catalogue['site_views']),
+			'custom_admin_view' => $this->classified(
+				'custom_admin_view',
+				$catalogue['custom_admin_views']
+			),
 			'layout' => $this->classified('layout', $catalogue['layouts']),
 			'template' => $this->classified('template', $catalogue['templates'])
 		];
@@ -165,6 +169,14 @@ final class Candidates
 		$siteViews = $guid !== ''
 			? $this->linked('component_site_views', 'addsite_views', 'siteview', $guid)
 			: [];
+		$customViews = $guid !== ''
+			? $this->linked(
+				'component_custom_admin_views',
+				'addcustom_admin_views',
+				'customadminview',
+				$guid
+			)
+			: [];
 
 		return [
 			'component' => $component,
@@ -178,6 +190,11 @@ final class Candidates
 				'site_view',
 				['a.guid' => 'guid', 'a.name' => 'name', 'a.system_name' => 'system'],
 				$siteViews
+			),
+			'custom_admin_views' => $this->rows(
+				'custom_admin_view',
+				['a.guid' => 'guid', 'a.name' => 'name', 'a.system_name' => 'system'],
+				$customViews
 			),
 			'layouts' => $this->rows('layout', ['a.guid' => 'guid', 'a.name' => 'name']),
 			'templates' => $this->rows('template', ['a.guid' => 'guid', 'a.name' => 'name']),
@@ -315,14 +332,17 @@ final class Candidates
 		$candidates = [];
 		$fields = (array) $this->resolved->get($path . '.field', []);
 
-		// a field pairs first against the fields its paired view already links
-		$pool = $viewMatch !== null
+		// a field pairs first against the fields its paired view already
+		// links, and then against every field JCB holds -- fields are shared
+		// across components, so a name field that already stands anywhere in
+		// the system is a match, never a field to create again
+		$pool = (array) $catalogue['fields'];
+		$scoped = $viewMatch !== null
 			? array_values(array_filter(
-				(array) $catalogue['fields'],
-				static fn ($row): bool => (object) $row instanceof \stdClass
-					&& ((array) $row)['view'] === $viewMatch['guid']
+				$pool,
+				static fn ($row): bool => ((array) $row)['view'] === $viewMatch['guid']
 			))
-			: (array) $catalogue['fields'];
+			: [];
 
 		foreach ($fields as $key => $properties)
 		{
@@ -346,7 +366,8 @@ final class Candidates
 				'label' => $label,
 				'detail' => $column,
 				'guid' => $derived,
-				'match' => $this->matchByName([$label, $column], $pool)
+				'match' => $this->matchByName([$label, $column], $scoped)
+					?? $this->matchByName([$label, $column], $pool)
 			];
 		}
 
@@ -488,9 +509,22 @@ final class Candidates
 	 */
 	protected function fields(array $views): array
 	{
+		// JCB fields are shared across components, so the whole field table is
+		// the pool a harvested field can match in -- a name field that already
+		// stands in JCB must be found whether or not any view matched. The
+		// view marks below only say which matches the paired view already links.
+		$pool = $this->rows('field', ['a.guid' => 'guid', 'a.name' => 'name']);
+
+		foreach ($pool as &$row)
+		{
+			$row['view'] = '';
+		}
+
+		unset($row);
+
 		if ($views === [])
 		{
-			return [];
+			return $pool;
 		}
 
 		$links = $this->load->items(
@@ -501,7 +535,7 @@ final class Candidates
 
 		if (!is_array($links))
 		{
-			return [];
+			return $pool;
 		}
 
 		$byField = [];
@@ -530,21 +564,17 @@ final class Candidates
 
 		if ($byField === [])
 		{
-			return [];
+			return $pool;
 		}
 
-		$rows = $this->rows(
-			'field',
-			['a.guid' => 'guid', 'a.name' => 'name'],
-			array_keys($byField)
-		);
-
-		foreach ($rows as &$row)
+		foreach ($pool as &$row)
 		{
 			$row['view'] = $byField[strtolower((string) $row['guid'])] ?? '';
 		}
 
-		return $rows;
+		unset($row);
+
+		return $pool;
 	}
 
 	/**

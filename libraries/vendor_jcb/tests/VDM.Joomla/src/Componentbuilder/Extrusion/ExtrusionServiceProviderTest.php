@@ -138,19 +138,19 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => '7ae5edb502279fec6c227aae45c3a825a02d66ce5991cd1208df87f51d67f9f2'
 		]];
 		yield 'reader' => [Reader::class, [
-			'aliases' => 15,
-			'services' => 15,
-			'hash' => '6b9204aa33c3474a76d69496589a786c1ed7af7e8a897c9cd315c8a4236841c5'
+			'aliases' => 16,
+			'services' => 16,
+			'hash' => '147d95427d380a55a9533966ef0c0dabe503f5dd4372b6e6e778e2775c5cf131'
 		]];
 		yield 'resolver' => [Resolver::class, [
-			'aliases' => 15,
-			'services' => 15,
-			'hash' => '157b1e36ef0223f8b5482f2808b92ae7e8b9f6eef415ddbb0efc0d134dd51c56'
+			'aliases' => 16,
+			'services' => 16,
+			'hash' => '9fae8a3c8cc99833b045db6c0b7611db5bdfc976be5bcb4d95a7f7e8d6398451'
 		]];
 		yield 'writer' => [Writer::class, [
-			'aliases' => 12,
-			'services' => 12,
-			'hash' => '4e4ca43941e94303b743189eba8be8d0216faf001e475ea80efcf5f30eb1f14a'
+			'aliases' => 15,
+			'services' => 15,
+			'hash' => 'b800f9862e80a0f9c059c32246d3c991c603fdfec18815708a2b1430f4d56f93'
 		]];
 		yield 'powers' => [Powers::class, [
 			'aliases' => 10,
@@ -232,7 +232,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			}
 		}
 
-		$this->assertSame(82, $namespaced);
+		$this->assertSame(87, $namespaced);
 	}
 
 	/**

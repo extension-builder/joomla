@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language as LanguageResolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
@@ -86,6 +87,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Candidates::class, 'Extrusion.Resolver.Candidates')
 			->share('Extrusion.Resolver.Candidates', [$this, 'getCandidates'], true);
+
+		$container->alias(Reuse::class, 'Extrusion.Resolver.Reuse')
+			->share('Extrusion.Resolver.Reuse', [$this, 'getReuse'], true);
 
 		$container->alias(FieldXml::class, 'Extrusion.Resolver.FieldXml')
 			->share('Extrusion.Resolver.FieldXml', [$this, 'getFieldXml'], true);
@@ -312,6 +316,25 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Relation'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the Reuse Resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Reuse
+	 * @since   6.1.8
+	 */
+	public function getReuse(Container $container): Reuse
+	{
+		return new Reuse(
+			$container->get('Extrusion.Resolver.Candidates'),
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Config')
 		);
 	}
 
