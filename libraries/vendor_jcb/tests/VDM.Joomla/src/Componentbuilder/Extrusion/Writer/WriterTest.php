@@ -2299,6 +2299,69 @@ HTML;
 	}
 
 	/**
+	 * A shared field is placed where the system's own views already place it.
+	 *
+	 * JCB's shared fields have a home their links declare -- the Globally
+	 * Unique ID field sits on the publishing tab in every view that links it
+	 * -- and a new link honours that testimony rather than putting the field
+	 * somewhere new. A field nothing links yet keeps the harvest's reading.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testASharedFieldIsPlacedWhereTheSystemAlreadyPlacesIt(): void
+	{
+		$shared = '5aa57bbe-7b19-4db9-915c-561863458d2b';
+		$this->seedItemView();
+		$this->seedField('item', 'guid', ['xml_type' => 'text'], 1);
+		$this->seedField('item', 'title', ['xml_type' => 'text'], 1);
+		$this->resolved->set('view.item.roles', [
+			'guid' => ['order' => 0],
+			'title' => ['title' => true, 'list' => true, 'order' => 1]
+		]);
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->seedWritten('item', 'guid', $shared);
+		$this->seedWritten('item', 'title', 'ffffffff-0000-4000-8000-000000000009');
+
+		// what the rest of the system says about where this field lives
+		$load = (new ExtrusionDatabaseFixture())->table('admin_fields', [
+			['admin_view' => 'dddddddd-1111-4111-8111-dddddddddddd',
+				'addfields' => json_encode(['addfields0' => [
+					'field' => $shared, 'tab' => '15', 'alignment' => 4
+				]])],
+			['admin_view' => 'eeeeeeee-1111-4111-8111-eeeeeeeeeeee',
+				'addfields' => json_encode(['addfields0' => [
+					'field' => $shared, 'tab' => '15', 'alignment' => 4
+				]])]
+		]);
+		$writer = new AdminFields(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			$load
+		);
+
+		$this->assertSame(1, $writer->write());
+
+		$subform = $this->decode($this->item->definitions('admin_fields')[0]->addfields);
+		$rows = array_column($subform, null, 'field');
+
+		$this->assertSame(
+			'15',
+			$rows[$shared]['tab'],
+			'The publishing tab is where every other view places this field.'
+		);
+		$this->assertSame(4, $rows[$shared]['alignment']);
+		$this->assertSame(
+			'1',
+			$rows['ffffffff-0000-4000-8000-000000000009']['tab'],
+			'A field nothing else links keeps the tab the harvest read.'
+		);
+	}
+
+	/**
 	 * Updating a view someone has curated refreshes evidence and nothing else.
 	 *
 	 * A re-run against a system that already holds the view must carry over

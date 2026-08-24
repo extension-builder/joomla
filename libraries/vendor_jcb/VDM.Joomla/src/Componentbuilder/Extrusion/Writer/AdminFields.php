@@ -54,6 +54,14 @@ final class AdminFields extends Writer
 	protected LoadInterface $load;
 
 	/**
+	 * How the system places each field, read once per run.
+	 *
+	 * @var    array<string, array{tab: int, alignment: int}>|null
+	 * @since  6.1.8
+	 */
+	protected ?array $placements = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -191,7 +199,13 @@ final class AdminFields extends Writer
 			// checkbox flags are '1' or absent, the list and filter selections
 			// are the form's option values, and the edit order counts from one
 			// within each tab, exactly as a person lays a view out by hand
-			$tab = (int) ($properties['tab_index'] ?? 1);
+			// a field the system already links elsewhere is placed the way
+			// those views place it: JCB's own shared fields have a home --
+			// the Globally Unique ID field sits on the publishing tab in
+			// every view that links it -- and rediscovering that is truer
+			// than putting a shared field somewhere new
+			$placed = $this->placement($fieldGuid);
+			$tab = (int) ($placed['tab'] ?? ($properties['tab_index'] ?? 1));
 			$editOrder[$tab] = (int) ($editOrder[$tab] ?? 0) + 1;
 
 			$row = [
@@ -200,7 +214,8 @@ final class AdminFields extends Writer
 				'order_list' => (string) ($isList ? ++$listOrder : 0),
 				'filter' => $isList ? '1' : '',
 				'tab' => (string) $tab,
-				'alignment' => $isTitle || $isAlias ? 4 : (($number % 2 === 0) ? 2 : 1),
+				'alignment' => (int) ($placed['alignment']
+					?? ($isTitle || $isAlias ? 4 : (($number % 2 === 0) ? 2 : 1))),
 				'order_edit' => (string) $editOrder[$tab]
 			];
 
@@ -240,6 +255,91 @@ final class AdminFields extends Writer
 		$definition->published = 1;
 
 		return $this->store($definition);
+	}
+
+	/**
+	 * How the rest of the system already places one field, when it does.
+	 *
+	 * JCB's shared fields have a home their own links declare: every view
+	 * that links the Globally Unique ID field places it on the same tab, and
+	 * that is the system saying where such a field belongs. A field nothing
+	 * links yet has no such testimony, and the harvest's own reading stands.
+	 *
+	 * @param   string  $guid  The field's identity.
+	 *
+	 * @return  array{tab?: int, alignment?: int}  The observed placement.
+	 * @since   6.1.8
+	 */
+	protected function placement(string $guid): array
+	{
+		$guid = strtolower(trim($guid));
+
+		if ($guid === '' || $this->placements === null)
+		{
+			$this->placements ??= $this->observed();
+		}
+
+		return $this->placements[$guid] ?? [];
+	}
+
+	/**
+	 * Every field placement the system's own view links declare.
+	 *
+	 * @return  array<string, array{tab: int, alignment: int}>  Placement by field identity.
+	 * @since   6.1.8
+	 */
+	protected function observed(): array
+	{
+		$stored = $this->load->values(
+			['a.addfields' => 'addfields'],
+			['a' => 'admin_fields']
+		);
+
+		if (!is_array($stored))
+		{
+			return [];
+		}
+
+		$counts = [];
+
+		foreach ($stored as $subform)
+		{
+			$rows = is_string($subform) ? json_decode($subform, true) : null;
+
+			if (!is_array($rows))
+			{
+				continue;
+			}
+
+			foreach ($rows as $row)
+			{
+				$row = (array) $row;
+				$field = strtolower(trim((string) ($row['field'] ?? '')));
+				$tab = (int) ($row['tab'] ?? 0);
+
+				if ($field === '' || $tab <= 0)
+				{
+					continue;
+				}
+
+				$key = $field . '|' . $tab . '|' . (int) ($row['alignment'] ?? 0);
+				$counts[$field][$key] = (int) ($counts[$field][$key] ?? 0) + 1;
+			}
+		}
+
+		$placements = [];
+
+		foreach ($counts as $field => $seen)
+		{
+			arsort($seen);
+			$parts = explode('|', (string) array_key_first($seen));
+			$placements[$field] = [
+				'tab' => (int) ($parts[1] ?? 1),
+				'alignment' => (int) ($parts[2] ?? 1)
+			];
+		}
+
+		return $placements;
 	}
 
 	/**
