@@ -96,7 +96,7 @@ final class Constants
 			return $code;
 		}
 
-		foreach (self::CALLS as $call) 
+		foreach (self::CALLS as $call)
 		{
 			$code = $this->call($code, preg_quote($call, '/') . '\s*\(\s*');
 		}
