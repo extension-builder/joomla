@@ -94,6 +94,71 @@ final class Language extends Locator
 			$found = $main + $system;
 		}
 
+		// an installed component keeps its catalogue in the site's central
+		// language folders, outside the component's own folder entirely
+		$found += $this->central($root);
+
 		return $this->recorded(array_values($found));
+	}
+
+	/**
+	 * The central language files an installed site keeps for this component.
+	 *
+	 * A component folder holds its own language files only while it travels as
+	 * an install package. Once installed, Joomla moves the catalogue to
+	 * administrator/language/<tag>/ and language/<tag>/ under the site root --
+	 * so a harvest aimed at an installed component would otherwise never see
+	 * a single constant resolved. The probes are exact file names for exactly
+	 * this component, never a scan of the site.
+	 *
+	 * @param   string  $root  The resolved source root.
+	 *
+	 * @return  array<string, array{path: string, tier: string, name: string|null}>  Located artifacts by path.
+	 * @since   6.1.8
+	 */
+	protected function central(string $root): array
+	{
+		$option = strtolower(trim((string) $this->option()));
+		$parent = strtolower(basename(dirname($root)));
+
+		if ($option === '' || $parent !== 'components')
+		{
+			return [];
+		}
+
+		$tag = (string) $this->source->get('tag', 'en-GB');
+		$site = dirname($root, 2);
+
+		if (strtolower(basename($site)) === 'administrator')
+		{
+			$site = dirname($site);
+		}
+
+		$folders = [
+			$site . '/administrator/language/' . $tag,
+			$site . '/language/' . $tag
+		];
+		$names = [
+			$option . '.ini',
+			$tag . '.' . $option . '.ini',
+			$option . '.sys.ini',
+			$tag . '.' . $option . '.sys.ini'
+		];
+		$found = [];
+
+		foreach ($folders as $folder)
+		{
+			foreach ($names as $name)
+			{
+				$path = $folder . '/' . $name;
+
+				if (is_file($path))
+				{
+					$found[$path] = $this->entry($path, 'central', $tag);
+				}
+			}
+		}
+
+		return $found;
 	}
 }
