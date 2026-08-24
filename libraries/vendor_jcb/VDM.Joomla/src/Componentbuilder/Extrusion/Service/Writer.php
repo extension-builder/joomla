@@ -245,7 +245,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Language')
+			$container->get('Extrusion.Resolver.Language'),
+			$container->get('Extrusion.Resolver.Guid')
 		);
 	}
 

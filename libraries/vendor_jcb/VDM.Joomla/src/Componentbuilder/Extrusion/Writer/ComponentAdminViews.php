@@ -106,25 +106,24 @@ final class ComponentAdminViews extends Writer
 	{
 		$component = (int) $this->config->get('component', 0);
 
-		if ($component <= 0)
-		{
-			$this->report->set('failed.component_admin_views.no_component', true);
-
-			return 0;
-		}
-
 		// the link column holds the component's guid -- the Table class
-		// defines it as the joomla_component entity's guid key -- so the
-		// configured id is resolved to the identity the link speaks
-		$componentGuid = trim((string) ($this->load->value(
-			['a.guid' => 'guid'],
-			['a' => 'joomla_component'],
-			['a.id' => $component]
-		) ?? ''));
+		// defines it as the joomla_component entity's guid key. A component
+		// this run created recorded its guid; a targeted one resolves its
+		// configured id to the identity the link speaks
+		$componentGuid = trim((string) $this->resolved->get('component.guid', ''));
+
+		if ($componentGuid === '' && $component > 0)
+		{
+			$componentGuid = trim((string) ($this->load->value(
+				['a.guid' => 'guid'],
+				['a' => 'joomla_component'],
+				['a.id' => $component]
+			) ?? ''));
+		}
 
 		if ($componentGuid === '')
 		{
-			$this->report->set('failed.component_admin_views.unknown_component', true);
+			$this->report->set('failed.component_admin_views.no_component', true);
 
 			return 0;
 		}
@@ -169,7 +168,7 @@ final class ComponentAdminViews extends Writer
 
 		$definition = new \stdClass();
 		$definition->joomla_component = $componentGuid;
-		$definition->addadmin_views = json_encode($subform, JSON_FORCE_OBJECT);
+		$definition->addadmin_views = $subform;
 		$definition->published = 1;
 
 		if (!$this->store($definition))

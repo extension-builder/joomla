@@ -284,6 +284,7 @@ final class ExtrusionItemFixture implements ItemInterface
 		{
 			$this->column($property, 'writes');
 			$this->capacity($property, $value);
+			$this->encoding($property, $value);
 		}
 
 		$identity = (string) ($item->{$key} ?? '');
@@ -382,6 +383,42 @@ final class ExtrusionItemFixture implements ItemInterface
 				. $column . "' on '" . $this->active . "', but the JCB Table "
 				. 'class declares it ' . $type . '. A strict live database '
 				. 'refuses this outright.'
+			);
+		}
+	}
+
+	/**
+	 * Refuse a value the writer encoded where the Table class already does.
+	 *
+	 * A column whose store metadata says json or base64 is encoded by the
+	 * model at write time -- a writer that hands it an already-encoded value
+	 * gets it encoded twice, and every consumer that decodes once reads
+	 * garbage. Structures travel raw; the Table class does the encoding.
+	 *
+	 * @param   string  $column  The column the value is written into.
+	 * @param   mixed   $value   The written value.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	private function encoding(string $column, $value): void
+	{
+		if (!is_string($value)
+			|| self::tables()->get($this->active, $column, 'store') !== 'json')
+		{
+			return;
+		}
+
+		$decoded = json_decode($value);
+
+		if (is_array($decoded) || is_object($decoded))
+		{
+			throw new \RuntimeException(
+				"The writer hands '" . $column . "' on '" . $this->active
+				. "' an already JSON-encoded value, but the Table class "
+				. 'declares json storage there -- the model encodes it '
+				. 'again and every consumer reads garbage. Hand the raw '
+				. 'structure and let the Table class speak.'
 			);
 		}
 	}

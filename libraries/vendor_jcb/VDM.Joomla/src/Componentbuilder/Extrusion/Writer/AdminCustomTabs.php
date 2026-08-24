@@ -147,7 +147,7 @@ final class AdminCustomTabs extends Writer
 
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
-		$definition->tabs = json_encode($subform, JSON_FORCE_OBJECT);
+		$definition->tabs = $subform;
 		$definition->published = 1;
 
 		return $this->store($definition);

@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -71,6 +72,14 @@ final class Component extends Writer
 	protected Language $language;
 
 	/**
+	 * The Guid Resolver.
+	 *
+	 * @var    Guid
+	 * @since  6.1.7
+	 */
+	protected Guid $guid;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -88,13 +97,15 @@ final class Component extends Writer
 		ItemInterface $item,
 		Report $report,
 		Source $source,
-		Language $language
+		Language $language,
+		Guid $guid
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
 		$this->source = $source;
 		$this->language = $language;
+		$this->guid = $guid;
 	}
 
 	/**
@@ -118,9 +129,17 @@ final class Component extends Writer
 	{
 		$component = (int) $this->config->get('component', 0);
 
-		if ($component <= 0 || !$this->config->get('component_details', true))
+		if (!$this->config->get('component_details', true))
 		{
 			return 0;
+		}
+
+		// no target component is not licence to leave the harvest unlinked:
+		// a component source names a component, so one is created and every
+		// linked-map writer links to it -- an unlinked import is a failure
+		if ($component <= 0)
+		{
+			return $this->create();
 		}
 
 		$definition = $this->definition();
@@ -152,6 +171,70 @@ final class Component extends Writer
 		}
 
 		$this->report->set('written.joomla_component.' . $component, true);
+		$this->report->set('counts.joomla_component', 1);
+
+		return 1;
+	}
+
+	/**
+	 * Create the component record a target-less harvest belongs to.
+	 *
+	 * The source's own code name gives the identity, the manifest gives the
+	 * details, and the recorded guid is what every linked-map writer links
+	 * through -- so nothing the harvest found stands unrelated.
+	 *
+	 * @return  int  One when the component record was created, zero otherwise.
+	 * @since   6.1.7
+	 */
+	protected function create(): int
+	{
+		$code = strtolower(trim((string) $this->source->get('code_name', '')));
+		$code = trim(str_replace('com_', '', $code), '_');
+
+		if ($code === '')
+		{
+			$this->report->set('failed.joomla_component.no_code_name', true);
+
+			return 0;
+		}
+
+		$details = $this->definition();
+		$name = trim((string) ($details['name'] ?? '')) ?: ucfirst($code);
+		$guid = $this->guid->derive(['joomla_component', $code]);
+
+		// the identity is this writer's own; the manifest details come next,
+		// language already resolved; and where the manifest stated nothing,
+		// a plain readable fallback stands in
+		$definition = (object) ([
+			'guid' => $guid,
+			'name_code' => $code,
+			'system_name' => $name . ' (extruded)',
+			'published' => 1
+		] + $details + [
+			'name' => $name,
+			'short_description' => $name . ' (extruded from its installed source)',
+			'description' => '',
+			'component_version' => '1.0.0'
+		]);
+
+		if ($this->config->get('dryRun', false))
+		{
+			$this->report->set('dryrun.joomla_component.' . $guid, true);
+			$this->report->set('counts.joomla_component', 1);
+			$this->resolved->set('component.guid', $guid);
+
+			return 1;
+		}
+
+		if (!$this->item->table($this->table())->set($definition, 'guid'))
+		{
+			$this->report->set('failed.joomla_component.' . $guid, true);
+
+			return 0;
+		}
+
+		$this->resolved->set('component.guid', $guid);
+		$this->report->set('written.joomla_component.' . $guid, true);
 		$this->report->set('counts.joomla_component', 1);
 
 		return 1;

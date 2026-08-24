@@ -1066,8 +1066,15 @@ SQL);
 	 * @return  array<string, mixed>  The decoded payload.
 	 * @since   6.1.6
 	 */
-	private function decode(string $json): array
+	private function decode($json): array
 	{
+		// the writers hand the model raw structures now -- the Table class
+		// encodes at write time -- so a recorded container is the array itself
+		if (is_array($json))
+		{
+			return $json;
+		}
+
 		$decoded = json_decode($json, true);
 
 		$this->assertIsArray($decoded);

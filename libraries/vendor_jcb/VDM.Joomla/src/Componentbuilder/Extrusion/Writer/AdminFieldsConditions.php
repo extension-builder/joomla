@@ -198,7 +198,7 @@ final class AdminFieldsConditions extends Writer
 
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
-		$definition->addconditions = json_encode($subform, JSON_FORCE_OBJECT);
+		$definition->addconditions = $subform;
 		$definition->published = 1;
 
 		return $this->store($definition);

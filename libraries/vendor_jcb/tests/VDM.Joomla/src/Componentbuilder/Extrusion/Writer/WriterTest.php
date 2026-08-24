@@ -607,12 +607,17 @@ HTML;
 	}
 
 	/**
-	 * The composed field element is stored as JSON, which is not an encoding.
+	 * The composed field element travels raw; the Table class encodes it.
+	 *
+	 * The field's xml column declares json storage, so the model applies
+	 * the encoding at write time -- a writer that encoded it first would
+	 * have it encoded twice, and every consumer that decodes once would
+	 * read a quoted string where the element should stand.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.1.7
 	 */
-	public function testFieldWriterJsonEncodesTheComposedFieldXml(): void
+	public function testFieldWriterHandsTheComposedFieldXmlRaw(): void
 	{
 		$this->seedItemView();
 		$this->seedField('item', 'name', [
@@ -626,16 +631,18 @@ HTML;
 		$this->assertSame(1, $this->field()->write());
 
 		$definition = $this->item->definitions('field')[0];
-		$xml = json_decode($definition->xml);
 
-		$this->assertJson($definition->xml);
-		$this->assertIsString($xml);
-		$this->assertNotSame($xml, $definition->xml);
-		$this->assertStringStartsWith('<field', $xml);
-		$this->assertStringContainsString('name="name"', $xml);
-		$this->assertStringContainsString('label="Name"', $xml);
-		$this->assertStringContainsString('required="true"', $xml);
-		$this->assertStringNotContainsString('type="text"', $xml);
+		$this->assertIsString($definition->xml);
+		$this->assertStringStartsWith('<field', $definition->xml);
+		$this->assertNull(
+			json_decode($definition->xml),
+			'The element is the raw stored value, never pre-encoded JSON.'
+		);
+		$this->assertStringContainsString('name="name"', $definition->xml);
+		$this->assertStringContainsString('label="Name"', $definition->xml);
+		$this->assertStringContainsString('description="The name shown to users."', $definition->xml);
+		$this->assertStringContainsString('required="true"', $definition->xml);
+		$this->assertStringContainsString('class="form-control"', $definition->xml);
 	}
 
 	/**
@@ -1313,6 +1320,94 @@ HTML;
 	}
 
 	/**
+	 * A target-less harvest creates the component its findings belong to.
+	 *
+	 * A component source names a component, so importing it without a target
+	 * must not leave the harvest unrelated: the component record is created
+	 * from the source's own identity and manifest, and its guid is recorded
+	 * for every linked-map writer to link through.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testATargetlessHarvestCreatesTheComponentItBelongsTo(): void
+	{
+		$this->source->set('name', 'Demo Shop');
+		$this->source->set('version', '2.4.1');
+		$this->source->set('manifest_data', ['author' => 'A Person']);
+
+		$this->assertSame(1, $this->details()->write());
+
+		$expected = $this->guid->derive(['joomla_component', 'demo']);
+		$record = $this->item->definitions('joomla_component')[0];
+
+		$this->assertSame($expected, $record->guid);
+		$this->assertSame(
+			'guid',
+			$this->item->records('joomla_component')[0]['key'],
+			'A created component is keyed by its guid, never a phantom id.'
+		);
+		$this->assertSame('demo', $record->name_code, 'The code name drops its com_ prefix.');
+		$this->assertSame('Demo Shop', $record->name);
+		$this->assertSame(
+			'Demo Shop (extruded)',
+			$record->system_name,
+			'The system name says where this component record came from.'
+		);
+		$this->assertSame('2.4.1', $record->component_version);
+		$this->assertSame('A Person', $record->author);
+		$this->assertSame(1, $record->published);
+		$this->assertSame(
+			$expected,
+			$this->resolved->get('component.guid'),
+			'The created guid is recorded for every linked-map writer to link through.'
+		);
+		$this->assertSame(1, $this->report->get('counts.joomla_component'));
+		$this->assertTrue($this->report->get('written.joomla_component.' . $expected));
+
+		// a dry run still records the guid, so the linkers can rehearse the
+		// same relationships the real run would write
+		$this->restate();
+		$this->source->set('name', 'Demo Shop');
+		$this->config->set('dryRun', true);
+
+		$this->assertSame(1, $this->details()->write());
+		$this->assertSame([], $this->item->records());
+		$this->assertSame($expected, $this->resolved->get('component.guid'));
+		$this->assertTrue($this->report->get('dryrun.joomla_component.' . $expected));
+	}
+
+	/**
+	 * The view links speak the guid of the component this run created.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheViewLinksSpeakTheCreatedComponentsGuid(): void
+	{
+		$created = $this->guid->derive(['joomla_component', 'demo']);
+		$this->resolved->set('component.guid', $created);
+		$this->resolved->set('views', ['item']);
+		$this->resolved->set('view.item.written.view.guid', self::VIEW_GUID);
+
+		$this->assertSame(
+			1,
+			$this->componentViews()->write(),
+			'A created component needs no configured id to be linked to.'
+		);
+
+		$definition = $this->item->definitions('component_admin_views')[0];
+
+		$this->assertSame($created, $definition->joomla_component);
+		$this->assertSame(self::VIEW_GUID, $definition->addadmin_views['addadmin_views0']['adminview']);
+		$this->assertSame(
+			['component_admin_views:joomla_component:' . $created . ':id'],
+			$this->item->lookups(),
+			'Only the linked-map existence check runs; the recorded guid is never re-resolved.'
+		);
+	}
+
+	/**
 	 * A language constant becomes the English string it stands for.
 	 *
 	 * @return  void
@@ -1331,7 +1426,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			new Language($catalogue, $this->report)
+			new Language($catalogue, $this->report),
+			$this->guid
 		);
 
 		$this->assertSame(
@@ -1503,8 +1599,15 @@ HTML;
 	 * @return  array<string, mixed>  The decoded payload.
 	 * @since   6.1.6
 	 */
-	private function decode(string $json): array
+	private function decode($json): array
 	{
+		// the writers hand the model raw structures now -- the Table class
+		// encodes at write time -- so a recorded container is the array itself
+		if (is_array($json))
+		{
+			return $json;
+		}
+
 		$decoded = json_decode($json, true);
 
 		$this->assertIsArray($decoded);
@@ -1821,7 +1924,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			new Language(new LanguageRegistry(), $this->report)
+			new Language(new LanguageRegistry(), $this->report),
+			$this->guid
 		);
 	}
 	/**
