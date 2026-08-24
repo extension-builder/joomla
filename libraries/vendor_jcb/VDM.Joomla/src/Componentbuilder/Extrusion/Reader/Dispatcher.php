@@ -292,6 +292,19 @@ final class Dispatcher
 				// name is the whole of the evidence: a front end list view renders an
 				// adminForm with a token for its own filters exactly as an edit view does,
 				// so nothing in the markup could tell the two apart.
+				//
+				// On the administrator side the editor is also testimony: its folder
+				// belongs to a table view, so any template of that folder can never be
+				// a custom admin view -- the code itself says which is which.
+				if (($entry['scope'] ?? '') !== 'site')
+				{
+					$this->customadminview->crud(
+						is_string($entry['view'] ?? null) && $entry['view'] !== ''
+							? $entry['view']
+							: $this->customadminview->folder($entry['path'])
+					);
+				}
+
 				$this->skipped('edit_view', $entry['path']);
 
 				continue;

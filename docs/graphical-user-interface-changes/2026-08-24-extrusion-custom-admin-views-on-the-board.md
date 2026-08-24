@@ -60,25 +60,41 @@ is the whole point of the pairing step.
 ### `admin/assets/js/extrusion.js`
 
 - **Change type:** Modified
-- **Stable location(s):** `rematch()`, `renderBoard()`, `allCandidates()`,
-  `modalPool()`
+- **Stable location(s):** `matchByGuid()`, `matchByName()`, `match()`,
+  `rematch()`, `proposal()`, `counts()`, `openModal()`, `renderBoard()`,
+  `allCandidates()`, `modalPool()`
 - **What changed:** The `custom_admin_view` kind joined every place the
   board enumerates kinds: it re-matches against the served
   `catalogue.custom_admin_views` pool, renders as its own section between
   site views and layouts, travels with bulk work and the import decisions,
-  and offers the same target picker pool as every other kind.
-- **Why:** A recovered custom admin view must be visible, decidable and
-  overrulable exactly like every other candidate.
-- **Related paths/symbols:** `Extrusion\Resolver\Candidates::candidates()`
-  (serves the kind), `Extrusion\Writer\CustomAdminView` (writes it).
+  and offers the same target picker pool as every other kind. The engine
+  only serves candidates no table view answers for, so the section holds
+  the component's real custom screens, never its table views.
+
+  Matching now speaks identity the way JCB does: a candidate whose guid
+  already stands in the catalogue matches **by guid** and proposes an
+  update -- it IS that definition. A candidate that merely shares a name
+  matches **by name**: the section counts it as *similar*, the default
+  stays *create new*, and the Update modal opens pre-searched on the
+  lookalike so reusing it is one confirmation away. The counts line reads
+  `(N items, G matched, S similar, K new)`.
+- **Why:** Everything in JCB is linked by guid, so only a guid in common
+  is the same definition; forcing an update onto a name lookalike would
+  misstate identity, and hiding it would recreate what may well be meant
+  for reuse. The person decides -- with the evidence in view.
+- **Related paths/symbols:** `Extrusion\Resolver\Candidates` (guid-first
+  matching, filtered custom candidates), `Extrusion\Resolver\Reuse`
+  (server-side defaults, guid matches only),
+  `Extrusion\Writer\CustomAdminView` (refuses table views' templates).
 
 ### `admin/tmpl/extrusion/default.php`
 
 - **Change type:** Modified
 - **Stable location(s):** the `window.JCBExtrusion.text` map
-- **What changed:** One new natural-language print,
-  `customAdminViews: Text::_('Custom admin views', true)`, naming the new
-  board section.
+- **What changed:** Two new natural-language prints:
+  `customAdminViews: Text::_('Custom admin views', true)` naming the new
+  board section, and `similar: Text::_('similar', true)` naming the
+  name-resemblance count.
 - **Why:** Every visible string on this view is a natural-language
   `Text::_()` print, per the documented convention.
 - **Related paths/symbols:** `docs/development/user-interface-language-strings.md`.
@@ -88,9 +104,10 @@ is the whole point of the pairing step.
 - `libraries/vendor_jcb/tests/gui/specs/extrusion.spec.js` — the component
   journey now keeps the language scope ON (the central-catalogue discovery
   under test resolves the labels), asserts the custom admin view section
-  stands on the board with rows in it, and asserts at least one view's
-  fields match what JCB already holds — the reuse behaviour, seen from the
-  browser.
+  stands on the board with rows in it, asserts that section never offers
+  any table view of the same run (the custom/admin separation, seen from
+  the browser), and asserts at least one view's fields are counted similar
+  to fields JCB already holds — offered for reuse, never forced onto them.
 
 ## Rollback
 

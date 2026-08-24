@@ -226,6 +226,19 @@
 		rematch();
 	}
 
+	function matchByGuid(guid, pool) {
+		const wanted = String(guid || '').trim().toLowerCase();
+		if (wanted === '') {
+			return null;
+		}
+		for (const row of pool || []) {
+			if (String(row.guid || '').trim().toLowerCase() === wanted) {
+				return { guid: row.guid, label: row.name || row.system, by: 'guid' };
+			}
+		}
+		return null;
+	}
+
 	function matchByName(names, pool) {
 		const wanted = names.map((name) => String(name || '').trim().toLowerCase())
 			.filter((name) => name !== '');
@@ -233,11 +246,15 @@
 			for (const field of ['name', 'system']) {
 				const value = String(row[field] || '').trim().toLowerCase();
 				if (value !== '' && wanted.indexOf(value) !== -1) {
-					return { guid: row.guid, label: row.name || row.system };
+					return { guid: row.guid, label: row.name || row.system, by: 'name' };
 				}
 			}
 		}
 		return null;
+	}
+
+	function match(candidate, names, pool) {
+		return matchByGuid(candidate.guid, pool) || matchByName(names, pool);
 	}
 
 	/**
@@ -251,25 +268,27 @@
 		const candidates = state.data.candidates;
 		const catalogue = state.catalogue || {};
 		(candidates.admin_view || []).forEach((view) => {
-			view.match = matchByName([view.label, view.detail], catalogue.admin_views);
+			view.match = match(view, [view.label, view.detail], catalogue.admin_views);
 			const pool = view.match
 				? (catalogue.fields || []).filter((row) => row.view === view.match.guid)
 				: (catalogue.fields || []);
 			(view.fields || []).forEach((field) => {
-				field.match = matchByName([field.label, field.detail], pool);
+				field.match = matchByGuid(field.guid, catalogue.fields)
+					|| matchByName([field.label, field.detail], pool)
+					|| matchByName([field.label, field.detail], catalogue.fields);
 			});
 		});
 		(candidates.site_view || []).forEach((candidate) => {
-			candidate.match = matchByName([candidate.label], catalogue.site_views);
+			candidate.match = match(candidate, [candidate.label], catalogue.site_views);
 		});
 		(candidates.custom_admin_view || []).forEach((candidate) => {
-			candidate.match = matchByName([candidate.label], catalogue.custom_admin_views);
+			candidate.match = match(candidate, [candidate.label], catalogue.custom_admin_views);
 		});
 		(candidates.layout || []).forEach((candidate) => {
-			candidate.match = matchByName([candidate.label], catalogue.layouts);
+			candidate.match = match(candidate, [candidate.label], catalogue.layouts);
 		});
 		(candidates.template || []).forEach((candidate) => {
-			candidate.match = matchByName([candidate.label], catalogue.templates);
+			candidate.match = match(candidate, [candidate.label], catalogue.templates);
 		});
 		state.decisions = {};
 		state.selected.clear();
@@ -277,6 +296,11 @@
 
 	/**
 	 * The proposal one candidate arrives with, before any explicit decision.
+	 *
+	 * Only a guid in common is an identity, so only a guid match proposes an
+	 * update. A shared name is a resemblance: it stays on offer as the Update
+	 * action's suggested target, but the default is a fresh creation -- the
+	 * person decides whether the lookalike is really the same thing.
 	 */
 	function proposal(candidate) {
 		if (candidate.kind === 'power') {
@@ -284,7 +308,7 @@
 				? { action: 'update', target: candidate.guid, label: candidate.fqn }
 				: { action: 'create' };
 		}
-		return candidate.match
+		return candidate.match && candidate.match.by === 'guid'
 			? { action: 'update', target: candidate.match.guid, label: candidate.match.label }
 			: { action: 'create' };
 	}
@@ -364,13 +388,18 @@
 
 	function counts(list) {
 		let matched = 0;
+		let similar = 0;
 		(list || []).forEach((candidate) => {
-			if (candidate.match || (candidate.kind === 'power' && candidate.exists)) {
+			if ((candidate.match && candidate.match.by === 'guid')
+				|| (candidate.kind === 'power' && candidate.exists)) {
 				matched++;
+			} else if (candidate.match) {
+				similar++;
 			}
 		});
 		return ' <small>(' + list.length + ' ' + esc(T.items) + ', ' + matched + ' '
-			+ esc(T.matched) + ', ' + (list.length - matched) + ' ' + esc(T.newItem) + ')</small>';
+			+ esc(T.matched) + ', ' + similar + ' ' + esc(T.similar) + ', '
+			+ (list.length - matched) + ' ' + esc(T.newItem) + ')</small>';
 	}
 
 	function kindSection(kind, label, list, withFields) {
@@ -523,8 +552,11 @@
 	function openModal(candidate) {
 		state.modal = candidate;
 		const search = $('extrusion-modal-search');
-		search.value = '';
-		renderModalList('');
+		// a name lookalike is never acted on by itself, but it is the first
+		// thing the person deciding an update should see
+		search.value = candidate.match && candidate.match.by === 'name'
+			? String(candidate.match.label || '') : '';
+		renderModalList(search.value);
 		$('extrusion-modal').style.display = 'flex';
 		search.focus();
 	}

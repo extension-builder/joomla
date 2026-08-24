@@ -142,9 +142,8 @@ final class Candidates
 		return [
 			'admin_view' => $this->adminViews($catalogue),
 			'site_view' => $this->classified('site_view', $catalogue['site_views']),
-			'custom_admin_view' => $this->classified(
-				'custom_admin_view',
-				$catalogue['custom_admin_views']
+			'custom_admin_view' => $this->customAdminViews(
+				(array) $catalogue['custom_admin_views']
 			),
 			'layout' => $this->classified('layout', $catalogue['layouts']),
 			'template' => $this->classified('template', $catalogue['templates'])
@@ -290,10 +289,8 @@ final class Candidates
 				$path . '.guid',
 				$this->guid->derive([$this->option(), 'admin_view', $single])
 			);
-			$match = $this->matchByName(
-				[$single, $system],
-				(array) $catalogue['admin_views']
-			);
+			$match = $this->matchByGuid($derived, (array) $catalogue['admin_views'])
+				?? $this->matchByName([$single, $system], (array) $catalogue['admin_views']);
 
 			$candidates[] = [
 				'kind' => 'admin_view',
@@ -366,12 +363,91 @@ final class Candidates
 				'label' => $label,
 				'detail' => $column,
 				'guid' => $derived,
-				'match' => $this->matchByName([$label, $column], $scoped)
+				'match' => $this->matchByGuid($derived, $pool)
+					?? $this->matchByName([$label, $column], $scoped)
 					?? $this->matchByName([$label, $column], $pool)
 			];
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * The custom admin view candidates, without the table views' own output.
+	 *
+	 * The code itself says which administrator folders belong to table views:
+	 * an editor beside the template, or a resolved view whose name the folder
+	 * answers to. Neither may appear as a custom admin view candidate -- a
+	 * custom admin view with a table view's code name is a contradiction the
+	 * board must never offer.
+	 *
+	 * @param   array<int, object|array>  $pool  The existing custom admin views.
+	 *
+	 * @return  array<int, array<string, mixed>>  The candidates.
+	 * @since   6.1.8
+	 */
+	protected function customAdminViews(array $pool): array
+	{
+		$candidates = [];
+
+		foreach ((array) $this->view->get('custom_admin_view', []) as $key => $entry)
+		{
+			$entry = (array) $entry;
+			$name = (string) ($entry['name'] ?? $key);
+
+			if ($name === '' || !empty($entry['crud']) || $this->answered($name))
+			{
+				continue;
+			}
+
+			$derived = $this->guid->derive(
+				[$this->option(), 'custom_admin_view', $name]
+			);
+
+			$candidates[] = [
+				'kind' => 'custom_admin_view',
+				'key' => $this->key($name),
+				'label' => $name,
+				'detail' => (string) ($entry['system_name'] ?? ''),
+				'guid' => $derived,
+				'match' => $this->matchByGuid($derived, $pool)
+					?? $this->matchByName([$name], $pool)
+			];
+		}
+
+		return $candidates;
+	}
+
+	/**
+	 * Whether a resolved table view answers for one administrator folder name.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when an admin view of this run answers for it.
+	 * @since   6.1.8
+	 */
+	protected function answered(string $name): bool
+	{
+		$name = strtolower(trim($name));
+
+		foreach ((array) $this->resolved->get('views', []) as $view)
+		{
+			if (!is_string($view) || $view === '')
+			{
+				continue;
+			}
+
+			$path = 'view.' . $this->key($view);
+			$single = strtolower((string) $this->resolved->get($path . '.name_single', $view));
+			$list = strtolower((string) $this->resolved->get($path . '.name_list', $single . 's'));
+
+			if ($name === $single || $name === $list || $name === strtolower($view))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -398,17 +474,58 @@ final class Candidates
 				continue;
 			}
 
+			$derived = $this->guid->derive([$this->option(), $kind, $name]);
+
 			$candidates[] = [
 				'kind' => $kind,
 				'key' => $this->key($name),
 				'label' => $name,
 				'detail' => (string) ($entry['view'] ?? ''),
-				'guid' => $this->guid->derive([$this->option(), $kind, $name]),
-				'match' => $this->matchByName([$name], $pool)
+				'guid' => $derived,
+				'match' => $this->matchByGuid($derived, $pool)
+					?? $this->matchByName([$name], $pool)
 			];
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * The existing definition that carries this very identity, when one does.
+	 *
+	 * Everything in JCB is linked by guid, so a guid in common IS the same
+	 * definition -- the one certain ground for reuse.
+	 *
+	 * @param   string                    $guid  The candidate's identity.
+	 * @param   array<int, object|array>  $pool  The existing definitions.
+	 *
+	 * @return  array{guid: string, label: string, by: string}|null  The pairing, or null.
+	 * @since   6.1.8
+	 */
+	protected function matchByGuid(string $guid, array $pool): ?array
+	{
+		$guid = strtolower(trim($guid));
+
+		if ($guid === '')
+		{
+			return null;
+		}
+
+		foreach ($pool as $row)
+		{
+			$row = (array) $row;
+
+			if (strtolower(trim((string) ($row['guid'] ?? ''))) === $guid)
+			{
+				return [
+					'guid' => $guid,
+					'label' => (string) ($row['name'] ?? ($row['system'] ?? $guid)),
+					'by' => 'guid'
+				];
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -417,8 +534,8 @@ final class Candidates
 	 * @param   array<string>             $names  The candidate's names, best first.
 	 * @param   array<int, object|array>  $pool   The existing definitions.
 	 *
-	 * @return  array{guid: string, label: string}|null  The pairing, or null.
-	 * @since   6.1.7
+	 * @return  array{guid: string, label: string, by: string}|null  The pairing, or null.
+	 * @since   6.1.8
 	 */
 	protected function matchByName(array $names, array $pool): ?array
 	{
@@ -442,9 +559,12 @@ final class Candidates
 
 				if ($value !== '' && in_array($value, $names, true))
 				{
+					// a name in common is a suggestion, never an identity:
+					// only a guid says two definitions are the same thing
 					return [
 						'guid' => (string) ($row['guid'] ?? ''),
-						'label' => (string) ($row['name'] ?? '')
+						'label' => (string) ($row['name'] ?? ''),
+						'by' => 'name'
 					];
 				}
 			}
