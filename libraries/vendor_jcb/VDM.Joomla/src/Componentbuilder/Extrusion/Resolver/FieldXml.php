@@ -119,24 +119,7 @@ final class FieldXml
 			$xml .= PHP_EOL . "\t" . $name . '="' . $this->escape((string) $value) . '"';
 		}
 
-		$options = $this->options($properties);
-
-		if ($options === [])
-		{
-			return $xml . PHP_EOL . '/>';
-		}
-
-		$xml .= PHP_EOL . '>';
-
-		foreach ($options as $option)
-		{
-			$xml .= PHP_EOL . "\t" . '<option value="'
-				. $this->escape((string) ($option['value'] ?? '')) . '">'
-				. $this->escape((string) ($option['text'] ?? ''))
-				. '</option>';
-		}
-
-		return $xml . PHP_EOL . '</field>';
+		return $xml . PHP_EOL . '/>';
 	}
 
 	/**
@@ -153,23 +136,67 @@ final class FieldXml
 		$bag = $this->bag($column, $properties);
 		$type = (string) ($properties['xml_type']['value'] ?? '');
 		$link = $this->link($properties, $type);
-		$allowed = $this->fieldtype->properties($link === [] ? $type : 'custom');
-		$attributes = [];
+		$declared = $this->fieldtype->declared($link === [] ? $type : 'custom');
 
-		foreach (self::ORDER as $name)
+		$option = $this->optionAttribute($properties);
+
+		if ($option !== '')
 		{
-			if (isset($bag[$name]) && $this->allowed($name, $allowed))
-			{
-				$attributes[$name] = $bag[$name];
-				unset($bag[$name]);
-			}
+			$bag['option'] = $option;
 		}
 
-		foreach ($bag as $name => $value)
+		// the JCB alignment: every property the field type declares is
+		// written, in the type's own order -- the harvested value first, a
+		// derived setting second, the type's example value last. This is the
+		// same walk JCB's own field composition makes, so a field lands
+		// exactly as JCB itself would lay it out.
+		if ($declared !== [])
 		{
-			if ($this->allowed($name, $allowed))
+			$settings = $this->settings($column, $bag);
+			$attributes = [];
+
+			foreach ($declared as $property)
 			{
-				$attributes[$name] = $value;
+				$name = (string) $property['name'];
+
+				if (in_array($name, self::DROP, true)
+					|| str_contains($name, 'type_php'))
+				{
+					continue;
+				}
+
+				$attributes[$name] = (string) ($bag[$name]
+					?? $settings[$name]
+					?? $property['example']);
+			}
+
+			// harvested options are content, and losing them because a type
+			// forgot to declare the property would be data loss
+			if ($option !== '' && !isset($attributes['option']))
+			{
+				$attributes['option'] = $option;
+			}
+		}
+		else
+		{
+			$allowed = $this->fieldtype->properties($link === [] ? $type : 'custom');
+			$attributes = [];
+
+			foreach (self::ORDER as $name)
+			{
+				if (isset($bag[$name]) && $this->allowed($name, $allowed))
+				{
+					$attributes[$name] = $bag[$name];
+					unset($bag[$name]);
+				}
+			}
+
+			foreach ($bag as $name => $value)
+			{
+				if ($this->allowed($name, $allowed))
+				{
+					$attributes[$name] = $value;
+				}
 			}
 		}
 
@@ -185,6 +212,64 @@ final class FieldXml
 			$link,
 			array_flip(self::LINK)
 		);
+	}
+
+	/**
+	 * The derived settings a harvested field fills its gaps with.
+	 *
+	 * These are the same formulas the original extrusion built new fields
+	 * with: the label speaks for the field wherever the source stated
+	 * nothing of its own.
+	 *
+	 * @param   string                 $column  The source column name.
+	 * @param   array<string, string>  $bag     The harvested attribute bag.
+	 *
+	 * @return  array<string, string>  The derived settings.
+	 * @since   6.1.7
+	 */
+	protected function settings(string $column, array $bag): array
+	{
+		$label = (string) ($bag['label'] ?? $column);
+
+		return [
+			'name' => $column,
+			'label' => $label,
+			'description' => 'The ' . strtolower($label) . ' is set here.',
+			'message' => 'Error! Please add some ' . strtolower($label) . ' here.',
+			'hint' => $label . ' Here!'
+		];
+	}
+
+	/**
+	 * The option attribute one field's harvested options fold into.
+	 *
+	 * JCB stores a field's options as one attribute of value|text entries,
+	 * and its compiler explodes that attribute back into option elements --
+	 * so the attribute is the stored form, never child elements.
+	 *
+	 * @param   array<string, array{value: mixed, origin: string}>  $properties  Resolved properties.
+	 *
+	 * @return  string  The option attribute value, or '' when the field has none.
+	 * @since   6.1.7
+	 */
+	protected function optionAttribute(array $properties): string
+	{
+		$entries = [];
+
+		foreach ($this->options($properties) as $option)
+		{
+			$value = (string) ($option['value'] ?? '');
+			$text = (string) ($option['text'] ?? '');
+
+			if ($value === '' && $text === '')
+			{
+				continue;
+			}
+
+			$entries[] = $value . '|' . ($text === '' ? $value : $text);
+		}
+
+		return implode(',', $entries);
 	}
 
 	/**
