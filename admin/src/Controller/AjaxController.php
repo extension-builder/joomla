@@ -100,6 +100,7 @@ class AjaxController extends BaseController
 		$this->registerTask('extrusionHarvest', 'ajax');
 		$this->registerTask('extrusionImport', 'ajax');
 		$this->registerTask('extrusionCatalogue', 'ajax');
+		$this->registerTask('extrusionFolders', 'ajax');
 	}
 
     /**
@@ -2650,6 +2651,55 @@ class AjaxController extends BaseController
 							if ($ajaxModule)
 							{
 								$result = $ajaxModule->extrusionCatalogue($component_idValue);
+							}
+							else
+							{
+								$result = ['error' => 'There was an error! [149]'];
+							}
+						}
+						else
+						{
+							$result = ['error' => 'There was an error! [149]'];
+						}
+						if($callback)
+						{
+							echo $callback . "(".json_encode($result).");";
+						}
+						elseif($returnRaw)
+						{
+							echo json_encode($result);
+						}
+						else
+						{
+							echo "(".json_encode($result).");";
+						}
+					}
+					catch(\Exception $e)
+					{
+						if($callback)
+						{
+							echo $callback."(".json_encode($e).");";
+						}
+						elseif($returnRaw)
+						{
+							echo json_encode($e);
+						}
+						else
+						{
+							echo "(".json_encode($e).");";
+						}
+					}
+				break;
+				case 'extrusionFolders':
+					try
+					{
+						$pathValue = $jinput->get('path', '', 'RAW');
+						if($user->id != 0)
+						{
+							$ajaxModule = $this->getModel('ajax', 'Administrator');
+							if ($ajaxModule)
+							{
+								$result = $ajaxModule->extrusionFolders((string) $pathValue);
 							}
 							else
 							{

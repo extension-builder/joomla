@@ -196,32 +196,23 @@ class HtmlView extends BaseHtmlView
 			'1' => Text::_('Yes'),
 			'0' => Text::_('No')];
 
-		// source folder attributes
-		$this->field($form, 'source', [
-			'type' => 'text',
-			'name' => 'path',
-			'label' => Text::_('Component source folder'),
-			'size' => '60',
-			'hint' => '/path/to/com_component',
-			'description' => Text::_('The full server path to the Joomla component you want to pull into JCB. When this folder holds both an admin and a site folder, the tool splits them on its own.')]);
-
 		// admin folder attributes
 		$this->field($form, 'source', [
 			'type' => 'text',
 			'name' => 'admin_path',
-			'label' => Text::_('Admin source folder'),
+			'label' => Text::_('Admin folder'),
 			'size' => '60',
-			'hint' => '/path/to/administrator/components/com_component',
-			'description' => Text::_('Set this only when the admin code lives somewhere else than inside the component source folder.')]);
+			'hint' => 'administrator/components/com_component',
+			'description' => Text::_('The administrator folder of the component, selected from the site root. Everything inside is discovered on its own, including the install SQL the folder carries.')]);
 
 		// site folder attributes
 		$this->field($form, 'source', [
 			'type' => 'text',
 			'name' => 'site_path',
-			'label' => Text::_('Site source folder'),
+			'label' => Text::_('Site folder'),
 			'size' => '60',
-			'hint' => '/path/to/components/com_component',
-			'description' => Text::_('Set this only when the site code lives somewhere else than inside the component source folder.')]);
+			'hint' => 'components/com_component',
+			'description' => Text::_('The site folder of the component, selected from the site root, for the site views, templates and layouts it holds.')]);
 
 		// library folders attributes
 		$this->field($form, 'source', [
@@ -230,17 +221,7 @@ class HtmlView extends BaseHtmlView
 			'label' => Text::_('Library folders to harvest as powers'),
 			'rows' => '3',
 			'cols' => '80',
-			'hint' => '/path/to/library',
-			'description' => Text::_('One folder per line. Every PHP class, interface and trait found in these folders is harvested as a power. Leave this empty to only pull in the component.')]);
-
-		// sql dump attributes
-		$this->field($form, 'source', [
-			'type' => 'textarea',
-			'name' => 'dump',
-			'label' => Text::_('SQL dump'),
-			'rows' => '3',
-			'cols' => '80',
-			'description' => Text::_('Optional. Paste the CREATE TABLE statements of the component here when the source folder carries no install SQL of its own. The table columns are the strongest voice in how the fields are resolved.')]);
+			'description' => Text::_('One folder per line, selected from the site root. Every PHP class, interface and trait found in these folders is harvested as a power. Leave this empty to only pull in the component.')]);
 
 		// component attributes
 		$attributes = [

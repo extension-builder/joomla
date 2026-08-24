@@ -35,9 +35,11 @@
 	const state = {
 		data: null,
 		catalogue: null,
+		catalogueFailed: false,
 		decisions: {},
 		selected: new Set(),
-		modal: null
+		modal: null,
+		picker: null
 	};
 
 	const $ = (id) => document.getElementById(id);
@@ -97,10 +99,8 @@
 		};
 		const componentField = value('component_id', '');
 		const config = {
-			path: value('path', '').trim(),
 			admin_path: value('admin_path', '').trim(),
 			site_path: value('site_path', '').trim(),
-			dump: value('dump', '').trim(),
 			libraries: value('libraries', '').split(/\r?\n/)
 				.map((line) => line.trim()).filter((line) => line !== ''),
 			component: componentField === '' ? 0 : parseInt(componentField, 10) || 0,
@@ -135,14 +135,14 @@
 		const notice = $('extrusion-setup-notice');
 		notice.style.display = 'none';
 		const config = readConfig();
-		if (config.path === '' && config.admin_path === '' && config.site_path === ''
-			&& config.dump === '' && config.libraries.length === 0) {
+		if (config.admin_path === '' && config.site_path === ''
+			&& config.libraries.length === 0) {
 			notice.textContent = T.needSource;
 			notice.style.display = 'block';
 			return;
 		}
 		state.config = config;
-		$('extrusion-running-title').textContent = config.path || T.theSource;
+		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.harvesting;
 		showPane('running');
 		let payload;
@@ -220,6 +220,9 @@
 			catalogue = null;
 		}
 		state.catalogue = (catalogue && !catalogue.error) ? catalogue : null;
+		// a failed catalogue must be said, never quietly rendered as a board
+		// where nothing happens to match
+		state.catalogueFailed = state.catalogue === null;
 		rematch();
 	}
 
@@ -330,6 +333,10 @@
 		const data = state.data || {};
 		const candidates = data.candidates || {};
 		let html = '';
+		if (state.catalogueFailed) {
+			html += '<div class="alert alert-warning" data-extrusion-warning="catalogue">'
+				+ esc(T.catalogueFailed) + '</div>';
+		}
 		if ((candidates.admin_view || []).length) {
 			html += kindSection('admin_view', T.adminViews, candidates.admin_view, true);
 		}
@@ -615,7 +622,7 @@
 		const select = $('extrusion-component-select');
 		config.component = parseInt(select.value, 10) || 0;
 		config.detect = false;
-		$('extrusion-running-title').textContent = config.path || T.theSource;
+		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.importing;
 		showPane('running');
 		let payload;
@@ -696,6 +703,98 @@
 	}
 
 	/**
+	 * The folder picker: walk the site from its root and select, never type.
+	 *
+	 * The server only ever answers with folders below the site root, so what
+	 * is chosen is always a real folder of this site; the full path is
+	 * composed from the base the server reports.
+	 */
+	async function openFolders(relative) {
+		const pathLine = $('extrusion-folder-path');
+		const list = $('extrusion-folder-list');
+		let payload;
+		try {
+			payload = await post('extrusionFolders', { path: relative });
+		} catch (error) {
+			payload = { error: error.message || T.folderFailed };
+		}
+		if (!payload || payload.error) {
+			list.innerHTML = '<div class="extrusion-modal-empty">'
+				+ esc((payload && payload.error) || T.folderFailed) + '</div>';
+			return;
+		}
+		state.picker.base = payload.base;
+		state.picker.path = payload.path;
+		pathLine.textContent = payload.path === ''
+			? T.siteRoot : payload.path;
+		let html = '';
+		if (payload.parent !== null) {
+			html += '<button type="button" class="extrusion-modal-row" data-extrusion-folder="'
+				+ esc(payload.parent) + '" data-extrusion-up="1"><b>..</b> <small>'
+				+ esc(T.upOneFolder) + '</small></button>';
+		}
+		(payload.folders || []).forEach((folder) => {
+			const next = payload.path === '' ? folder : payload.path + '/' + folder;
+			html += '<button type="button" class="extrusion-modal-row" data-extrusion-folder="'
+				+ esc(next) + '"><b>' + esc(folder) + '</b></button>';
+		});
+		if (html === '') {
+			html = '<div class="extrusion-modal-empty">' + esc(T.emptyFolder) + '</div>';
+		}
+		list.innerHTML = html;
+	}
+
+	function openFolderPicker(target) {
+		state.picker = { target: target, base: '', path: '' };
+		$('extrusion-folder-modal').style.display = 'flex';
+		openFolders('');
+	}
+
+	function closeFolderPicker() {
+		state.picker = null;
+		$('extrusion-folder-modal').style.display = 'none';
+	}
+
+	function chooseFolder() {
+		if (!state.picker) {
+			return;
+		}
+		const full = state.picker.base
+			+ (state.picker.path === '' ? '' : '/' + state.picker.path);
+		const field = document.querySelector('[name="' + state.picker.target + '"]');
+		if (field) {
+			if (state.picker.target === 'libraries') {
+				field.value = (field.value.trim() === ''
+					? full : field.value.trim() + '\n' + full);
+			} else {
+				field.value = full;
+			}
+		}
+		closeFolderPicker();
+	}
+
+	/**
+	 * Put a select button beside every folder field, so the paths are walked
+	 * and chosen rather than typed.
+	 */
+	function decorateFolderFields() {
+		[['admin_path', T.selectFolder], ['site_path', T.selectFolder],
+			['libraries', T.addLibrary]].forEach(([name, label]) => {
+			const field = document.querySelector('[name="' + name + '"]');
+			if (!field) {
+				return;
+			}
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.className = 'btn btn-sm btn-outline-primary extrusion-folder-select';
+			button.setAttribute('data-extrusion-pick', name);
+			button.textContent = label;
+			button.addEventListener('click', () => openFolderPicker(name));
+			field.insertAdjacentElement('afterend', button);
+		});
+	}
+
+	/**
 	 * Wire the page once it stands.
 	 */
 	document.addEventListener('DOMContentLoaded', () => {
@@ -704,6 +803,20 @@
 		}
 		E = window.JCBExtrusion || E;
 		T = E.text || {};
+		decorateFolderFields();
+		$('extrusion-folder-close').addEventListener('click', closeFolderPicker);
+		$('extrusion-folder-choose').addEventListener('click', chooseFolder);
+		$('extrusion-folder-list').addEventListener('click', (event) => {
+			const folder = event.target.closest('[data-extrusion-folder]');
+			if (folder) {
+				openFolders(folder.dataset.extrusionFolder);
+			}
+		});
+		$('extrusion-folder-modal').addEventListener('click', (event) => {
+			if (event.target === $('extrusion-folder-modal')) {
+				closeFolderPicker();
+			}
+		});
 		$('extrusion-harvest-button').addEventListener('click', harvest);
 		wireBoard();
 		$('extrusion-back-button').addEventListener('click', () => showPane('setup'));
