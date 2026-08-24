@@ -242,11 +242,13 @@ test.describe('the extrusion view', () => {
 		await page.getByRole('button', { name: 'Import into JCB' }).click();
 		const results = page.locator('#extrusion-pane-results');
 		await expect(results).toBeVisible({ timeout: 300_000 });
+
+		// a failed run must fail the suite SAYING what the page said,
+		// so the report carries the server's own words into the CI log
+		const raised = await results.locator('.alert-danger').allTextContents();
+		expect(raised, 'The live import raised on the page: ' + raised.join(' | '))
+			.toEqual([]);
 		await expect(results.locator('.alert-success').first()).toBeVisible();
-		await expect(
-			results.locator('.alert-danger'),
-			'A live import must not raise a single error on the page.'
-		).toHaveCount(0);
 		await expect(results.getByText('Written', { exact: false }).first()).toBeVisible();
 
 		// the way back to setup stays open
