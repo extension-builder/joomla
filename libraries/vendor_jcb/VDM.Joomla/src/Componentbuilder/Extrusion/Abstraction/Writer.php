@@ -127,12 +127,19 @@ abstract class Writer implements WriterInterface
 	/**
 	 * Persist one definition through the Data pipeline.
 	 *
-	 * @param   object  $definition  The definition, carrying its guid.
+	 * A definition carries two kinds of value: what the source actually
+	 * stated, and the scaffolding a brand new record needs to be usable.
+	 * The scaffolding is offered only when the record is new -- updating a
+	 * definition someone has since curated must refresh what the source
+	 * says and touch nothing else, or every re-run would undo their work.
+	 *
+	 * @param   object          $definition   The definition, carrying its guid.
+	 * @param   array<string>   $boilerplate  Properties to offer only on creation.
 	 *
 	 * @return  bool  True when the definition was written, or a dry run skipped it.
 	 * @since   6.1.6
 	 */
-	protected function store(object $definition): bool
+	protected function store(object $definition, array $boilerplate = []): bool
 	{
 		$key = $this->linkKey();
 		$identity = (string) ($definition->{$key} ?? '');
@@ -159,6 +166,19 @@ abstract class Writer implements WriterInterface
 			$this->report->set('skipped.existing.' . $this->table() . '.' . $identity, true);
 
 			return true;
+		}
+
+		if ($existing !== null && $existing > 0 && $boilerplate !== [])
+		{
+			foreach ($boilerplate as $property)
+			{
+				unset($definition->{$property});
+			}
+
+			$this->report->set(
+				'kept.' . $this->table() . '.' . $identity,
+				$boilerplate
+			);
 		}
 
 		if (!$this->item->table($this->table())->set($definition, $key))

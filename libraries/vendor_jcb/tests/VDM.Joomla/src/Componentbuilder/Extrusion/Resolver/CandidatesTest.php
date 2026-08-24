@@ -309,7 +309,7 @@ final class CandidatesTest extends TestCase
 
 		$reuse = new Reuse($this->candidates, $pairing, $this->resolved, $report, $config);
 
-		$this->assertSame(2, $reuse->apply());
+		$this->assertSame(3, $reuse->apply());
 		$this->assertSame(
 			['action' => 'create', 'target' => ''],
 			$decision->get('admin_view.item'),
@@ -335,6 +335,12 @@ final class CandidatesTest extends TestCase
 			'item',
 			(array) $this->resolved->get('existing.admin_view_names', []),
 			'The component\'s own view names are recorded for the writers to consult.'
+		);
+		$this->assertSame(
+			['action' => 'update', 'target' => self::SITE],
+			$decision->get('site_view.Itemcard_Page'),
+			'A site view the component itself links is that view rediscovered, so a '
+			. 're-run updates it instead of creating a second one beside it.'
 		);
 	}
 

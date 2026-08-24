@@ -303,7 +303,10 @@ final class Field extends Writer
 			);
 		}
 
-		if (!$this->store($definition))
+		// a field's type, datatype and xml are what the source states, so a
+		// re-run refreshes them; only the record's own bookkeeping is
+		// scaffolding a new field needs
+		if (!$this->store($definition, ['published']))
 		{
 			return false;
 		}

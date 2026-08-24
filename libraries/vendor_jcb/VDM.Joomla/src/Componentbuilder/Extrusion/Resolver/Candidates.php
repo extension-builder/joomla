@@ -142,7 +142,7 @@ final class Candidates
 
 		return [
 			'admin_view' => $this->adminViews($catalogue),
-			'site_view' => $this->classified('site_view', $catalogue['site_views']),
+			'site_view' => $this->classified('site_view', $catalogue['site_views'], true),
 			'custom_admin_view' => $this->customAdminViews(
 				(array) $catalogue['custom_admin_views'],
 				(array) $catalogue['admin_views']
@@ -296,8 +296,11 @@ final class Candidates
 				$path . '.guid',
 				$this->guid->derive([$this->option(), 'admin_view', $single])
 			);
+			// the component's link table is its own declaration of which views
+			// belong to it, so a view answering to one of them by name is that
+			// view rediscovered -- the record to update, never one to create
 			$match = $this->matchByGuid($derived, (array) $catalogue['admin_views'])
-				?? $this->matchByName([$single, $system], (array) $catalogue['admin_views']);
+				?? $this->scopedMatch([$single, $system], (array) $catalogue['admin_views']);
 
 			$candidates[] = [
 				'kind' => 'admin_view',
@@ -420,7 +423,7 @@ final class Candidates
 				'detail' => (string) ($entry['system_name'] ?? ''),
 				'guid' => $derived,
 				'match' => $this->matchByGuid($derived, $pool)
-					?? $this->matchByName([$name], $pool)
+					?? $this->scopedMatch([$name], $pool)
 			];
 		}
 
@@ -497,13 +500,14 @@ final class Candidates
 	/**
 	 * The candidates one classified view kind holds.
 	 *
-	 * @param   string                    $kind  The kind: site_view, layout, or template.
-	 * @param   array<int, object|array>  $pool  The existing definitions to pair against.
+	 * @param   string                    $kind    The kind: site_view, layout, or template.
+	 * @param   array<int, object|array>  $pool    The existing definitions to pair against.
+	 * @param   bool                      $scoped  Whether the pool is the component's own links.
 	 *
 	 * @return  array<int, array<string, mixed>>  The candidates.
 	 * @since   6.1.7
 	 */
-	protected function classified(string $kind, array $pool): array
+	protected function classified(string $kind, array $pool, bool $scoped = false): array
 	{
 		$candidates = [];
 		$entries = (array) $this->view->get($kind, []);
@@ -527,7 +531,9 @@ final class Candidates
 				'detail' => (string) ($entry['view'] ?? ''),
 				'guid' => $derived,
 				'match' => $this->matchByGuid($derived, $pool)
-					?? $this->matchByName([$name], $pool)
+					?? ($scoped
+						? $this->scopedMatch([$name], $pool)
+						: $this->matchByName([$name], $pool))
 			];
 		}
 
@@ -535,16 +541,17 @@ final class Candidates
 	}
 
 	/**
-	 * A match within the paired view's own linked fields is discovered wiring.
+	 * A match inside what the component itself links is discovered identity.
 	 *
-	 * The fields a view already links ARE that view's columns as the person
-	 * wired them -- the Globally Unique ID field on its publishing tab among
-	 * them. A column that answers to one of them by name is that wiring
-	 * rediscovered, so it is reused like an identity: creating a twin beside
-	 * it would sever the view from its own field.
+	 * JCB's link tables are the component's own account of what belongs to
+	 * it: the views its component_admin_views subform names, the site and
+	 * custom views its own subforms name, the fields a view's admin_fields
+	 * subform names. A candidate answering by name inside one of those sets
+	 * IS that record rediscovered -- the thing to update. Creating a twin
+	 * beside it would sever the component from its own definition.
 	 *
 	 * @param   array<string>             $names   The candidate's names, best first.
-	 * @param   array<int, object|array>  $scoped  The paired view's linked fields.
+	 * @param   array<int, object|array>  $scoped  What the component itself links.
 	 *
 	 * @return  array{guid: string, label: string, by: string}|null  The pairing, or null.
 	 * @since   6.1.8
