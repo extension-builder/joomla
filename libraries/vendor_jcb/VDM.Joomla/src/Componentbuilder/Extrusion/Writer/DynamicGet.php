@@ -126,9 +126,11 @@ final class DynamicGet extends Writer
 
 				$answered = $this->answered($name);
 
-				// a custom admin view an admin view answers for is that admin
-				// view's own generated template, so no view and no get is owed
-				if ($kind === 'custom_admin_view' && $answered !== null)
+				// a custom candidate a table view answers for -- by an editor
+				// beside its template or by name -- is that view's own
+				// generated output, so no custom view and no get is owed
+				if ($kind === 'custom_admin_view'
+					&& ($answered !== null || !empty($entry['crud'])))
 				{
 					continue;
 				}

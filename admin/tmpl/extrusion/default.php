@@ -221,6 +221,7 @@ window.JCBExtrusion = {
 		templates: '<?php echo Text::_('Templates', true); ?>',
 		powers: '<?php echo Text::_('Powers', true); ?>',
 		matched: '<?php echo Text::_('matched', true); ?>',
+		similar: '<?php echo Text::_('similar', true); ?>',
 		newItem: '<?php echo Text::_('new', true); ?>',
 		items: '<?php echo Text::_('items', true); ?>',
 		written: '<?php echo Text::_('Written', true); ?>',

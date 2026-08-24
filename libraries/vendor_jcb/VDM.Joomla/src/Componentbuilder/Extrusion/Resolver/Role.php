@@ -33,7 +33,7 @@ final class Role
 	 * @var    array<string>
 	 * @since  6.1.6
 	 */
-	private const AVOID = ['not_required', 'id', 'asset_id', 'params'];
+	private const AVOID = ['not_required', 'id', 'asset_id', 'params', 'guid'];
 
 	/**
 	 * How many list columns a view is given when they must be inferred.

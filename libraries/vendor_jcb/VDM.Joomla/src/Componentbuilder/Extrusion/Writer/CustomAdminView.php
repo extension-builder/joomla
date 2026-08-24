@@ -151,11 +151,14 @@ final class CustomAdminView extends Writer
 				continue;
 			}
 
-			if ($this->answered($name))
+			// the code itself says which folders belong to table views: an
+			// editor beside the template, or a resolved view whose name the
+			// folder answers to -- neither may ever become a custom admin view
+			if (!empty($entry['crud']) || $this->answered($name))
 			{
 				$this->report->set(
 					'skipped.custom_admin_view.' . $this->key($name),
-					'a resolved table view answers for this template'
+					'a table view answers for this template'
 				);
 
 				continue;

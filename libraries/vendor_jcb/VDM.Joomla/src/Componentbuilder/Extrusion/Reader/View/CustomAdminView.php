@@ -152,6 +152,25 @@ final class CustomAdminView implements ReaderInterface
 	}
 
 	/**
+	 * Mark one administrator folder as a table view's own.
+	 *
+	 * An edit.php beside a template is the code's own testimony that its
+	 * folder belongs to a table view, so no template of that folder may ever
+	 * become a custom admin view. The mark lands on the candidate entry --
+	 * whether the template was read before or after the editor was seen --
+	 * and the writers refuse the candidate downstream.
+	 *
+	 * @param   string  $view  The view folder name.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function crud(string $view): void
+	{
+		$this->view->set('custom_admin_view.' . $this->key($view) . '.crud', 1);
+	}
+
+	/**
 	 * The view name the file's own folder states.
 	 *
 	 * @param   string  $path  Absolute path to the default template.

@@ -543,7 +543,7 @@ final class ExtruderTest extends FilesystemTestCase
 			(array) $report->get('written_counts')
 		);
 		$this->assertSame(
-			'a resolved table view answers for this template',
+			'a table view answers for this template',
 			$report->get('skipped.custom_admin_view.item'),
 			'An admin view\'s own template is generated output, never a custom admin view.'
 		);

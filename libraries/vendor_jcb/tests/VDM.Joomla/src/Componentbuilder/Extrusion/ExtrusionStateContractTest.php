@@ -455,7 +455,13 @@ final class ExtrusionStateContractTest extends TestCase
 	{
 		$config = new Config();
 
-		$this->assertCount(18, Config::BOILERPLATE);
+		$this->assertCount(17, Config::BOILERPLATE);
+		$this->assertNotContains(
+			'guid',
+			Config::BOILERPLATE,
+			'The guid column is a real JCB field -- the Globally Unique ID field '
+			. 'every view links -- so it is extruded and paired like any other.'
+		);
 
 		foreach (Config::BOILERPLATE as $column)
 		{
@@ -824,7 +830,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'depth' => 12,
 			'maxFiles' => 20000,
 			'skipColumns' => [
-				'id', 'asset_id', 'guid', 'published', 'created_by', 'modified_by',
+				'id', 'asset_id', 'published', 'created_by', 'modified_by',
 				'created', 'modified', 'checked_out', 'checked_out_time', 'version',
 				'hits', 'access', 'ordering', 'metakey', 'metadesc', 'metadata', 'params'
 			],

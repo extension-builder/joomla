@@ -1972,5 +1972,75 @@ SQL);
 			array_values((array) $this->report->get('view.skipped.edit_view')),
 			'The view that was passed over is named, not silently dropped.'
 		);
+		$this->assertFalse(
+			$this->view->exists('custom_admin_view.company.crud'),
+			'A front end editor says nothing about the administrator side.'
+		);
+	}
+
+	/**
+	 * An administrator editor marks its folder as a table view's own.
+	 *
+	 * The code itself says which administrator folders belong to table views:
+	 * an edit.php beside a template is that testimony, so the folder's main
+	 * template can never become a custom admin view -- a custom admin view
+	 * with a table view's code name is a contradiction.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAnAdministratorEditorMarksItsFolderAsATableViews(): void
+	{
+		$inventory = new Inventory();
+		$files = [
+			['admin/tmpl/company/edit.php', '<form name="adminForm">edit</form>', 'company', 'edit'],
+			['admin/tmpl/company/default.php', "<?php
+?>
+<p>generated</p>", 'company', 'main'],
+			['admin/tmpl/wizard/default.php', "<?php
+?>
+<p>wizard</p>", 'wizard', 'main']
+		];
+		$inventory->set('view_count', count($files));
+
+		foreach ($files as $index => [$relative, $contents, $view, $role])
+		{
+			$inventory->set('view.' . $index . '.path', $this->writeTemporaryFile($relative, $contents));
+			$inventory->set('view.' . $index . '.name', basename($relative, '.php'));
+			$inventory->set('view.' . $index . '.role', $role);
+			$inventory->set('view.' . $index . '.scope', 'admin');
+			$inventory->set('view.' . $index . '.view', $view);
+		}
+
+		$dispatcher = new Dispatcher(
+			new Config(),
+			$inventory,
+			$this->report,
+			$this->languageReader(),
+			$this->tableReader(),
+			$this->schemaReader(),
+			$this->formReader(),
+			$this->layoutReader(),
+			$this->templateReader(),
+			$this->siteViewReader(),
+			$this->customAdminViewReader()
+		);
+
+		$this->assertSame(2, $dispatcher->dispatch());
+		$this->assertSame(
+			1,
+			$this->view->get('custom_admin_view.company.crud'),
+			'The editor marks its folder, so the writer can refuse the candidate.'
+		);
+		$this->assertSame(
+			'<p>generated</p>',
+			$this->view->get('custom_admin_view.company.default'),
+			'The template is still read; the crud mark is what refuses it downstream.'
+		);
+		$this->assertNull(
+			$this->view->get('custom_admin_view.wizard.crud'),
+			'A folder with no editor stays a real custom admin view candidate.'
+		);
+		$this->assertSame('<p>wizard</p>', $this->view->get('custom_admin_view.wizard.default'));
 	}
 }

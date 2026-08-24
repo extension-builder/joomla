@@ -71,12 +71,15 @@ final class Config extends Registry implements Registryinterface
 	 *
 	 * JCB generates all of these for every view from its own switches, so
 	 * carrying them across would produce duplicate, unusable field definitions.
+	 * The guid column is deliberately NOT here: JCB models it as a real field
+	 * (the Globally Unique ID field every view links), so it is extruded and
+	 * paired like any other -- a JCB-built source even states its identity.
 	 *
 	 * @var    array<string>
 	 * @since  6.1.6
 	 */
 	public const BOILERPLATE = [
-		'id', 'asset_id', 'guid', 'published', 'created_by', 'modified_by',
+		'id', 'asset_id', 'published', 'created_by', 'modified_by',
 		'created', 'modified', 'checked_out', 'checked_out_time', 'version',
 		'hits', 'access', 'ordering', 'metakey', 'metadesc', 'metadata', 'params'
 	];

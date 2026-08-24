@@ -245,14 +245,33 @@ test.describe('the extrusion view', () => {
 		await expect(custom).toBeVisible();
 		expect(await custom.locator('.extrusion-row').count()).toBeGreaterThan(0);
 
-		// and the fields of this very component match what JCB already holds,
-		// so the board proposes reuse instead of creating twins
-		const matched = await views.locator('details.extrusion-fields summary')
+		// a custom admin view with a table view's code name is a contradiction:
+		// the custom section must never offer any admin view of this same run
+		const viewNames = new Set(
+			(await views.locator('> .extrusion-rows > .extrusion-row .extrusion-identity b')
+				.allTextContents())
+				.map((text) => text.trim().toLowerCase())
+		);
+		const customNames = (await custom
+			.locator('.extrusion-row .extrusion-identity b').allTextContents())
+			.map((text) => text.trim().toLowerCase());
+		const overlap = customNames.filter(
+			(name) => viewNames.has(name) || viewNames.has(name.replace(/s$/, ''))
+		);
+		expect(
+			overlap,
+			'These table views were wrongly offered as custom admin views: '
+			+ overlap.join(' | ')
+		).toEqual([]);
+
+		// and the fields of this very component resemble fields JCB already
+		// holds -- shown as similar, offered for reuse, never forced onto them
+		const similar = await views.locator('details.extrusion-fields summary')
 			.allTextContents();
 		expect(
-			matched.some((text) => !text.includes(' 0 matched')),
-			'At least one view\'s fields must match the fields JCB already holds: '
-			+ matched.slice(0, 5).join(' | ')
+			similar.some((text) => !text.includes(' 0 similar')),
+			'At least one view\'s fields must resemble the fields JCB already holds: '
+			+ similar.slice(0, 5).join(' | ')
 		).toBe(true);
 
 		// and the import runs FOR REAL against the live database -- a dry run

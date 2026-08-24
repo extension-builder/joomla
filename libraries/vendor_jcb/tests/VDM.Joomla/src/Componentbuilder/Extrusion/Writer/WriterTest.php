@@ -2231,6 +2231,9 @@ HTML;
 		$this->view->set('custom_admin_view.import.add_php_view', 1);
 		$this->view->set('custom_admin_view.item.name', 'item');
 		$this->view->set('custom_admin_view.item.default', '<p>generated</p>');
+		$this->view->set('custom_admin_view.editor.name', 'editor');
+		$this->view->set('custom_admin_view.editor.default', '<p>edited</p>');
+		$this->view->set('custom_admin_view.editor.crud', 1);
 
 		$this->assertSame(1, $this->customAdminView()->write());
 
@@ -2248,9 +2251,15 @@ HTML;
 		$this->assertSame($get, $definition->main_get);
 		$this->assertSame(1, $definition->published);
 		$this->assertSame(
-			'a resolved table view answers for this template',
+			'a table view answers for this template',
 			$this->report->get('skipped.custom_admin_view.item'),
 			'An admin view\'s own generated template is never a custom admin view.'
+		);
+		$this->assertSame(
+			'a table view answers for this template',
+			$this->report->get('skipped.custom_admin_view.editor'),
+			'A folder an editor marked as a table view\'s own is refused even when '
+			. 'no resolved view answers for its name.'
 		);
 		$this->assertSame(1, $this->report->get('counts.custom_admin_view'));
 

@@ -20,11 +20,14 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 /**
  * Makes every matched candidate reuse what JCB already holds.
  *
- * The candidates layer pairs each harvested definition against the system by
- * name. This step turns those matches into standing verdicts before anything
- * is written: a matched candidate the caller left undecided updates its match
- * rather than creating a twin, and a matched field records the identity it
- * matched so its view links it even when the field itself is left untouched.
+ * Everything in JCB is linked by guid, so only a guid in common says two
+ * definitions are the same thing. This step turns those identity matches
+ * into standing verdicts before anything is written: a guid-matched
+ * candidate the caller left undecided updates the definition it already is,
+ * and a guid-matched field records that identity so its view links it even
+ * when the field itself is left untouched. A candidate that merely shares a
+ * name stays a fresh creation -- the resemblance is offered on the board,
+ * never acted on, because linking a lookalike would misstate identity.
  *
  * An explicit verdict from the pairing board always outranks these defaults;
  * this layer only speaks where the caller stayed silent.
@@ -141,7 +144,8 @@ final class Reuse
 		$match = $entry['match'] ?? null;
 		$reused = 0;
 
-		if ($kind !== '' && $key !== '' && is_array($match))
+		if ($kind !== '' && $key !== '' && is_array($match)
+			&& ($match['by'] ?? '') === 'guid')
 		{
 			$target = (string) ($match['guid'] ?? '');
 
