@@ -172,12 +172,12 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	public function items(array $select, array $tables, ?array $where = null,
 		?array $order = null, ?int $limit = null): ?array
 	{
-		// this boundary serves the field type catalogue; any other table a
-		// resolver asks about simply has no rows here, and only a real
-		// catalogue read counts toward the once-per-request expectation
+		// this boundary serves the field type catalogue, plus whatever a case
+		// declares a live system already holds; only a real catalogue read
+		// counts toward the once-per-request expectation
 		if (!in_array('fieldtype', $tables, true))
 		{
-			return [];
+			return $this->declared($select, $tables, $where);
 		}
 
 		$this->calls++;
@@ -210,7 +210,9 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	public function row(array $select, array $tables, ?array $where = null,
 		?array $order = null): ?array
 	{
-		return null;
+		$row = $this->match($tables, $where);
+
+		return $row === null ? null : $this->project($select, $row);
 	}
 
 	/**
@@ -227,7 +229,9 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 	public function item(array $select, array $tables, ?array $where = null,
 		?array $order = null): ?object
 	{
-		return null;
+		$row = $this->match($tables, $where);
+
+		return $row === null ? null : (object) $this->project($select, $row);
 	}
 
 	/**
@@ -282,8 +286,145 @@ final class ExtrusionCatalogueFixture implements LoadInterface
 			return self::componentGuid((int) $where['a.id']);
 		}
 
+		$row = $this->match($tables, $where);
+
+		if ($row === null)
+		{
+			return null;
+		}
+
+		$wanted = str_replace('a.', '', (string) array_key_first($select));
+
+		return $row[$wanted] ?? null;
+	}
+
+	/**
+	 * The declared rows of one table that answer a where clause.
+	 *
+	 * @param   array       $select  The selection, column keyed to alias.
+	 * @param   array       $tables  The queried tables.
+	 * @param   array|null  $where   The where clause.
+	 *
+	 * @return  array<int, object>  The answering rows as objects.
+	 * @since   6.1.8
+	 */
+	private function declared(array $select, array $tables, ?array $where): array
+	{
+		$found = [];
+
+		foreach ($this->rows[(string) ($tables['a'] ?? '')] ?? [] as $row)
+		{
+			foreach ((array) $where as $column => $value)
+			{
+				$held = (string) ($row[str_replace('a.', '', (string) $column)] ?? '');
+
+				if (is_array($value))
+				{
+					$wanted = array_map(
+						'strtolower',
+						array_map('strval', (array) ($value['value'] ?? []))
+					);
+
+					if (!in_array(strtolower($held), $wanted, true))
+					{
+						continue 2;
+					}
+
+					continue;
+				}
+
+				if (strtolower($held) !== strtolower((string) $value))
+				{
+					continue 2;
+				}
+			}
+
+			$found[] = (object) $this->project($select, $row);
+		}
+
+		return $found;
+	}
+
+	/**
+	 * One row under the aliases a select asks for, as the real loader answers.
+	 *
+	 * @param   array<string, string>  $select  The selection, column keyed to alias.
+	 * @param   array<string, mixed>   $row     The declared row.
+	 *
+	 * @return  array<string, mixed>  The row under its aliases.
+	 * @since   6.1.8
+	 */
+	private function project(array $select, array $row): array
+	{
+		if ($select === [])
+		{
+			return $row;
+		}
+
+		$projected = [];
+
+		foreach ($select as $column => $alias)
+		{
+			$column = str_replace('a.', '', (string) $column);
+			$projected[(string) $alias] = $row[$column] ?? null;
+		}
+
+		return $projected;
+	}
+
+	/**
+	 * Declare what a live system already holds in one table.
+	 *
+	 * @param   string                    $table  The table name without its prefix.
+	 * @param   array<int, array<mixed>>  $rows   The rows that table holds.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.8
+	 */
+	public function table(string $table, array $rows): self
+	{
+		$this->rows[$table] = $rows;
+
+		return $this;
+	}
+
+	/**
+	 * The first declared row of one table that answers a where clause.
+	 *
+	 * @param   array       $tables  The queried tables.
+	 * @param   array|null  $where   The where clause.
+	 *
+	 * @return  array<string, mixed>|null  The row, or null when none answers.
+	 * @since   6.1.8
+	 */
+	private function match(array $tables, ?array $where): ?array
+	{
+		foreach ($this->rows[(string) ($tables['a'] ?? '')] ?? [] as $row)
+		{
+			foreach ((array) $where as $column => $value)
+			{
+				$column = str_replace('a.', '', (string) $column);
+
+				if (is_array($value)
+					|| strtolower((string) ($row[$column] ?? '')) !== strtolower((string) $value))
+				{
+					continue 2;
+				}
+			}
+
+			return $row;
+		}
+
 		return null;
 	}
+
+	/**
+	 * What a live system already holds, by table.
+	 *
+	 * @var    array<string, array<int, array<mixed>>>
+	 * @since  6.1.8
+	 */
+	private array $rows = [];
 
 	/**
 	 * The served component guid for one component id.
