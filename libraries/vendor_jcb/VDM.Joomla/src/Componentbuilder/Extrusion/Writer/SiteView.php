@@ -193,7 +193,10 @@ final class SiteView extends Writer
 		);
 		$definition->published = 1;
 
-		if (!$this->store($definition))
+		// the source states the view's names and its body; its description
+		// and its data source are scaffolding, so a view someone has since
+		// pointed at a dynamic get of their own keeps it
+		if (!$this->store($definition, ['description', 'main_get', 'published']))
 		{
 			return false;
 		}

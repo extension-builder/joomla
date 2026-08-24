@@ -143,6 +143,7 @@ final class Manifest
 		if ($manifest !== null && !$established)
 		{
 			$this->source->set('manifest', $manifest['path']);
+			$this->source->set('menu', (array) ($manifest['menu'] ?? []));
 			$this->source->set('code_name', $manifest['option']);
 			$this->source->set('name', $manifest['name']);
 			$this->source->set('version', $manifest['version']);
@@ -419,8 +420,74 @@ final class Manifest
 			'option' => $option,
 			'name' => $name,
 			'typed' => $type === 'component',
-			'version' => trim((string) $xml->version)
+			'version' => trim((string) $xml->version),
+			'menu' => $this->menu($xml)
 		] + $this->metadata($xml);
+	}
+
+	/**
+	 * The administrator menu the manifest itself declares.
+	 *
+	 * A component's manifest states its own administrator menu: the entry the
+	 * component carries, and a submenu entry per view it puts there, each
+	 * naming the view it opens and the icon it wears. That is the component's
+	 * own account of which views belong in the menu and how -- evidence for
+	 * exactly the settings a link row carries, in place of a guess.
+	 *
+	 * @param   \SimpleXMLElement  $xml  The parsed manifest.
+	 *
+	 * @return  array<string, array<string, string>>  The menu entries by view name.
+	 * @since   6.1.8
+	 */
+	protected function menu(\SimpleXMLElement $xml): array
+	{
+		$administration = $xml->administration ?? null;
+
+		if (!$administration instanceof \SimpleXMLElement)
+		{
+			return [];
+		}
+
+		$entries = [];
+
+		if ($administration->menu instanceof \SimpleXMLElement)
+		{
+			$entries['*'] = [
+				'label' => trim((string) $administration->menu),
+				'icon' => trim((string) ($administration->menu['img'] ?? ''))
+			];
+		}
+
+		$submenu = $administration->submenu ?? null;
+
+		if ($submenu instanceof \SimpleXMLElement)
+		{
+			foreach ($submenu->menu as $entry)
+			{
+				$view = strtolower(trim((string) ($entry['view'] ?? '')));
+
+				if ($view === '')
+				{
+					// a submenu entry may name its target in a link instead
+					$link = (string) ($entry['link'] ?? '');
+
+					if ($link !== '' && preg_match('/view=([a-z0-9_]+)/i', $link, $found) === 1)
+					{
+						$view = strtolower($found[1]);
+					}
+				}
+
+				if ($view !== '')
+				{
+					$entries[$view] = [
+						'label' => trim((string) $entry),
+						'icon' => trim((string) ($entry['img'] ?? ''))
+					];
+				}
+			}
+		}
+
+		return $entries;
 	}
 
 	/**

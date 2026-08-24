@@ -2299,6 +2299,64 @@ HTML;
 	}
 
 	/**
+	 * Updating a view someone has curated refreshes evidence and nothing else.
+	 *
+	 * A re-run against a system that already holds the view must carry over
+	 * what the source says -- its names, its seed data -- while the tabs,
+	 * permissions and description that person arranged stay untouched. The
+	 * scaffolding a new view needs is offered only when the view is new.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAnExistingViewKeepsWhatWasCuratedAndTakesTheSourcesEvidence(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.seed', self::SEED);
+		$this->item->identity('admin_view', self::VIEW_GUID, 47);
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$definition = $this->item->definitions('admin_view')[0];
+
+		$this->assertSame(self::VIEW_GUID, $definition->guid);
+		$this->assertSame('item', $definition->name_single, 'The source states the names.');
+		$this->assertSame('items', $definition->name_list);
+		$this->assertSame('Item', $definition->system_name);
+		$this->assertSame(self::SEED, $definition->sql, 'The source states the seed data.');
+
+		foreach (['addtabs', 'addpermissions', 'description', 'short_description'] as $curated)
+		{
+			$this->assertObjectNotHasProperty(
+				$curated,
+				$definition,
+				'A re-run must not reset the ' . $curated . ' someone arranged.'
+			);
+		}
+
+		$this->assertSame(
+			['short_description', 'description', 'type', 'add_fadein',
+				'addpermissions', 'addtabs', 'published'],
+			$this->report->get('kept.admin_view.' . self::VIEW_GUID),
+			'The report says plainly what the re-run left alone.'
+		);
+
+		$this->restate();
+		$this->seedItemView();
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$created = $this->item->definitions('admin_view')[0];
+
+		$this->assertObjectHasProperty(
+			'addpermissions',
+			$created,
+			'A view that does not yet exist still arrives with its scaffolding.'
+		);
+		$this->assertObjectHasProperty('addtabs', $created);
+	}
+
+	/**
 	 * What the view already links is discovered and kept, never replaced.
 	 *
 	 * The person's own wiring -- here the Globally Unique ID field standing

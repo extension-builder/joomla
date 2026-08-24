@@ -186,7 +186,14 @@ final class AdminView extends Writer
 			$definition->sql = $seed;
 		}
 
-		if (!$this->store($definition))
+		// the source states the view's names and its seed data; the rest is
+		// scaffolding a new view needs. Someone who has since curated their
+		// tabs, permissions or description keeps them: a re-run refreshes
+		// what the source says and undoes none of their work
+		if (!$this->store($definition, [
+			'short_description', 'description', 'type', 'add_fadein',
+			'addpermissions', 'addtabs', 'published'
+		]))
 		{
 			return false;
 		}
