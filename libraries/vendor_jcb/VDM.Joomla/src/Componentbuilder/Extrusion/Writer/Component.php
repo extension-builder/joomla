@@ -270,7 +270,12 @@ final class Component extends Writer
 
 		if ($description !== '')
 		{
-			$definition['description'] = $this->language->resolve($description);
+			// the manifest wraps a marketing page of HTML in its description;
+			// the description column holds what a person would have typed there,
+			// so the readable text is stored, never the markup
+			$definition['description'] = $this->readable(
+				$this->language->resolve($description)
+			);
 			$definition['short_description'] = $this->summarise($definition['description']);
 		}
 
@@ -293,6 +298,28 @@ final class Component extends Writer
 		}
 
 		return $definition + $this->target((string) ($stated['target'] ?? ''));
+	}
+
+	/**
+	 * The readable text of a description that may be a page of HTML.
+	 *
+	 * Block tags become line breaks and every other tag a space, so the text
+	 * keeps its paragraphs without keeping a single element of markup.
+	 *
+	 * @param   string  $html  The description as the manifest gave it.
+	 *
+	 * @return  string  The readable text.
+	 * @since   6.1.8
+	 */
+	public function readable(string $html): string
+	{
+		$text = preg_replace('/<\/?(?:p|br|div|h[1-6]|li|ul|ol|tr)[^>]*>/i', "\n", $html) ?? $html;
+		$text = preg_replace('/<[^>]*>/', ' ', $text) ?? $text;
+		$text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		$text = preg_replace('/[ \t]+/', ' ', $text) ?? $text;
+		$text = preg_replace('/ ?\n[ \n]*/', "\n", $text) ?? $text;
+
+		return trim($text);
 	}
 
 	/**

@@ -31,13 +31,17 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentCustomAdminViews;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentSiteViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\CustomAdminView;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\DynamicGet;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
@@ -73,7 +77,10 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(AdminView::class)]
 #[CoversClass(Component::class)]
 #[CoversClass(ComponentAdminViews::class)]
+#[CoversClass(ComponentCustomAdminViews::class)]
 #[CoversClass(ComponentSiteViews::class)]
+#[CoversClass(CustomAdminView::class)]
+#[CoversClass(DynamicGet::class)]
 #[CoversClass(SiteView::class)]
 #[CoversClass(Dispatcher::class)]
 #[CoversClass(Field::class)]
@@ -329,7 +336,25 @@ HTML;
 			['addtabs0' => ['name' => 'Item Details'], 'addtabs1' => ['name' => 'Metrics']],
 			$this->decode($definition->addtabs)
 		);
-		$this->assertIsArray($this->decode($definition->addpermissions));
+		$permissions = $this->decode($definition->addpermissions);
+
+		$this->assertSame(
+			['action' => 'view.edit', 'implementation' => 3],
+			$permissions['addpermissions0'] ?? null,
+			'Permissions are rows of one action and one implementation each -- the '
+			. 'only shape the admin_view form renders; the legacy parallel arrays '
+			. 'display as nothing at all.'
+		);
+		$this->assertSame(
+			[
+				'view.edit', 'view.edit.own', 'view.edit.state', 'view.edit.access',
+				'view.edit.created_by', 'view.edit.created', 'view.create',
+				'view.delete', 'view.access'
+			],
+			array_column($permissions, 'action'),
+			'The full action set of JCB\'s own demo views, implementation 3 (both) throughout.'
+		);
+		$this->assertSame([3], array_values(array_unique(array_column($permissions, 'implementation'))));
 		$this->assertSame(self::VIEW_GUID, $this->resolved->get('view.item.written.view.guid'));
 		$this->assertSame(1, $this->report->get('counts.admin_view'));
 	}
@@ -723,7 +748,17 @@ HTML;
 			],
 			$this->flags($subform['addfields1'])
 		);
-		$this->assertSame(1, $subform['addfields1']['alias']);
+		$this->assertArrayNotHasKey(
+			'sort',
+			$subform['addfields1'],
+			'A checkbox the form leaves unticked is absent from the row, as the form itself stores it.'
+		);
+		$this->assertArrayNotHasKey(
+			'permission',
+			$subform['addfields0'],
+			'A field with no permission rule omits the key; the form reads that as none.'
+		);
+		$this->assertSame('1', $subform['addfields1']['alias']);
 		$this->assertSame(4, $subform['addfields1']['alignment']);
 		$this->assertSame(
 			[
@@ -732,14 +767,21 @@ HTML;
 			],
 			$this->flags($subform['addfields2'])
 		);
-		$this->assertSame(3, $subform['addfields3']['order_list']);
+		$this->assertSame('3', $subform['addfields3']['order_list']);
 		$this->assertSame(
 			1,
-			count(array_filter($subform, static fn (array $row): bool => $row['link'] === 1)),
+			count(array_filter(
+				$subform,
+				static fn (array $row): bool => ($row['link'] ?? '') === '1'
+			)),
 			'Exactly one field may be the list link.'
 		);
-		$this->assertSame([1, 1, 1, 2], array_column($subform, 'tab'));
-		$this->assertSame([0, 1, 2, 3], array_column($subform, 'order_edit'));
+		$this->assertSame(['1', '1', '1', '2'], array_column($subform, 'tab'));
+		$this->assertSame(
+			['1', '2', '3', '1'],
+			array_column($subform, 'order_edit'),
+			'The edit order counts from one within each tab, as a person lays a view out.'
+		);
 		$this->assertSame(1, $this->report->get('counts.admin_fields'));
 	}
 
@@ -1075,9 +1117,17 @@ HTML;
 			[self::VIEW_GUID, 'cccccccc-3333-4333-8333-cccccccccccc'],
 			array_column($subform, 'adminview')
 		);
-		$this->assertSame([1, 2], array_column($subform, 'order'));
-		$this->assertSame(1, $subform['addadmin_views0']['mainmenu']);
-		$this->assertSame(0, $subform['addadmin_views0']['edit_create_site_view']);
+		$this->assertSame(['1', '2'], array_column($subform, 'order'));
+		$this->assertSame('1', $subform['addadmin_views0']['mainmenu']);
+		$this->assertSame('1', $subform['addadmin_views0']['dashboard_add']);
+		$this->assertSame('1', $subform['addadmin_views0']['joomla_fields']);
+		$this->assertSame('0', $subform['addadmin_views0']['add_api']);
+		$this->assertSame(
+			'2',
+			$subform['addadmin_views0']['filter'],
+			'The side-filter layout is the form\'s own default for a new view link.'
+		);
+		$this->assertSame('', $subform['addadmin_views0']['edit_create_site_view']);
 		$this->assertSame(2, $this->report->get('counts.component_admin_views'));
 
 		$this->restate();
@@ -1105,7 +1155,9 @@ HTML;
 		$names = [
 			'field', 'admin_view', 'admin_fields', 'admin_fields_conditions',
 			'admin_custom_tabs', 'component_admin_views', 'joomla_component',
-			'layout', 'template', 'site_view', 'component_site_views'
+			'layout', 'template', 'dynamic_get', 'site_view',
+			'component_site_views', 'custom_admin_view',
+			'component_custom_admin_views'
 		];
 		$writers = [];
 
@@ -1127,12 +1179,17 @@ HTML;
 			$writers['layout'],
 			$writers['template'],
 			$writers['site_view'],
-			$writers['component_site_views']
+			$writers['component_site_views'],
+			$writers['dynamic_get'],
+			$writers['custom_admin_view'],
+			$writers['component_custom_admin_views']
 		);
 		$expected = [
 			'joomla_component', 'field', 'admin_view', 'admin_fields',
 			'admin_fields_conditions', 'admin_custom_tabs', 'layout', 'template',
-			'site_view', 'component_site_views', 'component_admin_views'
+			'dynamic_get', 'site_view', 'component_site_views',
+			'custom_admin_view', 'component_custom_admin_views',
+			'component_admin_views'
 		];
 
 		$this->assertSame($expected, array_keys($dispatcher->order()));
@@ -1142,18 +1199,18 @@ HTML;
 			'The component record is filled in first, because everything else belongs to it.'
 		);
 		$this->assertSame('component_admin_views', array_key_last($dispatcher->order()));
-		$this->assertSame(66, $dispatcher->dispatch());
+		$this->assertSame(105, $dispatcher->dispatch());
 		$this->assertSame($expected, $calls->getArrayCopy());
 		$this->assertSame(1, $this->report->get('written_counts.field'));
 		$this->assertSame(2, $this->report->get('written_counts.admin_view'));
 		$this->assertSame(6, $this->report->get('written_counts.component_admin_views'));
 		$this->assertSame(7, $this->report->get('written_counts.joomla_component'));
-		$this->assertSame(66, $this->report->get('counts.written'));
+		$this->assertSame(105, $this->report->get('counts.written'));
 
 		$this->config->set('admin', false);
 
 		$this->assertSame(
-			['joomla_component', 'layout', 'template', 'site_view', 'component_site_views'],
+			['joomla_component', 'layout', 'template', 'dynamic_get', 'site_view', 'component_site_views'],
 			array_keys($dispatcher->order()),
 			'With the admin scope off the component record and the shared view layers '
 			. 'are still written.'
@@ -1248,10 +1305,10 @@ HTML;
 		);
 		$this->assertSame(1, $record->add_namespace_prefix);
 		$this->assertSame(
-			'<h1>Demo</h1><p>A demo component for testing. It does very little indeed.</p>',
+			"Demo\nA demo component for testing. It does very little indeed.",
 			$record->description,
-			'The description is stored as the manifest gave it, markup and all, because '
-			. 'JCB renders it as the component description.'
+			'The description is the readable text of what the manifest gave, because '
+			. 'the column holds what a person would have typed there, never markup.'
 		);
 		$this->assertSame(
 			'Demo A demo component for testing.',
@@ -1585,7 +1642,7 @@ HTML;
 
 		foreach (['list', 'order_list', 'sort', 'search', 'filter', 'title', 'link'] as $flag)
 		{
-			$flags[$flag] = (int) ($row[$flag] ?? -1);
+			$flags[$flag] = (int) ($row[$flag] ?? 0);
 		}
 
 		return $flags;
@@ -1868,7 +1925,68 @@ HTML;
 			$this->layout(),
 			$this->template(),
 			$this->siteView(),
-			$this->componentSiteViews()
+			$this->componentSiteViews(),
+			$this->dynamicGet(),
+			$this->customAdminView(),
+			$this->componentCustomAdminViews()
+		);
+	}
+
+	/**
+	 * The dynamic get writer under test.
+	 *
+	 * @return  DynamicGet  The writer.
+	 * @since   6.1.8
+	 */
+	private function dynamicGet(): DynamicGet
+	{
+		return new DynamicGet(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->view,
+			$this->guid,
+			$this->source
+		);
+	}
+
+	/**
+	 * The custom admin view writer under test.
+	 *
+	 * @return  CustomAdminView  The writer.
+	 * @since   6.1.8
+	 */
+	private function customAdminView(): CustomAdminView
+	{
+		return new CustomAdminView(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->view,
+			$this->guid,
+			$this->source,
+			$this->pairing(),
+			new Text()
+		);
+	}
+
+	/**
+	 * The component custom admin views writer under test.
+	 *
+	 * @return  ComponentCustomAdminViews  The writer.
+	 * @since   6.1.8
+	 */
+	private function componentCustomAdminViews(): ComponentCustomAdminViews
+	{
+		return new ComponentCustomAdminViews(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			$this->componentLoad()
 		);
 	}
 
@@ -1965,10 +2083,10 @@ HTML;
 			$app->guid
 		);
 		$this->assertSame(2, $this->report->get('counts.site_view'));
-		$this->assertStringContainsString(
-			'cannot be turned back into a dynamic get',
-			(string) $this->report->get('site_view.without_get'),
-			'A view with no recoverable data source has to say so.'
+		$this->assertSame(
+			'',
+			$app->main_get,
+			'With no dynamic get written for this view, the source is honestly empty.'
 		);
 
 		$this->assertSame(2, $this->componentSiteViews()->write());
@@ -1984,13 +2102,181 @@ HTML;
 		$this->assertSame(['addsite_views0', 'addsite_views1'], array_keys($subform));
 		$this->assertSame($app->guid, $subform['addsite_views0']['siteview']);
 		$this->assertSame(
-			1,
+			'1',
 			$subform['addsite_views0']['default_view'],
 			'A component with no default front end view has no reachable front end.'
 		);
-		$this->assertSame(0, $subform['addsite_views1']['default_view']);
+		$this->assertSame('', $subform['addsite_views1']['default_view']);
 		$this->assertSame('app', $this->report->get('site_view.default'));
 		$this->assertSame(2, $this->report->get('counts.component_site_views'));
+	}
+
+	/**
+	 * Every recovered view feeds from a dynamic get the run itself wrote.
+	 *
+	 * A view named after an admin view of this run gets the real relationship:
+	 * a back end source aimed at that admin view, an item get for the single
+	 * name and a list query for the plural. A view no admin view answers for
+	 * still gets its get, as a custom scaffold -- never nothing at all.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testDynamicGetsFeedRecoveredViewsFromTheRunsOwnAdminViews(): void
+	{
+		$this->seedItemView();
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->view->set('site_view.item.name', 'item');
+		$this->view->set('site_view.items.name', 'items');
+		$this->view->set('site_view.about.name', 'about');
+		$this->view->set('custom_admin_view.import.name', 'import');
+		$this->view->set('custom_admin_view.item.name', 'item');
+
+		$this->assertSame(4, $this->dynamicGet()->write());
+
+		$single = $this->item->definition(
+			'dynamic_get',
+			$this->guid->derive([self::OPTION, 'dynamic_get', 'item'])
+		);
+
+		$this->assertNotNull($single);
+		$this->assertSame('Item Data', $single->name);
+		$this->assertSame('1', $single->main_source, 'The source is a back end view.');
+		$this->assertSame('1', $single->gettype, 'The single name is an item get.');
+		$this->assertSame(
+			self::VIEW_GUID,
+			$single->view_table_main,
+			'The get feeds from the admin view this very run wrote.'
+		);
+		$this->assertSame('1', $single->select_all);
+
+		$list = $this->item->definition(
+			'dynamic_get',
+			$this->guid->derive([self::OPTION, 'dynamic_get', 'items'])
+		);
+
+		$this->assertNotNull($list);
+		$this->assertSame('2', $list->gettype, 'The plural name is a list query.');
+
+		$scaffold = $this->item->definition(
+			'dynamic_get',
+			$this->guid->derive([self::OPTION, 'dynamic_get', 'about'])
+		);
+
+		$this->assertNotNull($scaffold);
+		$this->assertSame('3', $scaffold->main_source);
+		$this->assertSame('3', $scaffold->gettype);
+		$this->assertSame('getAbout', $scaffold->getcustom);
+		$this->assertStringContainsString(
+			'custom scaffold',
+			(string) $this->report->get('dynamic_get.custom.about'),
+			'A guessed-at source is refused; the scaffold says plainly what it awaits.'
+		);
+
+		$this->assertNotNull($this->item->definition(
+			'dynamic_get',
+			$this->guid->derive([self::OPTION, 'dynamic_get', 'import'])
+		));
+		$this->assertNull(
+			$this->resolved->get('dynamic_get.custom_admin_view.item.guid'),
+			'A custom candidate an admin view answers for gets no view and no get.'
+		);
+		$this->assertSame(
+			$single->guid,
+			$this->resolved->get('dynamic_get.site_view.item.guid'),
+			'The written get is recorded for its view to link as main_get.'
+		);
+		$this->assertSame(4, $this->report->get('counts.dynamic_get'));
+	}
+
+	/**
+	 * A site view carries the dynamic get the run wrote for it.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testSiteViewsCarryTheDynamicGetTheRunWroteForThem(): void
+	{
+		$get = $this->guid->derive([self::OPTION, 'dynamic_get', 'app']);
+		$this->view->set('site_view.app.name', 'app');
+		$this->view->set('site_view.app.default', '<h1>App</h1>');
+		$this->resolved->set('dynamic_get.site_view.app.guid', $get);
+
+		$this->assertSame(1, $this->siteView()->write());
+		$this->assertSame(
+			$get,
+			$this->item->definitions('site_view')[0]->main_get,
+			'main_get names the view\'s own dynamic get, because a site view '
+			. 'without a source displays nothing at all.'
+		);
+	}
+
+	/**
+	 * The administrator screens outside the tables arrive whole and linked.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testCustomAdminViewsAreWrittenWholeAndLinkedToTheComponent(): void
+	{
+		$this->config->set('component', 9);
+		$this->seedItemView();
+		$get = $this->guid->derive([self::OPTION, 'dynamic_get', 'import']);
+		$this->resolved->set('dynamic_get.custom_admin_view.import.guid', $get);
+		$this->view->set('custom_admin_view.import.name', 'import');
+		$this->view->set('custom_admin_view.import.system_name', 'Importer');
+		$this->view->set('custom_admin_view.import.description', 'Importer');
+		$this->view->set('custom_admin_view.import.default', '<div>Import</div>');
+		$this->view->set('custom_admin_view.import.php_view', '$a = 1;');
+		$this->view->set('custom_admin_view.import.add_php_view', 1);
+		$this->view->set('custom_admin_view.item.name', 'item');
+		$this->view->set('custom_admin_view.item.default', '<p>generated</p>');
+
+		$this->assertSame(1, $this->customAdminView()->write());
+
+		$definition = $this->item->definitions('custom_admin_view')[0];
+
+		$this->assertSame(
+			$this->guid->derive([self::OPTION, 'custom_admin_view', 'import']),
+			$definition->guid
+		);
+		$this->assertSame('Importer', $definition->name);
+		$this->assertSame('import', $definition->codename);
+		$this->assertSame('<div>Import</div>', $definition->default);
+		$this->assertSame('$a = 1;', $definition->php_view);
+		$this->assertSame(1, $definition->add_php_view);
+		$this->assertSame($get, $definition->main_get);
+		$this->assertSame(1, $definition->published);
+		$this->assertSame(
+			'a resolved table view answers for this template',
+			$this->report->get('skipped.custom_admin_view.item'),
+			'An admin view\'s own generated template is never a custom admin view.'
+		);
+		$this->assertSame(1, $this->report->get('counts.custom_admin_view'));
+
+		$this->assertSame(1, $this->componentCustomAdminViews()->write());
+
+		$link = $this->item->definitions('component_custom_admin_views')[0];
+		$subform = $this->decode($link->addcustom_admin_views);
+
+		$this->assertSame(
+			self::COMPONENT_GUID,
+			$link->joomla_component,
+			'The link column speaks the component guid the Table class defines, never its id.'
+		);
+		$this->assertObjectNotHasProperty(
+			'guid',
+			$link,
+			'A linked-map table holds no guid; its key is the component it links.'
+		);
+		$this->assertSame(
+			$definition->guid,
+			$subform['addcustom_admin_views0']['customadminview']
+		);
+		$this->assertSame('1', $subform['addcustom_admin_views0']['mainmenu']);
+		$this->assertSame('1', $subform['addcustom_admin_views0']['dashboard_list']);
+		$this->assertSame('1', $subform['addcustom_admin_views0']['access']);
+		$this->assertSame(1, $this->report->get('counts.component_custom_admin_views'));
 	}
 
 	/**

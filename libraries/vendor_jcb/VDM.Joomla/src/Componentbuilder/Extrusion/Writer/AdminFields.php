@@ -133,18 +133,30 @@ final class AdminFields extends Writer
 		$number = 0;
 		$linked = false;
 		$listOrder = 0;
+		$editOrder = [];
 
 		foreach ($fields as $key => $properties)
 		{
 			$properties = (array) $properties;
 			$column = (string) $this->value($properties, 'name', (string) $key);
+			$columnKey = $this->key($column);
+
+			// a field created or updated this run recorded its identity; one
+			// that already stood in JCB and was left untouched recorded the
+			// identity it was matched to -- either way the link is written,
+			// because a field the source relates to its view stays related
 			$fieldGuid = (string) $this->resolved->get(
-				$path . '.written.' . $this->key($column) . '.guid',
-				''
+				$path . '.written.' . $columnKey . '.guid',
+				(string) $this->resolved->get($path . '.linked.' . $columnKey . '.guid', '')
 			);
 
 			if ($fieldGuid === '')
 			{
+				$this->report->set(
+					'skipped.admin_fields.' . $this->key($view) . '.' . $columnKey,
+					'no field identity to link'
+				);
+
 				continue;
 			}
 
@@ -159,21 +171,45 @@ final class AdminFields extends Writer
 				$linked = true;
 			}
 
-			$subform['addfields' . $number] = [
+			// the row speaks the admin_fields form's own value conventions:
+			// checkbox flags are '1' or absent, the list and filter selections
+			// are the form's option values, and the edit order counts from one
+			// within each tab, exactly as a person lays a view out by hand
+			$tab = (int) ($properties['tab_index'] ?? 1);
+			$editOrder[$tab] = (int) ($editOrder[$tab] ?? 0) + 1;
+
+			$row = [
 				'field' => $fieldGuid,
-				'list' => $isList ? 1 : 0,
-				'order_list' => $isList ? ++$listOrder : 0,
-				'title' => $isTitle ? 1 : 0,
-				'alias' => $isAlias ? 1 : 0,
-				'sort' => $isList ? 1 : 0,
-				'search' => $isList ? 1 : 0,
-				'filter' => $isList ? 1 : 0,
-				'link' => $isLink ? 1 : 0,
-				'tab' => (int) ($properties['tab_index'] ?? 1),
+				'list' => $isList ? '1' : '',
+				'order_list' => (string) ($isList ? ++$listOrder : 0),
+				'filter' => $isList ? '1' : '',
+				'tab' => (string) $tab,
 				'alignment' => $isTitle || $isAlias ? 4 : (($number % 2 === 0) ? 2 : 1),
-				'order_edit' => $number,
-				'permission' => 0
+				'order_edit' => (string) $editOrder[$tab]
 			];
+
+			if ($isTitle)
+			{
+				$row['title'] = '1';
+			}
+
+			if ($isAlias)
+			{
+				$row['alias'] = '1';
+			}
+
+			if ($isList)
+			{
+				$row['sort'] = '1';
+				$row['search'] = '1';
+			}
+
+			if ($isLink)
+			{
+				$row['link'] = '1';
+			}
+
+			$subform['addfields' . $number] = $row;
 			$number++;
 		}
 

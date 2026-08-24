@@ -37,15 +37,17 @@ final class AdminView extends Writer
 	/**
 	 * The permission actions a generated view is given.
 	 *
-	 * @var    string
+	 * Each becomes one subform row of action and implementation, which is the
+	 * only shape the admin_view form renders -- and 3 implements the action
+	 * on both the record and the whole view, as JCB's own demo data does.
+	 *
+	 * @var    array<int, string>
 	 * @since  6.1.6
 	 */
 	private const PERMISSIONS = [
-		'action' => [
-			'view.edit', 'view.edit.own', 'view.edit.state',
-			'view.create', 'view.delete', 'view.access'
-		],
-		'implementation' => ['3', '3', '3', '3', '3', '3']
+		'view.edit', 'view.edit.own', 'view.edit.state', 'view.edit.access',
+		'view.edit.created_by', 'view.edit.created', 'view.create',
+		'view.delete', 'view.access'
 	];
 
 	/**
@@ -173,7 +175,7 @@ final class AdminView extends Writer
 		$definition->description = $system . ' (extruded)';
 		$definition->type = 1;
 		$definition->add_fadein = 1;
-		$definition->addpermissions = self::PERMISSIONS;
+		$definition->addpermissions = $this->permissions();
 		$definition->addtabs = $this->tabs($path);
 		$definition->published = 1;
 
@@ -192,6 +194,27 @@ final class AdminView extends Writer
 		$this->resolved->set($path . '.written.view.guid', $guid);
 
 		return true;
+	}
+
+	/**
+	 * The permission rows a generated view is given.
+	 *
+	 * @return  array<string, array<string, mixed>>  The permission subform.
+	 * @since   6.1.8
+	 */
+	protected function permissions(): array
+	{
+		$subform = [];
+
+		foreach (self::PERMISSIONS as $number => $action)
+		{
+			$subform['addpermissions' . $number] = [
+				'action' => $action,
+				'implementation' => 3
+			];
+		}
+
+		return $subform;
 	}
 
 	/**

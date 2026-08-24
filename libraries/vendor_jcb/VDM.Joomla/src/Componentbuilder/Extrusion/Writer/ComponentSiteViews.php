@@ -152,11 +152,11 @@ final class ComponentSiteViews extends Writer
 			// make, so it is recorded rather than left implicit.
 			$subform['addsite_views' . $number] = [
 				'siteview' => $guid,
-				'menu' => 1,
-				'metadata' => 1,
-				'access' => 1,
-				'public_access' => 1,
-				'default_view' => $number === 0 ? 1 : 0
+				'menu' => '1',
+				'metadata' => '1',
+				'access' => '1',
+				'public_access' => '1',
+				'default_view' => $number === 0 ? '1' : ''
 			];
 			$number++;
 		}
