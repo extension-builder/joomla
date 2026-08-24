@@ -64,7 +64,8 @@ class Extrusion implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Message'),
 			$container->get('Extrusion.Reader.Schema'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Prefix')
+			$container->get('Extrusion.Resolver.Prefix'),
+			$container->get('Extrusion.Resolver.Reuse')
 		);
 	}
 }

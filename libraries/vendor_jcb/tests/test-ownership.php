@@ -4048,6 +4048,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/CustomAdminView.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/SiteView.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
@@ -4152,6 +4156,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Reuse.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CandidatesTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Role.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'
@@ -4224,11 +4232,23 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/ComponentCustomAdminViews.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/ComponentSiteViews.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/CustomAdminView.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Dispatcher.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/DynamicGet.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],

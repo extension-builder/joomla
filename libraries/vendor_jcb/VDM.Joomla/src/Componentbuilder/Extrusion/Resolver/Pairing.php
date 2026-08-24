@@ -164,6 +164,41 @@ final class Pairing
 	}
 
 	/**
+	 * Record a reuse verdict for one candidate, unless the caller already spoke.
+	 *
+	 * A candidate that matches a definition JCB already holds must not be
+	 * created again: left undecided, it defaults to updating the match. An
+	 * explicit verdict from the caller always outranks this default.
+	 *
+	 * @param   string  $kind    The candidate kind, such as admin_view or field.
+	 * @param   string  $key     The candidate key within its kind.
+	 * @param   string  $target  The matched identity to reuse.
+	 *
+	 * @return  bool  True when the default verdict was recorded.
+	 * @since   6.1.8
+	 */
+	public function reuse(string $kind, string $key, string $target): bool
+	{
+		$kind = $this->key($kind);
+		$key = $this->key($key);
+		$target = strtolower(trim($target));
+
+		if ($kind === '' || $key === '' || !$this->guid->valid($target)
+			|| $this->decision->get($kind . '.' . $key) !== null)
+		{
+			return false;
+		}
+
+		$this->decision->set($kind . '.' . $key, [
+			'action' => 'update',
+			'target' => $target
+		]);
+		$this->report->set('reuse.' . $kind . '.' . $key, $target);
+
+		return true;
+	}
+
+	/**
 	 * The identity one candidate is written under, after its verdict.
 	 *
 	 * Without a verdict the derived identity stands. An ignore verdict answers

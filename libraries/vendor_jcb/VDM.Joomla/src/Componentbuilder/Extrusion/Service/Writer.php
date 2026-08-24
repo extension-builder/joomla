@@ -20,7 +20,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Component;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentAdminViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentCustomAdminViews;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\ComponentSiteViews;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\CustomAdminView;
+use VDM\Joomla\Componentbuilder\Extrusion\Writer\DynamicGet;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
@@ -71,6 +74,15 @@ class Writer implements ServiceProviderInterface
 
 		$container->alias(SiteView::class, 'Extrusion.Writer.SiteView')
 			->share('Extrusion.Writer.SiteView', [$this, 'getSiteView'], true);
+
+		$container->alias(DynamicGet::class, 'Extrusion.Writer.DynamicGet')
+			->share('Extrusion.Writer.DynamicGet', [$this, 'getDynamicGet'], true);
+
+		$container->alias(CustomAdminView::class, 'Extrusion.Writer.CustomAdminView')
+			->share('Extrusion.Writer.CustomAdminView', [$this, 'getCustomAdminView'], true);
+
+		$container->alias(ComponentCustomAdminViews::class, 'Extrusion.Writer.ComponentCustomAdminViews')
+			->share('Extrusion.Writer.ComponentCustomAdminViews', [$this, 'getComponentCustomAdminViews'], true);
 
 		$container->alias(ComponentSiteViews::class, 'Extrusion.Writer.ComponentSiteViews')
 			->share('Extrusion.Writer.ComponentSiteViews', [$this, 'getComponentSiteViews'], true);
@@ -210,6 +222,70 @@ class Writer implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Dynamic Get Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicGet
+	 * @since   6.1.8
+	 */
+	public function getDynamicGet(Container $container): DynamicGet
+	{
+		return new DynamicGet(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Source')
+		);
+	}
+
+	/**
+	 * Get the Custom Admin View Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomAdminView
+	 * @since   6.1.8
+	 */
+	public function getCustomAdminView(Container $container): CustomAdminView
+	{
+		return new CustomAdminView(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Resolver.Text')
+		);
+	}
+
+	/**
+	 * Get the Component Custom Admin Views Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ComponentCustomAdminViews
+	 * @since   6.1.8
+	 */
+	public function getComponentCustomAdminViews(Container $container): ComponentCustomAdminViews
+	{
+		return new ComponentCustomAdminViews(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Load')
+		);
+	}
+
+	/**
 	 * Get the Component Site Views Writer.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -337,7 +413,10 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Writer.Layout'),
 			$container->get('Extrusion.Writer.Template'),
 			$container->get('Extrusion.Writer.SiteView'),
-			$container->get('Extrusion.Writer.ComponentSiteViews')
+			$container->get('Extrusion.Writer.ComponentSiteViews'),
+			$container->get('Extrusion.Writer.DynamicGet'),
+			$container->get('Extrusion.Writer.CustomAdminView'),
+			$container->get('Extrusion.Writer.ComponentCustomAdminViews')
 		);
 	}
 }

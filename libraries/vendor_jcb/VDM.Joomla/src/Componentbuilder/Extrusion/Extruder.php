@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher as WriterDispatcher;
 
 
@@ -130,6 +131,14 @@ final class Extruder implements ExtruderInterface
 	protected Prefix $prefix;
 
 	/**
+	 * The Reuse Resolver.
+	 *
+	 * @var    Reuse
+	 * @since  6.1.8
+	 */
+	protected Reuse $reuse;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -143,6 +152,7 @@ final class Extruder implements ExtruderInterface
 	 * @param   SchemaReader      $schema     The schema reader.
 	 * @param   Source            $source     The source identity registry.
 	 * @param   Prefix            $prefix     The table-name prefix resolver.
+	 * @param   Reuse             $reuse      The matched-candidate reuse resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -157,7 +167,8 @@ final class Extruder implements ExtruderInterface
 		Message $message,
 		SchemaReader $schema,
 		Source $source,
-		Prefix $prefix
+		Prefix $prefix,
+		Reuse $reuse
 	)
 	{
 		$this->config = $config;
@@ -171,6 +182,7 @@ final class Extruder implements ExtruderInterface
 		$this->schema = $schema;
 		$this->source = $source;
 		$this->prefix = $prefix;
+		$this->reuse = $reuse;
 	}
 
 	/**
@@ -518,6 +530,11 @@ final class Extruder implements ExtruderInterface
 		{
 			return $this->finish(false);
 		}
+
+		// what already stands in JCB is reused, never created again: every
+		// matched candidate without an explicit verdict updates its match,
+		// and matched fields record the identity their views must link
+		$this->reuse->apply();
 
 		$written = $this->writers->dispatch();
 

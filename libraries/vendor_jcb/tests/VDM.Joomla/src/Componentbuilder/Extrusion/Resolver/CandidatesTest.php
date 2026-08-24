@@ -19,8 +19,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Tests\Support\ExtrusionDatabaseFixture;
 use VDM\Tests\Support\TestCase;
 
@@ -36,6 +39,7 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.7
  */
 #[CoversClass(Candidates::class)]
+#[CoversClass(Reuse::class)]
 #[UsesClass(Config::class)]
 #[UsesClass(Guid::class)]
 #[UsesClass(Report::class)]
@@ -145,6 +149,8 @@ final class CandidatesTest extends TestCase
 				['guid' => 'cccccccc-3333-4333-8333-333333333333', 'name' => 'itemcard']
 			])
 			->table('template', [])
+			->table('custom_admin_view', [])
+			->table('component_custom_admin_views', [])
 			->table('power', []);
 
 		$this->resolved = new Resolved();
@@ -235,17 +241,73 @@ final class CandidatesTest extends TestCase
 	}
 
 	/**
-	 * Without a component nothing pairs, and everything proposes creation.
+	 * Without a component the views propose creation, but fields still match.
+	 *
+	 * A component-scoped pool needs a component: no views pair, no site views
+	 * pair. Fields are different -- JCB shares them across every component,
+	 * so a field that already stands anywhere in the system is a match even
+	 * when no target component was chosen. That is what keeps a second name
+	 * field from ever being created.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testWithoutAComponentEverythingProposesCreation(): void
+	public function testWithoutAComponentViewsProposeCreationButFieldsStillMatch(): void
 	{
 		$candidates = $this->candidates->candidates(0);
 
 		$this->assertNull($candidates['admin_view'][0]['match']);
-		$this->assertNull($candidates['admin_view'][0]['fields'][0]['match']);
+		$this->assertSame(
+			'bbbbbbbb-2222-4222-8222-222222222222',
+			$candidates['admin_view'][0]['fields'][0]['match']['guid'] ?? null,
+			'A field that already stands in JCB matches whatever the component target.'
+		);
+	}
+
+	/**
+	 * A matched candidate left undecided reuses its match instead of twinning.
+	 *
+	 * The reuse step records an update verdict for every matched candidate the
+	 * caller stayed silent on, and records the matched identity of every field
+	 * so its view links what already stands. An explicit verdict is never
+	 * overruled: the caller's word outranks the default.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testMatchedCandidatesDefaultToReusingWhatAlreadyStands(): void
+	{
+		$decision = new Decision();
+		$report = new Report();
+		$pairing = new Pairing($decision, new Guid(), $report);
+		$config = new Config();
+		$config->set('component', 3);
+
+		$pairing->load(['admin_view' => ['item' => ['action' => 'create']]]);
+
+		$reuse = new Reuse($this->candidates, $pairing, $this->resolved, $report, $config);
+
+		$this->assertGreaterThan(0, $reuse->apply());
+		$this->assertSame(
+			['action' => 'create', 'target' => ''],
+			$decision->get('admin_view.item'),
+			'An explicit verdict outranks the reuse default.'
+		);
+		$this->assertSame(
+			['action' => 'update', 'target' => self::FIELD],
+			$decision->get('field.item_title'),
+			'A matched field left undecided updates the field that already stands.'
+		);
+		$this->assertSame(
+			self::FIELD,
+			$this->resolved->get('view.item.linked.title.guid'),
+			'The matched identity is recorded so the view links the standing field.'
+		);
+		$this->assertSame(self::FIELD, $report->get('reuse.field.item_title'));
+		$this->assertNull(
+			$decision->get('field.item_legacy_flag'),
+			'A field nothing matches keeps the harvest\'s own answer.'
+		);
 	}
 
 	/**
