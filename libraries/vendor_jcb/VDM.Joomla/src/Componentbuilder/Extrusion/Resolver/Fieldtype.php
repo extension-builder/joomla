@@ -184,6 +184,7 @@ final class Fieldtype
 				'guid' => trim((string) ($row['guid'] ?? '')),
 				'name' => $name,
 				'properties' => $this->propertyList($row['properties'] ?? null),
+				'declared' => $this->declaredList($row['properties'] ?? null),
 				'hints' => $this->hints($row['properties'] ?? null)
 			];
 			$this->named[strtolower($name)] = $entry;
@@ -321,6 +322,73 @@ final class Fieldtype
 		$entry = $this->resolve($type);
 
 		return $entry === null ? [] : ($entry['properties'] ?? []);
+	}
+
+	/**
+	 * The full property declarations of one field type, in declared order.
+	 *
+	 * Every entry carries the property's name, its example value and its
+	 * description -- the same declarations JCB's own field composition walks
+	 * when it aligns a field's xml to its type.
+	 *
+	 * @param   string  $type  The Joomla XML type string.
+	 *
+	 * @return  array<int, array{name: string, example: string, description: string}>  The declarations.
+	 * @since   6.1.7
+	 */
+	public function declared(string $type): array
+	{
+		$entry = $this->resolve($type);
+
+		return $entry === null ? [] : ($entry['declared'] ?? []);
+	}
+
+	/**
+	 * Read the full property declarations out of a properties payload.
+	 *
+	 * @param   mixed  $properties  The properties JSON.
+	 *
+	 * @return  array<int, array{name: string, example: string, description: string}>  The declarations.
+	 * @since   6.1.7
+	 */
+	protected function declaredList($properties): array
+	{
+		if (!is_string($properties) || $properties === '')
+		{
+			return [];
+		}
+
+		$decoded = json_decode($properties, true);
+
+		if (!is_array($decoded))
+		{
+			return [];
+		}
+
+		$declared = [];
+
+		foreach ($decoded as $property)
+		{
+			if (!is_array($property))
+			{
+				continue;
+			}
+
+			$name = trim((string) ($property['name'] ?? ''));
+
+			if ($name === '')
+			{
+				continue;
+			}
+
+			$declared[] = [
+				'name' => $name,
+				'example' => (string) ($property['example'] ?? ''),
+				'description' => (string) ($property['description'] ?? '')
+			];
+		}
+
+		return $declared;
 	}
 
 	/**

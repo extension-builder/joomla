@@ -955,45 +955,78 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * A field with options becomes an element with option children.
+	 * A field's options fold into the option attribute, as JCB stores them.
+	 *
+	 * JCB's compiler explodes one option attribute of value|text entries
+	 * back into option elements -- child elements are never the stored form.
+	 * And the whole attribute set aligns to the field type's declarations,
+	 * the harvested values first and the type's examples where the source
+	 * stated nothing.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.1.7
 	 */
-	public function testFieldXmlBuildEmitsOptionChildren(): void
+	public function testFieldXmlFoldsOptionsIntoTheOptionAttribute(): void
 	{
-		$xml = $this->fieldXml();
+		$xml = $this->fieldXml()->build('status', [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'label' => ['value' => 'Status', 'origin' => 'xml'],
+			'options' => ['value' => [
+				['value' => '1', 'text' => 'Yes'],
+				['value' => '0', 'text' => 'No & maybe'],
+				['text' => ''],
+				['nothing' => 'here']
+			], 'origin' => 'xml']
+		]);
 
-		$this->assertSame(
-			implode(PHP_EOL, [
-				'<field',
-				"\t" . 'name="status"',
-				"\t" . 'label="Status"',
-				'>',
-				"\t" . '<option value="1">Yes</option>',
-				"\t" . '<option value="0">No &amp; maybe</option>',
-				"\t" . '<option value="">' . '</option>',
-				'</field>'
-			]),
-			$xml->build('status', [
-				'xml_type' => ['value' => 'text', 'origin' => 'xml'],
-				'label' => ['value' => 'Status', 'origin' => 'xml'],
-				'options' => ['value' => [
-					['value' => '1', 'text' => 'Yes'],
-					['value' => '0', 'text' => 'No & maybe'],
-					['text' => ''],
-					['nothing' => 'here']
-				], 'origin' => 'xml']
-			])
+		$this->assertStringContainsString(
+			'option="1|Yes,0|No &amp; maybe"',
+			$xml,
+			'Options are one attribute of value|text entries, never children.'
 		);
-		$this->assertSame(
-			implode(PHP_EOL, ['<field', "\t" . 'name="status"', '/>']),
-			$xml->build('status', [
-				'xml_type' => ['value' => 'text', 'origin' => 'xml'],
-				'options' => ['value' => 'not-a-list', 'origin' => 'xml']
-			]),
-			'An option list that is not a list produces no children.'
+		$this->assertStringNotContainsString('<option', $xml);
+		$this->assertStringContainsString('name="status"', $xml);
+		$this->assertStringContainsString('label="Status"', $xml);
+		$this->assertStringContainsString(
+			'class="form-control"',
+			$xml,
+			'A declared property the source left out falls back to the example.'
 		);
+		$this->assertStringContainsString('required="true"', $xml);
+		$this->assertStringEndsWith('/>', $xml);
+	}
+
+	/**
+	 * A declared gap the type has no example for fills the legacy way.
+	 *
+	 * The original extrusion derived a new field's description, message and
+	 * hint from its label, and named the field after its column. When a field
+	 * type declares those properties and the source states nothing, the same
+	 * formulas speak -- so an extruded field reads exactly as one the original
+	 * extrusion built.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testFieldXmlFillsDeclaredGapsTheLegacyWay(): void
+	{
+		$xml = $this->fieldXml([
+			['name' => 'type', 'example' => 'text'],
+			['name' => 'name', 'example' => 'name'],
+			['name' => 'label', 'example' => 'COM_X_LABEL'],
+			['name' => 'description', 'example' => ''],
+			['name' => 'message', 'example' => ''],
+			['name' => 'hint', 'example' => '']
+		])->build('status', [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'label' => ['value' => 'Status', 'origin' => 'xml']
+		]);
+
+		$this->assertStringContainsString('name="status"', $xml, 'The field is named after its column.');
+		$this->assertStringContainsString('label="Status"', $xml);
+		$this->assertStringContainsString('description="The status is set here."', $xml);
+		$this->assertStringContainsString('message="Error! Please add some status here."', $xml);
+		$this->assertStringContainsString('hint="Status Here!"', $xml);
 	}
 
 	/**
@@ -1094,12 +1127,12 @@ final class ResolverTest extends TestCase
 	 * @return  FieldXml  The composer.
 	 * @since   6.1.6
 	 */
-	private function fieldXml(): FieldXml
+	private function fieldXml(?array $declares = null): FieldXml
 	{
 		$report = new Report();
 
 		return new FieldXml(
-			new Fieldtype($this->loader(), new Source(), $report),
+			new Fieldtype($this->loader($declares), new Source(), $report),
 			$report
 		);
 	}
@@ -1114,10 +1147,21 @@ final class ResolverTest extends TestCase
 	 * @return  LoadInterface  The database loader.
 	 * @since   6.1.6
 	 */
-	private function loader(): LoadInterface
+	private function loader(?array $declares = null): LoadInterface
 	{
-		return new class implements LoadInterface
+		return new class($declares) implements LoadInterface
 		{
+			/**
+			 * Constructor.
+			 *
+			 * @param   array|null  $declares  The declared properties, or null for the default set.
+			 *
+			 * @since   6.1.7
+			 */
+			public function __construct(private ?array $declares = null)
+			{
+			}
+
 			/**
 			 * Load data rows as an array of associated arrays.
 			 *
@@ -1154,7 +1198,7 @@ final class ResolverTest extends TestCase
 				return [(object) [
 					'id' => 7,
 					'name' => 'Text',
-					'properties' => json_encode([
+					'properties' => json_encode($this->declares ?? [
 						['name' => 'type', 'example' => 'text'],
 						['name' => 'name', 'example' => 'name'],
 						['name' => 'label', 'example' => 'COM_X_LABEL'],
