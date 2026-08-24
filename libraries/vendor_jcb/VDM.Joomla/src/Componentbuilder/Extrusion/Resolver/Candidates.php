@@ -130,20 +130,22 @@ final class Candidates
 	/**
 	 * Every candidate the harvest produced, paired against one component.
 	 *
-	 * @param   int  $componentId  The component whose links pair the candidates.
+	 * @param   int         $componentId  The component whose links pair the candidates.
+	 * @param   array|null  $catalogue    A catalogue already built for this component.
 	 *
 	 * @return  array<string, mixed>  Candidates by kind, each pre-paired by name.
 	 * @since   6.1.7
 	 */
-	public function candidates(int $componentId): array
+	public function candidates(int $componentId, ?array $catalogue = null): array
 	{
-		$catalogue = $this->catalogue($componentId);
+		$catalogue ??= $this->catalogue($componentId);
 
 		return [
 			'admin_view' => $this->adminViews($catalogue),
 			'site_view' => $this->classified('site_view', $catalogue['site_views']),
 			'custom_admin_view' => $this->customAdminViews(
-				(array) $catalogue['custom_admin_views']
+				(array) $catalogue['custom_admin_views'],
+				(array) $catalogue['admin_views']
 			),
 			'layout' => $this->classified('layout', $catalogue['layouts']),
 			'template' => $this->classified('template', $catalogue['templates'])
@@ -181,7 +183,12 @@ final class Candidates
 			'component' => $component,
 			'admin_views' => $this->rows(
 				'admin_view',
-				['a.guid' => 'guid', 'a.name_single' => 'name', 'a.system_name' => 'system'],
+				[
+					'a.guid' => 'guid',
+					'a.name_single' => 'name',
+					'a.name_list' => 'list',
+					'a.system_name' => 'system'
+				],
 				$views
 			),
 			'fields' => $this->fields($views),
@@ -364,7 +371,7 @@ final class Candidates
 				'detail' => $column,
 				'guid' => $derived,
 				'match' => $this->matchByGuid($derived, $pool)
-					?? $this->matchByName([$label, $column], $scoped)
+					?? $this->scopedMatch([$label, $column], $scoped)
 					?? $this->matchByName([$label, $column], $pool)
 			];
 		}
@@ -381,12 +388,13 @@ final class Candidates
 	 * custom admin view with a table view's code name is a contradiction the
 	 * board must never offer.
 	 *
-	 * @param   array<int, object|array>  $pool  The existing custom admin views.
+	 * @param   array<int, object|array>  $pool      The existing custom admin views.
+	 * @param   array<int, object|array>  $existing  The component's own admin views.
 	 *
 	 * @return  array<int, array<string, mixed>>  The candidates.
 	 * @since   6.1.8
 	 */
-	protected function customAdminViews(array $pool): array
+	protected function customAdminViews(array $pool, array $existing): array
 	{
 		$candidates = [];
 
@@ -395,7 +403,8 @@ final class Candidates
 			$entry = (array) $entry;
 			$name = (string) ($entry['name'] ?? $key);
 
-			if ($name === '' || !empty($entry['crud']) || $this->answered($name))
+			if ($name === '' || !empty($entry['crud']) || $this->answered($name)
+				|| $this->existingAnswers($name, $existing))
 			{
 				continue;
 			}
@@ -416,6 +425,41 @@ final class Candidates
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * Whether one of the component's own admin views answers for a folder name.
+	 *
+	 * The database is the ground truth for what the component already has: its
+	 * linked admin views carry their real single and list names, exactly as
+	 * the person named them. A folder that answers to either is that view's
+	 * own territory, never a custom admin view -- no plural guessing, only
+	 * the names the component itself gave.
+	 *
+	 * @param   string                    $name      The folder's code name.
+	 * @param   array<int, object|array>  $existing  The component's own admin views.
+	 *
+	 * @return  bool  True when an existing admin view answers for it.
+	 * @since   6.1.8
+	 */
+	protected function existingAnswers(string $name, array $existing): bool
+	{
+		$name = strtolower(trim($name));
+
+		foreach ($existing as $row)
+		{
+			$row = (array) $row;
+
+			foreach (['name', 'list'] as $field)
+			{
+				if ($name === strtolower(trim((string) ($row[$field] ?? ''))))
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -488,6 +532,33 @@ final class Candidates
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * A match within the paired view's own linked fields is discovered wiring.
+	 *
+	 * The fields a view already links ARE that view's columns as the person
+	 * wired them -- the Globally Unique ID field on its publishing tab among
+	 * them. A column that answers to one of them by name is that wiring
+	 * rediscovered, so it is reused like an identity: creating a twin beside
+	 * it would sever the view from its own field.
+	 *
+	 * @param   array<string>             $names   The candidate's names, best first.
+	 * @param   array<int, object|array>  $scoped  The paired view's linked fields.
+	 *
+	 * @return  array{guid: string, label: string, by: string}|null  The pairing, or null.
+	 * @since   6.1.8
+	 */
+	protected function scopedMatch(array $names, array $scoped): ?array
+	{
+		$match = $this->matchByName($names, $scoped);
+
+		if ($match !== null)
+		{
+			$match['by'] = 'scoped';
+		}
+
+		return $match;
 	}
 
 	/**

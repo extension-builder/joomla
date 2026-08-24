@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -26,6 +27,10 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  * The list, sort, search and filter flags come from the resolved roles rather
  * than from a positional guess, which is what removes the long standing defect
  * where the first configured list field silently lost every flag.
+ *
+ * What the view already links is never replaced: an existing admin_fields row
+ * is discovered and kept verbatim -- every field the person wired, on the tab
+ * and in the order they chose -- and only fields not yet linked are appended.
  *
  * @since 6.1.6
  */
@@ -41,6 +46,14 @@ final class AdminFields extends Writer
 	protected Source $source;
 
 	/**
+	 * The database load boundary.
+	 *
+	 * @var    LoadInterface
+	 * @since  6.1.8
+	 */
+	protected LoadInterface $load;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -48,6 +61,7 @@ final class AdminFields extends Writer
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
 	 * @param   Source         $source    The source identity registry.
+	 * @param   LoadInterface  $load      The database load boundary.
 	 *
 	 * @since   6.1.6
 	 */
@@ -56,12 +70,14 @@ final class AdminFields extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
-		Source $source
+		Source $source,
+		LoadInterface $load
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
 		$this->source = $source;
+		$this->load = $load;
 	}
 
 	/**
@@ -220,10 +236,81 @@ final class AdminFields extends Writer
 
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
-		$definition->addfields = $subform;
+		$definition->addfields = $this->merge($viewGuid, $subform);
 		$definition->published = 1;
 
 		return $this->store($definition);
+	}
+
+	/**
+	 * Merge the harvested field links into what the view already links.
+	 *
+	 * The existing rows are the person's own wiring -- the Globally Unique ID
+	 * field on its publishing tab, the orders and flags they chose -- and are
+	 * kept exactly as they stand. A harvested field whose identity is already
+	 * linked adds nothing; one the view does not yet link is appended, its
+	 * edit order counted on from what each tab already holds.
+	 *
+	 * @param   string                              $viewGuid  The view the links belong to.
+	 * @param   array<string, array<string, mixed>>  $subform   The harvested field links.
+	 *
+	 * @return  array<string, array<string, mixed>>  The merged subform.
+	 * @since   6.1.8
+	 */
+	protected function merge(string $viewGuid, array $subform): array
+	{
+		$stored = $this->load->value(
+			['a.addfields' => 'addfields'],
+			['a' => 'admin_fields'],
+			['a.admin_view' => $viewGuid]
+		);
+		$existing = is_string($stored) ? json_decode($stored, true) : null;
+
+		if (!is_array($existing) || $existing === [])
+		{
+			return $subform;
+		}
+
+		$linked = [];
+		$orders = [];
+
+		foreach ($existing as $row)
+		{
+			$row = (array) $row;
+			$field = strtolower(trim((string) ($row['field'] ?? '')));
+
+			if ($field !== '')
+			{
+				$linked[$field] = true;
+			}
+
+			$tab = (string) ((int) ($row['tab'] ?? 1));
+			$orders[$tab] = max((int) ($orders[$tab] ?? 0), (int) ($row['order_edit'] ?? 0));
+		}
+
+		$merged = $existing;
+		$number = 0;
+
+		foreach ($subform as $row)
+		{
+			if (isset($linked[strtolower(trim((string) $row['field']))]))
+			{
+				continue;
+			}
+
+			$tab = (string) ((int) ($row['tab'] ?? 1));
+			$orders[$tab] = (int) ($orders[$tab] ?? 0) + 1;
+			$row['order_edit'] = (string) $orders[$tab];
+
+			while (isset($merged['addfields' . $number]))
+			{
+				$number++;
+			}
+
+			$merged['addfields' . $number] = $row;
+		}
+
+		return $merged;
 	}
 
 	/**
