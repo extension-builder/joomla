@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Table;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Discovery;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Extrusion;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
@@ -104,6 +105,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->container = new Container();
 		$this->container->share('Data.Item', fn (): ExtrusionItemFixture => $this->item);
 		$this->container->share('Load', fn (): ExtrusionCatalogueFixture => $this->catalogue);
+		$this->container->share('Table', static fn (): Table => new Table(), true);
 		$this->container->registerServiceProvider(new RegistryProvider())
 			->registerServiceProvider(new Discovery())
 			->registerServiceProvider(new Reader())

@@ -280,9 +280,10 @@ final class ExtrusionItemFixture implements ItemInterface
 	{
 		$this->column($key);
 
-		foreach (array_keys(get_object_vars($item)) as $property)
+		foreach (get_object_vars($item) as $property => $value)
 		{
 			$this->column($property, 'writes');
+			$this->capacity($property, $value);
 		}
 
 		$identity = (string) ($item->{$key} ?? '');
@@ -347,6 +348,40 @@ final class ExtrusionItemFixture implements ItemInterface
 				. $this->active . "', but the JCB Table class defines no such "
 				. 'column there. On a live site the value would be silently '
 				. 'dropped or the query refused.'
+			);
+		}
+	}
+
+	/**
+	 * Refuse any value longer than the Table class says its column holds.
+	 *
+	 * A strict live database refuses an over-long value outright, so this
+	 * boundary does the same -- the CHAR and VARCHAR capacities come from
+	 * the Table class's own db types.
+	 *
+	 * @param   string  $column  The column the value is written into.
+	 * @param   mixed   $value   The written value.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	private function capacity(string $column, $value): void
+	{
+		if (!is_string($value))
+		{
+			return;
+		}
+
+		$type = (string) (self::tables()->get($this->active, $column, 'db')['type'] ?? '');
+
+		if (preg_match('/^(?:VAR)?CHAR\((\d+)\)/i', $type, $size)
+			&& strlen($value) > (int) $size[1])
+		{
+			throw new \RuntimeException(
+				'The writer stores ' . strlen($value) . " characters into '"
+				. $column . "' on '" . $this->active . "', but the JCB Table "
+				. 'class declares it ' . $type . '. A strict live database '
+				. 'refuses this outright.'
 			);
 		}
 	}
