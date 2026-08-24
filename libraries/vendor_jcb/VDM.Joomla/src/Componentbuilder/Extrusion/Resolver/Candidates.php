@@ -176,7 +176,7 @@ final class Candidates
 			'fields' => $this->fields($views),
 			'site_views' => $this->rows(
 				'site_view',
-				['a.guid' => 'guid', 'a.name_single' => 'name', 'a.system_name' => 'system'],
+				['a.guid' => 'guid', 'a.name' => 'name', 'a.system_name' => 'system'],
 				$siteViews
 			),
 			'layouts' => $this->rows('layout', ['a.guid' => 'guid', 'a.name' => 'name']),

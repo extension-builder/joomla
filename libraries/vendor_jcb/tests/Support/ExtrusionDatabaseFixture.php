@@ -37,6 +37,19 @@ final class ExtrusionDatabaseFixture implements LoadInterface
 	private array $tables = [];
 
 	/**
+	 * The real component schema, table to column list, parsed once.
+	 *
+	 * The install SQL is the ground truth of what a live site holds. Every
+	 * declared row and every queried column is validated against it, so a
+	 * test can never pass on a column a real database would refuse -- the
+	 * exact failure a fabricated fixture schema once let through.
+	 *
+	 * @var    array<string, array<int, string>>|null
+	 * @since  6.1.7
+	 */
+	private static ?array $schema = null;
+
+	/**
 	 * Declare the rows one table serves.
 	 *
 	 * @param   string                                $table  The table without its prefix.
@@ -47,10 +60,17 @@ final class ExtrusionDatabaseFixture implements LoadInterface
 	 */
 	public function table(string $table, array $rows): self
 	{
-		$this->tables[$table] = array_map(
+		$rows = array_map(
 			static fn ($row): array => (array) $row,
 			array_values($rows)
 		);
+
+		foreach ($rows as $row)
+		{
+			$this->assertColumns($table, array_keys($row), 'declares');
+		}
+
+		$this->tables[$table] = $rows;
 
 		return $this;
 	}
@@ -236,7 +256,18 @@ final class ExtrusionDatabaseFixture implements LoadInterface
 	 */
 	private function matches(array $select, array $tables, ?array $where): ?array
 	{
-		$rows = $this->tables[(string) ($tables['a'] ?? '')] ?? null;
+		$table = (string) ($tables['a'] ?? '');
+
+		$this->assertColumns(
+			$table,
+			array_map(
+				static fn ($column): string => str_replace('a.', '', (string) $column),
+				array_merge(array_keys($select), array_keys((array) $where))
+			),
+			'queries'
+		);
+
+		$rows = $this->tables[$table] ?? null;
 
 		if ($rows === null)
 		{
@@ -303,5 +334,76 @@ final class ExtrusionDatabaseFixture implements LoadInterface
 		}
 
 		return true;
+	}
+
+	/**
+	 * Refuse any column the real component schema does not hold.
+	 *
+	 * Tables outside the component schema (Joomla core tables such as
+	 * extensions) are not validated -- the install SQL says nothing about
+	 * them.
+	 *
+	 * @param   string              $table    The table without its prefix.
+	 * @param   array<int, string>  $columns  The columns to validate.
+	 * @param   string              $what     What the caller is doing, for the message.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	private function assertColumns(string $table, array $columns, string $what): void
+	{
+		$schema = self::schema();
+		$known = $schema[str_replace('#__componentbuilder_', '', $table)] ?? null;
+
+		if ($known === null)
+		{
+			return;
+		}
+
+		foreach ($columns as $column)
+		{
+			if (!in_array((string) $column, $known, true))
+			{
+				throw new \RuntimeException(
+					'The test ' . $what . " column '" . $column . "' on '"
+					. $table . "', but admin/sql/install.mysql.utf8.sql defines "
+					. 'no such column. A live database would refuse this.'
+				);
+			}
+		}
+	}
+
+	/**
+	 * The component schema, parsed from the install SQL, once per process.
+	 *
+	 * @return  array<string, array<int, string>>  Table (without prefix) to columns.
+	 * @since   6.1.7
+	 */
+	private static function schema(): array
+	{
+		if (self::$schema !== null)
+		{
+			return self::$schema;
+		}
+
+		$sql = (string) file_get_contents(
+			\dirname(__DIR__, 4) . '/admin/sql/install.mysql.utf8.sql'
+		);
+		self::$schema = [];
+
+		preg_match_all(
+			'/CREATE TABLE IF NOT EXISTS `#__componentbuilder_(\w+)` \((.*?)\)\s*ENGINE/s',
+			$sql,
+			$creates,
+			PREG_SET_ORDER
+		);
+
+		foreach ($creates as $create)
+		{
+			preg_match_all('/^\t`(\w+)`/m', $create[2], $columns);
+			self::$schema[$create[1]] = $columns[1];
+		}
+
+		return self::$schema;
 	}
 }
