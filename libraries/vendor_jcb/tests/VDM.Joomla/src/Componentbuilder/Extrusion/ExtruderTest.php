@@ -509,6 +509,118 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * A second run against a system that already holds the component updates it.
+	 *
+	 * This is the working case: someone built the component in JCB, kept
+	 * developing the real component, and runs the extrusion again. The
+	 * component's own link tables say which admin view is theirs and which
+	 * fields that view links, so the run updates those very records instead
+	 * of creating a second set beside them -- and everything they arranged
+	 * around those records survives.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testASecondRunUpdatesTheRecordsTheComponentAlreadyDeclares(): void
+	{
+		$standing = 'aaaaaaaa-1111-4111-8111-111111111111';
+		$standingField = 'bbbbbbbb-2222-4222-8222-222222222222';
+		$component = ExtrusionCatalogueFixture::componentGuid(7);
+
+		// what the live system already holds: the component links one admin
+		// view, and that view links one field on a tab someone chose
+		$this->catalogue
+			->table('joomla_component', [
+				['id' => 7, 'guid' => $component, 'system_name' => 'Demo',
+					'name_code' => 'example']
+			])
+			->table('component_admin_views', [
+				['joomla_component' => $component, 'addadmin_views' => json_encode([
+					'addadmin_views0' => [
+						'adminview' => $standing,
+						'icomoon' => 'shield',
+						'mainmenu' => '',
+						'order' => '9'
+					]
+				])]
+			])
+			->table('admin_view', [
+				['guid' => $standing, 'name_single' => 'item', 'name_list' => 'items',
+					'system_name' => 'Item']
+			])
+			->table('admin_fields', [
+				['admin_view' => $standing, 'addfields' => json_encode([
+					'addfields0' => [
+						'field' => $standingField,
+						'tab' => '15',
+						'alignment' => 4,
+						'order_edit' => '2'
+					]
+				])]
+			])
+			->table('field', [
+				['guid' => $standingField, 'name' => 'Name']
+			]);
+
+		// the write boundary knows the same records stand, exactly as the
+		// live pipeline finds them when it looks the identity up
+		$this->item
+			->identity('admin_view', $standing, 47)
+			->identity('field', $standingField, 48);
+
+		$report = $this->extruder()->path($this->modern())->component(7)->extrude();
+
+		$this->assertTrue($report->get('completed'));
+
+		$view = $this->item->definition('admin_view', $standing);
+
+		$this->assertNotNull(
+			$view,
+			'The view the component itself links is the record the run updates.'
+		);
+		$this->assertSame('item', $view->name_single);
+		$this->assertObjectNotHasProperty(
+			'addtabs',
+			$view,
+			'A view that already exists keeps the tabs someone arranged.'
+		);
+
+		$links = $this->item->records('admin_fields');
+		$fields = [];
+
+		foreach ($links as $link)
+		{
+			if ($link['item']->admin_view === $standing)
+			{
+				$fields = $this->decode($link['item']->addfields);
+			}
+		}
+
+		$this->assertSame(
+			['field' => $standingField, 'tab' => '15', 'alignment' => 4, 'order_edit' => '2'],
+			$fields['addfields0'] ?? null,
+			'The field link someone arranged survives the re-run exactly as it stood.'
+		);
+		$this->assertGreaterThan(
+			1,
+			count($fields),
+			'Columns the view does not yet link are appended beside what stands.'
+		);
+
+		$componentLink = $this->item->definitions('component_admin_views')[0] ?? null;
+
+		$this->assertNotNull($componentLink);
+
+		$linked = $this->decode($componentLink->addadmin_views);
+
+		$this->assertSame(
+			['adminview' => $standing, 'icomoon' => 'shield', 'mainmenu' => '', 'order' => '9'],
+			$linked['addadmin_views0'],
+			'The component link settings someone chose survive the re-run verbatim.'
+		);
+	}
+
+	/**
 	 * The whole modern tree becomes the complete definition set.
 	 *
 	 * @return  void
