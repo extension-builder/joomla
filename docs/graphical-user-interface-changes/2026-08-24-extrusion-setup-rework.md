@@ -4,8 +4,9 @@
 
 - **Date first changed:** 2026-08-24
 - **Author/implementer:** Claude (coding agent), for lemuel@vdm.to
-- **Task/issue/PR:** Branch `claude/joomla-library-extrusion-518uv2`, follow-up
-  to PR #35 (the extrusion admin view)
+- **Task/issue/PR:** Branch `claude/joomla-extrusion-setup-rework` (PR #37,
+  superseding #36 whose history could not be rebase-merged), follow-up to
+  PR #35 (the extrusion admin view)
 - **Change record status:** Ready for review
 
 ## Explicit permission
