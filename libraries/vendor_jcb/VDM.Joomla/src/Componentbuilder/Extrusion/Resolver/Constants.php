@@ -124,7 +124,8 @@ final class Constants
 
 		$replaced = preg_replace_callback(
 			$pattern,
-			function (array $found): string {
+			function (array $found): string
+			{
 				$constant = $found[3];
 				$quote = $found[2];
 				$text = $this->language->resolve($constant, '');
