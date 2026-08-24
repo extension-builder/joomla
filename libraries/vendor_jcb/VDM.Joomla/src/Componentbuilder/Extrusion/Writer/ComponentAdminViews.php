@@ -143,20 +143,26 @@ final class ComponentAdminViews extends Writer
 				continue;
 			}
 
+			// every option the component_admin_views form offers is stated,
+			// with the form's own defaults, so the person who opens the link
+			// finds a completely laid-out view rather than blank switches
 			$subform['addadmin_views' . $number] = [
 				'adminview' => $viewGuid,
 				'icomoon' => 'joomla',
-				'mainmenu' => 1,
-				'dashboard_add' => 1,
-				'dashboard_list' => 1,
-				'submenu' => 1,
-				'checkin' => 1,
-				'history' => 1,
-				'metadata' => 1,
-				'access' => 1,
-				'port' => 1,
-				'edit_create_site_view' => 0,
-				'order' => $number + 1
+				'mainmenu' => '1',
+				'dashboard_add' => '1',
+				'dashboard_list' => '1',
+				'submenu' => '1',
+				'checkin' => '1',
+				'history' => '1',
+				'joomla_fields' => '1',
+				'metadata' => '1',
+				'access' => '1',
+				'port' => '1',
+				'add_api' => '0',
+				'filter' => '2',
+				'edit_create_site_view' => '',
+				'order' => (string) ($number + 1)
 			];
 			$number++;
 		}
