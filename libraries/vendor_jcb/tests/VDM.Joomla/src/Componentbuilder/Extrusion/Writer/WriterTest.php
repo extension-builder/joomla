@@ -43,6 +43,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Template;
+use VDM\Joomla\Componentbuilder\Table;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
 use VDM\Tests\Support\ExtrusionDatabaseFixture;
 use VDM\Tests\Support\ExtrusionItemFixture;
@@ -519,6 +520,40 @@ HTML;
 		$this->assertSame(
 			[0, 1, 1, 2, 3, 4, 5, 0],
 			array_column($this->item->definitions('field'), 'store')
+		);
+	}
+
+	/**
+	 * A default longer than the Table class's column stays out, and is said.
+	 *
+	 * The datadefault_other column is CHAR(64) by the Table class's own
+	 * declaration; a longer harvested default is a form default that lives
+	 * on in the field's xml, and a strict live database refuses it here.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testFieldWriterRefusesADefaultLongerThanItsColumn(): void
+	{
+		$oversized = str_repeat('a very long harvested form default ', 4);
+
+		$this->seedItemView();
+		$this->seedField('item', 'notes', [
+			'xml_type' => 'textarea',
+			'default' => $oversized,
+			'datatype' => 'TEXT'
+		]);
+
+		$this->assertSame(1, $this->field()->write());
+
+		$definition = $this->item->definitions('field')[0];
+
+		$this->assertSame('', $definition->datadefault);
+		$this->assertSame('', $definition->datadefault_other);
+		$this->assertSame(
+			strlen($oversized),
+			$this->report->get('skipped.default.too_long.notes'),
+			'What could not be carried must be said, with its size.'
 		);
 	}
 
@@ -1576,7 +1611,8 @@ HTML;
 			new FieldXml($fieldtype, $this->report),
 			$this->guid,
 			$this->source,
-			$this->pairing()
+			$this->pairing(),
+			new Table()
 		);
 	}
 

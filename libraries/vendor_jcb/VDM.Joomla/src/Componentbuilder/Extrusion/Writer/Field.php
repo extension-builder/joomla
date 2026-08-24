@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Interfaces\TableInterface;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -93,6 +94,14 @@ final class Field extends Writer
 	protected Pairing $pairing;
 
 	/**
+	 * The JCB table definitions, the source of truth for every column.
+	 *
+	 * @var    TableInterface
+	 * @since  6.1.7
+	 */
+	protected TableInterface $tables;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config     The extrusion configuration.
@@ -116,7 +125,8 @@ final class Field extends Writer
 		FieldXml $fieldxml,
 		Guid $guid,
 		Source $source,
-		Pairing $pairing
+		Pairing $pairing,
+		TableInterface $tables
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -126,6 +136,7 @@ final class Field extends Writer
 		$this->guid = $guid;
 		$this->source = $source;
 		$this->pairing = $pairing;
+		$this->tables = $tables;
 	}
 
 	/**
@@ -278,6 +289,20 @@ final class Field extends Writer
 			: 'Other';
 		$definition->datadefault_other = $definition->datadefault === 'Other' ? $default : '';
 
+		// a column default can only be as long as the Table class says the
+		// datadefault_other column holds; a longer harvested default is a
+		// form default, it lives on in the field's xml, and carrying it
+		// here would be refused by any live database
+		if (strlen($definition->datadefault_other) > $this->capacity('datadefault_other'))
+		{
+			$definition->datadefault = '';
+			$definition->datadefault_other = '';
+			$this->report->set(
+				'skipped.default.too_long.' . $this->key($column),
+				strlen($default)
+			);
+		}
+
 		if (!$this->store($definition))
 		{
 			return false;
@@ -356,5 +381,29 @@ final class Field extends Writer
 	protected function option(): string
 	{
 		return (string) $this->source->get('code_name', '');
+	}
+
+	/**
+	 * How many characters one column of this writer's table can hold.
+	 *
+	 * The Table class states the column's db type; a CHAR or VARCHAR names
+	 * its capacity, and the text types hold more than any value this writer
+	 * carries.
+	 *
+	 * @param   string  $column  The column name.
+	 *
+	 * @return  int  The capacity in characters.
+	 * @since   6.1.7
+	 */
+	protected function capacity(string $column): int
+	{
+		$type = (string) ($this->tables->get($this->table(), $column, 'db')['type'] ?? '');
+
+		if (preg_match('/^(?:VAR)?CHAR\((\d+)\)/i', $type, $size))
+		{
+			return (int) $size[1];
+		}
+
+		return PHP_INT_MAX;
 	}
 }
