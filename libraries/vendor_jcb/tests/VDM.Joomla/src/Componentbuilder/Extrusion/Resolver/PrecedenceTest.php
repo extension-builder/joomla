@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS `#__example_probe` (
 	`listed` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '["one","two"]',
 	`boxed` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '{"label":"Boxed Label","nested":{"deep":"value"},"class":"boxy"}',
 	`ghosted` VARCHAR(32) NOT NULL DEFAULT '',
+	`graded` VARCHAR(64) NOT NULL DEFAULT '',
 	`amounted` DECIMAL(8,4) NOT NULL,
 	`keyed` INT(11) NOT NULL DEFAULT 0,
 	PRIMARY KEY (`id`)
@@ -91,6 +92,12 @@ SQL;
 			hint="COM_EXAMPLE_PROBE_TINTED_HINT"
 			message="COM_EXAMPLE_PROBE_TINTED_MESSAGE" />
 		<field name="ghosted" type="text" label="COM_EXAMPLE_PROBE_MISSING_LABEL" />
+		<field name="graded" type="list"
+			label="COM_EXAMPLE_PROBE_GRADED_LABEL"
+			header="COM_EXAMPLE_PROBE_GRADED_HEADER">
+			<option value="1">COM_EXAMPLE_PROBE_GRADED_HIGH</option>
+			<option value="0">Low</option>
+		</field>
 	</fieldset>
 </form>
 XML;
@@ -108,6 +115,9 @@ COM_EXAMPLE_PROBE_TINTED_LABEL="Tinted"
 COM_EXAMPLE_PROBE_TINTED_DESC="The _QQ_tint_QQ_ to use."
 COM_EXAMPLE_PROBE_TINTED_HINT="Pick a colour"
 COM_EXAMPLE_PROBE_TINTED_MESSAGE="A tint is required"
+COM_EXAMPLE_PROBE_GRADED_LABEL="Graded"
+COM_EXAMPLE_PROBE_GRADED_HEADER="Grade"
+COM_EXAMPLE_PROBE_GRADED_HIGH="High"
 INI;
 
 	/**
@@ -624,6 +634,21 @@ PHP;
 		$this->assertSame('Tinted', $tinted['attributes']['value']['label']);
 		$this->assertSame('The "tint" to use.', $tinted['attributes']['value']['description']);
 		$this->assertSame('xml', $tinted['attributes']['origin']);
+
+		$graded = $this->probe('graded');
+
+		$this->assertSame('Graded', $graded['label']['value']);
+		$this->assertSame(
+			'Grade',
+			$graded['attributes']['value']['header'],
+			'Every attribute is resolved through the catalogue, not a chosen few.'
+		);
+		$this->assertSame(
+			['High', 'Low'],
+			array_column($graded['options']['value'], 'text'),
+			'Option text is stored as the English it stands for, never the constant.'
+		);
+		$this->assertSame(['1', '0'], array_column($graded['options']['value'], 'value'));
 
 		$ghosted = $this->probe('ghosted');
 

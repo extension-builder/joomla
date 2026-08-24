@@ -363,7 +363,9 @@ final class Precedence implements PrecedenceInterface
 
 		$field = (array) $field;
 		$attributes = (array) ($field['attribute'] ?? []);
-		$attributes = $this->language->bag($attributes, self::TEXT);
+		// any attribute may carry a language constant, and what is stored
+		// must be the language itself -- the constant only names it
+		$attributes = $this->language->bag($attributes, array_keys($attributes));
 
 		$this->offer($candidates, 'xml_type', 'xml', $field['type'] ?? null);
 		$this->offer($candidates, 'fieldset', 'xml', $field['fieldset'] ?? null);
@@ -386,7 +388,23 @@ final class Precedence implements PrecedenceInterface
 
 		if (isset($field['option']))
 		{
-			$candidates['options']['xml'] = (array) $field['option'];
+			$options = (array) $field['option'];
+
+			foreach ($options as &$option)
+			{
+				if (is_array($option) && isset($option['text'])
+					&& $this->language->isConstant($option['text']))
+				{
+					$option['text'] = $this->language->resolve(
+						$option['text'],
+						(string) $option['text']
+					);
+				}
+			}
+
+			unset($option);
+
+			$candidates['options']['xml'] = $options;
 		}
 	}
 
