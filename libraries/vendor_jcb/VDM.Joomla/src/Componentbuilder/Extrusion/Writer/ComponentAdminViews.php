@@ -143,27 +143,11 @@ final class ComponentAdminViews extends Writer
 				continue;
 			}
 
-			// every option the component_admin_views form offers is stated,
-			// with the form's own defaults, so the person who opens the link
-			// finds a completely laid-out view rather than blank switches
-			$subform['addadmin_views' . $number] = [
-				'adminview' => $viewGuid,
-				'icomoon' => 'joomla',
-				'mainmenu' => '1',
-				'dashboard_add' => '1',
-				'dashboard_list' => '1',
-				'submenu' => '1',
-				'checkin' => '1',
-				'history' => '1',
-				'joomla_fields' => '1',
-				'metadata' => '1',
-				'access' => '1',
-				'port' => '1',
-				'add_api' => '0',
-				'filter' => '2',
-				'edit_create_site_view' => '',
-				'order' => (string) ($number + 1)
-			];
+			$subform['addadmin_views' . $number] = $this->settings(
+				$view,
+				$viewGuid,
+				$number + 1
+			);
 			$number++;
 		}
 
@@ -185,6 +169,91 @@ final class ComponentAdminViews extends Writer
 		$this->report->set('counts.component_admin_views', $number);
 
 		return $number;
+	}
+
+	/**
+	 * The link settings one view's own source states.
+	 *
+	 * Each switch on this link decides real structure, so each is read from
+	 * the component itself rather than assumed. Joomla's own columns say what
+	 * a view supports -- a table carrying checked_out and checked_out_time
+	 * checks its records in, one carrying version keeps their history, one
+	 * carrying metakey and metadesc has metadata, one carrying access has an
+	 * access level -- and the manifest's administration menu says which views
+	 * the component puts in its menu, and under what icon. Where the source
+	 * says nothing, the form's own declared default stands, which is exactly
+	 * what a person adding the link by hand would get.
+	 *
+	 * @param   string  $view      The view name.
+	 * @param   string  $viewGuid  The written view's identity.
+	 * @param   int     $order     The order this link takes.
+	 *
+	 * @return  array<string, mixed>  The link row.
+	 * @since   6.1.8
+	 */
+	protected function settings(string $view, string $viewGuid, int $order): array
+	{
+		$columns = array_map(
+			'strtolower',
+			(array) $this->resolved->get($this->path($view) . '.columns', [])
+		);
+		$menu = (array) $this->source->get('menu', []);
+		$single = strtolower((string) $this->resolved->get(
+			$this->path($view) . '.name_single',
+			$view
+		));
+		$list = strtolower((string) $this->resolved->get(
+			$this->path($view) . '.name_list',
+			$single . 's'
+		));
+		$entry = $menu[$list] ?? ($menu[$single] ?? null);
+		$has = static fn (string ...$wanted): string
+			=> array_intersect($wanted, $columns) === $wanted ? '1' : '';
+
+		return [
+			'adminview' => $viewGuid,
+			'icomoon' => (string) (($entry['icon'] ?? '') !== ''
+				? $this->icon((string) $entry['icon']) : ''),
+			// the manifest's own menu says which views it lists
+			'mainmenu' => $entry !== null ? '1' : '',
+			'dashboard_add' => '',
+			'dashboard_list' => $entry !== null ? '1' : '',
+			'submenu' => '1',
+			'checkin' => $has('checked_out', 'checked_out_time'),
+			'history' => $has('version'),
+			'joomla_fields' => '',
+			'metadata' => $has('metakey', 'metadesc'),
+			'access' => $has('access'),
+			'port' => '',
+			'add_api' => '0',
+			'filter' => '2',
+			'edit_create_site_view' => '',
+			'order' => (string) $order
+		];
+	}
+
+	/**
+	 * The icon slug a manifest menu entry names, when it names one plainly.
+	 *
+	 * A manifest states its icon as a Joomla image reference, which is not
+	 * the icon set this link chooses from. Only the trailing token is worth
+	 * carrying, and only when it reads as a plain slug; anything else is left
+	 * for the person to choose, rather than written as a guess.
+	 *
+	 * @param   string  $icon  The manifest's stated icon.
+	 *
+	 * @return  string  The slug, or an empty string.
+	 * @since   6.1.8
+	 */
+	protected function icon(string $icon): string
+	{
+		$slug = strtolower(trim((string) strrchr('/' . str_replace(
+			['class:', '\\'],
+			['', '/'],
+			$icon
+		), '/'), '/'));
+
+		return preg_match('/^[a-z][a-z0-9\-]{1,30}$/', $slug) === 1 ? $slug : '';
 	}
 
 	/**
