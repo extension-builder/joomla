@@ -236,7 +236,20 @@ test.describe('the extrusion view', () => {
 		expect(await views.locator('.extrusion-row').count()).toBeGreaterThan(10);
 		await expect(views.locator('details.extrusion-fields').first()).toBeAttached();
 
-		// nothing was imported: this journey proves harvest and pairing only
+		// and the import runs FOR REAL against the live database -- a dry run
+		// returns before the writers ever query, which is exactly how a broken
+		// write path once slipped past this suite
+		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		const results = page.locator('#extrusion-pane-results');
+		await expect(results).toBeVisible({ timeout: 300_000 });
+		await expect(results.locator('.alert-success').first()).toBeVisible();
+		await expect(
+			results.locator('.alert-danger'),
+			'A live import must not raise a single error on the page.'
+		).toHaveCount(0);
+		await expect(results.getByText('Written', { exact: false }).first()).toBeVisible();
+
+		// the way back to setup stays open
 		await page.locator('#extrusion-tab-setup').click();
 		await expect(page.locator('#extrusion-pane-setup')).toBeVisible();
 	});
