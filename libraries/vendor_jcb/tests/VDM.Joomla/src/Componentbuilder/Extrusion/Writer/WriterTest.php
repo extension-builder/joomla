@@ -1089,6 +1089,16 @@ HTML;
 	{
 		$this->config->set('component', 9);
 		$this->resolved->set('views', ['item', 'category', 'ghost']);
+		$this->resolved->set('view.item.name_single', 'item');
+		$this->resolved->set('view.item.name_list', 'items');
+		$this->resolved->set('view.item.columns', [
+			'id', 'name', 'access', 'checked_out', 'checked_out_time', 'version'
+		]);
+		$this->resolved->set('view.category.columns', ['id', 'name']);
+		$this->source->set('menu', [
+			'*' => ['label' => 'Demo', 'icon' => 'class:demo'],
+			'items' => ['label' => 'Items', 'icon' => 'class:eye-open']
+		]);
 		$this->resolved->set('view.item.written.view.guid', self::VIEW_GUID);
 		$this->resolved->set(
 			'view.category.written.view.guid',
@@ -1117,17 +1127,60 @@ HTML;
 			[self::VIEW_GUID, 'cccccccc-3333-4333-8333-cccccccccccc'],
 			array_column($subform, 'adminview')
 		);
-		$this->assertSame(['1', '2'], array_column($subform, 'order'));
-		$this->assertSame('1', $subform['addadmin_views0']['mainmenu']);
-		$this->assertSame('1', $subform['addadmin_views0']['dashboard_add']);
-		$this->assertSame('1', $subform['addadmin_views0']['joomla_fields']);
-		$this->assertSame('0', $subform['addadmin_views0']['add_api']);
+		$this->assertSame(
+			['1', '2'],
+			array_column($subform, 'order'),
+			'Every row carries a real order; the compiler sorts the views by it '
+			. 'and treats a zero as unordered.'
+		);
 		$this->assertSame(
 			'2',
 			$subform['addadmin_views0']['filter'],
 			'The side-filter layout is the form\'s own default for a new view link.'
 		);
+		$this->assertSame('0', $subform['addadmin_views0']['add_api']);
 		$this->assertSame('', $subform['addadmin_views0']['edit_create_site_view']);
+
+		// each switch decides real structure, so each is read from the source
+		// itself: this view's table carries Joomla's check-in, version and
+		// access columns but no metadata columns, and the manifest lists it
+		$this->assertSame(
+			'1',
+			$subform['addadmin_views0']['checkin'],
+			'The table carries checked_out and checked_out_time, so it checks in.'
+		);
+		$this->assertSame(
+			'1',
+			$subform['addadmin_views0']['history'],
+			'The table carries version, so the view keeps history.'
+		);
+		$this->assertSame(
+			'1',
+			$subform['addadmin_views0']['access'],
+			'The table carries access, so the view has an access level.'
+		);
+		$this->assertSame(
+			'',
+			$subform['addadmin_views0']['metadata'],
+			'The table carries no metadata columns, so metadata stays off -- '
+			. 'switching it on would add columns the source never had.'
+		);
+		$this->assertSame(
+			'1',
+			$subform['addadmin_views0']['mainmenu'],
+			'The manifest lists this view in the component menu.'
+		);
+		$this->assertSame('eye-open', $subform['addadmin_views0']['icomoon']);
+		$this->assertSame(
+			'',
+			$subform['addadmin_views1']['mainmenu'],
+			'A view the manifest never lists is not put in the menu.'
+		);
+		$this->assertSame(
+			'',
+			$subform['addadmin_views1']['checkin'],
+			'A view whose table carries no check-in columns does not check in.'
+		);
 		$this->assertSame(2, $this->report->get('counts.component_admin_views'));
 
 		$this->restate();

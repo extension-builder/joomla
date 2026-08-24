@@ -378,9 +378,17 @@ final class Assembler
 	{
 		$name = $entry['name'];
 		$fields = [];
+		$columns = [];
 
 		foreach ($this->columns($entry) as $column)
 		{
+			// every column the table holds is remembered, the boilerplate
+			// included: Joomla's own columns are the evidence for what a
+			// view supports -- a table carrying checked_out checks in, one
+			// carrying metakey has metadata -- and the component links say
+			// exactly that about each view
+			$columns[] = $column;
+
 			if (!$this->config->extrudable($column))
 			{
 				continue;
@@ -402,6 +410,7 @@ final class Assembler
 		}
 
 		$path = 'view.' . $this->precedence->key($view);
+		$this->resolved->set($path . '.columns', $columns);
 		$tabs = $this->tab->names($view, $fields);
 		$roles = $this->role->assign($view, $fields);
 		$relations = [];
