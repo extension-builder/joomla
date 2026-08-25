@@ -191,6 +191,19 @@ final class AdminView extends Writer
 		$definition->addtabs = $this->tabs($path);
 		$definition->published = 1;
 
+		// the engine, character set, collation and row format a table runs on
+		// are stated by the table itself; without them JCB falls back to its
+		// own defaults and quietly rebuilds a modern table as MyISAM and utf8
+		foreach ((array) $this->resolved->get($path . '.table_options', []) as $option => $value)
+		{
+			$value = trim((string) $value);
+
+			if ($value !== '')
+			{
+				$definition->{'mysql_table_' . $option} = $value;
+			}
+		}
+
 		if (is_string($seed) && $seed !== '')
 		{
 			$definition->add_sql = 1;

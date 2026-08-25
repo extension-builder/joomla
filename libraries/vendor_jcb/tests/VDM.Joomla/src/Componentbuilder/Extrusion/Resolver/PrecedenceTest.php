@@ -517,7 +517,10 @@ PHP;
 	 */
 	public function testAMalformedColumnCommentIsIgnored(): void
 	{
-		$expected = ['datatype', 'key', 'label', 'name', 'null', 'ordinal', 'size'];
+		$expected = [
+			'datatype', 'db_default_stated', 'key', 'label', 'name', 'null',
+			'ordinal', 'size'
+		];
 
 		$plain = $this->probe('plain');
 		$keys = array_keys($plain);
@@ -715,7 +718,11 @@ PHP;
 		$this->assertSame('DECIMAL(10,2)', $amounted['raw_type']['value']);
 		$this->assertSame('NULL', $amounted['null']['value']);
 		$this->assertSame('table', $amounted['null']['origin']);
-		$this->assertSame(1, $amounted['key']['value']);
+		$this->assertSame(
+			2,
+			$amounted['key']['value'],
+			'A unique key ranks above a plain index and below a primary.'
+		);
 		$this->assertSame('table', $amounted['key']['origin']);
 		$this->assertArrayNotHasKey('default', $amounted);
 		$this->assertSame('8,4', $this->schema->get('table.___example_probe.column.amounted.size'));
@@ -723,7 +730,11 @@ PHP;
 
 		$keyed = $this->probe('keyed');
 
-		$this->assertSame(2, $keyed['key']['value']);
+		$this->assertSame(
+			3,
+			$keyed['key']['value'],
+			'A primary key is the strongest claim a column can carry.'
+		);
 		$this->assertSame('table', $keyed['key']['origin']);
 		$this->assertSame('11', $keyed['size']['value']);
 		$this->assertSame('EMPTY', $this->table->get('table.example_probe.field.keyed.db.default'));

@@ -567,7 +567,8 @@ final class WriterTest extends TestCase
 		$this->seedItemView();
 		$this->seedField('item', 'notes', [
 			'xml_type' => 'textarea',
-			'default' => $oversized,
+			'db_default' => $oversized,
+			'db_default_stated' => true,
 			'datatype' => 'TEXT'
 		]);
 
@@ -585,6 +586,35 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A column with no default of its own is written as JCB spells that.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAColumnStatingNoDefaultIsWrittenAsEmpty(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'starts', [
+			'xml_type' => 'calendar',
+			'datatype' => 'DATETIME',
+			'db_default_stated' => false,
+			'default' => 'NOW'
+		]);
+
+		$this->assertSame(1, $this->field()->write());
+
+		$definition = $this->item->definitions('field')[0];
+
+		$this->assertSame('Other', $definition->datadefault);
+		$this->assertSame(
+			'EMPTY',
+			$definition->datadefault_other,
+			'EMPTY is how JCB says a column carries no DEFAULT clause at all; '
+			. 'without it every such column gains one the source never had.'
+		);
+	}
+
+	/**
 	 * A length or default JCB does not offer collapses into its other column.
 	 *
 	 * @return  void
@@ -596,16 +626,20 @@ final class WriterTest extends TestCase
 		$this->seedField('item', 'name', [
 			'xml_type' => 'text',
 			'size' => '255',
-			'default' => '1',
+			'db_default' => '1',
+			'db_default_stated' => true,
+			'default' => 'a form default that is not the column default',
 			'datatype' => 'VARCHAR',
 			'null' => 'NOT NULL',
-			'key' => 1
+			'key' => 2
 		]);
 		$this->seedField('item', 'colour', [
 			'xml_type' => 'color',
 			'size' => '37',
-			'default' => '#ffffff',
-			'datatype' => 'CHAR'
+			'db_default' => '#ffffff',
+			'db_default_stated' => true,
+			'datatype' => 'CHAR',
+			'key' => 1
 		]);
 		$this->seedField('item', 'note', ['xml_type' => 'text']);
 
@@ -615,11 +649,25 @@ final class WriterTest extends TestCase
 
 		$this->assertSame('255', $name->datalenght);
 		$this->assertSame('', $name->datalenght_other);
-		$this->assertSame('1', $name->datadefault);
+		$this->assertSame(
+			'1',
+			$name->datadefault,
+			'The column keeps the column\'s default; the form default is the '
+			. 'form\'s, and belongs only in the field\'s xml.'
+		);
 		$this->assertSame('', $name->datadefault_other);
 		$this->assertSame('VARCHAR', $name->datatype);
 		$this->assertSame('NOT NULL', $name->null_switch);
-		$this->assertSame(1, $name->indexes);
+		$this->assertSame(
+			1,
+			$name->indexes,
+			'A unique column is 1 on the scale JCB\'s own form offers.'
+		);
+		$this->assertSame(
+			2,
+			$colour->indexes,
+			'A plain index is 2 on that scale, not 1 and not lost.'
+		);
 		$this->assertSame('Other', $colour->datalenght);
 		$this->assertSame('37', $colour->datalenght_other);
 		$this->assertSame('Other', $colour->datadefault);

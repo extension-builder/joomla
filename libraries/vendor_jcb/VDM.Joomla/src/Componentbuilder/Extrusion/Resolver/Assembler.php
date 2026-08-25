@@ -482,6 +482,13 @@ final class Assembler
 		$this->resolved->set($path . '.system_name', $this->viewname->title($view));
 		$this->resolved->set($path . '.table', $name);
 		$this->resolved->set($path . '.key', $canonical);
+		$this->resolved->set(
+			$path . '.table_options',
+			(array) $this->schema->get(
+				'table.' . (string) ($entry['schema'] ?? '') . '.option',
+				[]
+			)
+		);
 		$this->resolved->set($path . '.tabs', $tabs);
 		$this->resolved->set($path . '.roles', $roles);
 		$this->resolved->set($path . '.relations', $relations);

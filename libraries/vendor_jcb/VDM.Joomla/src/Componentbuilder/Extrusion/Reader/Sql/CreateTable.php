@@ -24,8 +24,9 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
  * The reproduced metadata is the set the field derivation depends on: the type
  * keyword and its size, unsigned, the null switch, the default, the auto
  * increment flag, the column comment that carries the author's JCB notes, and
- * the key status where 2 is primary, 1 is unique, and 0 is neither. Table level
- * key clauses and inline column keys are both honoured, and a composite key
+ * the key status, ranked so the stronger claim always wins: 3 is primary, 2 is
+ * unique, 1 is a plain index, and 0 is none. Table level key clauses and inline
+ * column keys are both honoured, and a composite key
  * marks every column it names.
  *
  * @since 6.1.6
@@ -155,7 +156,52 @@ final class CreateTable
 			return null;
 		}
 
-		return ['table' => $table, 'columns' => $this->apply($columns, $keys)];
+		return [
+			'table' => $table,
+			'columns' => $this->apply($columns, $keys),
+			'options' => $this->options(substr($sql, $close + 1))
+		];
+	}
+
+	/**
+	 * Read the table options a CREATE TABLE states after its closing bracket.
+	 *
+	 * The engine a table runs on, the character set it stores text in and the
+	 * row format it uses are the table's own, and a component states all of
+	 * them here. They are not properties of any column, so nothing about the
+	 * columns could recover them, and a table rebuilt without them silently
+	 * becomes whatever the platform defaults to -- which for JCB is MyISAM and
+	 * utf8, not what a modern component asked for.
+	 *
+	 * @param   string  $tail  Everything after the column list's closing bracket.
+	 *
+	 * @return  array<string, string>  Option name keyed to its stated value.
+	 * @since   6.1.8
+	 */
+	private function options(string $tail): array
+	{
+		$found = [];
+		$tail = trim(rtrim(trim($tail), ';'));
+
+		if ($tail === '')
+		{
+			return $found;
+		}
+
+		foreach ([
+			'engine' => 'ENGINE',
+			'charset' => '(?:DEFAULT\s+)?CHARSET|(?:DEFAULT\s+)?CHARACTER\s+SET',
+			'collate' => '(?:DEFAULT\s+)?COLLATE',
+			'row_format' => 'ROW_FORMAT'
+		] as $key => $pattern)
+		{
+			if (preg_match('/\b(?:' . $pattern . ')\s*=?\s*([A-Za-z0-9_]+)/i', $tail, $match) === 1)
+			{
+				$found[$key] = $match[1];
+			}
+		}
+
+		return $found;
 	}
 
 	/**
@@ -178,7 +224,7 @@ final class CreateTable
 
 			$columns[$name]['key'] = max($columns[$name]['key'], $rank);
 
-			if ($columns[$name]['key'] === 2)
+			if ($columns[$name]['key'] === 3)
 			{
 				$columns[$name]['null'] = 'NOT NULL';
 			}
@@ -191,8 +237,9 @@ final class CreateTable
 	 * Read one table level key clause into the key ranks.
 	 *
 	 * A CONSTRAINT wrapper is unwrapped so a named primary or unique key still
-	 * counts. FOREIGN KEY, CHECK, FULLTEXT, SPATIAL, and plain KEY or INDEX
-	 * clauses carry no column key status and are therefore ignored.
+	 * counts. A plain KEY or INDEX clause is an index the component asked for,
+	 * and is read as one. FOREIGN KEY, CHECK, FULLTEXT and SPATIAL make no
+	 * claim on a column's own key status and are therefore ignored.
 	 *
 	 * @param   string              $part     The clause text.
 	 * @param   string              $keyword  The clause's leading keyword.
@@ -211,9 +258,13 @@ final class CreateTable
 
 		if ($keyword === 'PRIMARY')
 		{
-			$rank = 2;
+			$rank = 3;
 		}
 		elseif ($keyword === 'UNIQUE')
+		{
+			$rank = 2;
+		}
+		elseif ($keyword === 'KEY' || $keyword === 'INDEX')
 		{
 			$rank = 1;
 		}
@@ -364,18 +415,23 @@ final class CreateTable
 	private function attributes(array $column, string $tail): array
 	{
 		$masked = $this->mask($tail);
+		$default = $this->value($tail, $masked);
 		$key = 0;
 
 		if (preg_match('/\bPRIMARY\s+KEY\b/i', $masked) === 1)
 		{
-			$key = 2;
+			$key = 3;
 		}
 		elseif (preg_match('/\bUNIQUE(?:\s+KEY)?\b/i', $masked) === 1)
+		{
+			$key = 2;
+		}
+		elseif (preg_match('/\bKEY\b/i', $masked) === 1)
 		{
 			$key = 1;
 		}
 
-		$null = $key === 2 || preg_match('/\bNOT\s+NULL\b/i', $masked) === 1
+		$null = $key === 3 || preg_match('/\bNOT\s+NULL\b/i', $masked) === 1
 			? 'NOT NULL'
 			: 'NULL';
 
@@ -386,7 +442,8 @@ final class CreateTable
 			'size' => $column['size'],
 			'unsigned' => preg_match('/\bUNSIGNED\b/i', $masked) === 1,
 			'null' => $null,
-			'default' => $this->value($tail, $masked),
+			'default' => $default ?? '',
+			'default_stated' => $default !== null,
 			'auto_increment' => preg_match('/\bAUTO_INCREMENT\b/i', $masked) === 1,
 			'comment' => $this->comment($tail, $masked),
 			'key' => $key,
@@ -408,11 +465,14 @@ final class CreateTable
 	 * @return  string  The default value, or an empty string when there is none.
 	 * @since   6.1.6
 	 */
-	private function value(string $tail, string $masked): string
+	private function value(string $tail, string $masked): ?string
 	{
+		// a column stating no default at all is not a column defaulting to
+		// nothing: one carries no DEFAULT clause, the other carries an empty
+		// one, and only null can tell the two apart afterwards
 		if (preg_match('/\bDEFAULT\b\s*/i', $masked, $match, PREG_OFFSET_CAPTURE) !== 1)
 		{
-			return '';
+			return null;
 		}
 
 		$text = ltrim(substr($tail, $match[0][1] + strlen($match[0][0])));

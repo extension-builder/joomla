@@ -217,6 +217,13 @@ final class Schema implements ReaderInterface
 
 		$this->schema->set('table.' . $key . '.name', $table['table']);
 
+		// the engine, character set and row format are the table's own, stated
+		// where only the table states them
+		foreach ((array) ($table['options'] ?? []) as $option => $value)
+		{
+			$this->schema->set('table.' . $key . '.option.' . $this->key($option), $value);
+		}
+
 		$primary = [];
 		$unique = [];
 
@@ -229,11 +236,11 @@ final class Schema implements ReaderInterface
 				$this->schema->set($target . '.' . $property, $value);
 			}
 
-			if ($column['key'] === 2)
+			if ($column['key'] === 3)
 			{
 				$primary[] = $column['name'];
 			}
-			elseif ($column['key'] === 1)
+			elseif ($column['key'] === 2)
 			{
 				$unique[] = $column['name'];
 			}
