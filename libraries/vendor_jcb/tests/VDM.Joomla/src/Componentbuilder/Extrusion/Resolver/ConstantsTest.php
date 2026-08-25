@@ -58,6 +58,7 @@ final class ConstantsTest extends TestCase
 		$catalogue = new LanguageRegistry();
 		$catalogue->set('constant.COM_DEMO_SAVE_FAILED', 'Can not save without an email');
 		$catalogue->set('constant.COM_DEMO_QUOTED', "It's saved");
+		$catalogue->set('constant.COM_DEMO_BOTH', "It's \"saved\" now");
 		$catalogue->set('constant.COM_DEMO_LISTCLASS', 'The list class');
 		$this->report = new Report();
 		$this->constants = new Constants(
@@ -92,21 +93,70 @@ final class ConstantsTest extends TestCase
 	}
 
 	/**
-	 * A string carrying the quote it is wrapped in stays syntactically whole.
+	 * A string carrying a quote is written in the quoting it does not carry.
 	 *
 	 * @return  void
 	 * @since   6.1.8
 	 */
-	public function testAQuoteInsideTheTextIsEscapedForItsOwnQuoting(): void
+	public function testAQuoteInsideTheTextDecidesTheQuotingItIsWrittenIn(): void
 	{
 		$reversed = $this->constants->reverse(
 			"\$a = Text:" . ":_('COM_DEMO_QUOTED');"
 		);
 
-		$this->assertSame("\$a = Text:" . ":_('It\\'s saved');", $reversed);
+		$this->assertSame(
+			"\$a = Text:" . ":_(\"It's saved\");",
+			$reversed,
+			'The compiler\'s extractor takes what stands between the call\'s own '
+			. 'quotes and knows nothing of escaping, so an escaped quote would '
+			. 'cut the string short and mint a key from the fragment.'
+		);
 		$this->assertNotFalse(
 			@eval('return true; ' . str_replace('Text:' . ':_', 'strval', $reversed)),
 			'The reversed code has to remain valid PHP.'
+		);
+	}
+
+	/**
+	 * A string carrying both quote marks keeps the constant it stood as.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTextCarryingBothQuoteMarksKeepsItsConstant(): void
+	{
+		$code = "\$a = Text:" . ":_('COM_DEMO_BOTH');";
+		$reversed = $this->constants->reverse($code);
+
+		$this->assertSame(
+			$code,
+			$reversed,
+			'Neither quoting can be read back by the extractor, so inventing one '
+			. 'would mint a key from a fragment of the text.'
+		);
+		$this->assertStringContainsString(
+			'both quote marks',
+			(string) $this->report->get('unquotable.code_language.COM_DEMO_BOTH')
+		);
+	}
+
+	/**
+	 * A call form the compiler never re-keys keeps its constant.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testACallTheCompilerNeverReKeysKeepsItsConstant(): void
+	{
+		$code = "\$a = Text:" . ":plural('COM_DEMO_QUOTED', 2);";
+
+		$this->assertSame(
+			$code,
+			$this->constants->reverse($code),
+			'The language extractor reads Text::_, Text::sprintf, Text::script '
+			. 'and JustTEXT::_ only (Compiler\\Config::getLangstringkeytargets), '
+			. 'so turning any other call into text would leave a string the '
+			. 'compiler never makes a constant of again.'
 		);
 	}
 
