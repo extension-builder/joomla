@@ -150,14 +150,25 @@ final class ComponentSiteViews extends Writer
 			// component with no default front end view has no reachable front end at
 			// all. Which one it should really be is a decision only the author can
 			// make, so it is recorded rather than left implicit.
-			$subform['addsite_views' . $number] = [
+			// the form's own declared defaults for a link a person adds by
+			// hand: the view is in the menu, carries metadata and an access
+			// level. A checkbox this link does not carry is one that is off,
+			// which is how JCB's own records hold them
+			$row = [
 				'siteview' => $guid,
 				'menu' => '1',
 				'metadata' => '1',
-				'access' => '1',
-				'public_access' => '1',
-				'default_view' => $number === 0 ? '1' : ''
+				'access' => '1'
 			];
+
+			// a checkbox this link does not carry is one that is off, which
+			// is how JCB's own records hold them
+			if ($number === 0)
+			{
+				$row['default_view'] = '1';
+			}
+
+			$subform['addsite_views' . $number] = $row;
 			$number++;
 		}
 

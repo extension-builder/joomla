@@ -125,9 +125,12 @@ final class AdminCustomTabs extends Writer
 	{
 		$path = $this->path($view);
 		$viewGuid = (string) $this->resolved->get($path . '.written.view.guid', '');
-		$tabs = (array) $this->resolved->get($path . '.tabs', []);
+		$custom = (array) $this->source->get(
+			'screen.' . strtolower($view) . '.custom',
+			[]
+		);
 
-		if ($viewGuid === '' || count($tabs) < 2)
+		if ($viewGuid === '' || $custom === [])
 		{
 			return false;
 		}
@@ -135,14 +138,31 @@ final class AdminCustomTabs extends Writer
 		$subform = [];
 		$number = 0;
 
-		foreach ($tabs as $name)
+		foreach ($custom as $tab)
 		{
+			$tab = (array) $tab;
+			$html = (string) ($tab['html'] ?? '');
+
+			if (trim($html) === '')
+			{
+				continue;
+			}
+
+			// a custom tab is a tab of its own: it stands after the last tab
+			// the view states before it, holding the markup the screen shows
 			$subform['tabs' . $number] = [
-				'name' => (string) $name,
-				'html' => '',
+				'tab' => (string) max(1, (int) ($tab['after'] ?? 1)),
+				'position' => '2',
+				'name' => $this->name((array) $tab),
+				'html' => $html,
 				'php' => ''
 			];
 			$number++;
+		}
+
+		if ($subform === [])
+		{
+			return false;
 		}
 
 		$definition = new \stdClass();
@@ -151,6 +171,23 @@ final class AdminCustomTabs extends Writer
 		$definition->published = 1;
 
 		return $this->store($definition);
+	}
+
+	/**
+	 * The readable name of one recovered custom tab.
+	 *
+	 * @param   array<string, mixed>  $tab  The recovered tab.
+	 *
+	 * @return  string  The tab name.
+	 * @since   6.1.8
+	 */
+	protected function name(array $tab): string
+	{
+		$label = trim((string) ($tab['label'] ?? ''));
+		$key = trim((string) ($tab['key'] ?? ''));
+		$name = $label !== '' && !preg_match('/^[A-Z0-9_]+$/', $label) ? $label : $key;
+
+		return ucwords(trim(str_replace(['_', '-'], ' ', $name)));
 	}
 
 	/**

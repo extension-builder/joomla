@@ -148,13 +148,15 @@ final class ComponentCustomAdminViews extends Writer
 				continue;
 			}
 
+			// a checkbox this link does not carry is one that is off, which
+			// is how JCB's own records hold them
 			$subform['addcustom_admin_views' . $number] = [
 				'customadminview' => $guid,
-				'icomoon' => 'joomla',
+				'icomoon' => '',
+				'before' => '',
 				'mainmenu' => '1',
 				'dashboard_list' => '1',
 				'submenu' => '1',
-				'metadata' => '1',
 				'access' => '1'
 			];
 			$number++;

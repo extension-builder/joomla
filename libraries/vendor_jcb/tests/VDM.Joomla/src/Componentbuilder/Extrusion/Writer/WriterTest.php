@@ -360,6 +360,133 @@ HTML;
 	}
 
 	/**
+	 * A component's own access rules state its permissions and their level.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheAccessRulesStateEachPermissionAndItsLevel(): void
+	{
+		$this->seedItemView();
+		$this->source->set('access.component', [
+			'core.admin', 'item.access', 'item.batch', 'item.edit', 'other.edit'
+		]);
+		$this->source->set('access.item', ['item.edit', 'core.delete']);
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$permissions = $this->decode(
+			$this->item->definition('admin_view', self::VIEW_GUID)->addpermissions
+		);
+		$stated = array_combine(
+			array_column($permissions, 'action'),
+			array_column($permissions, 'implementation')
+		);
+
+		$this->assertSame(
+			2,
+			$stated['view.access'],
+			'An action the component section alone states is set once for the '
+			. 'whole component.'
+		);
+		$this->assertSame(2, $stated['view.batch']);
+		$this->assertSame(
+			3,
+			$stated['view.edit'],
+			'An action both sections state is offered at both levels.'
+		);
+		$this->assertSame(
+			1,
+			$stated['core.delete'],
+			'A core action is view level, which is what the compiler makes of it.'
+		);
+		$this->assertArrayNotHasKey(
+			'core.admin',
+			$stated,
+			'A core action of the component section belongs to the component, '
+			. 'not to any one view.'
+		);
+		$this->assertArrayNotHasKey(
+			'other.edit',
+			$stated,
+			'An action named for another view is that view\'s, never this one\'s.'
+		);
+		$this->assertSame($stated, $this->report->get('permissions.item'));
+	}
+
+	/**
+	 * A source shipping no access rules still gets a usable set.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAViewWhoseSourceStatesNoAccessRulesKeepsTheScaffold(): void
+	{
+		$this->seedItemView();
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$permissions = $this->decode(
+			$this->item->definition('admin_view', self::VIEW_GUID)->addpermissions
+		);
+
+		$this->assertSame(
+			[
+				'view.edit', 'view.edit.own', 'view.edit.state', 'view.edit.access',
+				'view.edit.created_by', 'view.edit.created', 'view.create',
+				'view.delete', 'view.access'
+			],
+			array_column($permissions, 'action'),
+			'With nothing stated, a new view is given the set JCB\'s own demo '
+			. 'views carry, implementation 3 throughout.'
+		);
+		$this->assertSame(
+			[3],
+			array_values(array_unique(array_column($permissions, 'implementation')))
+		);
+	}
+
+	/**
+	 * Where the component's own screen puts a field is where the field goes.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheScreensOwnPlacementDecidesWhereAFieldStands(): void
+	{
+		$this->seedItemView();
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->seedField('item', 'name', ['label' => 'Name']);
+		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-0000000000d0');
+		$this->resolved->set('view.item.field.name.tab_index', 1);
+		$this->resolved->set('view.item.field.name.placement', [
+			'tab' => 15,
+			'alignment' => 2,
+			'order' => 4
+		]);
+
+		$this->assertSame(1, $this->adminFields()->write());
+
+		$rows = $this->decode(
+			$this->item->definitions('admin_fields')[0]->addfields
+		);
+		$row = $rows['addfields0'];
+
+		$this->assertSame(
+			'15',
+			$row['tab'],
+			'The component\'s own edit screen shows this field in the section JCB '
+			. 'generates for publishing, and that is where it is stored.'
+		);
+		$this->assertSame(2, $row['alignment']);
+		$this->assertSame(
+			'4',
+			$row['order_edit'],
+			'The order is the one the column layout lists, not a running count.'
+		);
+	}
+
+	/**
 	 * Without seed data the SQL switch is left alone rather than written empty.
 	 *
 	 * @return  void
@@ -840,6 +967,9 @@ HTML;
 		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-0000000000d0');
 		$this->seedWritten('item', 'counter', 'ffffffff-0000-4000-8000-0000000000e0');
 
+		$this->source->set('screen.item.custom.0.key', 'notes');
+		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
+
 		$this->assertSame(0, $this->adminFields()->write());
 		$this->assertSame(0, $this->conditions()->write());
 		$this->assertSame(0, $this->customTabs()->write());
@@ -1018,19 +1148,30 @@ HTML;
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testCustomTabsAreWrittenOnlyForTwoOrMoreTabs(): void
+	public function testCustomTabsAreWrittenOnlyForTabsTheScreenReallyHolds(): void
 	{
 		$this->seedItemView();
 		$this->seedWritten('item', 'view', self::VIEW_GUID);
-		$this->resolved->set('view.item.tabs', ['Details']);
 
-		$this->assertSame(0, $this->customTabs()->write());
+		$this->assertSame(
+			0,
+			$this->customTabs()->write(),
+			'A view\'s own tabs are the view\'s record; a custom tab is a tab of '
+			. 'markup someone added, and a screen that holds none has none.'
+		);
 		$this->assertSame([], $this->item->records());
 		$this->assertSame(0, $this->report->get('counts.admin_custom_tabs'));
 
 		$this->restate();
 		$this->seedItemView();
 		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->source->set('screen.item.custom.0.key', 'notes');
+		$this->source->set('screen.item.custom.0.label', 'COM_EXAMPLE_ITEM_NOTES');
+		$this->source->set('screen.item.custom.0.after', 2);
+		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
+		$this->source->set('screen.item.custom.1.key', 'empty');
+		$this->source->set('screen.item.custom.1.after', 2);
+		$this->source->set('screen.item.custom.1.html', '   ');
 
 		$this->assertSame(1, $this->customTabs()->write());
 
@@ -1045,16 +1186,26 @@ HTML;
 		$this->assertSame('admin_view', $this->item->records('admin_custom_tabs')[0]['key']);
 		$this->assertSame(
 			[
-				'tabs0' => ['name' => 'Item Details', 'html' => '', 'php' => ''],
-				'tabs1' => ['name' => 'Metrics', 'html' => '', 'php' => '']
+				'tabs0' => [
+					'tab' => '2',
+					'position' => '2',
+					'name' => 'Notes',
+					'html' => '<p>a note</p>',
+					'php' => ''
+				]
 			],
-			$this->decode($definition->tabs)
+			$this->decode($definition->tabs),
+			'The row states the tab it stands after and the markup the screen '
+			. 'shows, which is what the compiler reads; a tab of empty markup '
+			. 'is no tab at all.'
 		);
 		$this->assertSame(1, $this->report->get('counts.admin_custom_tabs'));
 
 		$this->restate();
 		$this->seedItemView();
 		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->source->set('screen.item.custom.0.key', 'notes');
+		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
 		$this->config->set('tabs', false);
 
 		$this->assertSame(0, $this->customTabs()->write());
@@ -1159,11 +1310,12 @@ HTML;
 			$subform['addadmin_views0']['access'],
 			'The table carries access, so the view has an access level.'
 		);
-		$this->assertSame(
-			'',
-			$subform['addadmin_views0']['metadata'],
+		$this->assertArrayNotHasKey(
+			'metadata',
+			$subform['addadmin_views0'],
 			'The table carries no metadata columns, so metadata stays off -- '
-			. 'switching it on would add columns the source never had.'
+			. 'switching it on would add columns the source never had, and JCB '
+			. 'holds only the switches that are on.'
 		);
 		$this->assertSame(
 			'1',
@@ -1171,15 +1323,22 @@ HTML;
 			'The manifest lists this view in the component menu.'
 		);
 		$this->assertSame('eye-open', $subform['addadmin_views0']['icomoon']);
-		$this->assertSame(
-			'',
-			$subform['addadmin_views1']['mainmenu'],
+		$this->assertArrayNotHasKey(
+			'mainmenu',
+			$subform['addadmin_views1'],
 			'A view the manifest never lists is not put in the menu.'
 		);
-		$this->assertSame(
-			'',
-			$subform['addadmin_views1']['checkin'],
+		$this->assertArrayNotHasKey(
+			'checkin',
+			$subform['addadmin_views1'],
 			'A view whose table carries no check-in columns does not check in.'
+		);
+		$this->assertArrayNotHasKey(
+			'port',
+			$subform['addadmin_views0'],
+			'An empty string in a switch\'s place is not the same as the switch '
+			. 'being off: the compiler reads these as integers and refuses a '
+			. 'string, so a switch that is off is simply not carried.'
 		);
 		$this->assertSame(2, $this->report->get('counts.component_admin_views'));
 
@@ -2160,7 +2319,13 @@ HTML;
 			$subform['addsite_views0']['default_view'],
 			'A component with no default front end view has no reachable front end.'
 		);
-		$this->assertSame('', $subform['addsite_views1']['default_view']);
+		$this->assertArrayNotHasKey(
+			'default_view',
+			$subform['addsite_views1'],
+			'JCB holds only the checkboxes that are on, so a view that is not the '
+			. 'default simply does not carry the switch.'
+		);
+		$this->assertSame('1', $subform['addsite_views1']['metadata']);
 		$this->assertSame('app', $this->report->get('site_view.default'));
 		$this->assertSame(2, $this->report->get('counts.component_site_views'));
 	}
@@ -2218,13 +2383,21 @@ HTML;
 		);
 
 		$this->assertNotNull($scaffold);
-		$this->assertSame('3', $scaffold->main_source);
-		$this->assertSame('3', $scaffold->gettype);
-		$this->assertSame('getAbout', $scaffold->getcustom);
+		$this->assertSame(
+			'3',
+			$scaffold->main_source,
+			'No admin view answers for the screen, so its data comes from custom code.'
+		);
+		$this->assertSame(
+			'1',
+			$scaffold->gettype,
+			'The compiler writes a view\'s files only for a main get that reads one '
+			. 'record or a list; a get of any other shape loses the screen entirely.'
+		);
 		$this->assertStringContainsString(
-			'custom scaffold',
+			'custom code',
 			(string) $this->report->get('dynamic_get.custom.about'),
-			'A guessed-at source is refused; the scaffold says plainly what it awaits.'
+			'A guessed-at source is refused; the report says plainly what it awaits.'
 		);
 
 		$this->assertNotNull($this->item->definition(
@@ -2290,7 +2463,10 @@ HTML;
 		$this->view->set('custom_admin_view.editor.crud', 1);
 		$this->view->set('custom_admin_view.venues.name', 'venues');
 		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
+		$this->view->set('custom_admin_view.itemsall.name', 'itemsall');
+		$this->view->set('custom_admin_view.itemsall.default', '<p>list</p>');
 		$this->resolved->set('existing.admin_view_names', ['venues']);
+		$this->resolved->set('screen.list_views', ['itemsall' => 'item']);
 
 		$this->assertSame(1, $this->customAdminView()->write());
 
@@ -2323,6 +2499,12 @@ HTML;
 			$this->report->get('skipped.custom_admin_view.venues'),
 			'A folder answering to one of the component\'s own admin views in the '
 			. 'database is that view\'s territory, whether or not this run resolved it.'
+		);
+		$this->assertSame(
+			'a table view answers for this template',
+			$this->report->get('skipped.custom_admin_view.itemsall'),
+			'The component\'s own controller pairs this screen with another view\'s '
+			. 'model, which is the component saying it is that view\'s list.'
 		);
 		$this->assertSame(1, $this->report->get('counts.custom_admin_view'));
 

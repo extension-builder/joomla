@@ -15,11 +15,14 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Access;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Form as FormLocator;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Language as LanguageLocator;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Schema as SchemaLocator;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Table as TableLocator;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\View as ViewLocator;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Mvc;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Screen;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Manifest;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Scanner;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Selector;
@@ -89,6 +92,15 @@ class Discovery implements ServiceProviderInterface
 
 		$container->alias(ViewLocator::class, 'Extrusion.Locator.View')
 			->share('Extrusion.Locator.View', [$this, 'getViewLocator'], true);
+
+		$container->alias(Mvc::class, 'Extrusion.Mvc')
+			->share('Extrusion.Mvc', [$this, 'getMvc'], true);
+
+		$container->alias(Screen::class, 'Extrusion.Screen')
+			->share('Extrusion.Screen', [$this, 'getScreen'], true);
+
+		$container->alias(Access::class, 'Extrusion.Access')
+			->share('Extrusion.Access', [$this, 'getAccess'], true);
 
 		$container->alias(Collector::class, 'Extrusion.Collector')
 			->share('Extrusion.Collector', [$this, 'getCollector'], true);
@@ -330,7 +342,64 @@ class Discovery implements ServiceProviderInterface
 			$container->get('Extrusion.Locator.Form'),
 			$container->get('Extrusion.Locator.Language'),
 			$container->get('Extrusion.Locator.Table'),
-			$container->get('Extrusion.Locator.View')
+			$container->get('Extrusion.Locator.View'),
+			$container->get('Extrusion.Mvc'),
+			$container->get('Extrusion.Screen'),
+			$container->get('Extrusion.Access')
+		);
+	}
+
+	/**
+	 * Get the MVC relationship reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Mvc
+	 * @since   6.1.8
+	 */
+	public function getMvc(Container $container): Mvc
+	{
+		return new Mvc(
+			$container->get('Extrusion.Scanner'),
+			$container->get('Extrusion.Selector'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the edit screen reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Screen
+	 * @since   6.1.8
+	 */
+	public function getScreen(Container $container): Screen
+	{
+		return new Screen(
+			$container->get('Extrusion.Scanner'),
+			$container->get('Extrusion.Selector'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the access rules reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Access
+	 * @since   6.1.8
+	 */
+	public function getAccess(Container $container): Access
+	{
+		return new Access(
+			$container->get('Extrusion.Scanner'),
+			$container->get('Extrusion.Selector'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Registry.Report')
 		);
 	}
 }

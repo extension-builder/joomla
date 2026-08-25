@@ -210,26 +210,52 @@ final class ComponentAdminViews extends Writer
 		$has = static fn (string ...$wanted): string
 			=> array_intersect($wanted, $columns) === $wanted ? '1' : '';
 
-		return [
+		$row = [
 			'adminview' => $viewGuid,
 			'icomoon' => (string) (($entry['icon'] ?? '') !== ''
 				? $this->icon((string) $entry['icon']) : ''),
-			// the manifest's own menu says which views it lists
-			'mainmenu' => $entry !== null ? '1' : '',
-			'dashboard_add' => '',
-			'dashboard_list' => $entry !== null ? '1' : '',
-			'submenu' => '1',
-			'checkin' => $has('checked_out', 'checked_out_time'),
-			'history' => $has('version'),
-			'joomla_fields' => '',
-			'metadata' => $has('metakey', 'metadesc'),
-			'access' => $has('access'),
-			'port' => '',
 			'add_api' => '0',
 			'filter' => '2',
 			'edit_create_site_view' => '',
 			'order' => (string) $order
 		];
+
+		// a switch this link does not carry is a switch that is off: JCB's
+		// own records hold the checked ones only, and the compiler reads the
+		// value as an integer, so an empty string in their place is refused
+		return $row + $this->switches([
+			// the manifest's own menu says which views it lists
+			'mainmenu' => $entry !== null,
+			'dashboard_list' => $entry !== null,
+			'submenu' => true,
+			'checkin' => $has('checked_out', 'checked_out_time') === '1',
+			'history' => $has('version') === '1',
+			'metadata' => $has('metakey', 'metadesc') === '1',
+			'access' => $has('access') === '1'
+		]);
+	}
+
+	/**
+	 * The checkbox switches of one link row, holding only those that are on.
+	 *
+	 * @param   array<string, bool>  $switches  Every switch and its state.
+	 *
+	 * @return  array<string, string>  The switches that are on.
+	 * @since   6.1.8
+	 */
+	protected function switches(array $switches): array
+	{
+		$on = [];
+
+		foreach ($switches as $name => $state)
+		{
+			if ($state)
+			{
+				$on[$name] = '1';
+			}
+		}
+
+		return $on;
 	}
 
 	/**

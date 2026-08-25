@@ -38,6 +38,59 @@ component is silently ignored. The same holds for a view's own tables:
 Reading those tables is how anything writing into JCB knows which records
 to update rather than create.
 
+## How a component names its own screens
+
+A component states the relationship between its screens in its controllers,
+and states it the same way whoever wrote it: the controller of a list
+screen proxies `getModel()` to the model of the screen that edits one
+record, while a screen that stands on its own names itself.
+
+```php
+class Admins_fieldsController extends AdminController
+{
+    public function getModel($name = 'Admin_fields', ...)   // the list of admin_fields
+}
+
+class CompilerController extends AdminController
+{
+    public function getModel($name = 'Compiler', ...)       // a screen of its own
+}
+```
+
+Two things follow, and nothing else can supply either:
+
+- **The real plural name.** JCB's own list names are irregular
+  (`admin_fields` → `admins_fields`, `class_extends` → `class_extendings`,
+  `component_config` → `components_config`), so a plural rule guesses
+  wrong for most views. The component says the name outright.
+- **Which folders are generated output.** A folder the component pairs
+  with another view's model is that view's list screen and never a custom
+  admin view, whatever it is called.
+
+## What the edit screen states
+
+A JCB-built edit screen states its own shape, and the compiler reads the
+same shape back:
+
+- The template opens one tab per section --
+  `Html::_('uitab.addTab', '<view>Tab', '<key>', Text::_('<CONST>'))` --
+  in the order the tabs are shown.
+- Each tab renders its columns from layouts of the view's own folder,
+  named `<tab>_<column>`; the column names are the compiler's own
+  alignment table read in reverse (`Compiler\Architecture\AdminView\
+  TabLayoutFields::$alignmentOptions`): 1 left, 2 right, 3 fullwidth,
+  4 above, 5 under, 6 leftside, 7 rightside.
+- Each of those layouts lists the fields of that column, in order, as the
+  fallback of the value the model may override.
+
+Two sections in that template are the compiler's own furniture rather
+than tabs of the view: the publishing section, which renders the view's
+layouts without a column in their name (its fields belong to tab 15), and
+the permissions section, which renders the `rules` field. Storing either
+as a tab gives the view two of each. A tab that renders neither -- markup
+of its own instead -- is a custom tab (`admin_custom_tabs`), which is a
+tab of html placed before or after a stated tab.
+
 ## Ordering
 
 - Admin views are sorted by their link row's `order`
@@ -87,12 +140,43 @@ had adds columns and permissions the component does not want.
 
 ## Permissions
 
+A component states its permissions in `access.xml`, and states the level
+of each by where it puts it: an action in the `component` section is set
+once for the whole component (implementation 2), an action in a view's own
+section is set per record (implementation 1), and an action in both is
+offered at both levels (implementation 3). An action named for another
+view belongs to that view; a `core.*` action of the component section
+belongs to the component itself, and one in a view's own section is view
+level, because that is what the compiler makes of it.
+
 `admin_view.addpermissions` is rows of `action` plus `implementation`
 (`Compiler/Model/Permissions.php` accepts a legacy parallel-array shape
 too, but the form renders rows). `implementation` is `1` view-level,
 `2` component-level, `3` both. A `view.*` action is rewritten to
 `<name_single_code>.*`; a `core.*` action is forced to implementation `1`.
 A view whose rows are all `2` gets **no Permissions tab**.
+
+## What a link row carries, and what it leaves out
+
+The switches on a link row are checkboxes, and JCB's own records hold
+**only the ones that are on** -- an unchecked switch is absent, never an
+empty string. This is not cosmetic: the compiler reads `port` and
+`history` as integers (`Compiler\Creator\Permission::initPort(int)`), so
+an empty string in their place stops the compile outright. The values that
+are not checkboxes (`icomoon`, `add_api`, `filter`, `edit_create_site_view`,
+`order`, and a custom admin view's `before`) are always carried, because
+the compiler reads them whether or not they are set.
+
+## What a view's main get has to be
+
+The compiler writes a custom admin view's or a site view's files only when
+its `main_get` reads **one record or a list** -- `gettype` 1 or 2
+(`Compiler\Component\Structuremultiple::isValidView()`). A get of any
+other shape is passed over silently and the screen never reaches the
+compiled component, however complete its record is. A screen with no table
+behind it therefore takes its data from custom code (`main_source` 3) and
+keeps the shape of an item get, which is exactly how JCB's own screens
+without a table are built.
 
 ## Powers
 

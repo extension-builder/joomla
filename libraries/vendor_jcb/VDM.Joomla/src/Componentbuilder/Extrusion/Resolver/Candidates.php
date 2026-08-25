@@ -407,6 +407,7 @@ final class Candidates
 			$name = (string) ($entry['name'] ?? $key);
 
 			if ($name === '' || !empty($entry['crud']) || $this->answered($name)
+				|| $this->listScreen($name)
 				|| $this->existingAnswers($name, $existing))
 			{
 				continue;
@@ -428,6 +429,26 @@ final class Candidates
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * Whether a folder is a table view's own list screen.
+	 *
+	 * The component's controller for that screen answers with another view's
+	 * model, which is the component itself saying the screen belongs to that
+	 * view. Such a folder is generated output, never a custom admin view.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the component pairs it with another view.
+	 * @since   6.1.8
+	 */
+	protected function listScreen(string $name): bool
+	{
+		return array_key_exists(
+			strtolower(trim($name)),
+			(array) $this->resolved->get('screen.list_views', [])
+		);
 	}
 
 	/**

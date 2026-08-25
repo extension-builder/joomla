@@ -180,6 +180,194 @@ XML;
 	 * @return  array<string, string>  Relative path keyed to its contents.
 	 * @since   6.1.6
 	 */
+	/**
+	 * The access rules of the compiled component.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const ACCESS = <<<'XML'
+<?xml version="1.0" encoding="utf-8" ?>
+<access component="com_example">
+	<section name="component">
+		<action name="core.admin" title="JACTION_ADMIN" />
+		<action name="item.access" title="ITEM_ACCESS" />
+		<action name="item.batch" title="ITEM_BATCH" />
+		<action name="item.edit" title="ITEM_EDIT" />
+		<action name="other.edit" title="OTHER_EDIT" />
+	</section>
+	<section name="item">
+		<action name="item.edit" title="ITEM_EDIT" />
+		<action name="core.delete" title="ITEM_DELETE" />
+	</section>
+</access>
+XML;
+
+	/**
+	 * The controller of the screen that edits one record.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const EDIT_CONTROLLER = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+
+use Joomla\CMS\MVC\Controller\FormController;
+
+class ItemController extends FormController
+{
+	protected $view_item = 'item';
+}
+PHP;
+
+	/**
+	 * The controller of the list screen, naming the edit screen's model.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const LIST_CONTROLLER = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+
+use Joomla\CMS\MVC\Controller\AdminController;
+
+class ItemsAllController extends AdminController
+{
+	public function getModel($name = 'Item', $prefix = 'Administrator', $config = ['ignore_request' => true])
+	{
+		return parent::getModel($name, $prefix, $config);
+	}
+}
+PHP;
+
+	/**
+	 * The controller of a screen that answers for itself.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const OWN_CONTROLLER = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+
+use Joomla\CMS\MVC\Controller\AdminController;
+
+class DashboardController extends AdminController
+{
+	public function getModel($name = 'Dashboard', $prefix = 'Administrator', $config = ['ignore_request' => true])
+	{
+		return parent::getModel($name, $prefix, $config);
+	}
+}
+PHP;
+
+	/**
+	 * The edit screen, stating its tabs and rendering their columns.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const EDIT_SCREEN = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+?>
+<?php echo LayoutHelper::render('item.details_above', $this); ?>
+<?php echo Html::_('uitab.startTabSet', 'itemTab', ['active' => 'details']); ?>
+<?php echo Html::_('uitab.addTab', 'itemTab', 'details', Text::_('COM_EXAMPLE_ITEM_DETAILS', true)); ?>
+	<div class="row">
+		<div class="col-md-6"><?php echo LayoutHelper::render('item.details_left', $this); ?></div>
+		<div class="col-md-6"><?php echo LayoutHelper::render('item.details_right', $this); ?></div>
+	</div>
+<?php echo Html::_('uitab.endTab'); ?>
+<?php echo Html::_('uitab.addTab', 'itemTab', 'metrics', Text::_('COM_EXAMPLE_ITEM_METRICS', true)); ?>
+	<div class="row">
+		<div class="col-md-12"><?php echo LayoutHelper::render('item.metrics_fullwidth', $this); ?></div>
+	</div>
+<?php echo Html::_('uitab.endTab'); ?>
+<?php echo Html::_('uitab.addTab', 'itemTab', 'notes', Text::_('COM_EXAMPLE_ITEM_NOTES', true)); ?>
+	<div class="row"><p>Nothing here but a note the author wrote.</p></div>
+<?php echo Html::_('uitab.endTab'); ?>
+<?php echo Html::_('uitab.addTab', 'itemTab', 'publishing', Text::_('COM_EXAMPLE_ITEM_PUBLISHING', true)); ?>
+	<div class="row">
+		<div class="col-md-6"><?php echo LayoutHelper::render('item.publishing', $this); ?></div>
+	</div>
+<?php echo Html::_('uitab.endTab'); ?>
+<?php echo Html::_('uitab.addTab', 'itemTab', 'permissions', Text::_('COM_EXAMPLE_ITEM_PERMISSION', true)); ?>
+	<div class="row"><?php echo $this->form->getInput('rules'); ?></div>
+<?php echo Html::_('uitab.endTab'); ?>
+<?php echo Html::_('uitab.endTabSet'); ?>
+PHP;
+
+	/**
+	 * The left column of the details tab.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const COLUMN_LEFT = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+$fields = $displayData->get($fields_tab_layout) ?: array(
+	'name',
+	'alias'
+);
+?>
+PHP;
+
+	/**
+	 * The right column of the details tab.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const COLUMN_RIGHT = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+$fields = $displayData->get($fields_tab_layout) ?: array(
+	'description'
+);
+?>
+PHP;
+
+	/**
+	 * The full width column of the metrics tab.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const COLUMN_WIDE = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+$fields = $displayData->get($fields_tab_layout) ?: array(
+	'counter'
+);
+?>
+PHP;
+
+	/**
+	 * The column of the section the compiler generates for publishing.
+	 *
+	 * @var    string
+	 * @since  6.1.8
+	 */
+	public const COLUMN_PUBLISHING = <<<'PHP'
+<?php
+defined('_JEXEC') or die;
+$fields = $displayData->get($fields_tab_layout) ?: array(
+	'guid',
+	'published'
+);
+?>
+PHP;
+
+	/**
+	 * The relative file map of a modern administrator component tree.
+	 *
+	 * @return  array<string, string>  Relative path keyed to its contents.
+	 * @since   6.1.6
+	 */
 	public static function modern(): array
 	{
 		return [
@@ -194,6 +382,40 @@ XML;
 			'com_example/admin/src/Table/ItemTable.php' => "<?php\nclass ItemTable {}",
 			'com_example/admin/services/provider.php' => "<?php\nreturn null;",
 			'com_example/compiler/joomla_3/component.xml' => self::DECOY
+		];
+	}
+
+	/**
+	 * The relative file map of a component JCB itself compiled.
+	 *
+	 * What matters here is everything a compiled component states about
+	 * itself that nothing else can: the controller of a list screen naming
+	 * the model of the screen that edits one record, the edit screen naming
+	 * its tabs and rendering each column from a layout of the view's own
+	 * folder, those layouts listing their fields in order, and the access
+	 * rules stating each permission at the level the component offers it.
+	 *
+	 * @return  array<string, string>  Relative path keyed to its contents.
+	 * @since   6.1.8
+	 */
+	public static function compiled(): array
+	{
+		return [
+			'com_example/com_example.xml' => self::MANIFEST,
+			'com_example/admin/sql/install.mysql.utf8.sql' => self::SCHEMA,
+			'com_example/admin/forms/item.xml' => self::FORM,
+			'com_example/admin/language/en-GB/com_example.ini' => self::LANGUAGE,
+			'com_example/admin/access.xml' => self::ACCESS,
+			'com_example/admin/src/Controller/ItemController.php' => self::EDIT_CONTROLLER,
+			'com_example/admin/src/Controller/ItemsAllController.php' => self::LIST_CONTROLLER,
+			'com_example/admin/src/Controller/DashboardController.php' => self::OWN_CONTROLLER,
+			'com_example/admin/tmpl/item/default.php' => self::EDIT_SCREEN,
+			'com_example/admin/tmpl/itemsall/default.php' => "<?php\ndefined('_JEXEC') or die;\n?>\n<p>list</p>",
+			'com_example/admin/tmpl/dashboard/default.php' => "<?php\ndefined('_JEXEC') or die;\n?>\n<p>dash</p>",
+			'com_example/admin/layouts/item/details_left.php' => self::COLUMN_LEFT,
+			'com_example/admin/layouts/item/details_right.php' => self::COLUMN_RIGHT,
+			'com_example/admin/layouts/item/metrics_fullwidth.php' => self::COLUMN_WIDE,
+			'com_example/admin/layouts/item/publishing.php' => self::COLUMN_PUBLISHING
 		];
 	}
 
