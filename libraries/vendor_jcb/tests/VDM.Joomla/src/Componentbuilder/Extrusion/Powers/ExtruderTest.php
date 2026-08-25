@@ -439,6 +439,16 @@ final class ExtruderTest extends FilesystemTestCase
 			(bool) $report->get('skipped.existing.power.' . self::EXISTING_GUID)
 		);
 		$this->assertCount(2, $this->item->records('power'));
+
+		$loader = $this->item->definition('power', $this->guid('Demo\Joomla\Data\Loader'));
+
+		$this->assertSame(
+			[self::EXISTING_GUID],
+			$loader->implements ?? null,
+			'Dropping a class from the write must not drop it from the wiring: '
+			. 'the power it stands for is still what the classes beside it '
+			. 'refer to, and they still have to reach it.'
+		);
 		$this->assertSame(
 			['Extruded 2 class(es) into JCB powers (1 left untouched because they already exist).'],
 			$this->extruderMessages('success')

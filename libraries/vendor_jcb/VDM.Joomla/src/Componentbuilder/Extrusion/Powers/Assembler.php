@@ -80,6 +80,14 @@ final class Assembler
 	protected Report $report;
 
 	/**
+	 * The Constants Resolver.
+	 *
+	 * @var    Constants
+	 * @since  6.1.8
+	 */
+	protected Constants $constants;
+
+	/**
 	 * The selected candidates' identities, class name keyed to guid.
 	 *
 	 * @var    array<string, string>
@@ -90,11 +98,12 @@ final class Assembler
 	/**
 	 * Constructor.
 	 *
-	 * @param   Config    $config    The extrusion configuration.
-	 * @param   Harvest   $harvest   The harvest registry.
-	 * @param   Existing  $existing  The existing power resolver.
-	 * @param   Pairing   $pairing   The pairing resolver.
-	 * @param   Report    $report    The run report registry.
+	 * @param   Config     $config     The extrusion configuration.
+	 * @param   Harvest    $harvest    The harvest registry.
+	 * @param   Existing   $existing   The existing power resolver.
+	 * @param   Pairing    $pairing    The pairing resolver.
+	 * @param   Report     $report     The run report registry.
+	 * @param   Constants  $constants  The language constant resolver.
 	 *
 	 * @since   6.1.7
 	 */
@@ -128,6 +137,7 @@ final class Assembler
 
 		$candidates = (array) $this->harvest->get('classes', []);
 		$selected = [];
+		$skipped = 0;
 		$this->local = [];
 
 		foreach ($candidates as $candidate)
@@ -156,15 +166,33 @@ final class Assembler
 			}
 
 			$verdict = $this->pairing->verdict('power', $guid);
+			$action = (string) ($candidate['action'] ?? 'create');
 
 			if ($verdict !== null)
 			{
 				$candidate['guid'] = $decided;
 				$candidate['exists'] = $verdict['action'] === 'update';
+				$action = (string) $verdict['action'];
 			}
 
-			// every selected candidate claims its identity before any linking
+			// every candidate claims its identity before any linking, a dropped
+			// one included: the power it stands for is still what the classes
+			// beside it refer to, and they must reach it
 			$this->local[strtolower((string) $candidate['fqn'])] = $decided;
+
+			if ($action === 'skip')
+			{
+				// the caller asked to be told about what already exists, not to
+				// have this library's copy written over it. Deciding that here
+				// rather than at the write is what "just drops it" means, and
+				// the key is the one every writer reports a skip under, so a
+				// caller reads one thing whichever layer settled it
+				$this->report->set('skipped.existing.power.' . $decided, true);
+				$skipped++;
+
+				continue;
+			}
+
 			$selected[$decided] = $candidate;
 		}
 
@@ -180,6 +208,7 @@ final class Assembler
 		}
 
 		$this->report->set('counts.powers.assembled', $assembled);
+		$this->report->set('counts.powers.skipped', $skipped);
 
 		return $assembled;
 	}
@@ -219,14 +248,6 @@ final class Assembler
 
 		return $include === [] || array_intersect($names, $include) !== [];
 	}
-
-	/**
-	 * The Constants Resolver.
-	 *
-	 * @var    Constants
-	 * @since  6.1.8
-	 */
-	protected Constants $constants;
 
 	/**
 	 * Build the definition one candidate is written as.

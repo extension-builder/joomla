@@ -381,6 +381,20 @@ final class Extruder implements PowersExtruderInterface
 		}
 
 		$assembled = $this->assembler->assemble();
+		$skipped = (int) $this->report->get('counts.powers.skipped', 0);
+
+		if ($assembled === 0 && $skipped > 0)
+		{
+			// nothing to write is the right answer, not a failure: the caller
+			// asked to be told what already exists rather than to overwrite it
+			$this->message->success(sprintf(
+				'Every one of the %d harvested class(es) is already a power, so '
+				. 'none was written.',
+				$skipped
+			));
+
+			return $this->finish(true);
+		}
 
 		if ($assembled === 0)
 		{
