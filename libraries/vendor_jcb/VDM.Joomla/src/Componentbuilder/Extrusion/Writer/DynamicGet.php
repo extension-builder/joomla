@@ -215,6 +215,23 @@ final class DynamicGet extends Writer
 			$definition->gettype = (string) $answered['gettype'];
 			$definition->view_table_main = (string) $answered['guid'];
 			$definition->select_all = '1';
+			$definition->view_selection = 'a.*';
+
+			// an item get without this filter has no where clause at all, and
+			// the generated getItem then answers with the first row of the
+			// table for every id (Compiler\Dynamicget\QueryFilter writes the
+			// clause from filter_type 1, and nothing else does)
+			if ((int) $answered['gettype'] === 1)
+			{
+				$definition->filter = [
+					'filter0' => [
+						'filter_type' => '1',
+						'state_key' => 'id',
+						'operator' => '1',
+						'table_key' => 'a.id'
+					]
+				];
+			}
 		}
 		else
 		{

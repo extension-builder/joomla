@@ -242,7 +242,10 @@ final class ComponentAdminViews extends Writer
 			'history' => $has('version') || isset($granted['version']),
 			'metadata' => $has('metakey', 'metadesc'),
 			'access' => $has('access') || isset($granted['access']),
-			'port' => isset($granted['export']) || isset($granted['import'])
+			// the port switch writes both halves of the pair
+			// (Compiler\Creator\Permission::initPort), so one of them alone is
+			// a button someone added, not import and export being switched on
+			'port' => isset($granted['export']) && isset($granted['import'])
 		]);
 	}
 

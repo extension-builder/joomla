@@ -139,26 +139,41 @@ final class ComponentCustomAdminViews extends Writer
 		$subform = [];
 		$number = 0;
 
-		foreach ($views as $entry)
+		$menu = (array) $this->source->get('menu', []);
+
+		foreach ($views as $key => $entry)
 		{
-			$guid = (string) (((array) $entry)['guid'] ?? '');
+			$entry = (array) $entry;
+			$guid = (string) ($entry['guid'] ?? '');
 
 			if ($guid === '')
 			{
 				continue;
 			}
 
+			$name = strtolower(trim((string) ($entry['name'] ?? $key)));
+			$granted = (array) $this->source->get('access_screens_actions.' . $name, []);
+			$rules = $granted !== [] || $menu !== [];
+
 			// a checkbox this link does not carry is one that is off, which
-			// is how JCB's own records hold them
-			$subform['addcustom_admin_views' . $number] = [
-				'customadminview' => $guid,
-				'icomoon' => '',
-				'before' => '',
-				'mainmenu' => '1',
-				'dashboard_list' => '1',
-				'submenu' => '1',
-				'access' => '1'
-			];
+			// is how JCB's own records hold them; the component's own menu
+			// and access rules say which of these it switched on
+			$row = ['customadminview' => $guid, 'icomoon' => '', 'before' => ''];
+
+			foreach ([
+				'mainmenu' => isset($menu[$name]),
+				'dashboard_list' => isset($granted['dashboard_list']),
+				'submenu' => isset($granted['submenu']),
+				'access' => isset($granted['access'])
+			] as $switch => $state)
+			{
+				if ($state || !$rules)
+				{
+					$row[$switch] = '1';
+				}
+			}
+
+			$subform['addcustom_admin_views' . $number] = $row;
 			$number++;
 		}
 

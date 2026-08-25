@@ -407,7 +407,7 @@ final class Candidates
 			$name = (string) ($entry['name'] ?? $key);
 
 			if ($name === '' || !empty($entry['crud']) || $this->answered($name)
-				|| $this->listScreen($name) || !$this->named($name)
+				|| $this->listScreen($name) || $this->dashboard($name)
 				|| $this->existingAnswers($name, $existing))
 			{
 				continue;
@@ -429,6 +429,25 @@ final class Candidates
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * Whether one screen is the component's own dashboard.
+	 *
+	 * The compiler writes the default dashboard into a folder named for the
+	 * component itself, and JCB keeps that screen on the component record --
+	 * its dashboard type and its dashboard -- never as a custom admin view.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the folder is the component's dashboard.
+	 * @since   6.1.8
+	 */
+	protected function dashboard(string $name): bool
+	{
+		$code = strtolower(trim(str_replace('com_', '', $this->option())));
+
+		return $code !== '' && strtolower(trim($name)) === $code;
 	}
 
 	/**
