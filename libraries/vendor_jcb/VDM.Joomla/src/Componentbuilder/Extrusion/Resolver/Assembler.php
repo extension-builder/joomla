@@ -458,6 +458,23 @@ final class Assembler
 			return null;
 		}
 
+		// every view JCB builds keeps its records by an id of their own, so a
+		// table the schema declares without one is not a view's table: making
+		// it one would give the component a screen it never had and add a
+		// dozen columns to a table that carries none of them. A table only a
+		// definition class describes says nothing either way -- such a class
+		// names the view's own fields and never Joomla's columns
+		if ($entry['schema'] !== ''
+			&& !in_array('id', array_map('strtolower', $columns), true))
+		{
+			$this->report->set(
+				'skipped.no_identity.' . $canonical,
+				$name . ' has no id column, so it is not an admin view\'s table'
+			);
+
+			return null;
+		}
+
 		$path = 'view.' . $this->precedence->key($view);
 		$this->resolved->set($path . '.columns', $columns);
 		$tabs = $this->tab->names($view, $fields);

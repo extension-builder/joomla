@@ -232,6 +232,27 @@ without a table are built.
   routes recompute the namespace at compile time, which is what lets the
   same power compile into different components.
 
+## What a table has to have to be a view
+
+Every view JCB builds keeps its records by an `id` of their own, so a table
+the source's schema declares without one is not a view's table: modelling
+it as an admin view would give the component a screen it never had and add
+Joomla's dozen columns to a table that carries none of them. Such a table
+is passed over and reported. A table only a JCB definition class describes
+says nothing either way -- such a class names the view's own fields and
+never Joomla's columns.
+
+Two roles must be read rather than guessed for the same reason, because
+each rewrites the table:
+
+- The **alias** is the column JCB itself names `alias`; a view's alias
+  field becomes that column when the component is built, so a column
+  merely named after one (`alias_builder`) would be renamed and the table
+  would lose a column of its own.
+- The **access** switch is proved by an `access` column, not by the access
+  rules: they name an access action for every view whether or not the view
+  has an access level.
+
 ## Fields are shared, not repeated
 
 A field is a record of its own in JCB, and every view that needs it links

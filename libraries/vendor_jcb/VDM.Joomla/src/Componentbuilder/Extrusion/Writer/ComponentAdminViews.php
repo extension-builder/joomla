@@ -241,7 +241,9 @@ final class ComponentAdminViews extends Writer
 			'checkin' => $has('checked_out', 'checked_out_time'),
 			'history' => $has('version') || isset($granted['version']),
 			'metadata' => $has('metakey', 'metadesc'),
-			'access' => $has('access') || isset($granted['access']),
+			// the access rules name an access action for every view, whether or
+			// not the view has an access level, so the column is the evidence
+			'access' => $has('access'),
 			// the port switch writes both halves of the pair
 			// (Compiler\Creator\Permission::initPort), so one of them alone is
 			// a button someone added, not import and export being switched on

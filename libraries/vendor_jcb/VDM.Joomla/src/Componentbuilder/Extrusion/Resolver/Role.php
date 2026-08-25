@@ -176,7 +176,11 @@ final class Role
 				continue;
 			}
 
-			if (!$hasAlias && $this->looksLike($column, ['alias']))
+			// the alias is the column JCB itself names alias: a view's alias
+			// field becomes that column when the component is built, so a
+			// column merely named after one -- alias_builder, alias_type --
+			// would be renamed and the table would lose a column of its own
+			if (!$hasAlias && strtolower(trim($column)) === 'alias')
 			{
 				$roles[$column]['alias'] = true;
 				$hasAlias = true;
