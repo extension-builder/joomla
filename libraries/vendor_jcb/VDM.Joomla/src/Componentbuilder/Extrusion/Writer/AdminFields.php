@@ -239,9 +239,16 @@ final class AdminFields extends Writer
 			// default. Never 2 -- the compiler reads that as a field with no
 			// database column at all (Compiler\Model\Fields, "2 = none
 			// database"), which would drop the column from the table
+			// a field the screen filters on but shows no column for is listed
+			// all the same: the compiler builds a filter only for a field whose
+			// list value is 1, 3 or 4 (Compiler\Creator\Builders::appearsInList),
+			// and renders a column only for 1 or 3 -- so 4 is what the source
+			// itself must hold for such a field
+			$filtered = $listed['stated']
+				&& isset($listed['filters'][strtolower($column)]);
 			$row = [
 				'field' => $fieldGuid,
-				'list' => $isList ? '1' : '',
+				'list' => $isList ? '1' : ($filtered ? '4' : ''),
 				'order_list' => (string) ($isList ? ++$listOrder : 0),
 				'filter' => $listed['stated']
 					? (string) ($listed['filters'][strtolower($column)] ?? '')
