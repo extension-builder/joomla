@@ -217,6 +217,27 @@ final class Extruder implements PowersExtruderInterface
 	}
 
 	/**
+	 * Set the component code name whose namespace segment applies.
+	 *
+	 * A run harvesting the library of a component that has no JCB row yet still
+	 * knows what that component is called, and the component segment of every
+	 * namespace is derived from exactly that. Without it the segment stays
+	 * concrete, and a class the component owns is stored as belonging to that
+	 * one component alone.
+	 *
+	 * @param   string  $codeName  The component's code name, or an empty string.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.8
+	 */
+	public function componentCode(string $codeName): self
+	{
+		$this->config->set('componentCode', trim($codeName));
+
+		return $this;
+	}
+
+	/**
 	 * Set what happens when a harvested class already exists as a power.
 	 *
 	 * @param   string  $policy  Either skip, update, or replace.

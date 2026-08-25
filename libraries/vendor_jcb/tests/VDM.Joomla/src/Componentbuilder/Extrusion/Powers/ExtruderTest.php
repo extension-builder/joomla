@@ -258,6 +258,48 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * A library extension folder is a folder of vendors, and each is a library.
+	 *
+	 * Joomla installs the extension folder, but the vendor folder inside it is
+	 * what names the namespace head. Reading the extension folder as the vendor
+	 * would throw that name away, and with it the only statement of where the
+	 * head ends -- so aiming at either lands on the same library.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAnExtensionFolderIsReadAsTheVendorFoldersItHolds(): void
+	{
+		$extruder = $this->extruder();
+		$report = $extruder->reset()
+			->library($this->temporaryPath('lib'))
+			->component(3)
+			->harvest();
+
+		$this->assertSame(3, $report->get('counts.powers.classes'));
+		$this->assertSame(1, $report->get('counts.powers.existing'));
+
+		$tree = $extruder->harvested();
+		$library = $tree['libraries']['Demo_Joomla'] ?? null;
+
+		$this->assertNotNull(
+			$library,
+			'The vendor folder inside is the library, not the folder holding it.'
+		);
+		$this->assertSame('Demo.Joomla', $library['folder']);
+
+		$loader = $tree['classes'][$this->guid('Demo\Joomla\Data\Loader')] ?? null;
+
+		$this->assertNotNull($loader);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\Data.Loader',
+			$loader['placeholder'],
+			'The vendor folder states its head either way, so the prefix is '
+			. 'deferred either way.'
+		);
+	}
+
+	/**
 	 * Extruding writes the whole set, linked by identity.
 	 *
 	 * @return  void
@@ -521,6 +563,12 @@ final class ExtruderTest extends FilesystemTestCase
 	/**
 	 * The identity the harvest derives for one class.
 	 *
+	 * A new power's identity comes from its stored namespace, not the name it
+	 * happened to be built under, so the same class harvested from two
+	 * libraries whose prefixes differ lands on one identity. The fixture
+	 * library folds two head segments and defers the first, so the same
+	 * conversion is applied here.
+	 *
 	 * @param   string  $fqn  The fully qualified class name.
 	 *
 	 * @return  string  The derived identity.
@@ -528,7 +576,16 @@ final class ExtruderTest extends FilesystemTestCase
 	 */
 	private function guid(string $fqn): string
 	{
-		return (new Guid())->derive(['power', $fqn]);
+		$segments = explode('\\', trim($fqn, '\\'));
+		$class = array_pop($segments);
+		$head = array_splice($segments, 0, 2);
+		$head[0] = '[[[NamespacePrefix]]]';
+
+		return (new Guid())->derive([
+			'power',
+			implode('\\', $head) . '\\'
+			. implode('.', array_merge($segments, [$class]))
+		]);
 	}
 
 	/**

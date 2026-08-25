@@ -83,9 +83,9 @@ final class Placeholders
 	protected ?string $fallback;
 
 	/**
-	 * The resolved values, cached per component id.
+	 * The resolved values, cached per component the run speaks for.
 	 *
-	 * @var    array<int, array{prefix: string, component: string}>
+	 * @var    array<string, array{prefix: string, component: string}>
 	 * @since  6.1.7
 	 */
 	protected array $resolved = [];
@@ -163,14 +163,16 @@ final class Placeholders
 	protected function values(): array
 	{
 		$id = (int) $this->config->get('component', 0);
+		$named = trim((string) $this->config->get('componentCode', ''));
+		$key = $id . '|' . $named;
 
-		if (isset($this->resolved[$id]))
+		if (isset($this->resolved[$key]))
 		{
 			// a fresh run reads a fresh report, which must still carry the
 			// values that drive every namespace conversion
-			$this->report->set('powers.placeholders', $this->resolved[$id]);
+			$this->report->set('powers.placeholders', $this->resolved[$key]);
 
-			return $this->resolved[$id];
+			return $this->resolved[$key];
 		}
 
 		$prefix = '';
@@ -208,6 +210,15 @@ final class Placeholders
 			}
 		}
 
+		if ($code === '' && $named !== '')
+		{
+			// a run harvesting a library for a component it is about to create
+			// has no row to ask, but it does know what the component is called,
+			// and that is the same thing the compiler derives the segment from
+			$code = $this->code($named);
+			$component = $this->segment($code);
+		}
+
 		if ($prefix === '')
 		{
 			$prefix = $this->fallbackPrefix();
@@ -227,7 +238,7 @@ final class Placeholders
 			'component' => $component
 		]);
 
-		return $this->resolved[$id] = [
+		return $this->resolved[$key] = [
 			'prefix' => $prefix,
 			'component' => $component
 		];

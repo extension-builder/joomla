@@ -59,9 +59,9 @@ final class Existing
 	protected Report $report;
 
 	/**
-	 * The catalogue, resolved class name keyed to its power identity.
+	 * The catalogue, held under both the stored namespace and the class name.
 	 *
-	 * @var    array<string, array{guid: string, id: int, name: string}>|null
+	 * @var    array{namespace: array<string, array{guid: string, id: int, name: string}>, class: array<string, array{guid: string, id: int, name: string}>}|null
 	 * @since  6.1.7
 	 */
 	protected ?array $index = null;
@@ -104,18 +104,38 @@ final class Existing
 	 */
 	public function find(string $fqn): ?array
 	{
-		return $this->index()[$this->namespacer->key($fqn)] ?? null;
+		return $this->index()['class'][$this->namespacer->key($fqn)] ?? null;
 	}
 
 	/**
-	 * How many existing powers the catalogue resolved.
+	 * The existing power one stored namespace names.
+	 *
+	 * This is what identity means here. A power's stored namespace defers its
+	 * vendor prefix and component segment, so the same class serves components
+	 * whose prefixes differ -- and two classes are the same power exactly when
+	 * they fold to the same stored namespace, whatever they were compiled as.
+	 * Resolving both sides to concrete names instead would make every library
+	 * whose prefix differs from this run's look new.
+	 *
+	 * @param   string  $namespace  The stored, placeholder-carrying namespace.
+	 *
+	 * @return  array{guid: string, id: int, name: string}|null  The power, or null when none matches.
+	 * @since   6.1.8
+	 */
+	public function match(string $namespace): ?array
+	{
+		return $this->index()['namespace'][$this->namespacer->key($namespace)] ?? null;
+	}
+
+	/**
+	 * How many existing powers the catalogue holds.
 	 *
 	 * @return  int  The number of matchable powers.
 	 * @since   6.1.7
 	 */
 	public function count(): int
 	{
-		return count($this->index());
+		return count($this->index()['namespace']);
 	}
 
 	/**
@@ -137,9 +157,14 @@ final class Existing
 	}
 
 	/**
-	 * Read and resolve the whole power catalogue, once.
+	 * Read the whole power catalogue, once, under both of its names.
 	 *
-	 * @return  array<string, array{guid: string, id: int, name: string}>  The catalogue.
+	 * A power answers to two questions. Identity asks whether a harvested
+	 * class is already this power, and that is its stored namespace. Linking
+	 * asks which power a name written in someone's code refers to, and that is
+	 * the concrete class the stored namespace resolves to for this run.
+	 *
+	 * @return  array{namespace: array<string, array{guid: string, id: int, name: string}>, class: array<string, array{guid: string, id: int, name: string}>}  The catalogue.
 	 * @since   6.1.7
 	 */
 	protected function index(): array
@@ -154,7 +179,7 @@ final class Existing
 		}
 
 		$this->under = $under;
-		$this->index = [];
+		$this->index = ['namespace' => [], 'class' => []];
 		$rows = $this->load->items(
 			[
 				'a.id' => 'id',
@@ -176,22 +201,14 @@ final class Existing
 				continue;
 			}
 
-			$fqn = $this->namespacer->resolve($namespace);
+			$power = [
+				'guid' => $guid,
+				'id' => (int) ($row['id'] ?? 0),
+				'name' => trim((string) ($row['name'] ?? ''))
+			];
+			$identity = $this->namespacer->key($namespace);
 
-			if ($fqn === '')
-			{
-				// a placeholder this run has no value for cannot be matched
-				$this->report->set(
-					'powers.unresolved.namespace.' . $this->key($guid),
-					$namespace
-				);
-
-				continue;
-			}
-
-			$key = $this->namespacer->key($fqn);
-
-			if (isset($this->index[$key]))
+			if (isset($this->index['namespace'][$identity]))
 			{
 				$this->report->set(
 					'powers.duplicate.namespace.' . $this->key($guid),
@@ -201,11 +218,37 @@ final class Existing
 				continue;
 			}
 
-			$this->index[$key] = [
-				'guid' => $guid,
-				'id' => (int) ($row['id'] ?? 0),
-				'name' => trim((string) ($row['name'] ?? ''))
-			];
+			$this->index['namespace'][$identity] = $power;
+
+			$fqn = $this->namespacer->resolve($namespace);
+
+			if ($fqn === '')
+			{
+				// a placeholder this run has no value for still identifies the
+				// power; it just cannot say which written name reaches it
+				$this->report->set(
+					'powers.unresolved.namespace.' . $this->key($guid),
+					$namespace
+				);
+
+				continue;
+			}
+
+			$name = $this->namespacer->key($fqn);
+
+			if (isset($this->index['class'][$name]))
+			{
+				// two identities reaching one class name cannot both answer
+				// for a written reference, so the first keeps it
+				$this->report->set(
+					'powers.duplicate.class.' . $this->key($guid),
+					$fqn
+				);
+
+				continue;
+			}
+
+			$this->index['class'][$name] = $power;
 		}
 
 		return $this->index;

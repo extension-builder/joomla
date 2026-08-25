@@ -55,19 +55,24 @@ final class Namespacer
 	/**
 	 * Fold a class's declared namespace and location into the stored dot form.
 	 *
-	 * The folders below src say where the dots begin: the namespace segments
-	 * they mirror become dot parts, and whatever the path does not mirror stays
-	 * backslashed as the vendor folder name. A file whose path does not follow
-	 * its namespace has no such seam, so null says the convention must decide.
+	 * The library's own folder name is the first authority: a dotted name such
+	 * as VDM.Joomla states, in the only place the convention states it, how
+	 * many leading namespace segments were folded into that one folder. Those
+	 * segments stay backslashed as the head; everything below them mirrors the
+	 * folders under src and becomes dots. Where the folder name says nothing,
+	 * the path decides -- the segments the folders mirror become dot parts, and
+	 * the rest stays the head. A file whose path contradicts its namespace has
+	 * no seam to read, so null says the convention must decide instead.
 	 *
 	 * @param   string         $namespace  The declared namespace, without the class.
 	 * @param   string         $class      The class name.
 	 * @param   array<string>  $folders    The folder names below the source root.
+	 * @param   string         $library    The library's own folder name, when it has one.
 	 *
 	 * @return  string|null  The stored form, or null when path and namespace disagree.
 	 * @since   6.1.7
 	 */
-	public function stored(string $namespace, string $class, array $folders): ?string
+	public function stored(string $namespace, string $class, array $folders, string $library = ''): ?string
 	{
 		$segments = $this->segments($namespace);
 		$folders = array_values(array_filter(array_map('strval', $folders), 'strlen'));
@@ -83,13 +88,66 @@ final class Namespacer
 			return null;
 		}
 
-		// a stored namespace needs a backslash head to be a namespace at all,
-		// and the convention keeps two segments as the vendor folder name
-		$keep = max(count($segments) - $count, min(2, count($segments)));
+		$keep = $this->head($library, $segments, count($segments) - $count);
 		$head = array_slice($segments, 0, $keep);
 		$tail = implode('.', array_merge(array_slice($segments, $keep), [$class]));
 
 		return implode('\\', $head) . '\\' . $tail;
+	}
+
+	/**
+	 * How many leading namespace segments the head keeps.
+	 *
+	 * A dotted library folder names its own head, segment for segment, so when
+	 * the namespace opens with exactly those segments the folder has answered.
+	 * Otherwise the path's own seam stands, and a head the path leaves empty
+	 * falls back to the convention every power JCB ships follows.
+	 *
+	 * @param   string         $library   The library's own folder name.
+	 * @param   array<string>  $segments  The namespace segments.
+	 * @param   int            $seam      The head length the path implies.
+	 *
+	 * @return  int  The number of segments the head keeps.
+	 * @since   6.1.8
+	 */
+	protected function head(string $library, array $segments, int $seam): int
+	{
+		$stated = $this->vendor($library);
+		$length = count($stated);
+
+		if ($length > 0 && $length <= count($segments)
+			&& $stated === array_slice($segments, 0, $length))
+		{
+			return $length;
+		}
+
+		// a stored namespace needs a backslash head to be a namespace at all,
+		// and the convention keeps two segments as the vendor folder name
+		return max($seam, min(2, count($segments)));
+	}
+
+	/**
+	 * The namespace segments one library folder name states.
+	 *
+	 * The dots in a library's folder name are the convention's own record of
+	 * the segments that were folded into it, so a name carrying none states
+	 * nothing and is left to the path to answer for.
+	 *
+	 * @param   string  $library  The library's own folder name.
+	 *
+	 * @return  array<string>  The stated segments, or none.
+	 * @since   6.1.8
+	 */
+	public function vendor(string $library): array
+	{
+		$library = trim($library);
+
+		if ($library === '' || !str_contains($library, '.'))
+		{
+			return [];
+		}
+
+		return array_values(array_filter(explode('.', $library), 'strlen'));
 	}
 
 	/**
@@ -123,21 +181,34 @@ final class Namespacer
 	/**
 	 * Defer the resolved prefix and component segments back to placeholders.
 	 *
-	 * @param   string  $stored  The stored form with concrete values.
+	 * The vendor prefix is the first segment: that is what the convention
+	 * means, and every power JCB ships carries the placeholder there. So a
+	 * library that states its head in a dotted folder name has stated its
+	 * prefix along with it, and the segment is deferred whatever it reads --
+	 * which is the whole point, since deferring it is what lets one class
+	 * serve components whose prefixes differ. A library whose folder states
+	 * nothing is only deferred when its first segment is the prefix the run
+	 * already resolves to, because nothing else has claimed the convention on
+	 * its behalf.
+	 *
+	 * @param   string  $stored   The stored form with concrete values.
+	 * @param   string  $library  The library's own folder name, when it has one.
 	 *
 	 * @return  string  The stored form as a power row carries it.
 	 * @since   6.1.7
 	 */
-	public function placeholderize(string $stored): string
+	public function placeholderize(string $stored, string $library = ''): string
 	{
 		$prefix = $this->placeholders->prefix();
 		$component = $this->placeholders->component();
+		$stated = $this->vendor($library) !== [];
 		$sections = explode('\\', $stored);
 		$last = count($sections) - 1;
 
 		foreach ($sections as $index => $section)
 		{
-			if ($index === 0 && $prefix !== '' && $section === $prefix)
+			if ($index === 0 && $last > 0
+				&& ($stated || ($prefix !== '' && $section === $prefix)))
 			{
 				$sections[0] = Placeholders::PREFIX;
 

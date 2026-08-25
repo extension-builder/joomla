@@ -202,6 +202,38 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * A dotted library folder states its own head, however long it runs.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheLibraryFolderStatesHowManySegmentsTheHeadKeeps(): void
+	{
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'VDM\Joomla\Openai\Chat.Request',
+			$namespacer->stored(
+				'VDM\Joomla\Openai\Chat', 'Request', ['Chat'], 'VDM.Joomla.Openai'
+			),
+			'Three dots in the folder name are three segments of head, which no '
+			. 'count of folders below src could have said.'
+		);
+		$this->assertSame(
+			'Acme\Db\Deep.Query',
+			$namespacer->stored('Acme\Db\Deep', 'Query', ['Deep'], 'Acme'),
+			'A folder name carrying no dots states nothing, so the path answers.'
+		);
+		$this->assertSame(
+			'VDM\Joomla\Data.Action.Load',
+			$namespacer->stored(
+				'VDM\Joomla\Data\Action', 'Load', ['Data', 'Action'], 'Other.Name'
+			),
+			'A folder name the namespace does not open with is not its head.'
+		);
+	}
+
+	/**
 	 * The convention folds the first two segments when the path cannot say.
 	 *
 	 * @return  void
@@ -254,6 +286,38 @@ final class ResolverTest extends TestCase
 			'Other\Joomla\Data.Load',
 			$namespacer->placeholderize('Other\Joomla\Data.Load'),
 			'A prefix that is not the resolved one stays as written.'
+		);
+	}
+
+	/**
+	 * A library that states its head has stated its prefix along with it.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testALibraryStatingItsHeadHasItsPrefixDeferred(): void
+	{
+		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
+		$this->config->set('component', 3);
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\Data.Load',
+			$namespacer->placeholderize('Other\Joomla\Data.Load', 'Other.Joomla'),
+			'Deferring the prefix whatever it reads is the point: it is what '
+			. 'lets one class serve components whose prefixes differ.'
+		);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].File.Display',
+			$namespacer->placeholderize(
+				'Other\Joomla\Componentbuilder.File.Display', 'Other.Joomla'
+			)
+		);
+		$this->assertSame(
+			'Acme\Query',
+			$namespacer->placeholderize('Acme\Query', 'Acme'),
+			'A folder stating no head has not claimed the convention, so a '
+			. 'vendor of its own is left exactly as it is.'
 		);
 	}
 
@@ -327,7 +391,7 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * A namespace this run cannot resolve is reported and left unmatchable.
+	 * A namespace this run cannot resolve still identifies its power.
 	 *
 	 * @return  void
 	 * @since   6.1.7
@@ -338,7 +402,17 @@ final class ResolverTest extends TestCase
 			'[[[SomeOtherPlaceholder]]]\Joomla\Ghost');
 		$existing = $this->existing();
 
-		$this->assertSame(0, $existing->count());
+		$this->assertSame(1, $existing->count());
+		$this->assertSame(
+			'aaaaaaaa-1111-4111-8111-111111111111',
+			$existing->match('[[[SomeOtherPlaceholder]]]\Joomla\Ghost')['guid'] ?? null,
+			'A stored namespace is the identity, whether or not this run can '
+			. 'say what class it becomes.'
+		);
+		$this->assertNull(
+			$existing->find('JCB\Joomla\Ghost'),
+			'What it cannot resolve, it cannot answer for by class name.'
+		);
 		$this->assertSame(
 			'[[[SomeOtherPlaceholder]]]\Joomla\Ghost',
 			$this->report->get(
@@ -348,7 +422,7 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * Two powers claiming one class keep the first and report the second.
+	 * Two powers reaching one class name keep the first and report the second.
 	 *
 	 * @return  void
 	 * @since   6.1.7
@@ -360,7 +434,11 @@ final class ResolverTest extends TestCase
 			->power(2, 'bbbbbbbb-2222-4222-8222-222222222222', 'Load', 'JCB\Joomla\Data\Load');
 		$existing = $this->existing();
 
-		$this->assertSame(1, $existing->count());
+		$this->assertSame(
+			2,
+			$existing->count(),
+			'Two stored namespaces are two identities, however they resolve.'
+		);
 		$this->assertSame(
 			'aaaaaaaa-1111-4111-8111-111111111111',
 			$existing->find('JCB\Joomla\Data\Load')['guid'] ?? null
@@ -368,8 +446,34 @@ final class ResolverTest extends TestCase
 		$this->assertSame(
 			'JCB\Joomla\Data\Load',
 			$this->report->get(
-				'powers.duplicate.namespace.bbbbbbbb_2222_4222_8222_222222222222'
+				'powers.duplicate.class.bbbbbbbb_2222_4222_8222_222222222222'
 			)
+		);
+	}
+
+	/**
+	 * A power is the same power whatever prefix its library was built with.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAPowerIsMatchedByItsStoredNamespaceNotItsBuiltName(): void
+	{
+		$this->load->power(
+			1, 'aaaaaaaa-1111-4111-8111-111111111111', 'GuidHelper',
+			'[[[NamespacePrefix]]]\Joomla\Utilities.GuidHelper'
+		);
+		$existing = $this->existing();
+
+		$this->assertSame(
+			'aaaaaaaa-1111-4111-8111-111111111111',
+			$existing->match('[[[NamespacePrefix]]]\Joomla\Utilities.GuidHelper')['guid'] ?? null,
+			'A class harvested out of a library built as Other\Joomla folds to '
+			. 'this same stored namespace, so it is this same power -- which is '
+			. 'the whole reason the prefix is deferred.'
+		);
+		$this->assertNull(
+			$existing->match('[[[NamespacePrefix]]]\Joomla\Utilities.Other')
 		);
 	}
 
