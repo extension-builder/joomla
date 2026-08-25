@@ -232,6 +232,21 @@ final class DynamicGet extends Writer
 					]
 				];
 			}
+
+			// the view's own query states which records it keeps and in what
+			// order, and JCB holds both beside the get rather than in code
+			$stated = $this->query($name);
+
+			if ($stated !== null)
+			{
+				foreach ($this->clauses($stated['code']) as $clause => $rows)
+				{
+					if ($rows !== [])
+					{
+						$definition->{$clause} = $rows;
+					}
+				}
+			}
 		}
 		else
 		{
@@ -270,6 +285,16 @@ final class DynamicGet extends Writer
 								'table_key' => 'a.id'
 							]
 						];
+					}
+
+					// the query states which records it keeps and in what order,
+					// and JCB holds both beside the source rather than in code
+					foreach ($this->clauses($recovered['code']) as $clause => $rows)
+					{
+						if ($rows !== [])
+						{
+							$definition->{$clause} = $rows;
+						}
 					}
 
 					$this->report->set(
@@ -326,6 +351,64 @@ final class DynamicGet extends Writer
 		}
 
 		return $menu === [] && $screens === [];
+	}
+
+	/**
+	 * The conditions and the ordering one query states.
+	 *
+	 * A query keeps its records by plain comparisons and orders them by plain
+	 * columns, and JCB holds each as a row of its own beside the get. Only the
+	 * comparisons a row can hold are read: a value the query computes is left
+	 * for the person, because storing half of it would misstate the source.
+	 *
+	 * @param   string  $code  The query's code.
+	 *
+	 * @return  array{where: array<string, array<string, string>>, order: array<string, array<string, string>>}  The clauses.
+	 * @since   6.1.8
+	 */
+	protected function clauses(string $code): array
+	{
+		$clauses = ['where' => [], 'order' => []];
+		$number = 0;
+
+		if (preg_match_all(
+			'/->where\(\s*[\'"]\s*(a\.[A-Za-z0-9_]+)\s*=\s*([0-9]+)\s*[\'"]\s*\)/',
+			$code,
+			$found,
+			PREG_SET_ORDER
+		) !== false)
+		{
+			foreach ($found as $match)
+			{
+				$clauses['where']['where' . $number] = [
+					'table_key' => strtolower($match[1]),
+					'operator' => '1',
+					'value_key' => $match[2]
+				];
+				$number++;
+			}
+		}
+
+		$number = 0;
+
+		if (preg_match_all(
+			'/->order\(\s*[\'"]\s*(a\.[A-Za-z0-9_]+)\s+(ASC|DESC)\s*[\'"]\s*\)/i',
+			$code,
+			$found,
+			PREG_SET_ORDER
+		) !== false)
+		{
+			foreach ($found as $match)
+			{
+				$clauses['order']['order' . $number] = [
+					'table_key' => strtolower($match[1]),
+					'direction' => strtoupper($match[2])
+				];
+				$number++;
+			}
+		}
+
+		return $clauses;
 	}
 
 	/**

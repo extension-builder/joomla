@@ -202,9 +202,22 @@ against every field of a view:
 - The list model's own query compares the fields the **search** box
   matches (`a.<column> LIKE`).
 
-One value must never be guessed: `list` = `2` means *no database column at
-all* (`Compiler/Model/Fields.php`, "2 = none database"), so a field merely
-absent from the list takes the form's empty default instead.
+Two values must never be guessed:
+
+- `list` = `2` means *no database column at all*
+  (`Compiler/Model/Fields.php`, "2 = none database"), so a field merely
+  absent from the list takes the form's empty default instead.
+- A filter is built only for a field whose `list` is 1, 3 or 4
+  (`Creator/Builders.php::appearsInList()`), while a column is rendered
+  only for 1 or 3 (`Architecture/AdminViews/ListHead.php`). So a field the
+  screen filters on but shows no column for is `4` -- which is what the
+  source itself must hold for that filter to exist at all.
+
+A get keyed on a view's table also carries what the query states beside it:
+the conditions it keeps its records by, the order it returns them in, and
+-- for an item get -- the filter that fetches the record asked for. JCB's
+own gets carry exactly those, and a get without them returns every record,
+unordered, or the first row of the table for every id.
 
 ## What a view's main get has to be
 
