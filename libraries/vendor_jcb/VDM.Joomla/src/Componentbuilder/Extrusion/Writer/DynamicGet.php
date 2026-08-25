@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
@@ -62,15 +63,24 @@ final class DynamicGet extends Writer
 	protected Source $source;
 
 	/**
+	 * The Constants Resolver.
+	 *
+	 * @var    Constants
+	 * @since  6.1.8
+	 */
+	protected Constants $constants;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Config         $config    The extrusion configuration.
-	 * @param   Resolved       $resolved  The resolved definition registry.
-	 * @param   ItemInterface  $item      The JCB data item writer.
-	 * @param   Report         $report    The run report registry.
-	 * @param   View           $view      The classified view registry.
-	 * @param   Guid           $guid      The identity resolver.
-	 * @param   Source         $source    The source identity registry.
+	 * @param   Config         $config     The extrusion configuration.
+	 * @param   Resolved       $resolved   The resolved definition registry.
+	 * @param   ItemInterface  $item       The JCB data item writer.
+	 * @param   Report         $report     The run report registry.
+	 * @param   View           $view       The classified view registry.
+	 * @param   Guid           $guid       The identity resolver.
+	 * @param   Source         $source     The source identity registry.
+	 * @param   Constants      $constants  The language constant resolver.
 	 *
 	 * @since   6.1.8
 	 */
@@ -81,7 +91,8 @@ final class DynamicGet extends Writer
 		Report $report,
 		View $view,
 		Guid $guid,
-		Source $source
+		Source $source,
+		Constants $constants
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -89,6 +100,7 @@ final class DynamicGet extends Writer
 		$this->view = $view;
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->constants = $constants;
 	}
 
 	/**
@@ -132,6 +144,7 @@ final class DynamicGet extends Writer
 				// view's own generated output: no custom view and no get is owed
 				if ($kind === 'custom_admin_view'
 					&& ($answered !== null || !empty($entry['crud'])
+						|| !$this->named($name)
 						|| array_key_exists(
 							strtolower(trim($name)),
 							(array) $this->resolved->get('screen.list_views', [])
@@ -182,6 +195,17 @@ final class DynamicGet extends Writer
 		$definition->pagination = '1';
 		$definition->published = 1;
 
+		// every get JCB holds carries its containers, empty or not: the
+		// compiler reads each of them and a record without them is a record
+		// the interface cannot open on
+		$definition->join_view_table = [];
+		$definition->join_db_table = [];
+		$definition->filter = [];
+		$definition->where = [];
+		$definition->order = [];
+		$definition->group = [];
+		$definition->global = [];
+
 		if ($answered !== null)
 		{
 			// the real relationship: this view feeds from the admin view the
@@ -194,19 +218,33 @@ final class DynamicGet extends Writer
 		}
 		else
 		{
-			// no admin view answers, so the data cannot be reconstructed
-			// without guessing: the get reads from custom code, which is how
-			// JCB's own screens without a table are built. Its shape stays an
-			// item get, because the compiler writes a view's files only for a
-			// main get that reads one record or a list -- a get of any other
-			// shape is passed over and the screen never reaches the component
+			// no admin view answers, so the data comes from custom code --
+			// which is how JCB's own screens without a table are built, and
+			// the component already wrote that code: its model builds the
+			// very query a custom get holds. The shape follows the method
+			// recovered, and stays an item or a list get either way, because
+			// the compiler writes a view's files only for those two
 			$definition->main_source = '3';
 			$definition->gettype = '1';
-			$this->report->set(
-				'dynamic_get.custom.' . $this->key($name),
-				'no admin view answers for this view, so its get reads from '
-				. 'custom code awaiting its method body'
-			);
+			$recovered = $this->query($name);
+
+			if ($recovered !== null)
+			{
+				$definition->php_custom_get = $recovered['code'];
+				$definition->gettype = $recovered['gettype'];
+				$this->report->set(
+					'dynamic_get.recovered.' . $this->key($name),
+					$recovered['method'] . ' of the source model'
+				);
+			}
+			else
+			{
+				$this->report->set(
+					'dynamic_get.custom.' . $this->key($name),
+					'no admin view answers for this view and its model states no '
+					. 'query, so its get awaits a method body'
+				);
+			}
 		}
 
 		if (!$this->store($definition))
@@ -217,6 +255,68 @@ final class DynamicGet extends Writer
 		$this->resolved->set('dynamic_get.' . $kind . '.' . $this->key($key) . '.guid', $guid);
 
 		return true;
+	}
+
+	/**
+	 * Whether the component itself names one screen.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the component names it.
+	 * @since   6.1.8
+	 */
+	protected function named(string $name): bool
+	{
+		$name = strtolower(trim($name));
+		$menu = (array) $this->source->get('menu', []);
+		$screens = (array) $this->source->get('access_screens', []);
+
+		if (isset($menu[$name]) || !empty($screens[$name]))
+		{
+			return true;
+		}
+
+		return $menu === [] && $screens === [];
+	}
+
+	/**
+	 * The query one view's own model builds, when it builds one.
+	 *
+	 * @param   string  $name  The view's code name.
+	 *
+	 * @return  array{code: string, gettype: string, method: string}|null  The query, or null.
+	 * @since   6.1.8
+	 */
+	protected function query(string $name): ?array
+	{
+		$name = strtolower(trim($name));
+
+		// a list query and a set of items are both a list; a single item is
+		// an item get, which is the shape JCB stores for each
+		foreach ([
+			'query' => ['gettype' => '2', 'method' => 'getListQuery()'],
+			'items' => ['gettype' => '2', 'method' => 'getItems()'],
+			'item' => ['gettype' => '1', 'method' => 'getItem()']
+		] as $key => $shape)
+		{
+			$code = trim((string) $this->source->get('mvc.' . $name . '.' . $key, ''));
+
+			if ($code === '')
+			{
+				continue;
+			}
+
+			// the code speaks text again, because JCB's compiler is what makes
+			// the constant, and a constant stored here compiles into a key
+			// built from a key
+			return [
+				'code' => $this->constants->reverse($code),
+				'gettype' => $shape['gettype'],
+				'method' => $shape['method']
+			];
+		}
+
+		return null;
 	}
 
 	/**

@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaFive;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaFour;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaSix;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaThree;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Methods;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Tests\Support\ExtrusionComponentFixture;
@@ -95,7 +96,8 @@ final class EvidenceTest extends FilesystemTestCase
 			$this->scanner(),
 			$this->selector(),
 			$this->source,
-			$this->report
+			$this->report,
+			new Methods()
 		))->establish($root));
 
 		$this->assertSame(
@@ -261,7 +263,8 @@ final class EvidenceTest extends FilesystemTestCase
 			$this->scanner(),
 			$this->selector(),
 			$this->source,
-			$this->report
+			$this->report,
+			new Methods()
 		))->establish($root));
 		$this->assertSame(0, $this->screen()->establish($root));
 		$this->assertSame(0, (new Access(

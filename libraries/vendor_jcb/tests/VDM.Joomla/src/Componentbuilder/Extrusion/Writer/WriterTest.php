@@ -28,6 +28,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\View as ViewRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
@@ -71,6 +73,7 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.6
  */
 #[CoversClass(Writer::class)]
+#[CoversClass(Actions::class)]
 #[CoversClass(AdminCustomTabs::class)]
 #[CoversClass(AdminFields::class)]
 #[CoversClass(AdminFieldsConditions::class)]
@@ -389,7 +392,13 @@ HTML;
 			'An action the component section alone states is set once for the '
 			. 'whole component.'
 		);
-		$this->assertSame(2, $stated['view.batch']);
+		$this->assertArrayNotHasKey(
+			'view.batch',
+			$stated,
+			'The compiler adds batch to every admin view itself, and JCB\'s own '
+			. 'form offers no such action, so a row naming it would show the '
+			. 'first option in its place.'
+		);
 		$this->assertSame(
 			3,
 			$stated['view.edit'],
@@ -1695,7 +1704,7 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			new Language($catalogue, $this->report),
+			new Language($catalogue, $this->report, $this->source),
 			$this->guid
 		);
 
@@ -1989,6 +1998,17 @@ HTML;
 	}
 
 	/**
+	 * JCB's own form, as the permission actions resolver reads it.
+	 *
+	 * @return  string  The absolute path to the form.
+	 * @since   6.1.8
+	 */
+	private function actionsForm(): string
+	{
+		return dirname(__DIR__, 8) . '/admin/forms/admin_view.xml';
+	}
+
+	/**
 	 * The admin view writer over the current boundary.
 	 *
 	 * @return  AdminView  The writer.
@@ -2003,7 +2023,8 @@ HTML;
 			$this->report,
 			$this->guid,
 			$this->source,
-			$this->pairing()
+			$this->pairing(),
+			new Actions($this->report, $this->actionsForm())
 		);
 	}
 
@@ -2160,7 +2181,11 @@ HTML;
 			$this->report,
 			$this->view,
 			$this->guid,
-			$this->source
+			$this->source,
+			new Constants(
+				new Language(new LanguageRegistry(), $this->report, $this->source),
+				$this->report
+			)
 		);
 	}
 
@@ -2255,7 +2280,7 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			new Language(new LanguageRegistry(), $this->report),
+			new Language(new LanguageRegistry(), $this->report, $this->source),
 			$this->guid
 		);
 	}
@@ -2395,7 +2420,7 @@ HTML;
 			. 'record or a list; a get of any other shape loses the screen entirely.'
 		);
 		$this->assertStringContainsString(
-			'custom code',
+			'awaits a method body',
 			(string) $this->report->get('dynamic_get.custom.about'),
 			'A guessed-at source is refused; the report says plainly what it awaits.'
 		);

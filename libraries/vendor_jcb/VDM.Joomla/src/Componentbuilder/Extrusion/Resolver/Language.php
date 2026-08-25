@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as Catalogue;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 
 /**
@@ -45,17 +46,35 @@ final class Language
 	protected Report $report;
 
 	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.8
+	 */
+	protected Source $source;
+
+	/**
+	 * The installed catalogues already loaded, keyed by component option.
+	 *
+	 * @var    array<string, bool>
+	 * @since  6.1.8
+	 */
+	protected array $installed = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Catalogue  $catalogue  The language constant catalogue.
 	 * @param   Report     $report     The run report registry.
+	 * @param   Source     $source     The source identity registry.
 	 *
 	 * @since   6.1.6
 	 */
-	public function __construct(Catalogue $catalogue, Report $report)
+	public function __construct(Catalogue $catalogue, Report $report, Source $source)
 	{
 		$this->catalogue = $catalogue;
 		$this->report = $report;
+		$this->source = $source;
 	}
 
 	/**
@@ -108,9 +127,174 @@ final class Language
 			return $resolved;
 		}
 
+		// a constant names the component it belongs to, and an installed
+		// component keeps its translations in this site's own language
+		// folders -- so a constant the run read no file for can still be
+		// answered, which is what a library harvested on its own needs
+		$resolved = $this->fetch($value);
+
+		if ($resolved !== null)
+		{
+			return $resolved;
+		}
+
 		$this->report->set('unresolved.language.' . $value, true);
 
 		return $fallback !== '' ? $fallback : $value;
+	}
+
+	/**
+	 * Fetch the catalogue of the component one constant names.
+	 *
+	 * @param   string  $constant  The constant.
+	 *
+	 * @return  string|null  The English string, or null when none answers.
+	 * @since   6.1.8
+	 */
+	protected function fetch(string $constant): ?string
+	{
+		foreach ($this->options($constant) as $option)
+		{
+			if (isset($this->installed[$option]))
+			{
+				continue;
+			}
+
+			$this->installed[$option] = true;
+
+			if ($this->load($option) === 0)
+			{
+				continue;
+			}
+
+			$resolved = $this->catalogue->get('constant.' . $constant);
+
+			if (is_string($resolved) && $resolved !== '')
+			{
+				return $resolved;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The component options one constant may belong to, longest prefix last.
+	 *
+	 * A component's language prefix is its option in upper case, and an
+	 * option may itself hold underscores, so every prefix the constant could
+	 * carry is offered rather than the first one guessed.
+	 *
+	 * @param   string  $constant  The constant.
+	 *
+	 * @return  array<int, string>  The candidate options.
+	 * @since   6.1.8
+	 */
+	protected function options(string $constant): array
+	{
+		$parts = explode('_', strtolower($constant));
+
+		if (count($parts) < 3 || $parts[0] !== 'com')
+		{
+			return [];
+		}
+
+		$options = [];
+		$option = 'com';
+
+		// the last part is never the option: a constant always says something
+		// about the component after naming it
+		for ($index = 1, $last = count($parts) - 1; $index < $last; $index++)
+		{
+			$option .= '_' . $parts[$index];
+			$options[] = $option;
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Load one installed component's translations into the catalogue.
+	 *
+	 * @param   string  $option  The component option.
+	 *
+	 * @return  int  The number of constants added.
+	 * @since   6.1.8
+	 */
+	protected function load(string $option): int
+	{
+		if (!defined('JPATH_ROOT'))
+		{
+			return 0;
+		}
+
+		$tag = (string) $this->source->get('tag', 'en-GB');
+		$added = 0;
+
+		foreach ([
+			JPATH_ROOT . '/administrator/language/' . $tag,
+			JPATH_ROOT . '/language/' . $tag
+		] as $folder)
+		{
+			foreach ([
+				$option . '.ini',
+				$tag . '.' . $option . '.ini',
+				$option . '.sys.ini',
+				$tag . '.' . $option . '.sys.ini'
+			] as $name)
+			{
+				$added += $this->parse($folder . '/' . $name);
+			}
+		}
+
+		if ($added > 0)
+		{
+			$this->report->set('language.installed.' . $option, $added);
+		}
+
+		return $added;
+	}
+
+	/**
+	 * Read one translation file into the catalogue.
+	 *
+	 * @param   string  $path  Absolute path to the file.
+	 *
+	 * @return  int  The number of constants added.
+	 * @since   6.1.8
+	 */
+	protected function parse(string $path): int
+	{
+		if (!is_file($path))
+		{
+			return 0;
+		}
+
+		$strings = @parse_ini_file($path, false, INI_SCANNER_RAW);
+
+		if (!is_array($strings))
+		{
+			return 0;
+		}
+
+		$added = 0;
+
+		foreach ($strings as $constant => $text)
+		{
+			$constant = trim((string) $constant);
+			$text = trim((string) $text, "\"'");
+
+			if ($constant === '' || $text === ''
+				|| $this->catalogue->exists('constant.' . $constant))
+			{
+				continue;
+			}
+
+			$this->catalogue->set('constant.' . $constant, $text);
+			$added++;
+		}
+
+		return $added;
 	}
 
 	/**

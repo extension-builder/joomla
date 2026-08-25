@@ -207,8 +207,15 @@ final class ComponentAdminViews extends Writer
 			$single . 's'
 		));
 		$entry = $menu[$list] ?? ($menu[$single] ?? null);
-		$has = static fn (string ...$wanted): string
-			=> array_intersect($wanted, $columns) === $wanted ? '1' : '';
+		$has = static fn (string ...$wanted): bool
+			=> array_intersect($wanted, $columns) === $wanted;
+
+		// the component's own access rules name a permission for every switch
+		// that builds one -- the compiler writes view.version with history,
+		// view.export and view.import with port, and the menu and dashboard
+		// actions with their switches -- so the rules say which were on
+		$granted = $this->granted($single);
+		$rules = $granted !== [];
 
 		$row = [
 			'adminview' => $viewGuid,
@@ -226,13 +233,50 @@ final class ComponentAdminViews extends Writer
 		return $row + $this->switches([
 			// the manifest's own menu says which views it lists
 			'mainmenu' => $entry !== null,
-			'dashboard_list' => $entry !== null,
-			'submenu' => true,
-			'checkin' => $has('checked_out', 'checked_out_time') === '1',
-			'history' => $has('version') === '1',
-			'metadata' => $has('metakey', 'metadesc') === '1',
-			'access' => $has('access') === '1'
+			'dashboard_list' => $rules
+				? isset($granted['dashboard_list'])
+				: $entry !== null,
+			'dashboard_add' => $rules && isset($granted['dashboard_add']),
+			'submenu' => $rules ? isset($granted['submenu']) : true,
+			'checkin' => $has('checked_out', 'checked_out_time'),
+			'history' => $has('version') || isset($granted['version']),
+			'metadata' => $has('metakey', 'metadesc'),
+			'access' => $has('access') || isset($granted['access']),
+			'port' => isset($granted['export']) || isset($granted['import'])
 		]);
+	}
+
+	/**
+	 * The permissions the component's access rules grant one view.
+	 *
+	 * Every action is returned under the part that follows the view's name,
+	 * so a caller asks for the switch it is interested in rather than for the
+	 * whole action.
+	 *
+	 * @param   string  $view  The view's single name.
+	 *
+	 * @return  array<string, bool>  The granted actions, keyed by their tail.
+	 * @since   6.1.8
+	 */
+	protected function granted(string $view): array
+	{
+		$view = strtolower(trim($view));
+		$granted = [];
+
+		foreach (['component', $view] as $section)
+		{
+			foreach ((array) $this->source->get('access.' . $section, []) as $action)
+			{
+				$action = strtolower(trim((string) $action));
+
+				if (str_starts_with($action, $view . '.'))
+				{
+					$granted[substr($action, strlen($view) + 1)] = true;
+				}
+			}
+		}
+
+		return $granted;
 	}
 
 	/**

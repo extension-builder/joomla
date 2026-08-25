@@ -25,6 +25,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form as FormRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as Catalogue;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source as SourceRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema as SchemaRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table as TableRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
@@ -249,7 +250,7 @@ PHP;
 			$this->table,
 			$this->schema,
 			$this->form,
-			new Language($this->catalogue, $this->report),
+			new Language($this->catalogue, $this->report, new SourceRegistry()),
 			new Text(),
 			$this->report
 		);

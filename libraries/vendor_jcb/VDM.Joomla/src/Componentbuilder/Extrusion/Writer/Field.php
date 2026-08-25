@@ -38,6 +38,22 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
 final class Field extends Writer
 {
 	/**
+	 * The identity of every field this run has written, by its shape.
+	 *
+	 * @var    array<string, string>
+	 * @since  6.1.8
+	 */
+	protected array $shared = [];
+
+	/**
+	 * Whether the caller chose the identity of the field being written.
+	 *
+	 * @var    bool
+	 * @since  6.1.8
+	 */
+	protected bool $chosen = false;
+
+	/**
 	 * Default lengths JCB offers directly rather than as an other value.
 	 *
 	 * @var    array<string>
@@ -238,6 +254,7 @@ final class Field extends Writer
 		);
 
 		// the caller's pairing verdict outranks the derived identity
+		$derived = $guid;
 		$guid = $this->pairing->guid(
 			'field',
 			$this->key($view) . '.' . $this->key($column),
@@ -248,6 +265,10 @@ final class Field extends Writer
 		{
 			return false;
 		}
+
+		// a person who named the field this column belongs to has spoken, and
+		// nothing here may quietly relate the column to another field instead
+		$this->chosen = $guid !== $derived;
 
 		$label = (string) $this->value($properties, 'label', $column);
 		$size = (string) $this->value($properties, 'size', '');
@@ -303,6 +324,24 @@ final class Field extends Writer
 			);
 		}
 
+		// two views stating the same field are stating one field: JCB holds
+		// fields on their own and every view that needs one links it, so a
+		// definition already written this run is linked again rather than
+		// written a second time under another identity
+		$shape = $this->shape($definition);
+		$standing = $this->shared[$shape] ?? null;
+
+		if ($standing !== null && $standing !== $guid && !$this->chosen)
+		{
+			$this->relate($view, $column, $standing, $fieldtype['name']);
+			$this->report->set(
+				'field.shared.' . $this->key($view) . '.' . $this->key($column),
+				$standing
+			);
+
+			return true;
+		}
+
 		// a field's type, datatype and xml are what the source states, so a
 		// re-run refreshes them; only the record's own bookkeeping is
 		// scaffolding a new field needs
@@ -311,16 +350,60 @@ final class Field extends Writer
 			return false;
 		}
 
+		$this->shared[$shape] ??= $guid;
+		$this->relate($view, $column, $guid, $fieldtype['name']);
+
+		return true;
+	}
+
+	/**
+	 * Record which field one view's column relates to.
+	 *
+	 * @param   string  $view       The view name.
+	 * @param   string  $column     The column name.
+	 * @param   string  $guid       The field's identity.
+	 * @param   string  $fieldtype  The field type's name.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function relate(string $view, string $column, string $guid, string $fieldtype): void
+	{
 		$this->resolved->set(
 			$this->path($view) . '.written.' . $this->key($column) . '.guid',
 			$guid
 		);
 		$this->resolved->set(
 			$this->path($view) . '.written.' . $this->key($column) . '.fieldtype',
-			$fieldtype['name']
+			$fieldtype
 		);
+	}
 
-		return true;
+	/**
+	 * What makes one field the field it is.
+	 *
+	 * Two definitions of the same shape are one field: the same name, the
+	 * same type, the same column behind it and the same xml. Anything that
+	 * differs in any of those is a field of its own.
+	 *
+	 * @param   object  $definition  The field definition.
+	 *
+	 * @return  string  The shape.
+	 * @since   6.1.8
+	 */
+	protected function shape(object $definition): string
+	{
+		$shape = [];
+
+		foreach ([
+			'name', 'fieldtype', 'datatype', 'indexes', 'null_switch', 'store',
+			'datalenght', 'datalenght_other', 'datadefault', 'datadefault_other', 'xml'
+		] as $property)
+		{
+			$shape[$property] = $definition->{$property} ?? null;
+		}
+
+		return md5((string) json_encode($shape));
 	}
 
 	/**

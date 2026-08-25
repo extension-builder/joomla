@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source as SourceRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Tests\Support\TestCase;
@@ -60,7 +61,7 @@ final class ConstantsTest extends TestCase
 		$catalogue->set('constant.COM_DEMO_LISTCLASS', 'The list class');
 		$this->report = new Report();
 		$this->constants = new Constants(
-			new Language($catalogue, $this->report),
+			new Language($catalogue, $this->report, new SourceRegistry()),
 			$this->report
 		);
 	}

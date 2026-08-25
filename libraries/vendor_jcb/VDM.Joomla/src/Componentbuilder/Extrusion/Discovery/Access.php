@@ -148,6 +148,26 @@ final class Access
 
 			$this->source->set('access.' . $name, $actions);
 			$sections++;
+
+			// every action names the screen it belongs to, so the rules also
+			// say which screens the component has -- the only place a screen
+			// without a table of its own is named besides the menu
+			foreach ($actions as $action)
+			{
+				$position = strpos($action, '.');
+
+				if ($position === false)
+				{
+					continue;
+				}
+
+				$screen = strtolower(substr($action, 0, $position));
+
+				if ($screen !== '' && $screen !== 'core')
+				{
+					$this->source->set('access_screens.' . $screen, true);
+				}
+			}
 		}
 
 		if ($sections > 0)

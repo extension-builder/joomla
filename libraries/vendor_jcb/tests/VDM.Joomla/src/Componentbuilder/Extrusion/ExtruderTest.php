@@ -400,9 +400,11 @@ final class ExtruderTest extends FilesystemTestCase
 			'The second run must not inherit an identity only the first run could write.'
 		);
 		$this->assertCount(
-			8,
+			3,
 			(array) $second->get('written.field'),
-			'The report counts only what this run wrote.'
+			'The report counts only what this run wrote, and two views stating '
+			. 'the same field state one field: the rest are linked to it rather '
+			. 'than written again under another identity.'
 		);
 		$this->assertGreaterThan($written, count($this->item->records()));
 		$this->assertSame(

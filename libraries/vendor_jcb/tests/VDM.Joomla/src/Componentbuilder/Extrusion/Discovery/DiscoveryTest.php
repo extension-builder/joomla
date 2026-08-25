@@ -35,6 +35,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaSix;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaThree;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Methods;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Tests\Support\ExtrusionComponentFixture;
@@ -238,7 +239,13 @@ final class DiscoveryTest extends FilesystemTestCase
 			$this->locator(Language::class),
 			$this->locator(Table::class),
 			$this->locator(View::class),
-			new Mvc($this->scanner(), $this->selector(), $this->source, $this->report),
+			new Mvc(
+				$this->scanner(),
+				$this->selector(),
+				$this->source,
+				$this->report,
+				new Methods()
+			),
 			new Screen($this->scanner(), $this->selector(), $this->source, $this->report),
 			new Access($this->scanner(), $this->selector(), $this->source, $this->report)
 		);
