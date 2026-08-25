@@ -203,8 +203,86 @@ final class Harvester
 			return [0, 0];
 		}
 
-		$folder = basename($root);
-		$source = is_dir($root . '/src') ? $root . '/src' : $root;
+		$found = 0;
+		$existing = 0;
+
+		foreach ($this->vendors($root) as $folder => $source)
+		{
+			$counts = $this->vendor($root, (string) $folder, $source);
+			$found += $counts[0];
+			$existing += $counts[1];
+		}
+
+		return [$found, $existing];
+	}
+
+	/**
+	 * The vendor folders one library path holds, and where each one's classes start.
+	 *
+	 * A Joomla library extension is a folder of vendor folders: the extension
+	 * folder is what Joomla installs, and inside it each vendor folder names a
+	 * namespace head in its own dotted name and keeps its classes under src.
+	 * Reading the extension folder as though it were the vendor would lose that
+	 * name, which is the only place the convention records the head -- so every
+	 * folder holding a src is its own library here, and a path that is already
+	 * one answers for itself.
+	 *
+	 * @param   string  $root  The resolved library path.
+	 *
+	 * @return  array<string, string>  Vendor folder name keyed to its source root.
+	 * @since   6.1.8
+	 */
+	protected function vendors(string $root): array
+	{
+		if (is_dir($root . '/src'))
+		{
+			return [basename($root) => $root . '/src'];
+		}
+
+		$found = [];
+		$handle = @opendir($root);
+
+		if ($handle !== false)
+		{
+			while (($entry = readdir($handle)) !== false)
+			{
+				if ($entry === '.' || $entry === '..')
+				{
+					continue;
+				}
+
+				if (is_dir($root . '/' . $entry . '/src'))
+				{
+					$found[$entry] = $root . '/' . $entry . '/src';
+				}
+			}
+
+			closedir($handle);
+		}
+
+		if ($found === [])
+		{
+			// nothing states a vendor, so the path speaks for itself
+			return [basename($root) => $root];
+		}
+
+		ksort($found);
+
+		return $found;
+	}
+
+	/**
+	 * Harvest one vendor folder.
+	 *
+	 * @param   string  $root    The library path the vendor sits in.
+	 * @param   string  $folder  The vendor folder name, which states its head.
+	 * @param   string  $source  The root the dots count from.
+	 *
+	 * @return  array{0: int, 1: int}  How many candidates were found, and how many already exist.
+	 * @since   6.1.8
+	 */
+	protected function vendor(string $root, string $folder, string $source): array
+	{
 		$key = $base = $this->key($folder);
 		$tail = 1;
 
@@ -220,7 +298,7 @@ final class Harvester
 
 		foreach ($this->scanner->files($source, ['php']) as $file)
 		{
-			$candidate = $this->candidate($file, $source, $key);
+			$candidate = $this->candidate($file, $source, $key, $folder);
 
 			if ($candidate === null)
 			{
@@ -262,14 +340,15 @@ final class Harvester
 	/**
 	 * Read one file into a harvest candidate.
 	 *
-	 * @param   string  $file    The absolute file path.
-	 * @param   string  $source  The source root the dots count from.
+	 * @param   string  $file     The absolute file path.
+	 * @param   string  $source   The source root the dots count from.
 	 * @param   string  $library  The library key the candidate belongs to.
+	 * @param   string  $folder   The library's own folder name, which states its head.
 	 *
 	 * @return  array{guid: string, exists: bool, bundle: string}|null  The stored candidate essentials, or null.
 	 * @since   6.1.7
 	 */
-	protected function candidate(string $file, string $source, string $library): ?array
+	protected function candidate(string $file, string $source, string $library, string $folder): ?array
 	{
 		$code = $this->scanner->read($file);
 
@@ -321,7 +400,7 @@ final class Harvester
 			$this->report->set('powers.mismatch.filename.' . md5($file), $file);
 		}
 
-		$stored = $this->namespacer->stored($parts['namespace'], $parts['class'], $folders);
+		$stored = $this->namespacer->stored($parts['namespace'], $parts['class'], $folders, $folder);
 
 		if ($stored === null)
 		{
@@ -329,8 +408,12 @@ final class Harvester
 			$this->report->set('powers.derived.convention.' . md5($file), $fqn);
 		}
 
-		$existing = $this->existing->find($fqn);
-		$guid = $existing['guid'] ?? $this->guid->derive(['power', $fqn]);
+		$placeholder = $this->namespacer->placeholderize($stored, $folder);
+
+		// a power is the same power when it folds to the same stored
+		// namespace, whatever prefix the library it came out of was built with
+		$existing = $this->existing->match($placeholder) ?? $this->existing->find($fqn);
+		$guid = $existing['guid'] ?? $this->guid->derive(['power', $placeholder]);
 
 		if ($this->harvest->exists('classes.' . $guid))
 		{
@@ -350,7 +433,7 @@ final class Harvester
 			'namespace' => $parts['namespace'],
 			'fqn' => $fqn,
 			'stored' => $stored,
-			'placeholder' => $this->namespacer->placeholderize($stored),
+			'placeholder' => $placeholder,
 			'exists' => $existing !== null,
 			'id' => $existing['id'] ?? 0,
 			'action' => $existing === null ? 'create'
