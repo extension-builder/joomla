@@ -163,10 +163,23 @@ final class Access
 
 				$screen = strtolower(substr($action, 0, $position));
 
-				if ($screen !== '' && $screen !== 'core')
+				if ($screen === '' || $screen === 'core')
 				{
-					$this->source->set('access_screens.' . $screen, true);
+					continue;
 				}
+
+				$this->source->set('access_screens.' . $screen, true);
+
+				// the tail may itself carry dots (edit.created_by), which a
+				// registry path would read as further keys
+				$this->source->set(
+					'access_screens_actions.' . $screen . '.' . str_replace(
+						'.',
+						'_',
+						strtolower(substr($action, $position + 1))
+					),
+					true
+				);
 			}
 		}
 

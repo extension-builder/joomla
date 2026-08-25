@@ -154,7 +154,7 @@ final class CustomAdminView extends Writer
 			// the code itself says which folders belong to table views: an
 			// editor beside the template, or a resolved view whose name the
 			// folder answers to -- neither may ever become a custom admin view
-			if (!empty($entry['crud']) || $this->answered($name))
+			if (!empty($entry['crud']) || $this->dashboard($name) || $this->answered($name))
 			{
 				$this->report->set(
 					'skipped.custom_admin_view.' . $this->key($name),
@@ -164,18 +164,16 @@ final class CustomAdminView extends Writer
 				continue;
 			}
 
-			// a screen the component never names is not a screen the component
-			// has: its own access rules name every screen they guard and its
-			// manifest names every screen it puts in a menu, so a folder
-			// neither speaks for is generated output or something left behind
+			// whether the component names this screen in a menu or guards it
+			// with a rule is a switch on its link, not proof that it exists,
+			// so it is recorded rather than required
 			if (!$this->named($name))
 			{
 				$this->report->set(
-					'skipped.custom_admin_view.' . $this->key($name),
-					'nothing in the component names this screen'
+					'custom_admin_view.unnamed.' . $this->key($name),
+					'the component names this screen in no menu and guards it '
+					. 'with no rule of its own'
 				);
-
-				continue;
 			}
 
 			if ($this->one($name, (string) $key, $entry))
@@ -244,6 +242,25 @@ final class CustomAdminView extends Writer
 		$this->resolved->set('custom_admin_view.' . $this->key($name) . '.name', $name);
 
 		return true;
+	}
+
+	/**
+	 * Whether one screen is the component's own dashboard.
+	 *
+	 * The compiler writes the default dashboard into a folder named for the
+	 * component itself, and JCB keeps that screen on the component record --
+	 * its dashboard type and its dashboard -- never as a custom admin view.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the folder is the component's dashboard.
+	 * @since   6.1.8
+	 */
+	protected function dashboard(string $name): bool
+	{
+		$code = strtolower(trim(str_replace('com_', '', $this->option())));
+
+		return $code !== '' && strtolower(trim($name)) === $code;
 	}
 
 	/**

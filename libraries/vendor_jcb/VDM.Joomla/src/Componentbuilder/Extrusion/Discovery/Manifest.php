@@ -450,10 +450,15 @@ final class Manifest
 
 		$entries = [];
 
-		if ($administration->menu instanceof \SimpleXMLElement)
+		// reading a child that is not there answers with an empty element
+		// rather than nothing, so the text itself is what says a menu is
+		// stated at all
+		$label = trim((string) $administration->menu);
+
+		if ($label !== '')
 		{
 			$entries['*'] = [
-				'label' => trim((string) $administration->menu),
+				'label' => $label,
 				'icon' => trim((string) ($administration->menu['img'] ?? ''))
 			];
 		}
