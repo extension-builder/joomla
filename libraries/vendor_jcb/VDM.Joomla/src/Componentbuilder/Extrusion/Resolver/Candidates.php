@@ -146,9 +146,7 @@ final class Candidates
 			'custom_admin_view' => $this->customAdminViews(
 				(array) $catalogue['custom_admin_views'],
 				(array) $catalogue['admin_views']
-			),
-			'layout' => $this->classified('layout', $catalogue['layouts']),
-			'template' => $this->classified('template', $catalogue['templates'])
+			)
 		];
 	}
 
@@ -202,8 +200,6 @@ final class Candidates
 				['a.guid' => 'guid', 'a.name' => 'name', 'a.system_name' => 'system'],
 				$customViews
 			),
-			'layouts' => $this->rows('layout', ['a.guid' => 'guid', 'a.name' => 'name']),
-			'templates' => $this->rows('template', ['a.guid' => 'guid', 'a.name' => 'name']),
 			'powers' => $this->rows(
 				'power',
 				['a.guid' => 'guid', 'a.system_name' => 'name', 'a.namespace' => 'namespace']

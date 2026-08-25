@@ -221,7 +221,7 @@ final class CustomAdminView extends Writer
 		$definition->codename = $name;
 		$definition->system_name = $readable;
 		$definition->description = (string) ($entry['description'] ?? $readable);
-		$definition->default = (string) ($entry['default'] ?? '');
+		$definition->default = $this->scaffold($readable);
 		$definition->php_view = (string) ($entry['php_view'] ?? '');
 		$definition->add_php_view = (int) ($entry['add_php_view'] ?? 0);
 		$definition->main_get = (string) $this->resolved->get(
@@ -324,6 +324,60 @@ final class CustomAdminView extends Writer
 		}
 
 		return false;
+	}
+
+	/**
+	 * The body a recovered screen starts from.
+	 *
+	 * A screen's own markup is its author's and is never lifted out of the
+	 * files a component builds it with, so a recovered screen needs a body of
+	 * its own to be a screen at all. This is that body: it renders whatever the
+	 * view's get returns, naming each value by the key it arrives under, and
+	 * says plainly when the get returns nothing yet.
+	 *
+	 * Nothing here is particular to the component it came from, or to how that
+	 * component happened to be built -- which is the point. A person replaces
+	 * it with the screen they want; until then the screen compiles, opens, and
+	 * shows what it has.
+	 *
+	 * @param   string  $readable  The view's human readable name.
+	 *
+	 * @return  string  The body to store.
+	 * @since   6.1.8
+	 */
+	protected function scaffold(string $readable): string
+	{
+		$title = htmlspecialchars($readable, ENT_QUOTES, 'UTF-8');
+
+		return <<<HTML
+<div class="j-container">
+	<h1>{$title}</h1>
+	<?php if (!empty(\$this->items)) : ?>
+		<table class="table table-striped">
+			<tbody>
+			<?php foreach (\$this->items as \$item) : ?>
+				<tr>
+					<?php foreach ((array) \$item as \$value) : ?>
+						<td><?php echo \$this->escape((string) \$value); ?></td>
+					<?php endforeach; ?>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	<?php elseif (!empty(\$this->item)) : ?>
+		<dl class="dl-horizontal">
+			<?php foreach ((array) \$this->item as \$key => \$value) : ?>
+				<dt><?php echo \$this->escape((string) \$key); ?></dt>
+				<dd><?php echo \$this->escape((string) \$value); ?></dd>
+			<?php endforeach; ?>
+		</dl>
+	<?php else : ?>
+		<div class="alert alert-info">
+			<?php echo Text::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
+		</div>
+	<?php endif; ?>
+</div>
+HTML;
 	}
 
 	/**

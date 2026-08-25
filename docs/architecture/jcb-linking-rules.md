@@ -40,56 +40,41 @@ to update rather than create.
 
 ## How a component names its own screens
 
-A component states the relationship between its screens in its controllers,
-and states it the same way whoever wrote it: the controller of a list
-screen proxies `getModel()` to the model of the screen that edits one
-record, while a screen that stands on its own names itself.
+A component's screens are the folders it ships them in, and its
+administrator menu names the ones it offers. That is all any Joomla
+component is obliged to state, and it is all extrusion reads.
 
-```php
-class Admins_fieldsController extends AdminController
-{
-    public function getModel($name = 'Admin_fields', ...)   // the list of admin_fields
-}
+A view's plural is derived, then checked: a derived plural the menu never
+names is reported, not settled quietly. Nothing recovers an irregular
+plural a component states nowhere -- JCB's own list names are irregular
+(`admin_fields` → `admins_fields`), and where the source does not say,
+the run says so rather than guess silently.
 
-class CompilerController extends AdminController
-{
-    public function getModel($name = 'Compiler', ...)       // a screen of its own
-}
-```
+A folder named after the component itself is that component's dashboard,
+not a screen someone built. It owes no view and no get.
 
-Two things follow, and nothing else can supply either:
+> **Not read:** a controller's default `getModel()` argument, an
+> `uitab.addTab` call, a layout file named for a tab and an alignment.
+> Those are things a JCB-built component happens to have. Reading them
+> makes an engine that only works on components JCB already built, which
+> is the opposite of the point.
 
-- **The real plural name.** JCB's own list names are irregular
-  (`admin_fields` → `admins_fields`, `class_extends` → `class_extendings`,
-  `component_config` → `components_config`), so a plural rule guesses
-  wrong for most views. The component says the name outright.
-- **Which folders are generated output.** A folder the component pairs
-  with another view's model is that view's list screen and never a custom
-  admin view, whatever it is called.
+## What a view's screens are made of
 
-## What the edit screen states
+A view's own PHP is its author's, not a record. JCB writes a view's files
+from its fields and its settings, so there is nothing in those files a
+record could be recovered from without first assuming the files were
+JCB's own output.
 
-A JCB-built edit screen states its own shape, and the compiler reads the
-same shape back:
+So none of it is read. What is stored instead:
 
-- The template opens one tab per section --
-  `Html::_('uitab.addTab', '<view>Tab', '<key>', Text::_('<CONST>'))` --
-  in the order the tabs are shown.
-- Each tab renders its columns from layouts of the view's own folder,
-  named `<tab>_<column>`; the column names are the compiler's own
-  alignment table read in reverse (`Compiler\Architecture\AdminView\
-  TabLayoutFields::$alignmentOptions`): 1 left, 2 right, 3 fullwidth,
-  4 above, 5 under, 6 leftside, 7 rightside.
-- Each of those layouts lists the fields of that column, in order, as the
-  fallback of the value the model may override.
-
-Two sections in that template are the compiler's own furniture rather
-than tabs of the view: the publishing section, which renders the view's
-layouts without a column in their name (its fields belong to tab 15), and
-the permissions section, which renders the `rules` field. Storing either
-as a tab gives the view two of each. A tab that renders neither -- markup
-of its own instead -- is a custom tab (`admin_custom_tabs`), which is a
-tab of html placed before or after a stated tab.
+- **Tabs** are the view's own form fieldsets, which is where a Joomla
+  component groups the fields of a record.
+- **Field placement** within a tab is JCB's default; a person arranges it
+  afterwards.
+- **A recovered screen's body** is written generically -- it renders
+  whatever the view's get returns and says plainly when there is nothing
+  yet. It is a starting point, not a reproduction.
 
 ## Ordering
 
@@ -187,20 +172,20 @@ the compiler reads them whether or not they are set.
 
 ## What a list screen states about its fields
 
-A compiled list screen says, in its own markup and forms, what JCB keeps
-against every field of a view:
+Every Joomla component that offers a list screen ships a filter form for
+it, and that form is a full statement of the screen's settings without a
+line of anyone's PHP being read:
 
-- `tmpl/<list>/default_head.php` gives each **listed** field a heading of
-  its own through `Html::_('searchtools.sort', …, 'a.<column>', …)`, in the
-  order the list shows them. What the body echoes beside them belongs to
-  another field's cell and is not a column of the list.
-- `tmpl/<list>/default_body.php` opens the record on one cell, and the
-  field echoed there is the view's **title** field, which is also the one
-  that carries the link.
-- `forms/filter_<list>.xml` names the fields the screen **filters** on, and
-  a filter declared `multiple="true"` is the multi-value filter.
-- The list model's own query compares the fields the **search** box
-  matches (`a.<column> LIKE`).
+- `<fields name="filter">` names the fields the screen **filters** on. A
+  filter declared `multiple="true"` is the multi-value filter.
+- `<fields name="list">`'s `fullordering` field names, option by option
+  (`<option value="a.name ASC">`), every column the screen lets a person
+  **sort** by -- which is the component stating which columns it puts on
+  that screen at all.
+
+A component shipping no such form has stated nothing, and every field
+falls to JCB's default. Which field names a record, and so carries the
+link, is the role resolver's reading of the view's own columns.
 
 Two values must never be guessed:
 
@@ -210,14 +195,29 @@ Two values must never be guessed:
 - A filter is built only for a field whose `list` is 1, 3 or 4
   (`Creator/Builders.php::appearsInList()`), while a column is rendered
   only for 1 or 3 (`Architecture/AdminViews/ListHead.php`). So a field the
-  screen filters on but shows no column for is `4` -- which is what the
-  source itself must hold for that filter to exist at all.
+  screen filters on but shows no column for is `4`.
 
-A get keyed on a view's table also carries what the query states beside it:
-the conditions it keeps its records by, the order it returns them in, and
--- for an item get -- the filter that fetches the record asked for. JCB's
-own gets carry exactly those, and a get without them returns every record,
-unordered, or the first row of the table for every id.
+## What a column states, and what a form states
+
+A field record keeps two defaults, and they are different things. The
+form's `default` attribute is what the form shows; `datadefault` is what
+the column holds. `default="NOW"` on a calendar belongs to the first and
+never the second.
+
+The schema states the second, and states more that nothing else can:
+
+- A column's **key rank** runs none, index, unique, primary. JCB's field
+  form offers unique as `1` and a plain index as `2`, so the two scales
+  must be mapped, never passed straight between each other. The primary
+  key is not among them -- JCB writes the id column and its primary key
+  itself.
+- A column carrying **no `DEFAULT` clause** is not a column defaulting to
+  nothing. JCB spells that difference `datadefault = 'Other'` with
+  `datadefault_other = 'EMPTY'` (`InstallSql`: *"to get just null value
+  add EMPTY to other value"*).
+- The **engine, character set, collation and row format** are stated after
+  the closing bracket and nowhere else, so nothing about the columns
+  recovers them. Left unset they fall back to MyISAM and utf8.
 
 ## What a view's main get has to be
 
@@ -244,6 +244,29 @@ without a table are built.
   code, which the compiler swaps for the class name and imports. Both
   routes recompute the namespace at compile time, which is what lets the
   same power compile into different components.
+
+**A power's identity is its stored namespace, not the class it compiles
+to.** The prefix is deferred precisely so one class serves components
+whose prefixes differ, so two classes are the same power exactly when
+they fold to the same stored namespace, whatever they were built as.
+Resolving both sides to concrete names instead makes every library whose
+prefix differs from the run's look new -- which duplicates a whole library
+on first harvest.
+
+Folding a built class back:
+
+- A Joomla library extension is a folder of **vendor folders**. The
+  extension folder is what Joomla installs; the vendor folder inside it
+  (`VDM.Joomla`, `JoomVenue.Joomla`) names the namespace head in its own
+  dotted name and keeps its classes under `src`.
+- That dotted name is also the statement that this library follows the
+  convention, so its **first segment is the vendor prefix** and is
+  deferred whatever it reads. A folder carrying no dots has claimed
+  nothing, and is left exactly as written.
+- The **component segment** needs the component the library belongs to. A
+  run harvesting a component and its library together already knows what
+  that component is called, and derives the segment from the code name the
+  way `Compiler\Component\Placeholder` does.
 
 ## What a table has to have to be a view
 

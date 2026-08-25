@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Utilities\String\NamespaceHelper;
 use VDM\Joomla\Utilities\StringHelper;
@@ -75,6 +76,14 @@ final class Placeholders
 	protected Report $report;
 
 	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.8
+	 */
+	protected Source $source;
+
+	/**
 	 * The prefix to fall back on when nothing else names one.
 	 *
 	 * @var    string|null
@@ -96,6 +105,7 @@ final class Placeholders
 	 * @param   Config         $config    The extrusion configuration.
 	 * @param   LoadInterface  $load      The database loader.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Source         $source    The source identity registry.
 	 * @param   string|null    $fallback  The prefix to use when none is configured.
 	 *
 	 * @since   6.1.7
@@ -104,12 +114,14 @@ final class Placeholders
 		Config $config,
 		LoadInterface $load,
 		Report $report,
+		Source $source,
 		?string $fallback = null
 	)
 	{
 		$this->config = $config;
 		$this->load = $load;
 		$this->report = $report;
+		$this->source = $source;
 		$this->fallback = $fallback;
 	}
 
@@ -164,6 +176,22 @@ final class Placeholders
 	{
 		$id = (int) $this->config->get('component', 0);
 		$named = trim((string) $this->config->get('componentCode', ''));
+
+		if ($named === '')
+		{
+			// a run harvesting a component and its library together has already
+			// discovered what that component is called, and the library's
+			// component-owned classes are that component's -- so the two halves
+			// of one run resolve the same segment without being told twice.
+			// The source names it as Joomla does, com_ and all; the segment is
+			// derived from the code name alone, exactly as the compiler does
+			$named = (string) preg_replace(
+				'/^com_/i',
+				'',
+				trim((string) $this->source->get('code_name', ''))
+			);
+		}
+
 		$key = $id . '|' . $named;
 
 		if (isset($this->resolved[$key]))
