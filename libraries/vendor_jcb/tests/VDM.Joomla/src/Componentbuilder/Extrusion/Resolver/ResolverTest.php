@@ -1104,7 +1104,7 @@ final class ResolverTest extends TestCase
 		$catalogue->set('constant.COM_DEMO_PUBLISHING_FIELDSET', 'Publishing Options');
 		$report = new Report();
 
-		return [new Tab($form, new Language($catalogue, $report), $report), $report];
+		return [new Tab($form, new Language($catalogue, $report), $report, new Source()), $report];
 	}
 
 	/**

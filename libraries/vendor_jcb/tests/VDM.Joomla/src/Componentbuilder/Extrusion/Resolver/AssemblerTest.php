@@ -351,7 +351,7 @@ PHP;
 		$text = new Text();
 		$language = new Language($this->catalogue, $this->report);
 		$viewname = new ViewName($this->source, $text);
-		$this->tab = new Tab($this->form, $language, $this->report);
+		$this->tab = new Tab($this->form, $language, $this->report, $this->source);
 
 		$this->assembler = new Assembler(
 			$this->config,
@@ -878,6 +878,56 @@ PHP;
 			'items',
 			$this->resolved->get('view.item.name_list'),
 			'An empty stated name is no answer, so the plural has to cover for it.'
+		);
+	}
+
+	/**
+	 * The component's own controllers name its list screens.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheComponentsOwnControllersNameItsListScreens(): void
+	{
+		$this->source->set('mvc_list.category', 'categoriesall');
+		$this->source->set('mvc_of.categoriesall', 'category');
+		$this->assembler->assemble();
+
+		$this->assertSame(
+			'categoriesall',
+			$this->resolved->get('view.category.name_list'),
+			'The component names its own list screen in the controller that serves '
+			. 'it; no plural rule can be relied on to guess that name.'
+		);
+		$this->assertSame(
+			'categoriesall | categories',
+			$this->report->get('origin.name_list.category'),
+			'A name read from the component that disagrees with the guess is named '
+			. 'in the report.'
+		);
+		$this->assertSame(
+			['categoriesall' => 'category'],
+			$this->resolved->get('screen.list_views'),
+			'Every later step needs to know which screens are a table view\'s own '
+			. 'generated output rather than a screen built by hand.'
+		);
+		$this->assertSame(
+			'items',
+			$this->resolved->get('view.item.name_list'),
+			'A view whose list screen the component never names still falls back '
+			. 'to what the table class states, or to the plural.'
+		);
+
+		$this->restate();
+		$this->table->set('table.example_category.listview', 'People');
+		$this->source->set('mvc_list.category', 'categoriesall');
+		$this->assembler->assemble();
+
+		$this->assertSame(
+			'people',
+			$this->resolved->get('view.category.name_list'),
+			'A table definition class states the name outright, which is the '
+			. 'record\'s own word and outranks a reading of the compiled code.'
 		);
 	}
 }

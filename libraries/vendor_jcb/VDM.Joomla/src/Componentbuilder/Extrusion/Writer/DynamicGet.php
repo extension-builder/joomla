@@ -132,6 +132,10 @@ final class DynamicGet extends Writer
 				// view's own generated output: no custom view and no get is owed
 				if ($kind === 'custom_admin_view'
 					&& ($answered !== null || !empty($entry['crud'])
+						|| array_key_exists(
+							strtolower(trim($name)),
+							(array) $this->resolved->get('screen.list_views', [])
+						)
 						|| in_array(
 							strtolower(trim($name)),
 							(array) $this->resolved->get('existing.admin_view_names', []),
@@ -190,16 +194,18 @@ final class DynamicGet extends Writer
 		}
 		else
 		{
-			// no admin view answers, so the source cannot be reconstructed
-			// without guessing -- a custom get scaffold names the method the
-			// author completes, and the report says so in plain words
+			// no admin view answers, so the data cannot be reconstructed
+			// without guessing: the get reads from custom code, which is how
+			// JCB's own screens without a table are built. Its shape stays an
+			// item get, because the compiler writes a view's files only for a
+			// main get that reads one record or a list -- a get of any other
+			// shape is passed over and the screen never reaches the component
 			$definition->main_source = '3';
-			$definition->gettype = '3';
-			$definition->getcustom = 'get' . str_replace(' ', '', $readable);
+			$definition->gettype = '1';
 			$this->report->set(
 				'dynamic_get.custom.' . $this->key($name),
-				'no admin view answers for this view, so its get is a custom '
-				. 'scaffold awaiting its method body'
+				'no admin view answers for this view, so its get reads from '
+				. 'custom code awaiting its method body'
 			);
 		}
 

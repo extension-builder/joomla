@@ -204,9 +204,14 @@ final class AdminFields extends Writer
 			// the Globally Unique ID field sits on the publishing tab in
 			// every view that links it -- and rediscovering that is truer
 			// than putting a shared field somewhere new
-			$placed = $this->placement($fieldGuid);
+			// where the component's own edit screen puts this field is truer
+			// still: it is this view's own layout, stated by the component
+			$stated = is_array($properties['placement'] ?? null)
+				? (array) $properties['placement'] : null;
+			$placed = $stated ?? $this->placement($fieldGuid);
 			$tab = (int) ($placed['tab'] ?? ($properties['tab_index'] ?? 1));
 			$editOrder[$tab] = (int) ($editOrder[$tab] ?? 0) + 1;
+			$order = (int) ($stated['order'] ?? $editOrder[$tab]);
 
 			$row = [
 				'field' => $fieldGuid,
@@ -216,7 +221,7 @@ final class AdminFields extends Writer
 				'tab' => (string) $tab,
 				'alignment' => (int) ($placed['alignment']
 					?? ($isTitle || $isAlias ? 4 : (($number % 2 === 0) ? 2 : 1))),
-				'order_edit' => (string) $editOrder[$tab]
+				'order_edit' => (string) $order
 			];
 
 			if ($isTitle)

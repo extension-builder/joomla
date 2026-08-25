@@ -244,7 +244,8 @@ class Resolver implements ServiceProviderInterface
 		return new Tab(
 			$container->get('Extrusion.Registry.Form'),
 			$container->get('Extrusion.Resolver.Language'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Source')
 		);
 	}
 

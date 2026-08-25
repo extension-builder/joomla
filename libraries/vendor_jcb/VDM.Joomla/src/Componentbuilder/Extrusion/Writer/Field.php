@@ -271,7 +271,7 @@ final class Field extends Writer
 
 		$definition = new \stdClass();
 		$definition->guid = $guid;
-		$definition->name = $label;
+		$definition->name = $this->readable($label, $column);
 		$definition->fieldtype = $identity;
 		$definition->datatype = (string) $this->value($properties, 'datatype', 'TEXT');
 		$definition->indexes = (int) $this->value($properties, 'key', 0);
@@ -373,6 +373,35 @@ final class Field extends Writer
 			default:
 				return 0;
 		}
+	}
+
+	/**
+	 * The name a field is listed under.
+	 *
+	 * A label may carry markup -- a note under the label, a link to a
+	 * reference -- because a label is rendered as HTML. A field's name is
+	 * read in lists, pickers and the field's own record, so it takes the
+	 * words of the label without the markup, while the label itself is
+	 * carried through to the field's xml exactly as the source states it.
+	 *
+	 * @param   string  $label   The field's stated label.
+	 * @param   string  $column  The column the field stands for.
+	 *
+	 * @return  string  The readable name.
+	 * @since   6.1.8
+	 */
+	protected function readable(string $label, string $column): string
+	{
+		if (!str_contains($label, '<'))
+		{
+			return trim($label);
+		}
+
+		$text = strip_tags(str_replace(['<br>', '<br/>', '<br />'], ' ', $label));
+		$text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		$text = trim(preg_replace('/\s+/', ' ', $text) ?? $text);
+
+		return $text === '' ? $column : $text;
 	}
 
 	/**

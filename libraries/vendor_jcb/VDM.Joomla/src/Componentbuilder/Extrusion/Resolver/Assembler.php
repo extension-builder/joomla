@@ -222,9 +222,42 @@ final class Assembler
 		}
 
 		$this->resolved->set('views', $views);
+		$this->screens();
 		$this->reconcile($views);
 
 		return count($views);
+	}
+
+	/**
+	 * Record which of the component's screens are a table view's own list.
+	 *
+	 * A controller answering with another view's model is that view's list
+	 * screen. Recording it here is what lets every later step tell a table
+	 * view's own generated output from a screen the component built by hand.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function screens(): void
+	{
+		$lists = [];
+
+		foreach ((array) $this->source->get('mvc_of', []) as $screen => $view)
+		{
+			$screen = strtolower(trim((string) $screen));
+			$view = strtolower(trim((string) $view));
+
+			if ($screen !== '' && $view !== '' && $screen !== $view)
+			{
+				$lists[$screen] = $view;
+			}
+		}
+
+		if ($lists !== [])
+		{
+			$this->resolved->set('screen.list_views', $lists);
+			$this->report->set('source.list_views', $lists);
+		}
 	}
 
 	/**
@@ -312,27 +345,43 @@ final class Assembler
 	protected function listName(array $entry, string $view): string
 	{
 		$derived = $this->viewname->plural($view);
+		$stated = $entry['table'] === ''
+			? null
+			: $this->table->get('table.' . $entry['table'] . '.listview');
 
-		if ($entry['table'] === '')
+		if (is_string($stated) && trim($stated) !== '')
 		{
-			return $derived;
+			$stated = strtolower(trim($stated));
+
+			if ($stated !== $derived)
+			{
+				$this->report->set(
+					'origin.name_list.' . $this->precedence->key($view),
+					$stated . ' | ' . $derived
+				);
+			}
+
+			return $stated;
 		}
 
-		$stated = $this->table->get('table.' . $entry['table'] . '.listview');
+		// the component names its own list screen: its controller answers with
+		// this view's model, which no plural rule can be relied on to guess
+		$observed = strtolower(trim((string) $this->source->get('mvc_list.' . $view, '')));
 
-		if (!is_string($stated) || trim($stated) === '')
+		if ($observed !== '' && $observed !== $view)
 		{
-			return $derived;
+			if ($observed !== $derived)
+			{
+				$this->report->set(
+					'origin.name_list.' . $this->precedence->key($view),
+					$observed . ' | ' . $derived
+				);
+			}
+
+			return $observed;
 		}
 
-		$stated = strtolower(trim($stated));
-
-		if ($stated !== $derived)
-		{
-			$this->report->set('origin.name_list.' . $this->precedence->key($view), $stated . ' | ' . $derived);
-		}
-
-		return $stated;
+		return $derived;
 	}
 
 	/**
@@ -433,10 +482,24 @@ final class Assembler
 				$path . '.field.' . $this->precedence->key($column),
 				$properties
 			);
+
+			// where the component's own edit screen puts this field outranks
+			// any reading of the form, because it is the placement the
+			// component was built with
+			$placement = $this->tab->placement($view, $column);
 			$this->resolved->set(
 				$path . '.field.' . $this->precedence->key($column) . '.tab_index',
-				$this->tab->index($this->tab->nameFor($view, $properties), $tabs)
+				$placement['tab']
+					?? $this->tab->index($this->tab->nameFor($view, $properties), $tabs)
 			);
+
+			if ($placement !== null)
+			{
+				$this->resolved->set(
+					$path . '.field.' . $this->precedence->key($column) . '.placement',
+					$placement
+				);
+			}
 		}
 
 		$this->resolved->set($path . '.name_single', $view);

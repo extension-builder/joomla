@@ -3872,6 +3872,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Access.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Collector.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
@@ -3896,6 +3900,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Mvc.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Manifest.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
@@ -3903,6 +3911,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Scanner.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Screen.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Selector.php' => [
 		'mode' => 'unit',

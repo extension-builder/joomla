@@ -175,7 +175,7 @@ final class AdminView extends Writer
 		$definition->description = $system . ' (extruded)';
 		$definition->type = 1;
 		$definition->add_fadein = 1;
-		$definition->addpermissions = $this->permissions();
+		$definition->addpermissions = $this->permissions($single);
 		$definition->addtabs = $this->tabs($path);
 		$definition->published = 1;
 
@@ -204,24 +204,141 @@ final class AdminView extends Writer
 	}
 
 	/**
-	 * The permission rows a generated view is given.
+	 * The permission rows one view is given.
+	 *
+	 * A component states its permissions in access.xml, and states the level
+	 * of each by where it puts it: the component section sets an action once
+	 * for the whole component, a view's own section sets it per record, and an
+	 * action in both is offered at both levels -- which is exactly what JCB
+	 * stores. Only a source that ships no access rules falls back to the set a
+	 * new view is given, because then nothing states anything else.
+	 *
+	 * @param   string  $view  The view's single name.
 	 *
 	 * @return  array<string, array<string, mixed>>  The permission subform.
 	 * @since   6.1.8
 	 */
-	protected function permissions(): array
+	protected function permissions(string $view): array
 	{
+		$stated = $this->stated($view);
 		$subform = [];
+		$number = 0;
 
-		foreach (self::PERMISSIONS as $number => $action)
+		foreach ($stated === [] ? $this->scaffold() : $stated as $action => $implementation)
 		{
 			$subform['addpermissions' . $number] = [
 				'action' => $action,
-				'implementation' => 3
+				'implementation' => $implementation
 			];
+			$number++;
 		}
 
 		return $subform;
+	}
+
+	/**
+	 * The permissions the component's own access rules state for one view.
+	 *
+	 * @param   string  $view  The view's single name.
+	 *
+	 * @return  array<string, int>  Action keyed to its implementation.
+	 * @since   6.1.8
+	 */
+	protected function stated(string $view): array
+	{
+		$view = strtolower(trim($view));
+		$own = $this->actions((array) $this->source->get('access.' . $view, []), $view, true);
+		$component = $this->actions(
+			(array) $this->source->get('access.component', []),
+			$view,
+			false
+		);
+		$stated = [];
+
+		foreach ($component as $action)
+		{
+			$stated[$action] = 2;
+		}
+
+		foreach ($own as $action)
+		{
+			// an action the component sets globally and the view sets per
+			// record is offered at both levels, which is what 3 means -- but
+			// a core action is view level whatever else is stated, because
+			// that is what the compiler makes of it
+			$stated[$action] = str_starts_with($action, 'core.')
+				? 1
+				: (isset($stated[$action]) ? 3 : 1);
+		}
+
+		if ($stated !== [])
+		{
+			$this->report->set('permissions.' . $this->key($view), $stated);
+		}
+
+		return $stated;
+	}
+
+	/**
+	 * The actions of one access section that belong to one view.
+	 *
+	 * An action named for the view is that view's own, and JCB stores it under
+	 * the view prefix its compiler writes back. A core action is only a view's
+	 * where the view's own section states it. Everything else in a section
+	 * belongs to another view or to the component itself.
+	 *
+	 * @param   array<int, mixed>  $actions  The section's actions.
+	 * @param   string             $view     The view's single name.
+	 * @param   bool               $core     Whether core actions belong to this view.
+	 *
+	 * @return  array<int, string>  The actions, in the order they are stated.
+	 * @since   6.1.8
+	 */
+	protected function actions(array $actions, string $view, bool $core): array
+	{
+		$found = [];
+
+		foreach ($actions as $action)
+		{
+			$action = strtolower(trim((string) $action));
+
+			if ($action === '')
+			{
+				continue;
+			}
+
+			if (str_starts_with($action, $view . '.'))
+			{
+				$found[] = 'view.' . substr($action, strlen($view) + 1);
+
+				continue;
+			}
+
+			if ($core && str_starts_with($action, 'core.'))
+			{
+				$found[] = $action;
+			}
+		}
+
+		return array_values(array_unique($found));
+	}
+
+	/**
+	 * The permission rows a view is given where the source states none.
+	 *
+	 * @return  array<string, int>  Action keyed to its implementation.
+	 * @since   6.1.8
+	 */
+	protected function scaffold(): array
+	{
+		$scaffold = [];
+
+		foreach (self::PERMISSIONS as $action)
+		{
+			$scaffold[$action] = 3;
+		}
+
+		return $scaffold;
 	}
 
 	/**

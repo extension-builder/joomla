@@ -136,6 +136,30 @@ final class Collector
 	protected LocatorInterface $view;
 
 	/**
+	 * The MVC Discovery Class.
+	 *
+	 * @var    Mvc
+	 * @since  6.1.8
+	 */
+	protected Mvc $mvc;
+
+	/**
+	 * The Screen Discovery Class.
+	 *
+	 * @var    Screen
+	 * @since  6.1.8
+	 */
+	protected Screen $screen;
+
+	/**
+	 * The Access Discovery Class.
+	 *
+	 * @var    Access
+	 * @since  6.1.8
+	 */
+	protected Access $access;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -150,6 +174,9 @@ final class Collector
 	 * @param   LocatorInterface  $language   The language locator.
 	 * @param   LocatorInterface  $table      The table class locator.
 	 * @param   LocatorInterface  $view       The view locator.
+	 * @param   Mvc               $mvc        The controller relationship reader.
+	 * @param   Screen            $screen     The edit screen reader.
+	 * @param   Access            $access     The access rules reader.
 	 *
 	 * @since   6.1.6
 	 */
@@ -165,7 +192,10 @@ final class Collector
 		LocatorInterface $form,
 		LocatorInterface $language,
 		LocatorInterface $table,
-		LocatorInterface $view
+		LocatorInterface $view,
+		Mvc $mvc,
+		Screen $screen,
+		Access $access
 	)
 	{
 		$this->config = $config;
@@ -180,6 +210,9 @@ final class Collector
 		$this->language = $language;
 		$this->table = $table;
 		$this->view = $view;
+		$this->mvc = $mvc;
+		$this->screen = $screen;
+		$this->access = $access;
 	}
 
 	/**
@@ -254,6 +287,13 @@ final class Collector
 		{
 			$this->source->set('scope', $entry['scope']);
 			$this->manifest->establish($entry['root'], $index > 0);
+
+			// what the component says about itself in its own code: which
+			// screen serves which view, how each edit screen is laid out, and
+			// which permissions it offers at which level
+			$this->mvc->establish($entry['root']);
+			$this->screen->establish($entry['root']);
+			$this->access->establish($entry['root']);
 
 			foreach ($this->locators() as $locator)
 			{

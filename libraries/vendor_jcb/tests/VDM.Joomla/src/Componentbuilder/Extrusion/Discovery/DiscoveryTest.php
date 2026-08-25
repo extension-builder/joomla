@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Discovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Access;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Language;
@@ -22,7 +23,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Schema;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Table;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Manifest;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Mvc;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Scanner;
+use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Screen;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Selector;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\Heuristic;
@@ -234,7 +237,10 @@ final class DiscoveryTest extends FilesystemTestCase
 			$this->locator(Form::class),
 			$this->locator(Language::class),
 			$this->locator(Table::class),
-			$this->locator(View::class)
+			$this->locator(View::class),
+			new Mvc($this->scanner(), $this->selector(), $this->source, $this->report),
+			new Screen($this->scanner(), $this->selector(), $this->source, $this->report),
+			new Access($this->scanner(), $this->selector(), $this->source, $this->report)
 		);
 	}
 

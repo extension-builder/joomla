@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 
 /**
@@ -34,6 +35,18 @@ final class Tab
 	 * @since  6.1.6
 	 */
 	public const DEFAULT_TAB = 'Details';
+
+	/**
+	 * The tab number JCB keeps for its own publishing section.
+	 *
+	 * The compiler sets it unconditionally and the documentation states it
+	 * plainly, so a field the source shows in a section the compiler generates
+	 * belongs there rather than on a tab of its own.
+	 *
+	 * @var    int
+	 * @since  6.1.8
+	 */
+	public const PUBLISHING_TAB = 15;
 
 	/**
 	 * The Form Registry.
@@ -60,19 +73,29 @@ final class Tab
 	protected Report $report;
 
 	/**
+	 * The Source Registry.
+	 *
+	 * @var    Source
+	 * @since  6.1.8
+	 */
+	protected Source $source;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Form      $form      The parsed form registry.
 	 * @param   Language  $language  The language resolver.
 	 * @param   Report    $report    The run report registry.
+	 * @param   Source    $source    The source identity registry.
 	 *
 	 * @since   6.1.6
 	 */
-	public function __construct(Form $form, Language $language, Report $report)
+	public function __construct(Form $form, Language $language, Report $report, Source $source)
 	{
 		$this->form = $form;
 		$this->language = $language;
 		$this->report = $report;
+		$this->source = $source;
 	}
 
 	/**
@@ -86,6 +109,17 @@ final class Tab
 	 */
 	public function names(string $view, array $fields): array
 	{
+		// the component's own edit screen names its tabs and their order; a
+		// form's fieldsets are only consulted where no screen was recovered
+		$stated = $this->stated($view);
+
+		if ($stated !== [])
+		{
+			$this->report->set('tabs.' . $this->key($view), $stated);
+
+			return $stated;
+		}
+
 		$names = [];
 
 		foreach ($fields as $properties)
@@ -188,6 +222,96 @@ final class Tab
 		$name = preg_replace('/\s+/', ' ', $name) ?? $name;
 
 		return $name === '' ? self::DEFAULT_TAB : ucwords($name);
+	}
+
+	/**
+	 * The tabs the component's own edit screen states for one view.
+	 *
+	 * @param   string  $view  The JCB view name.
+	 *
+	 * @return  array<int, string>  The tab names in their stated order.
+	 * @since   6.1.8
+	 */
+	public function stated(string $view): array
+	{
+		$names = [];
+
+		foreach ((array) $this->source->get('screen.' . strtolower($view) . '.tabs', []) as $tab)
+		{
+			$tab = (array) $tab;
+			$key = trim((string) ($tab['key'] ?? ''));
+
+			if ($key === '')
+			{
+				continue;
+			}
+
+			$label = trim((string) ($tab['label'] ?? ''));
+			$name = $this->clean(
+				$label === '' ? $key : $this->language->resolve($label, $key)
+			);
+
+			if (!in_array($name, $names, true))
+			{
+				$names[] = $name;
+			}
+		}
+
+		return $names;
+	}
+
+	/**
+	 * Where the component's own edit screen places one field.
+	 *
+	 * @param   string  $view    The JCB view name.
+	 * @param   string  $column  The field's column name.
+	 *
+	 * @return  array{tab: int, alignment: int, order: int}|null  The placement, or null.
+	 * @since   6.1.8
+	 */
+	public function placement(string $view, string $column): ?array
+	{
+		$view = strtolower($view);
+		$place = $this->source->get(
+			'screen.' . $view . '.place.' . strtolower($column),
+			null
+		);
+
+		if (!is_array($place) || ($place['tab'] ?? '') === '')
+		{
+			return null;
+		}
+
+		$tab = strtolower((string) $place['tab']);
+		$alignment = (int) ($place['alignment'] ?? 1);
+		$order = (int) ($place['order'] ?? 1);
+
+		if (!empty($place['generated']))
+		{
+			return [
+				'tab' => self::PUBLISHING_TAB,
+				'alignment' => $alignment > 0 ? $alignment : 1,
+				'order' => $order
+			];
+		}
+
+		$number = 0;
+
+		foreach ((array) $this->source->get('screen.' . $view . '.tabs', []) as $entry)
+		{
+			$number++;
+
+			if (strtolower(trim((string) (((array) $entry)['key'] ?? ''))) === $tab)
+			{
+				return [
+					'tab' => $number,
+					'alignment' => $alignment > 0 ? $alignment : 1,
+					'order' => $order
+				];
+			}
+		}
+
+		return null;
 	}
 
 	/**
