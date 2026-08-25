@@ -247,12 +247,44 @@ final class DynamicGet extends Writer
 
 			if ($recovered !== null)
 			{
-				$definition->php_custom_get = $recovered['code'];
 				$definition->gettype = $recovered['gettype'];
-				$this->report->set(
-					'dynamic_get.recovered.' . $this->key($name),
-					$recovered['method'] . ' of the source model'
-				);
+				$backing = $this->backing($recovered['code']);
+
+				if ($backing !== null)
+				{
+					// the query itself names the table it reads, and this run
+					// wrote the admin view that owns it -- so the get is the
+					// real relationship rather than code standing in for one
+					$definition->main_source = '1';
+					$definition->view_table_main = $backing;
+					$definition->select_all = '1';
+					$definition->view_selection = 'a.*';
+
+					if ((int) $definition->gettype === 1)
+					{
+						$definition->filter = [
+							'filter0' => [
+								'filter_type' => '1',
+								'state_key' => 'id',
+								'operator' => '1',
+								'table_key' => 'a.id'
+							]
+						];
+					}
+
+					$this->report->set(
+						'dynamic_get.related.' . $this->key($name),
+						'reads the table of an admin view this run wrote'
+					);
+				}
+				else
+				{
+					$definition->php_custom_get = $recovered['code'];
+					$this->report->set(
+						'dynamic_get.recovered.' . $this->key($name),
+						$recovered['method'] . ' of the source model'
+					);
+				}
 			}
 			else
 			{
@@ -294,6 +326,47 @@ final class DynamicGet extends Writer
 		}
 
 		return $menu === [] && $screens === [];
+	}
+
+	/**
+	 * The admin view whose table one query reads, when this run wrote it.
+	 *
+	 * A query names its table outright, and a table this run turned into an
+	 * admin view is that view -- which is what JCB stores as the get's own
+	 * source instead of the code that would read it by hand.
+	 *
+	 * @param   string  $code  The query's code.
+	 *
+	 * @return  string|null  The admin view's identity, or null.
+	 * @since   6.1.8
+	 */
+	protected function backing(string $code): ?string
+	{
+		if (preg_match('/->from\(.*?[\'"]#__([A-Za-z0-9_]+)[\'"]/s', $code, $found) !== 1)
+		{
+			return null;
+		}
+
+		$table = strtolower(trim((string) $found[1]));
+
+		foreach ($this->views() as $view)
+		{
+			$path = $this->path($view);
+			$stated = strtolower(trim(preg_replace(
+				'/^#__/',
+				'',
+				(string) $this->resolved->get($path . '.table', '')
+			) ?? ''));
+
+			if ($stated !== '' && $stated === $table)
+			{
+				$guid = (string) $this->resolved->get($path . '.written.view.guid', '');
+
+				return $guid === '' ? null : $guid;
+			}
+		}
+
+		return null;
 	}
 
 	/**
