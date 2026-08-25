@@ -4,14 +4,43 @@ This document records the current Extrusion contract and the implementation
 roadmap for pointing JCB at a component folder on disk and extruding its
 administrator area into JCB definitions.
 
-**Implementation status:** phases 0 through 4 and phase 6 are implemented under
-`Componentbuilder/Extrusion`, and phase 5 has its parsers (`Reader\Php\*`) but
-no caller yet. There is now one engine: `Helper\Mapping` and `Helper\Builder`
-are deleted, and `Helper\Extrusion` is a thin delegate that hands the pasted
-dump to the same `Extruder` a folder goes through (§8). What remains is the
-graphical interface, which needs `admin/**` and therefore a separate, explicitly
-authorised change. Sections 7 and 8 record what the working implementation
-proved and the places where reality differed from this design.
+**Implementation status:** the engine is implemented under
+`Componentbuilder/Extrusion`, in two halves that share one set of registries:
+the component pipeline and the powers pipeline. `Helper\Mapping` and
+`Helper\Builder` are deleted, and `Helper\Extrusion` is a thin delegate that
+hands a pasted dump to the same `Extruder` a folder goes through (§8). What
+remains is the graphical interface, which needs `admin/**` and therefore a
+separate, explicitly authorised change. Sections 7 and 8 record what the
+working implementation proved and the places where reality differed from this
+design.
+
+**What the engine reads, and what it refuses to.** Extrusion works on any
+Joomla component, whether or not JCB built it. It therefore reads only what
+every Joomla component ships:
+
+| Source | Gives |
+| --- | --- |
+| `sql/install.mysql.utf8.sql` | tables → views; columns → fields, with type, length, null, default, keys, indexes; and the table's engine, charset, collation and row format |
+| `forms/*.xml` | each field's real type and properties; the filter form gives the list's filters and sortable columns |
+| the manifest `.xml` | author, company, copyright, licence, version, and the Joomla version to target |
+| `access.xml` | the permissions the component offers, at the level it offers them |
+| `config.xml` | the component's own configuration |
+| `language/*/*.ini` | every constant resolved to its exact English |
+| library / `src` folders | powers |
+
+It does **not** read a component's own PHP for records. A view's code is its
+author's, not a record, and recognising the shapes JCB's compiler happens to
+emit -- `uitab` calls, layout files named for a tab and an alignment, a
+controller's default `getModel()` argument -- makes an engine that only works
+on components JCB already built. Everything a component does not state is
+JCB's own default, which a person then arranges.
+
+**A run has two halves.** `harvest()` reads and resolves and writes nothing;
+`candidates()` returns what it found, grouped by kind and already paired
+against what the target component links; `extrude()` writes the selection.
+The powers pipeline works the same way, and the two share the run's registries
+so the component's code name resolves the library's `[[[ComponentNamespace]]]`
+without being given twice.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from

@@ -223,9 +223,10 @@ final class CandidatesTest extends TestCase
 			'A field the component does not know proposes itself as a creation.'
 		);
 
-		$this->assertSame(
-			'cccccccc-3333-4333-8333-333333333333',
-			$candidates['layout'][0]['match']['guid'] ?? null
+		$this->assertArrayNotHasKey(
+			'layout',
+			$candidates,
+			'A layout is markup someone wrote, not a record extrusion offers.'
 		);
 		$this->assertSame(
 			self::SITE,
@@ -249,7 +250,11 @@ final class CandidatesTest extends TestCase
 			['item.title', 'item.legacy_flag'],
 			array_column($candidates['admin_view'][0]['fields'], 'key')
 		);
-		$this->assertSame('itemcard', $candidates['layout'][0]['key']);
+		$this->assertSame(
+			['admin_view', 'site_view', 'custom_admin_view'],
+			array_keys($candidates),
+			'Only the kinds extrusion actually writes are offered for approval.'
+		);
 	}
 
 	/**

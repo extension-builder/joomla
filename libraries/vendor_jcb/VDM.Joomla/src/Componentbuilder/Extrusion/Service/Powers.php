@@ -118,7 +118,8 @@ class Powers implements ServiceProviderInterface
 		return new Placeholders(
 			$container->get('Extrusion.Config'),
 			$container->get('Load'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Source')
 		);
 	}
 

@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher as WriterDispatcher;
 
@@ -139,6 +140,14 @@ final class Extruder implements ExtruderInterface
 	protected Reuse $reuse;
 
 	/**
+	 * The Candidates Resolver.
+	 *
+	 * @var    Candidates
+	 * @since  6.1.8
+	 */
+	protected Candidates $candidates;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -168,7 +177,8 @@ final class Extruder implements ExtruderInterface
 		SchemaReader $schema,
 		Source $source,
 		Prefix $prefix,
-		Reuse $reuse
+		Reuse $reuse,
+		Candidates $candidates
 	)
 	{
 		$this->config = $config;
@@ -183,6 +193,7 @@ final class Extruder implements ExtruderInterface
 		$this->source = $source;
 		$this->prefix = $prefix;
 		$this->reuse = $reuse;
+		$this->candidates = $candidates;
 	}
 
 	/**
@@ -514,6 +525,28 @@ final class Extruder implements ExtruderInterface
 		}
 
 		return $this->finish(true);
+	}
+
+	/**
+	 * Everything the harvest found, as the list a person approves.
+	 *
+	 * The second half of a run writes only what it was told to. This is what a
+	 * caller shows in between: every artifact the harvest resolved, grouped by
+	 * kind, each already lined up against what the target component links --
+	 * so a component seen before arrives proposed as updates and only what is
+	 * genuinely new proposes itself as a creation. Nothing here writes, and
+	 * the verdicts a caller collects go back through the pairing resolver.
+	 *
+	 * @param   int  $componentId  The component the candidates pair against, or zero.
+	 *
+	 * @return  array<string, mixed>  Candidates by kind.
+	 * @since   6.1.8
+	 */
+	public function candidates(int $componentId = 0): array
+	{
+		return $this->candidates->candidates(
+			$componentId > 0 ? $componentId : (int) $this->config->get('component', 0)
+		);
 	}
 
 	/**

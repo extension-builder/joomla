@@ -130,6 +130,7 @@ final class DynamicGet extends Writer
 				// generated output: no custom view and no get is owed
 				if ($kind === 'custom_admin_view'
 					&& ($answered !== null || !empty($entry['crud'])
+						|| $this->dashboard($name)
 						|| !$this->named($name)
 						|| in_array(
 							strtolower(trim($name)),
@@ -241,6 +242,27 @@ final class DynamicGet extends Writer
 		$this->resolved->set('dynamic_get.' . $kind . '.' . $this->key($key) . '.guid', $guid);
 
 		return true;
+	}
+
+	/**
+	 * Whether a folder is the component's own dashboard rather than a screen.
+	 *
+	 * A component's dashboard lives in a folder named after the component
+	 * itself. It is the component's front door, not a screen someone built, so
+	 * it owes no custom view and no get -- and the writer that makes the views
+	 * and the writer that makes their gets have to agree on that, or one of
+	 * them leaves a get behind with nothing to belong to.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the folder is the component's dashboard.
+	 * @since   6.1.8
+	 */
+	protected function dashboard(string $name): bool
+	{
+		$code = strtolower(trim(str_replace('com_', '', $this->option())));
+
+		return $code !== '' && strtolower(trim($name)) === $code;
 	}
 
 	/**

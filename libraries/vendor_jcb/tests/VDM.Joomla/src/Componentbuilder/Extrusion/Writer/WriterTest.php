@@ -2082,7 +2082,17 @@ final class WriterTest extends TestCase
 		$this->assertSame('app', $app->codename);
 		$this->assertSame('app', $app->context);
 		$this->assertSame('App', $app->system_name);
-		$this->assertSame('<h1>App</h1>', $app->default);
+		$this->assertStringContainsString(
+			'<h1>App</h1>',
+			$app->default,
+			'A recovered screen is given a body of its own, named for the view.'
+		);
+		$this->assertStringContainsString(
+			'JGLOBAL_NO_MATCHING_RESULTS',
+			$app->default,
+			'The body renders whatever the view\'s get returns and says plainly '
+			. 'when it returns nothing; none of it is lifted from the source.'
+		);
 		$this->assertSame('$a = 1;', $app->php_view);
 		$this->assertSame(1, $app->add_php_view);
 		$this->assertSame(1, $app->published);
@@ -2273,7 +2283,12 @@ final class WriterTest extends TestCase
 		);
 		$this->assertSame('Importer', $definition->name);
 		$this->assertSame('import', $definition->codename);
-		$this->assertSame('<div>Import</div>', $definition->default);
+		$this->assertStringNotContainsString(
+			'<div>Import</div>',
+			$definition->default,
+			'A screen\'s own markup is its author\'s and is never stored.'
+		);
+		$this->assertStringContainsString('<h1>Importer</h1>', $definition->default);
 		$this->assertSame('$a = 1;', $definition->php_view);
 		$this->assertSame(1, $definition->add_php_view);
 		$this->assertSame($get, $definition->main_get);

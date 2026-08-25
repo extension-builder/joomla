@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Tests\Support\ExtrusionPowerLoadFixture;
 use VDM\Tests\Support\TestCase;
 
@@ -592,7 +593,12 @@ final class ResolverTest extends TestCase
 	 */
 	private function placeholders(): Placeholders
 	{
-		return new Placeholders($this->config, $this->load, $this->report);
+		return new Placeholders(
+			$this->config,
+			$this->load,
+			$this->report,
+			new Source()
+		);
 	}
 
 	/**
