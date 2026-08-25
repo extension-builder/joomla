@@ -296,7 +296,17 @@ JCB automatically translates the constant back to its human-readable
 text"* (`JCB-Custom-Codes.md`).
 
 A constant the catalogue cannot answer is left exactly as it stands and
-reported, because inventing text for it would misstate the source.
+reported, because inventing text for it would misstate the source. Two
+further limits come from the extractor itself, and both leave the constant
+standing rather than write something it cannot read:
+
+- It re-keys only the call forms `Compiler/Config::getLangstringkeytargets()`
+  names -- `Text::_`, `Text::sprintf`, `Text::script`, `JustTEXT::_` and the
+  JavaScript `Joomla.JText._`. Turning any other call into text would leave
+  a string the compiler never makes a constant of again.
+- It takes what stands between the call's own quotes and knows nothing of
+  escaping, so text carrying a quote is written in the other quoting (it
+  reads both), and text carrying both quote marks keeps its constant.
 
 The catalogue is not always filled by the run itself: a library harvested
 on its own reads no component, and a class may name a constant of another
