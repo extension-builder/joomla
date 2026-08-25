@@ -299,17 +299,6 @@ final class CustomAdminView extends Writer
 	{
 		$name = strtolower(trim($name));
 
-		// the component's own controller for this screen answers with another
-		// view's model, which is what a list screen is -- generated output of
-		// that table view, never a screen someone built
-		if (array_key_exists(
-			$name,
-			(array) $this->resolved->get('screen.list_views', [])
-		))
-		{
-			return true;
-		}
-
 		// the database is the ground truth for what the component already
 		// has: a folder answering to any of its own admin views' real names
 		// is that view's territory, whether or not this run resolved it

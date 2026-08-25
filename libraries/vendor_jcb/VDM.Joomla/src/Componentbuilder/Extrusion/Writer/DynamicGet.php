@@ -11,17 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
-
 use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
-use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
-
 
 /**
  * Writes the dynamic get every recovered front end and custom view feeds from.
@@ -63,14 +60,6 @@ final class DynamicGet extends Writer
 	protected Source $source;
 
 	/**
-	 * The Constants Resolver.
-	 *
-	 * @var    Constants
-	 * @since  6.1.8
-	 */
-	protected Constants $constants;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config     The extrusion configuration.
@@ -80,7 +69,6 @@ final class DynamicGet extends Writer
 	 * @param   View           $view       The classified view registry.
 	 * @param   Guid           $guid       The identity resolver.
 	 * @param   Source         $source     The source identity registry.
-	 * @param   Constants      $constants  The language constant resolver.
 	 *
 	 * @since   6.1.8
 	 */
@@ -91,8 +79,7 @@ final class DynamicGet extends Writer
 		Report $report,
 		View $view,
 		Guid $guid,
-		Source $source,
-		Constants $constants
+		Source $source
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -100,7 +87,6 @@ final class DynamicGet extends Writer
 		$this->view = $view;
 		$this->guid = $guid;
 		$this->source = $source;
-		$this->constants = $constants;
 	}
 
 	/**
@@ -138,17 +124,13 @@ final class DynamicGet extends Writer
 
 				$answered = $this->answered($name);
 
-				// a custom candidate a table view answers for -- by an editor
-				// beside its template, by a resolved view's name, or by one of
-				// the component's own admin views in the database -- is that
-				// view's own generated output: no custom view and no get is owed
+				// a custom candidate a table view answers for -- by a resolved
+				// view's own single or list name, or by one of the component's
+				// admin views already in the database -- is that view's own
+				// generated output: no custom view and no get is owed
 				if ($kind === 'custom_admin_view'
 					&& ($answered !== null || !empty($entry['crud'])
 						|| !$this->named($name)
-						|| array_key_exists(
-							strtolower(trim($name)),
-							(array) $this->resolved->get('screen.list_views', [])
-						)
 						|| in_array(
 							strtolower(trim($name)),
 							(array) $this->resolved->get('existing.admin_view_names', []),
@@ -233,92 +215,22 @@ final class DynamicGet extends Writer
 				];
 			}
 
-			// the view's own query states which records it keeps and in what
-			// order, and JCB holds both beside the get rather than in code
-			$stated = $this->query($name);
-
-			if ($stated !== null)
-			{
-				foreach ($this->clauses($stated['code']) as $clause => $rows)
-				{
-					if ($rows !== [])
-					{
-						$definition->{$clause} = $rows;
-					}
-				}
-			}
 		}
 		else
 		{
-			// no admin view answers, so the data comes from custom code --
-			// which is how JCB's own screens without a table are built, and
-			// the component already wrote that code: its model builds the
-			// very query a custom get holds. The shape follows the method
-			// recovered, and stays an item or a list get either way, because
-			// the compiler writes a view's files only for those two
+			// nothing this component states can say what a screen without a
+			// table of its own reads. Its model holds a query, but that query
+			// is the author's code, not a record, and storing it would be
+			// storing code -- so the get is created, connected and left for a
+			// person to answer, which is the bare shape the screen needs
 			$definition->main_source = '3';
 			$definition->gettype = '1';
-			$recovered = $this->query($name);
 
-			if ($recovered !== null)
-			{
-				$definition->gettype = $recovered['gettype'];
-				$backing = $this->backing($recovered['code']);
-
-				if ($backing !== null)
-				{
-					// the query itself names the table it reads, and this run
-					// wrote the admin view that owns it -- so the get is the
-					// real relationship rather than code standing in for one
-					$definition->main_source = '1';
-					$definition->view_table_main = $backing;
-					$definition->select_all = '1';
-					$definition->view_selection = 'a.*';
-
-					if ((int) $definition->gettype === 1)
-					{
-						$definition->filter = [
-							'filter0' => [
-								'filter_type' => '1',
-								'state_key' => 'id',
-								'operator' => '1',
-								'table_key' => 'a.id'
-							]
-						];
-					}
-
-					// the query states which records it keeps and in what order,
-					// and JCB holds both beside the source rather than in code
-					foreach ($this->clauses($recovered['code']) as $clause => $rows)
-					{
-						if ($rows !== [])
-						{
-							$definition->{$clause} = $rows;
-						}
-					}
-
-					$this->report->set(
-						'dynamic_get.related.' . $this->key($name),
-						'reads the table of an admin view this run wrote'
-					);
-				}
-				else
-				{
-					$definition->php_custom_get = $recovered['code'];
-					$this->report->set(
-						'dynamic_get.recovered.' . $this->key($name),
-						$recovered['method'] . ' of the source model'
-					);
-				}
-			}
-			else
-			{
-				$this->report->set(
-					'dynamic_get.custom.' . $this->key($name),
-					'no admin view answers for this view and its model states no '
-					. 'query, so its get awaits a method body'
-				);
-			}
+			$this->report->set(
+				'dynamic_get.awaiting.' . $this->key($name),
+				'no admin view answers for this view, so its get was created '
+				. 'empty and awaits a query'
+			);
 		}
 
 		if (!$this->store($definition))
@@ -351,145 +263,6 @@ final class DynamicGet extends Writer
 		}
 
 		return $menu === [] && $screens === [];
-	}
-
-	/**
-	 * The conditions and the ordering one query states.
-	 *
-	 * A query keeps its records by plain comparisons and orders them by plain
-	 * columns, and JCB holds each as a row of its own beside the get. Only the
-	 * comparisons a row can hold are read: a value the query computes is left
-	 * for the person, because storing half of it would misstate the source.
-	 *
-	 * @param   string  $code  The query's code.
-	 *
-	 * @return  array{where: array<string, array<string, string>>, order: array<string, array<string, string>>}  The clauses.
-	 * @since   6.1.8
-	 */
-	protected function clauses(string $code): array
-	{
-		$clauses = ['where' => [], 'order' => []];
-		$number = 0;
-
-		if (preg_match_all(
-			'/->where\(\s*[\'"]\s*(a\.[A-Za-z0-9_]+)\s*=\s*([0-9]+)\s*[\'"]\s*\)/',
-			$code,
-			$found,
-			PREG_SET_ORDER
-		) !== false)
-		{
-			foreach ($found as $match)
-			{
-				$clauses['where']['where' . $number] = [
-					'table_key' => strtolower($match[1]),
-					'operator' => '1',
-					'value_key' => $match[2]
-				];
-				$number++;
-			}
-		}
-
-		$number = 0;
-
-		if (preg_match_all(
-			'/->order\(\s*[\'"]\s*(a\.[A-Za-z0-9_]+)\s+(ASC|DESC)\s*[\'"]\s*\)/i',
-			$code,
-			$found,
-			PREG_SET_ORDER
-		) !== false)
-		{
-			foreach ($found as $match)
-			{
-				$clauses['order']['order' . $number] = [
-					'table_key' => strtolower($match[1]),
-					'direction' => strtoupper($match[2])
-				];
-				$number++;
-			}
-		}
-
-		return $clauses;
-	}
-
-	/**
-	 * The admin view whose table one query reads, when this run wrote it.
-	 *
-	 * A query names its table outright, and a table this run turned into an
-	 * admin view is that view -- which is what JCB stores as the get's own
-	 * source instead of the code that would read it by hand.
-	 *
-	 * @param   string  $code  The query's code.
-	 *
-	 * @return  string|null  The admin view's identity, or null.
-	 * @since   6.1.8
-	 */
-	protected function backing(string $code): ?string
-	{
-		if (preg_match('/->from\(.*?[\'"]#__([A-Za-z0-9_]+)[\'"]/s', $code, $found) !== 1)
-		{
-			return null;
-		}
-
-		$table = strtolower(trim((string) $found[1]));
-
-		foreach ($this->views() as $view)
-		{
-			$path = $this->path($view);
-			$stated = strtolower(trim(preg_replace(
-				'/^#__/',
-				'',
-				(string) $this->resolved->get($path . '.table', '')
-			) ?? ''));
-
-			if ($stated !== '' && $stated === $table)
-			{
-				$guid = (string) $this->resolved->get($path . '.written.view.guid', '');
-
-				return $guid === '' ? null : $guid;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * The query one view's own model builds, when it builds one.
-	 *
-	 * @param   string  $name  The view's code name.
-	 *
-	 * @return  array{code: string, gettype: string, method: string}|null  The query, or null.
-	 * @since   6.1.8
-	 */
-	protected function query(string $name): ?array
-	{
-		$name = strtolower(trim($name));
-
-		// a list query and a set of items are both a list; a single item is
-		// an item get, which is the shape JCB stores for each
-		foreach ([
-			'query' => ['gettype' => '2', 'method' => 'getListQuery()'],
-			'items' => ['gettype' => '2', 'method' => 'getItems()'],
-			'item' => ['gettype' => '1', 'method' => 'getItem()']
-		] as $key => $shape)
-		{
-			$code = trim((string) $this->source->get('mvc.' . $name . '.' . $key, ''));
-
-			if ($code === '')
-			{
-				continue;
-			}
-
-			// the code speaks text again, because JCB's compiler is what makes
-			// the constant, and a constant stored here compiles into a key
-			// built from a key
-			return [
-				'code' => $this->constants->reverse($code),
-				'gettype' => $shape['gettype'],
-				'method' => $shape['method']
-			];
-		}
-
-		return null;
 	}
 
 	/**

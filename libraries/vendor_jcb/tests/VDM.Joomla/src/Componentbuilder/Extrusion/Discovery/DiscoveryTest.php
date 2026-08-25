@@ -23,9 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Schema;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\Table;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Locator\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Manifest;
-use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Mvc;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Scanner;
-use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Screen;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Selector;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\Heuristic;
@@ -35,7 +33,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaSix;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaThree;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Methods;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Tests\Support\ExtrusionComponentFixture;
@@ -239,14 +236,6 @@ final class DiscoveryTest extends FilesystemTestCase
 			$this->locator(Language::class),
 			$this->locator(Table::class),
 			$this->locator(View::class),
-			new Mvc(
-				$this->scanner(),
-				$this->selector(),
-				$this->source,
-				$this->report,
-				new Methods()
-			),
-			new Screen($this->scanner(), $this->selector(), $this->source, $this->report),
 			new Access($this->scanner(), $this->selector(), $this->source, $this->report)
 		);
 	}

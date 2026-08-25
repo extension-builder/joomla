@@ -222,42 +222,9 @@ final class Assembler
 		}
 
 		$this->resolved->set('views', $views);
-		$this->screens();
 		$this->reconcile($views);
 
 		return count($views);
-	}
-
-	/**
-	 * Record which of the component's screens are a table view's own list.
-	 *
-	 * A controller answering with another view's model is that view's list
-	 * screen. Recording it here is what lets every later step tell a table
-	 * view's own generated output from a screen the component built by hand.
-	 *
-	 * @return  void
-	 * @since   6.1.8
-	 */
-	protected function screens(): void
-	{
-		$lists = [];
-
-		foreach ((array) $this->source->get('mvc_of', []) as $screen => $view)
-		{
-			$screen = strtolower(trim((string) $screen));
-			$view = strtolower(trim((string) $view));
-
-			if ($screen !== '' && $view !== '' && $screen !== $view)
-			{
-				$lists[$screen] = $view;
-			}
-		}
-
-		if ($lists !== [])
-		{
-			$this->resolved->set('screen.list_views', $lists);
-			$this->report->set('source.list_views', $lists);
-		}
 	}
 
 	/**
@@ -364,21 +331,21 @@ final class Assembler
 			return $stated;
 		}
 
-		// the component names its own list screen: its controller answers with
-		// this view's model, which no plural rule can be relied on to guess
-		$observed = strtolower(trim((string) $this->source->get('mvc_list.' . $view, '')));
+		// nothing else states the plural, so the rule derives it -- but the
+		// component's own administrator menu names the screens it offers, and a
+		// list screen is one of them. A derived plural the menu never names is
+		// a guess, and the run says so rather than settling it quietly
+		$menu = array_map(
+			'strtolower',
+			array_keys((array) $this->source->get('menu', []))
+		);
 
-		if ($observed !== '' && $observed !== $view)
+		if ($derived !== '' && $menu !== [] && !in_array($derived, $menu, true))
 		{
-			if ($observed !== $derived)
-			{
-				$this->report->set(
-					'origin.name_list.' . $this->precedence->key($view),
-					$observed . ' | ' . $derived
-				);
-			}
-
-			return $observed;
+			$this->report->set(
+				'unconfirmed.name_list.' . $this->precedence->key($view),
+				$derived
+			);
 		}
 
 		return $derived;
@@ -500,23 +467,14 @@ final class Assembler
 				$properties
 			);
 
-			// where the component's own edit screen puts this field outranks
-			// any reading of the form, because it is the placement the
-			// component was built with
-			$placement = $this->tab->placement($view, $column);
+			// a field sits on the tab its own form fieldset names, and stands
+			// where the form lists it. Nothing else about the placement is
+			// stated anywhere a component is obliged to state it, so the rest
+			// is JCB's default and a person arranges it afterwards
 			$this->resolved->set(
 				$path . '.field.' . $this->precedence->key($column) . '.tab_index',
-				$placement['tab']
-					?? $this->tab->index($this->tab->nameFor($view, $properties), $tabs)
+				$this->tab->index($this->tab->nameFor($view, $properties), $tabs)
 			);
-
-			if ($placement !== null)
-			{
-				$this->resolved->set(
-					$path . '.field.' . $this->precedence->key($column) . '.placement',
-					$placement
-				);
-			}
 		}
 
 		$this->resolved->set($path . '.name_single', $view);

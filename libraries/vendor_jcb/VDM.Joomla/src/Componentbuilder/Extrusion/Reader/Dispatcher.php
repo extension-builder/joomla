@@ -11,16 +11,11 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
-
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\CustomAdminView as CustomAdminViewReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
-
 
 /**
  * Reads everything the inventory located into the registries.
@@ -91,36 +86,12 @@ final class Dispatcher
 	protected ReaderInterface $form;
 
 	/**
-	 * The Layout Reader.
+	 * The View Registry.
 	 *
-	 * @var    LayoutReader
+	 * @var    View
 	 * @since  6.1.6
 	 */
-	protected LayoutReader $layout;
-
-	/**
-	 * The Template Reader.
-	 *
-	 * @var    TemplateReader
-	 * @since  6.1.6
-	 */
-	protected TemplateReader $template;
-
-	/**
-	 * The Site View Reader.
-	 *
-	 * @var    SiteViewReader
-	 * @since  6.1.6
-	 */
-	protected SiteViewReader $siteview;
-
-	/**
-	 * The Custom Admin View Reader.
-	 *
-	 * @var    CustomAdminViewReader
-	 * @since  6.1.8
-	 */
-	protected CustomAdminViewReader $customadminview;
+	protected View $view;
 
 	/**
 	 * Constructor.
@@ -132,8 +103,7 @@ final class Dispatcher
 	 * @param   ReaderInterface  $table      The table class reader.
 	 * @param   ReaderInterface  $schema     The schema reader.
 	 * @param   ReaderInterface  $form       The form reader.
-	 * @param   LayoutReader     $layout     The layout reader.
-	 * @param   TemplateReader   $template   The template reader.
+	 * @param   View             $view       The view registry.
 	 *
 	 * @since   6.1.6
 	 */
@@ -145,10 +115,7 @@ final class Dispatcher
 		ReaderInterface $table,
 		ReaderInterface $schema,
 		ReaderInterface $form,
-		LayoutReader $layout,
-		TemplateReader $template,
-		SiteViewReader $siteview,
-		CustomAdminViewReader $customadminview
+		View $view
 	)
 	{
 		$this->config = $config;
@@ -158,10 +125,7 @@ final class Dispatcher
 		$this->table = $table;
 		$this->schema = $schema;
 		$this->form = $form;
-		$this->layout = $layout;
-		$this->template = $template;
-		$this->siteview = $siteview;
-		$this->customadminview = $customadminview;
+		$this->view = $view;
 	}
 
 	/**
@@ -240,102 +204,61 @@ final class Dispatcher
 	}
 
 	/**
-	 * Read the located templates and layouts into the view registry.
+	 * Note which views the component has, without reading a line of their code.
 	 *
-	 * @return  int  The number read successfully.
+	 * A view's own PHP is the component author's, not a record: JCB writes a
+	 * view's files from its fields and its settings, so there is nothing in
+	 * those files that a record could be recovered from without assuming the
+	 * files were JCB's own output in the first place. What the folders do state,
+	 * in a way every Joomla component states it, is which views exist and on
+	 * which side of the component they live. That is what is recorded here, and
+	 * the writers build each view's record from it with settings of their own.
+	 *
+	 * @return  int  The number of views noted.
 	 * @since   6.1.6
 	 */
 	protected function views(): int
 	{
-		$read = 0;
+		$noted = 0;
 
 		foreach ($this->located('view') as $entry)
 		{
-			$role = $entry['role'] ?? '';
-
-			if ($role === 'layout')
+			if (($entry['role'] ?? '') !== 'main')
 			{
-				$read += $this->layout->read($entry['path'], $entry['name']) ? 1 : 0;
+				// only a view's default template names the view itself; an
+				// editor, a layout or a sub-template belongs to one that does
+				continue;
+			}
+
+			$name = strtolower(trim((string) ($entry['view'] ?? '')));
+
+			if ($name === '')
+			{
+				$this->skipped('unnamed', $entry['path']);
 
 				continue;
 			}
 
-			if ($role === 'template')
+			$kind = ($entry['scope'] ?? '') === 'site'
+				? 'site_view'
+				: 'custom_admin_view';
+
+			if ($this->view->exists($kind . '.' . $name))
 			{
-				// JCB has no administrator templates. Everything in an administrator
-				// view's own folder is written by the compiler from that view's fields,
-				// so nothing there was ever a record and reading it would invent one.
-				if (($entry['scope'] ?? '') === 'admin')
-				{
-					$this->skipped('admin_template', $entry['path']);
-
-					continue;
-				}
-
-				if (!$this->config->templatable((string) $entry['name']))
-				{
-					$this->skipped('generated', $entry['path']);
-
-					continue;
-				}
-
-				$read += $this->template->read($entry['path'], $entry['name']) ? 1 : 0;
-
 				continue;
 			}
 
-			if ($role === 'edit')
-			{
-				// A view holding an edit.php edits a record rather than displaying one, and
-				// it carries no default.php at all. Recovering it means recovering the model
-				// and field set behind it, so it is named as seen and passed over. The file
-				// name is the whole of the evidence: a front end list view renders an
-				// adminForm with a token for its own filters exactly as an edit view does,
-				// so nothing in the markup could tell the two apart.
-				//
-				// On the administrator side the editor is also testimony: its folder
-				// belongs to a table view, so any template of that folder can never be
-				// a custom admin view -- the code itself says which is which.
-				if (($entry['scope'] ?? '') !== 'site')
-				{
-					$this->customadminview->crud(
-						is_string($entry['view'] ?? null) && $entry['view'] !== ''
-							? $entry['view']
-							: $this->customadminview->folder($entry['path'])
-					);
-				}
-
-				$this->skipped('edit_view', $entry['path']);
-
-				continue;
-			}
-
-			if ($role === 'main')
-			{
-				// On the site side a view's default template is the site view itself: JCB
-				// keeps its body in the view's own default column, so this is where a front
-				// end view comes from. On the administrator side the same file is either
-				// generated output -- when a resolved table view answers for it -- or the
-				// whole body of a custom admin view; every one is read as a candidate and
-				// the writer keeps only the views no table view answers for.
-				if (($entry['scope'] ?? '') === 'site')
-				{
-					$read += $this->siteview->read(
-						$entry['path'],
-						$entry['view'] ?? null
-					) ? 1 : 0;
-
-					continue;
-				}
-
-				$read += $this->customadminview->read(
-					$entry['path'],
-					$entry['view'] ?? null
-				) ? 1 : 0;
-			}
+			$this->view->set($kind . '.' . $name, [
+				'name' => $name,
+				'path' => $entry['path'],
+				'scope' => (string) ($entry['scope'] ?? '')
+			]);
+			$noted++;
 		}
 
-		return $read;
+		$this->report->set('counts.noted_views', $noted);
+
+		return $noted;
 	}
 
 	/**

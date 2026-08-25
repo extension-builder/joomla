@@ -392,7 +392,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue($second->get('completed'));
 		$this->assertSame('create', $second->get('mode'));
 		$this->assertSame(2, $second->get('counts.views'));
-		$this->assertSame(5, $second->get('counts.artifacts'));
+		$this->assertSame(4, $second->get('counts.artifacts'));
 		$this->assertSame('com_legacy', $source->get('code_name'));
 		$this->assertSame('J3', $source->get('layout'));
 		$this->assertNull(
@@ -635,7 +635,7 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertTrue($report->get('completed'));
 		$this->assertFalse($report->get('dry_run'));
-		$this->assertSame(6, $report->get('counts.artifacts'));
+		$this->assertSame(5, $report->get('counts.artifacts'));
 		$this->assertSame(2, $report->get('counts.views'));
 		$this->assertSame(
 			[
@@ -644,9 +644,6 @@ final class ExtruderTest extends FilesystemTestCase
 				'admin_view' => 2,
 				'admin_fields' => 2,
 				'admin_fields_conditions' => 1,
-				'admin_custom_tabs' => 0,
-				'layout' => 1,
-				'template' => 0,
 				'dynamic_get' => 0,
 				'site_view' => 0,
 				'component_site_views' => 0,
@@ -661,15 +658,15 @@ final class ExtruderTest extends FilesystemTestCase
 			$report->get('skipped.custom_admin_view.item'),
 			'An admin view\'s own template is generated output, never a custom admin view.'
 		);
-		$this->assertSame(17, $report->get('counts.written'));
+		$this->assertSame(16, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame(
 			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2,
 				'admin_fields' => 2, 'admin_fields_conditions' => 1,
-				'layout' => 1, 'component_admin_views' => 1],
+				'component_admin_views' => 1],
 			$this->tallied(),
-			'The view states its tabs in its own record; a custom tab is markup '
-			. 'someone added beside them, and this source holds none.'
+			'A view\'s own PHP is its author\'s, never a record: nothing here is '
+			. 'recovered from the files a component builds its screens with.'
 		);
 
 		$title = $this->item->definition('field', self::STATED_GUID);
@@ -695,12 +692,6 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 		$this->assertSame(['Item Details', 'Metrics'], $resolved->get('view.item.tabs'));
 		$this->assertSame(['Details'], $resolved->get('view.category.tabs'));
-		$this->assertSame(
-			[],
-			$this->item->definitions('admin_custom_tabs'),
-			'The view\'s tabs stand in its own record; a custom tab is markup '
-			. 'someone added beside them, and this source holds none.'
-		);
 		$this->assertCount(2, (array) $resolved->get('view.item.conditions'));
 		$this->assertSame(2, $report->get('conditions.item'));
 		$this->assertCount(
@@ -708,16 +699,11 @@ final class ExtruderTest extends FilesystemTestCase
 			$this->decode($this->item->definitions('admin_fields_conditions')[0]->addconditions)
 		);
 
-		$layout = $this->item->definitions('layout')[0];
-
-		$this->assertSame('summary', $layout->name);
-		$this->assertStringContainsString('$total = count($displayData);', $layout->php_view);
-		$this->assertStringContainsString('<div class="example-layout">', $layout->layout);
-		$this->assertNotSame(base64_encode($layout->php_view), $layout->php_view);
 		$this->assertSame(
 			[],
-			$this->item->definitions('template'),
-			'JCB has no administrator templates; the compiler writes them all.'
+			$this->item->definitions('layout'),
+			'A layout is markup someone wrote, not a record: nothing is lifted '
+			. 'out of the files a component builds its screens with.'
 		);
 
 		$seeded = $this->item->definition(
@@ -751,9 +737,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue($report->get('completed'));
 		$this->assertSame('J3', $this->source()->get('layout'));
 		$this->assertSame('com_legacy', $this->source()->get('code_name'));
-		$this->assertSame(5, $report->get('counts.artifacts'));
+		$this->assertSame(4, $report->get('counts.artifacts'));
 		$this->assertSame(2, $report->get('counts.views'));
-		$this->assertSame(17, $report->get('counts.written'));
+		$this->assertSame(16, $report->get('counts.written'));
 		$this->assertSame(['item', 'category'], $resolved->get('views'));
 		$this->assertSame('derived', $report->get('roles.item.origin'));
 		$this->assertTrue(
@@ -769,18 +755,13 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertCount(2, (array) $resolved->get('view.item.conditions'));
 		$this->assertSame(
 			['joomla_component' => 1, 'field' => 8, 'admin_view' => 2, 'admin_fields' => 2,
-				'admin_fields_conditions' => 1, 'layout' => 1,
-				'component_admin_views' => 1],
+				'admin_fields_conditions' => 1, 'component_admin_views' => 1],
 			$this->tallied()
 		);
 		$this->assertSame(
 			[],
-			array_column($this->item->definitions('template'), 'name'),
-			'JCB has no administrator templates, on the legacy layout either.'
-		);
-		$this->assertStringContainsString(
-			'$total = count($displayData);',
-			$this->item->definitions('layout')[0]->php_view
+			$this->item->definitions('layout'),
+			'On the legacy layout either: a view\'s own markup stays its author\'s.'
 		);
 	}
 
@@ -876,9 +857,6 @@ SQL;
 				'admin_view' => 1,
 				'admin_fields' => 1,
 				'admin_fields_conditions' => 0,
-				'admin_custom_tabs' => 0,
-				'layout' => 0,
-				'template' => 0,
 				'dynamic_get' => 0,
 				'site_view' => 0,
 				'component_site_views' => 0,
@@ -1073,7 +1051,7 @@ SQL)->extrude();
 		$this->extruder()->path($this->modern())->component(7)->extrude();
 
 		$this->assertSame(
-			[['message' => 'Extruded 2 view(s) into 17 JCB definition(s).']],
+			[['message' => 'Extruded 2 view(s) into 16 JCB definition(s).']],
 			$this->messages()->level('success')
 		);
 		$this->assertSame(

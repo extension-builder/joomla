@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -34,7 +35,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
@@ -47,8 +47,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\DynamicGet;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\Template;
 use VDM\Joomla\Componentbuilder\Table;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
 use VDM\Tests\Support\ExtrusionDatabaseFixture;
@@ -74,7 +72,6 @@ use VDM\Tests\Support\TestCase;
  */
 #[CoversClass(Writer::class)]
 #[CoversClass(Actions::class)]
-#[CoversClass(AdminCustomTabs::class)]
 #[CoversClass(AdminFields::class)]
 #[CoversClass(AdminFieldsConditions::class)]
 #[CoversClass(AdminView::class)]
@@ -87,8 +84,6 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(SiteView::class)]
 #[CoversClass(Dispatcher::class)]
 #[CoversClass(Field::class)]
-#[CoversClass(Layout::class)]
-#[CoversClass(Template::class)]
 #[UsesClass(ActiveRegistry::class)]
 #[UsesClass(Config::class)]
 #[UsesClass(FieldXml::class)]
@@ -134,29 +129,6 @@ final class WriterTest extends TestCase
 	private const SUPPLIED_GUID = 'BBBBBBBB-2222-4222-8222-BBBBBBBBBBBB';
 
 	/**
-	 * The PHP part of a source layout file, exactly as the reader split it out.
-	 *
-	 * @var    string
-	 * @since  6.1.6
-	 */
-	private const PHP_PART = <<<'PHP'
-$total = count($displayData);
-$label = 'Items & "extras"';
-PHP;
-
-	/**
-	 * The markup part of a source layout file, exactly as the reader split it out.
-	 *
-	 * @var    string
-	 * @since  6.1.6
-	 */
-	private const HTML_PART = <<<'HTML'
-<div class="example-layout">
-	<h3><?php echo $label; ?> (<?php echo $total; ?>)</h3>
-</div>
-HTML;
-
-	/**
 	 * The seed INSERT a source schema carried for the item table.
 	 *
 	 * @var    string
@@ -195,6 +167,14 @@ HTML;
 	 * @since  6.1.6
 	 */
 	private Source $source;
+
+	/**
+	 * The source form registry.
+	 *
+	 * @var    Form
+	 * @since  6.1.8
+	 */
+	private Form $form;
 
 	/**
 	 * The classified view layer registry.
@@ -239,74 +219,6 @@ HTML;
 		parent::setUp();
 
 		$this->restate();
-	}
-
-	/**
-	 * A layout is stored as raw PHP and raw markup, never encoded by the writer.
-	 *
-	 * @return  void
-	 * @since   6.1.6
-	 */
-	public function testLayoutWriterStoresPhpAndMarkupRaw(): void
-	{
-		$this->view->set('layout.summary.name', 'summary');
-		$this->view->set('layout.summary.php_view', self::PHP_PART);
-		$this->view->set('layout.summary.layout', self::HTML_PART);
-		$this->view->set('layout.summary.add_php_view', 1);
-
-		$this->assertSame(1, $this->layout()->write());
-		$this->assertSame(['layout'], $this->item->sequence());
-
-		$definition = $this->item->definitions('layout')[0];
-
-		$this->assertSame(self::PHP_PART, $definition->php_view);
-		$this->assertSame(self::HTML_PART, $definition->layout);
-		$this->assertNotSame(base64_encode(self::PHP_PART), $definition->php_view);
-		$this->assertNotSame(base64_encode(self::HTML_PART), $definition->layout);
-		$this->assertStringContainsString('<?php echo $label; ?>', $definition->layout);
-		$this->assertSame(1, $definition->add_php_view);
-		$this->assertSame('summary', $definition->name);
-		$this->assertSame('summary (extruded)', $definition->description);
-		$this->assertSame(1, $definition->published);
-		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'layout', 'summary']),
-			$definition->guid
-		);
-		$this->assertSame('guid', $this->item->records('layout')[0]['key']);
-		$this->assertSame(1, $this->report->get('counts.layout'));
-		$this->assertTrue($this->report->get('written.layout.' . $definition->guid));
-	}
-
-	/**
-	 * A template is stored raw as well, and a nameless entry is refused.
-	 *
-	 * @return  void
-	 * @since   6.1.6
-	 */
-	public function testTemplateWriterStoresPhpAndMarkupRaw(): void
-	{
-		$this->view->set('template.default.name', 'default');
-		$this->view->set('template.default.php_view', '');
-		$this->view->set('template.default.template', self::HTML_PART);
-		$this->view->set('template.default.add_php_view', 0);
-		$this->view->set('template.broken.name', '');
-		$this->view->set('template.broken.template', self::HTML_PART);
-
-		$this->assertSame(1, $this->template()->write());
-		$this->assertSame(['template'], $this->item->sequence());
-
-		$definition = $this->item->definitions('template')[0];
-
-		$this->assertSame(self::HTML_PART, $definition->template);
-		$this->assertNotSame(base64_encode(self::HTML_PART), $definition->template);
-		$this->assertSame('', $definition->php_view);
-		$this->assertSame(0, $definition->add_php_view);
-		$this->assertSame('default', $definition->name);
-		$this->assertSame(
-			$this->guid->derive([self::OPTION, 'template', 'default']),
-			$definition->guid
-		);
-		$this->assertSame(1, $this->report->get('counts.template'));
 	}
 
 	/**
@@ -456,46 +368,6 @@ HTML;
 	}
 
 	/**
-	 * Where the component's own screen puts a field is where the field goes.
-	 *
-	 * @return  void
-	 * @since   6.1.8
-	 */
-	public function testTheScreensOwnPlacementDecidesWhereAFieldStands(): void
-	{
-		$this->seedItemView();
-		$this->seedWritten('item', 'view', self::VIEW_GUID);
-		$this->seedField('item', 'name', ['label' => 'Name']);
-		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-0000000000d0');
-		$this->resolved->set('view.item.field.name.tab_index', 1);
-		$this->resolved->set('view.item.field.name.placement', [
-			'tab' => 15,
-			'alignment' => 2,
-			'order' => 4
-		]);
-
-		$this->assertSame(1, $this->adminFields()->write());
-
-		$rows = $this->decode(
-			$this->item->definitions('admin_fields')[0]->addfields
-		);
-		$row = $rows['addfields0'];
-
-		$this->assertSame(
-			'15',
-			$row['tab'],
-			'The component\'s own edit screen shows this field in the section JCB '
-			. 'generates for publishing, and that is where it is stored.'
-		);
-		$this->assertSame(2, $row['alignment']);
-		$this->assertSame(
-			'4',
-			$row['order_edit'],
-			'The order is the one the column layout lists, not a running count.'
-		);
-	}
-
-	/**
 	 * Without seed data the SQL switch is left alone rather than written empty.
 	 *
 	 * @return  void
@@ -526,20 +398,14 @@ HTML;
 		$this->config->set('dryRun', true);
 		$this->seedItemView();
 		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
-		$this->view->set('layout.summary.name', 'summary');
-		$this->view->set('layout.summary.layout', self::HTML_PART);
-
 		$fieldGuid = $this->guid->derive([self::OPTION, 'field', 'item', 'name']);
-		$layoutGuid = $this->guid->derive([self::OPTION, 'layout', 'summary']);
 
 		$this->assertSame(1, $this->field()->write());
 		$this->assertSame(1, $this->adminView()->write());
-		$this->assertSame(1, $this->layout()->write());
 		$this->assertSame([], $this->item->records());
 		$this->assertSame([], $this->item->lookups());
 		$this->assertTrue($this->report->get('dryrun.field.' . $fieldGuid));
 		$this->assertTrue($this->report->get('dryrun.admin_view.' . self::VIEW_GUID));
-		$this->assertTrue($this->report->get('dryrun.layout.' . $layoutGuid));
 		$this->assertNull($this->report->get('written'));
 		$this->assertNull($this->report->get('failed'));
 	}
@@ -976,12 +842,8 @@ HTML;
 		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-0000000000d0');
 		$this->seedWritten('item', 'counter', 'ffffffff-0000-4000-8000-0000000000e0');
 
-		$this->source->set('screen.item.custom.0.key', 'notes');
-		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
-
 		$this->assertSame(0, $this->adminFields()->write());
 		$this->assertSame(0, $this->conditions()->write());
-		$this->assertSame(0, $this->customTabs()->write());
 		$this->assertSame(
 			[],
 			$this->item->records(),
@@ -992,13 +854,12 @@ HTML;
 
 		$this->assertSame(1, $this->adminFields()->write());
 		$this->assertSame(1, $this->conditions()->write());
-		$this->assertSame(1, $this->customTabs()->write());
 		$this->assertSame(
-			['admin_fields', 'admin_fields_conditions', 'admin_custom_tabs'],
+			['admin_fields', 'admin_fields_conditions'],
 			$this->item->sequence()
 		);
 		$this->assertSame(
-			[self::VIEW_GUID, self::VIEW_GUID, self::VIEW_GUID],
+			[self::VIEW_GUID, self::VIEW_GUID],
 			array_column(array_column($this->item->records(), 'item'), 'admin_view')
 		);
 	}
@@ -1149,77 +1010,6 @@ HTML;
 			$this->report->get('dropped.condition.item.access'),
 			'The lost dependency must be visible in the report.'
 		);
-	}
-
-	/**
-	 * Custom tabs are written only where a view really has more than one tab.
-	 *
-	 * @return  void
-	 * @since   6.1.6
-	 */
-	public function testCustomTabsAreWrittenOnlyForTabsTheScreenReallyHolds(): void
-	{
-		$this->seedItemView();
-		$this->seedWritten('item', 'view', self::VIEW_GUID);
-
-		$this->assertSame(
-			0,
-			$this->customTabs()->write(),
-			'A view\'s own tabs are the view\'s record; a custom tab is a tab of '
-			. 'markup someone added, and a screen that holds none has none.'
-		);
-		$this->assertSame([], $this->item->records());
-		$this->assertSame(0, $this->report->get('counts.admin_custom_tabs'));
-
-		$this->restate();
-		$this->seedItemView();
-		$this->seedWritten('item', 'view', self::VIEW_GUID);
-		$this->source->set('screen.item.custom.0.key', 'notes');
-		$this->source->set('screen.item.custom.0.label', 'COM_EXAMPLE_ITEM_NOTES');
-		$this->source->set('screen.item.custom.0.after', 2);
-		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
-		$this->source->set('screen.item.custom.1.key', 'empty');
-		$this->source->set('screen.item.custom.1.after', 2);
-		$this->source->set('screen.item.custom.1.html', '   ');
-
-		$this->assertSame(1, $this->customTabs()->write());
-
-		$definition = $this->item->definitions('admin_custom_tabs')[0];
-
-		$this->assertSame(self::VIEW_GUID, $definition->admin_view);
-		$this->assertObjectNotHasProperty(
-			'guid',
-			$definition,
-			'A linked-map table holds no guid; its key is the view it links.'
-		);
-		$this->assertSame('admin_view', $this->item->records('admin_custom_tabs')[0]['key']);
-		$this->assertSame(
-			[
-				'tabs0' => [
-					'tab' => '2',
-					'position' => '2',
-					'name' => 'Notes',
-					'html' => '<p>a note</p>',
-					'php' => ''
-				]
-			],
-			$this->decode($definition->tabs),
-			'The row states the tab it stands after and the markup the screen '
-			. 'shows, which is what the compiler reads; a tab of empty markup '
-			. 'is no tab at all.'
-		);
-		$this->assertSame(1, $this->report->get('counts.admin_custom_tabs'));
-
-		$this->restate();
-		$this->seedItemView();
-		$this->seedWritten('item', 'view', self::VIEW_GUID);
-		$this->source->set('screen.item.custom.0.key', 'notes');
-		$this->source->set('screen.item.custom.0.html', '<p>a note</p>');
-		$this->config->set('tabs', false);
-
-		$this->assertSame(0, $this->customTabs()->write());
-		$this->assertSame([], $this->item->records());
-		$this->assertNull($this->report->get('counts.admin_custom_tabs'));
 	}
 
 	/**
@@ -1375,9 +1165,8 @@ HTML;
 		$calls = new ArrayObject();
 		$names = [
 			'field', 'admin_view', 'admin_fields', 'admin_fields_conditions',
-			'admin_custom_tabs', 'component_admin_views', 'joomla_component',
-			'layout', 'template', 'dynamic_get', 'site_view',
-			'component_site_views', 'custom_admin_view',
+			'component_admin_views', 'joomla_component', 'dynamic_get',
+			'site_view', 'component_site_views', 'custom_admin_view',
 			'component_custom_admin_views'
 		];
 		$writers = [];
@@ -1394,11 +1183,8 @@ HTML;
 			$writers['admin_view'],
 			$writers['admin_fields'],
 			$writers['admin_fields_conditions'],
-			$writers['admin_custom_tabs'],
 			$writers['component_admin_views'],
 			$writers['joomla_component'],
-			$writers['layout'],
-			$writers['template'],
 			$writers['site_view'],
 			$writers['component_site_views'],
 			$writers['dynamic_get'],
@@ -1407,10 +1193,9 @@ HTML;
 		);
 		$expected = [
 			'joomla_component', 'field', 'admin_view', 'admin_fields',
-			'admin_fields_conditions', 'admin_custom_tabs', 'layout', 'template',
-			'dynamic_get', 'site_view', 'component_site_views',
-			'custom_admin_view', 'component_custom_admin_views',
-			'component_admin_views'
+			'admin_fields_conditions', 'dynamic_get', 'site_view',
+			'component_site_views', 'custom_admin_view',
+			'component_custom_admin_views', 'component_admin_views'
 		];
 
 		$this->assertSame($expected, array_keys($dispatcher->order()));
@@ -1420,18 +1205,18 @@ HTML;
 			'The component record is filled in first, because everything else belongs to it.'
 		);
 		$this->assertSame('component_admin_views', array_key_last($dispatcher->order()));
-		$this->assertSame(105, $dispatcher->dispatch());
+		$this->assertSame(66, $dispatcher->dispatch());
 		$this->assertSame($expected, $calls->getArrayCopy());
 		$this->assertSame(1, $this->report->get('written_counts.field'));
 		$this->assertSame(2, $this->report->get('written_counts.admin_view'));
-		$this->assertSame(6, $this->report->get('written_counts.component_admin_views'));
-		$this->assertSame(7, $this->report->get('written_counts.joomla_component'));
-		$this->assertSame(105, $this->report->get('counts.written'));
+		$this->assertSame(5, $this->report->get('written_counts.component_admin_views'));
+		$this->assertSame(6, $this->report->get('written_counts.joomla_component'));
+		$this->assertSame(66, $this->report->get('counts.written'));
 
 		$this->config->set('admin', false);
 
 		$this->assertSame(
-			['joomla_component', 'layout', 'template', 'dynamic_get', 'site_view', 'component_site_views'],
+			['joomla_component', 'dynamic_get', 'site_view', 'component_site_views'],
 			array_keys($dispatcher->order()),
 			'With the admin scope off the component record and the shared view layers '
 			. 'are still written.'
@@ -1459,14 +1244,11 @@ HTML;
 		$this->resolved->set('view.item.conditions', [
 			['match' => 'name', 'targets' => ['counter'], 'values' => ['1'], 'negate' => false]
 		]);
-		$this->view->set('layout.summary.name', 'summary');
-		$this->view->set('layout.summary.layout', self::HTML_PART);
-
-		$this->assertSame(7, $this->dispatcher()->dispatch());
+		$this->assertSame(6, $this->dispatcher()->dispatch());
 		$this->assertSame(
 			[
 				'joomla_component', 'field', 'field', 'admin_view', 'admin_fields',
-				'layout', 'component_admin_views'
+				'component_admin_views'
 			],
 			$this->item->sequence(),
 			'Fields must be written before the view that references them.'
@@ -1476,11 +1258,9 @@ HTML;
 			$this->report->get('component.details'),
 			'With no manifest read, the code name is all there is to fill in.'
 		);
-		$this->assertSame(0, $this->report->get('written_counts.admin_custom_tabs'));
 		$this->assertSame(0, $this->report->get('written_counts.admin_fields_conditions'));
 		$this->assertSame(2, $this->report->get('written_counts.field'));
 		$this->assertSame(1, $this->report->get('written_counts.component_admin_views'));
-		$this->assertSame([], $this->item->records('admin_custom_tabs'));
 		$this->assertSame([], $this->item->records('admin_fields_conditions'));
 	}
 
@@ -1782,6 +1562,7 @@ HTML;
 		$this->resolved = new Resolved();
 		$this->report = new Report();
 		$this->source = new Source();
+		$this->form = new Form();
 		$this->view = new ViewRegistry();
 		$this->item = new ExtrusionItemFixture();
 		$this->catalogue = new ExtrusionCatalogueFixture();
@@ -2042,7 +1823,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			$this->componentLoad()
+			$this->componentLoad(),
+			$this->form
 		);
 	}
 
@@ -2055,23 +1837,6 @@ HTML;
 	private function conditions(): AdminFieldsConditions
 	{
 		return new AdminFieldsConditions(
-			$this->config,
-			$this->resolved,
-			$this->item,
-			$this->report,
-			$this->source
-		);
-	}
-
-	/**
-	 * The custom tabs writer over the current boundary.
-	 *
-	 * @return  AdminCustomTabs  The writer.
-	 * @since   6.1.6
-	 */
-	private function customTabs(): AdminCustomTabs
-	{
-		return new AdminCustomTabs(
 			$this->config,
 			$this->resolved,
 			$this->item,
@@ -2099,46 +1864,6 @@ HTML;
 	}
 
 	/**
-	 * The layout writer over the current boundary.
-	 *
-	 * @return  Layout  The writer.
-	 * @since   6.1.6
-	 */
-	private function layout(): Layout
-	{
-		return new Layout(
-			$this->config,
-			$this->resolved,
-			$this->item,
-			$this->report,
-			$this->view,
-			$this->guid,
-			$this->source,
-			$this->pairing()
-		);
-	}
-
-	/**
-	 * The template writer over the current boundary.
-	 *
-	 * @return  Template  The writer.
-	 * @since   6.1.6
-	 */
-	private function template(): Template
-	{
-		return new Template(
-			$this->config,
-			$this->resolved,
-			$this->item,
-			$this->report,
-			$this->view,
-			$this->guid,
-			$this->source,
-			$this->pairing()
-		);
-	}
-
-	/**
 	 * The writer dispatcher over the real writer graph.
 	 *
 	 * @return  Dispatcher  The dispatcher.
@@ -2153,11 +1878,8 @@ HTML;
 			$this->adminView(),
 			$this->adminFields(),
 			$this->conditions(),
-			$this->customTabs(),
 			$this->componentViews(),
 			$this->details(),
-			$this->layout(),
-			$this->template(),
 			$this->siteView(),
 			$this->componentSiteViews(),
 			$this->dynamicGet(),
@@ -2420,9 +2142,10 @@ HTML;
 			. 'record or a list; a get of any other shape loses the screen entirely.'
 		);
 		$this->assertStringContainsString(
-			'awaits a method body',
-			(string) $this->report->get('dynamic_get.custom.about'),
-			'A guessed-at source is refused; the report says plainly what it awaits.'
+			'awaits a query',
+			(string) $this->report->get('dynamic_get.awaiting.about'),
+			'Nothing the component states can say what a screen without a table '
+			. 'of its own reads, so the get is created empty and says so.'
 		);
 
 		$this->assertNotNull($this->item->definition(
@@ -2490,8 +2213,7 @@ HTML;
 		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
 		$this->view->set('custom_admin_view.itemsall.name', 'itemsall');
 		$this->view->set('custom_admin_view.itemsall.default', '<p>list</p>');
-		$this->resolved->set('existing.admin_view_names', ['venues']);
-		$this->resolved->set('screen.list_views', ['itemsall' => 'item']);
+		$this->resolved->set('existing.admin_view_names', ['venues', 'itemsall']);
 
 		$this->assertSame(1, $this->customAdminView()->write());
 
@@ -2600,7 +2322,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			$load
+			$load,
+			$this->form
 		);
 
 		$this->assertSame(1, $writer->write());
@@ -2725,7 +2448,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			$load
+			$load,
+			$this->form
 		);
 
 		$this->assertSame(1, $writer->write());
@@ -2800,7 +2524,8 @@ HTML;
 			$this->item,
 			$this->report,
 			$this->source,
-			$load
+			$load,
+			$this->form
 		);
 
 		$this->assertSame(2, $writer->write());
