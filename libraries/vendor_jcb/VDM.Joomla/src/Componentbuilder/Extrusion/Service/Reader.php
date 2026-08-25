@@ -11,26 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
-
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Form as FormReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Language as LanguageReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Literal;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\MethodMap;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Methods;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\CreateTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\CustomAdminView as CustomAdminViewReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Layout as LayoutReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\SiteView as SiteViewReader;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Split;
-use VDM\Joomla\Componentbuilder\Extrusion\Reader\View\Template as TemplateReader;
-
 
 /**
  * Extrusion Reader Service Provider
@@ -64,15 +55,6 @@ class Reader implements ServiceProviderInterface
 		$container->alias(Literal::class, 'Extrusion.Php.Literal')
 			->share('Extrusion.Php.Literal', [$this, 'getLiteral'], true);
 
-		$container->alias(Methods::class, 'Extrusion.Php.Methods')
-			->share('Extrusion.Php.Methods', [$this, 'getMethods'], true);
-
-		$container->alias(MethodMap::class, 'Extrusion.Php.MethodMap')
-			->share('Extrusion.Php.MethodMap', [$this, 'getMethodMap'], true);
-
-		$container->alias(Split::class, 'Extrusion.View.Split')
-			->share('Extrusion.View.Split', [$this, 'getSplit'], true);
-
 		$container->alias(SchemaReader::class, 'Extrusion.Reader.Schema')
 			->share('Extrusion.Reader.Schema', [$this, 'getSchemaReader'], true);
 
@@ -84,18 +66,6 @@ class Reader implements ServiceProviderInterface
 
 		$container->alias(TableReader::class, 'Extrusion.Reader.Table')
 			->share('Extrusion.Reader.Table', [$this, 'getTableReader'], true);
-
-		$container->alias(LayoutReader::class, 'Extrusion.Reader.Layout')
-			->share('Extrusion.Reader.Layout', [$this, 'getLayoutReader'], true);
-
-		$container->alias(SiteViewReader::class, 'Extrusion.Reader.SiteView')
-			->share('Extrusion.Reader.SiteView', [$this, 'getSiteViewReader'], true);
-
-		$container->alias(CustomAdminViewReader::class, 'Extrusion.Reader.CustomAdminView')
-			->share('Extrusion.Reader.CustomAdminView', [$this, 'getCustomAdminViewReader'], true);
-
-		$container->alias(TemplateReader::class, 'Extrusion.Reader.Template')
-			->share('Extrusion.Reader.Template', [$this, 'getTemplateReader'], true);
 
 		$container->alias(Dispatcher::class, 'Extrusion.Reader.Dispatcher')
 			->share('Extrusion.Reader.Dispatcher', [$this, 'getDispatcher'], true);
@@ -151,45 +121,6 @@ class Reader implements ServiceProviderInterface
 	public function getLiteral(Container $container): Literal
 	{
 		return new Literal();
-	}
-
-	/**
-	 * Get the PHP method extractor.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  Methods
-	 * @since   6.1.6
-	 */
-	public function getMethods(Container $container): Methods
-	{
-		return new Methods();
-	}
-
-	/**
-	 * Get the Joomla method to JCB column map.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  MethodMap
-	 * @since   6.1.6
-	 */
-	public function getMethodMap(Container $container): MethodMap
-	{
-		return new MethodMap();
-	}
-
-	/**
-	 * Get the view PHP and HTML splitter.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  Split
-	 * @since   6.1.6
-	 */
-	public function getSplit(Container $container): Split
-	{
-		return new Split();
 	}
 
 	/**
@@ -261,76 +192,6 @@ class Reader implements ServiceProviderInterface
 	}
 
 	/**
-	 * Get the Layout Reader.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  LayoutReader
-	 * @since   6.1.6
-	 */
-	public function getLayoutReader(Container $container): LayoutReader
-	{
-		return new LayoutReader(
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.View.Split'),
-			$container->get('Extrusion.Registry.Report')
-		);
-	}
-
-	/**
-	 * Get the Site View Reader.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  SiteViewReader
-	 * @since   6.1.6
-	 */
-	public function getSiteViewReader(Container $container): SiteViewReader
-	{
-		return new SiteViewReader(
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.View.Split'),
-			$container->get('Extrusion.Resolver.Text'),
-			$container->get('Extrusion.Registry.Report')
-		);
-	}
-
-	/**
-	 * Get the Custom Admin View Reader.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  CustomAdminViewReader
-	 * @since   6.1.8
-	 */
-	public function getCustomAdminViewReader(Container $container): CustomAdminViewReader
-	{
-		return new CustomAdminViewReader(
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.View.Split'),
-			$container->get('Extrusion.Resolver.Text'),
-			$container->get('Extrusion.Registry.Report')
-		);
-	}
-
-	/**
-	 * Get the Template Reader.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  TemplateReader
-	 * @since   6.1.6
-	 */
-	public function getTemplateReader(Container $container): TemplateReader
-	{
-		return new TemplateReader(
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.View.Split'),
-			$container->get('Extrusion.Registry.Report')
-		);
-	}
-
-	/**
 	 * Get the Reader Dispatcher.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -348,10 +209,7 @@ class Reader implements ServiceProviderInterface
 			$container->get('Extrusion.Reader.Table'),
 			$container->get('Extrusion.Reader.Schema'),
 			$container->get('Extrusion.Reader.Form'),
-			$container->get('Extrusion.Reader.Layout'),
-			$container->get('Extrusion.Reader.Template'),
-			$container->get('Extrusion.Reader.SiteView'),
-			$container->get('Extrusion.Reader.CustomAdminView')
+			$container->get('Extrusion.Registry.View')
 		);
 	}
 }

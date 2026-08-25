@@ -16,6 +16,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
@@ -62,6 +63,14 @@ final class AdminFields extends Writer
 	protected ?array $placements = null;
 
 	/**
+	 * The Form Registry.
+	 *
+	 * @var    Form
+	 * @since  6.1.8
+	 */
+	protected Form $form;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -79,13 +88,15 @@ final class AdminFields extends Writer
 		ItemInterface $item,
 		Report $report,
 		Source $source,
-		LoadInterface $load
+		LoadInterface $load,
+		Form $form
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
 		$this->source = $source;
 		$this->load = $load;
+		$this->form = $form;
 	}
 
 	/**
@@ -159,15 +170,11 @@ final class AdminFields extends Writer
 		$listOrder = 0;
 		$editOrder = [];
 
-		// the component's own list screen says which fields it shows, in what
-		// order, and which of them it filters on -- so a field is listed
-		// because the source lists it, not because a name suggested it
+		// the view's own list filter form says which fields the screen filters
+		// on and which columns it sorts by -- so a field is listed because the
+		// component states it, not because a name suggested it
 		$listed = $this->listed($view);
 		$permissions = $this->permissions($view);
-		$searchable = (array) $this->source->get(
-			'mvc.' . $listed['screen'] . '.search',
-			[]
-		);
 		$ranks = [];
 
 		foreach ($fields as $key => $properties)
@@ -196,20 +203,15 @@ final class AdminFields extends Writer
 			}
 
 			$role = (array) ($roles[$column] ?? []);
-			// the list screen opens the record on one column, which is the
-			// component saying which field names its records
-			$isTitle = ($listed['title'] ?? '') !== ''
-				? strtolower($column) === $listed['title']
-				: !empty($role['title']);
+			// which field names a record is the role resolver's reading of the
+			// view's own columns; no form states it
+			$isTitle = !empty($role['title']);
 			$isAlias = !empty($role['alias']);
 			$shown = $listed['columns'][strtolower($column)] ?? null;
 			$isList = $listed['stated'] ? $shown !== null : !empty($role['list']);
-			// the screen links its records on one cell: where it says which,
-			// that cell is the only link; where it does not, the first field
-			// the list shows carries it
-			$isLink = ($listed['title'] ?? '') !== ''
-				? $isTitle
-				: ($isTitle || ($isList && !$linked));
+			// one cell opens the record: the field that names it, or failing
+			// that the first the list shows
+			$isLink = $isTitle || ($isList && !$linked);
 
 			if ($isLink)
 			{
@@ -286,7 +288,7 @@ final class AdminFields extends Writer
 			}
 
 			// the fields the search box matches are the ones its query compares
-			if ($listed['stated'] ? !empty($searchable[strtolower($column)]) : $isList)
+			if ($isList)
 			{
 				$row['search'] = '1';
 			}
@@ -377,69 +379,145 @@ final class AdminFields extends Writer
 	}
 
 	/**
-	 * What the component's own list screen shows for one view.
+	 * What the component's own list filter form states about one view's list.
+	 *
+	 * Every Joomla component that offers a list screen ships a filter form for
+	 * it, and that form is a full statement of the screen's settings without a
+	 * line of anyone's PHP being read. The filter fieldset names the fields the
+	 * screen filters on, and says which take several values at once. The list
+	 * fieldset's ordering field names, option by option, every column the
+	 * screen lets a person sort by -- which is the component stating which
+	 * columns it puts on that screen at all.
+	 *
+	 * A component that ships no such form has stated nothing, and every field
+	 * falls to JCB's own default.
 	 *
 	 * @param   string  $view  The view name.
 	 *
-	 * @return  array{stated: bool, screen: string, title: string, columns: array<string, int>, filters: array<string, string>, sortable: array<string, bool>}  The listing.
+	 * @return  array{stated: bool, columns: array<string, int>, filters: array<string, string>, sortable: array<string, bool>}  The listing.
 	 * @since   6.1.8
 	 */
 	protected function listed(string $view): array
 	{
-		$view = strtolower(trim($view));
-		$screen = strtolower(trim((string) $this->source->get('mvc_list.' . $view, '')));
 		$listing = [
 			'stated' => false,
-			'screen' => $screen,
-			'title' => '',
 			'columns' => [],
 			'filters' => [],
 			'sortable' => []
 		];
+		$path = $this->filterForm($view);
 
-		if ($screen === '')
-		{
-			return $listing;
-		}
-
-		$columns = (array) $this->source->get('screen.' . $screen . '.list', []);
-		$filters = (array) $this->source->get('screen.' . $screen . '.filter', []);
-		$sortable = (array) $this->source->get('screen.' . $screen . '.sort', []);
-
-		if ($columns === [])
+		if ($path === '')
 		{
 			return $listing;
 		}
 
 		$order = 0;
 
-		foreach ($columns as $column => $position)
+		foreach ((array) $this->form->get($path . '.field', []) as $field)
 		{
-			$listing['columns'][strtolower((string) $column)] = ++$order;
-		}
+			$field = (array) $field;
+			$name = strtolower(trim((string) ($field['name'] ?? '')));
+			$set = strtolower(trim((string) ($field['fieldset'] ?? '')));
+			$attributes = (array) ($field['attribute'] ?? []);
 
-		foreach ($filters as $column => $kind)
-		{
-			if ($kind)
+			if ($name === '' || $name === 'search')
 			{
-				$listing['filters'][strtolower((string) $column)] = (string) $kind;
+				// the search box is the screen's own, not a field of the view
+				continue;
 			}
-		}
 
-		foreach ($sortable as $column => $on)
-		{
-			if ($on)
+			if ($name === 'fullordering')
 			{
-				$listing['sortable'][strtolower((string) $column)] = true;
+				foreach ((array) ($field['option'] ?? []) as $option)
+				{
+					$column = $this->ordered((string) (((array) $option)['value'] ?? ''));
+
+					if ($column === '')
+					{
+						continue;
+					}
+
+					$listing['sortable'][$column] = true;
+					$listing['columns'][$column] ??= ++$order;
+				}
+
+				continue;
 			}
+
+			if ($set === 'list')
+			{
+				// limit, direction and the rest of the list fieldset are the
+				// screen's own furniture, never fields of the view
+				continue;
+			}
+
+			$listing['filters'][$name] = trim((string) ($attributes['multiple'] ?? '')) === 'true'
+				? '2'
+				: '1';
+			$listing['columns'][$name] ??= ++$order;
 		}
 
-		$listing['title'] = strtolower(trim(
-			(string) $this->source->get('screen.' . $screen . '.title', '')
-		));
-		$listing['stated'] = true;
+		$listing['stated'] = $listing['columns'] !== [] || $listing['filters'] !== [];
 
 		return $listing;
+	}
+
+	/**
+	 * The column one ordering option names, when it names one.
+	 *
+	 * @param   string  $value  The option value, such as "a.name ASC".
+	 *
+	 * @return  string  The column, or an empty string.
+	 * @since   6.1.8
+	 */
+	protected function ordered(string $value): string
+	{
+		$value = trim($value);
+
+		if ($value === '' || preg_match('/^([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\b/', $value, $found) !== 1)
+		{
+			return '';
+		}
+
+		return strtolower($found[2]);
+	}
+
+	/**
+	 * The form registry path of one view's list filter form, when it ships one.
+	 *
+	 * @param   string  $view  The view name.
+	 *
+	 * @return  string  The registry path, or an empty string.
+	 * @since   6.1.8
+	 */
+	protected function filterForm(string $view): string
+	{
+		$view = strtolower(trim($view));
+		$path = 'view.' . $this->key($view);
+		$names = [
+			(string) $this->resolved->get($path . '.name_list', ''),
+			$view . 's'
+		];
+
+		foreach ($names as $name)
+		{
+			$name = strtolower(trim($name));
+
+			if ($name === '')
+			{
+				continue;
+			}
+
+			$candidate = 'view.' . $this->key('filter_' . $name);
+
+			if ($this->form->exists($candidate . '.name'))
+			{
+				return $candidate;
+			}
+		}
+
+		return '';
 	}
 
 	/**

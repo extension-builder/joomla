@@ -3874,7 +3874,7 @@ return [
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Access.php' => [
 		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/AccessTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Collector.php' => [
 		'mode' => 'unit',
@@ -3900,10 +3900,6 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Mvc.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Manifest.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
@@ -3911,10 +3907,6 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Scanner.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/DiscoveryTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Screen.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/EvidenceTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Discovery/Selector.php' => [
 		'mode' => 'unit',
@@ -4028,14 +4020,6 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/MethodMap.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/PhpMethodTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/Methods.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/PhpMethodTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Schema.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
@@ -4053,26 +4037,6 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Table.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Layout.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/CustomAdminView.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/SiteView.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Split.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/View/Template.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'
 	],
@@ -4228,10 +4192,6 @@ return [
 		'mode' => 'provider',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionServiceProviderTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminCustomTabs.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/AdminFields.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
@@ -4276,15 +4236,7 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Layout.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/SiteView.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/Template.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
 	],

@@ -11,10 +11,8 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
-
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminCustomTabs;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminView;
@@ -27,9 +25,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\DynamicGet;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\Layout as LayoutWriter;
-use VDM\Joomla\Componentbuilder\Extrusion\Writer\Template as TemplateWriter;
-
 
 /**
  * Extrusion Writer Service Provider
@@ -63,9 +58,6 @@ class Writer implements ServiceProviderInterface
 		$container->alias(AdminFieldsConditions::class, 'Extrusion.Writer.AdminFieldsConditions')
 			->share('Extrusion.Writer.AdminFieldsConditions', [$this, 'getAdminFieldsConditions'], true);
 
-		$container->alias(AdminCustomTabs::class, 'Extrusion.Writer.AdminCustomTabs')
-			->share('Extrusion.Writer.AdminCustomTabs', [$this, 'getAdminCustomTabs'], true);
-
 		$container->alias(ComponentAdminViews::class, 'Extrusion.Writer.ComponentAdminViews')
 			->share('Extrusion.Writer.ComponentAdminViews', [$this, 'getComponentAdminViews'], true);
 
@@ -86,12 +78,6 @@ class Writer implements ServiceProviderInterface
 
 		$container->alias(ComponentSiteViews::class, 'Extrusion.Writer.ComponentSiteViews')
 			->share('Extrusion.Writer.ComponentSiteViews', [$this, 'getComponentSiteViews'], true);
-
-		$container->alias(LayoutWriter::class, 'Extrusion.Writer.Layout')
-			->share('Extrusion.Writer.Layout', [$this, 'getLayout'], true);
-
-		$container->alias(TemplateWriter::class, 'Extrusion.Writer.Template')
-			->share('Extrusion.Writer.Template', [$this, 'getTemplate'], true);
 
 		$container->alias(Dispatcher::class, 'Extrusion.Writer.Dispatcher')
 			->share('Extrusion.Writer.Dispatcher', [$this, 'getDispatcher'], true);
@@ -159,7 +145,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Load')
+			$container->get('Load'),
+			$container->get('Extrusion.Registry.Form')
 		);
 	}
 
@@ -174,25 +161,6 @@ class Writer implements ServiceProviderInterface
 	public function getAdminFieldsConditions(Container $container): AdminFieldsConditions
 	{
 		return new AdminFieldsConditions(
-			$container->get('Extrusion.Config'),
-			$container->get('Extrusion.Registry.Resolved'),
-			$container->get('Data.Item'),
-			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Registry.Source')
-		);
-	}
-
-	/**
-	 * Get the Admin Custom Tabs Writer.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  AdminCustomTabs
-	 * @since   6.1.6
-	 */
-	public function getAdminCustomTabs(Container $container): AdminCustomTabs
-	{
-		return new AdminCustomTabs(
 			$container->get('Extrusion.Config'),
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
@@ -240,8 +208,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Constants')
+			$container->get('Extrusion.Registry.Source')
 		);
 	}
 
@@ -350,50 +317,6 @@ class Writer implements ServiceProviderInterface
 	}
 
 	/**
-	 * Get the Layout Writer.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  LayoutWriter
-	 * @since   6.1.6
-	 */
-	public function getLayout(Container $container): LayoutWriter
-	{
-		return new LayoutWriter(
-			$container->get('Extrusion.Config'),
-			$container->get('Extrusion.Registry.Resolved'),
-			$container->get('Data.Item'),
-			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing')
-		);
-	}
-
-	/**
-	 * Get the Template Writer.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  TemplateWriter
-	 * @since   6.1.6
-	 */
-	public function getTemplate(Container $container): TemplateWriter
-	{
-		return new TemplateWriter(
-			$container->get('Extrusion.Config'),
-			$container->get('Extrusion.Registry.Resolved'),
-			$container->get('Data.Item'),
-			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Registry.View'),
-			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing')
-		);
-	}
-
-	/**
 	 * Get the Writer Dispatcher.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -410,11 +333,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Writer.AdminView'),
 			$container->get('Extrusion.Writer.AdminFields'),
 			$container->get('Extrusion.Writer.AdminFieldsConditions'),
-			$container->get('Extrusion.Writer.AdminCustomTabs'),
 			$container->get('Extrusion.Writer.ComponentAdminViews'),
 			$container->get('Extrusion.Writer.Component'),
-			$container->get('Extrusion.Writer.Layout'),
-			$container->get('Extrusion.Writer.Template'),
 			$container->get('Extrusion.Writer.SiteView'),
 			$container->get('Extrusion.Writer.ComponentSiteViews'),
 			$container->get('Extrusion.Writer.DynamicGet'),

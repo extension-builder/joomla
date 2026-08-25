@@ -11,11 +11,9 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
-
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
-
 
 /**
  * Turns a form's fieldsets into JCB tabs.
@@ -109,17 +107,9 @@ final class Tab
 	 */
 	public function names(string $view, array $fields): array
 	{
-		// the component's own edit screen names its tabs and their order; a
-		// form's fieldsets are only consulted where no screen was recovered
-		$stated = $this->stated($view);
-
-		if ($stated !== [])
-		{
-			$this->report->set('tabs.' . $this->key($view), $stated);
-
-			return $stated;
-		}
-
+		// a view's tabs are its form's own fieldsets: that is where a Joomla
+		// component groups the fields of a record, and it is the only place
+		// it does so that does not depend on how the screen was generated
 		$names = [];
 
 		foreach ($fields as $properties)
@@ -222,96 +212,6 @@ final class Tab
 		$name = preg_replace('/\s+/', ' ', $name) ?? $name;
 
 		return $name === '' ? self::DEFAULT_TAB : ucwords($name);
-	}
-
-	/**
-	 * The tabs the component's own edit screen states for one view.
-	 *
-	 * @param   string  $view  The JCB view name.
-	 *
-	 * @return  array<int, string>  The tab names in their stated order.
-	 * @since   6.1.8
-	 */
-	public function stated(string $view): array
-	{
-		$names = [];
-
-		foreach ((array) $this->source->get('screen.' . strtolower($view) . '.tabs', []) as $tab)
-		{
-			$tab = (array) $tab;
-			$key = trim((string) ($tab['key'] ?? ''));
-
-			if ($key === '')
-			{
-				continue;
-			}
-
-			$label = trim((string) ($tab['label'] ?? ''));
-			$name = $this->clean(
-				$label === '' ? $key : $this->language->resolve($label, $key)
-			);
-
-			if (!in_array($name, $names, true))
-			{
-				$names[] = $name;
-			}
-		}
-
-		return $names;
-	}
-
-	/**
-	 * Where the component's own edit screen places one field.
-	 *
-	 * @param   string  $view    The JCB view name.
-	 * @param   string  $column  The field's column name.
-	 *
-	 * @return  array{tab: int, alignment: int, order: int}|null  The placement, or null.
-	 * @since   6.1.8
-	 */
-	public function placement(string $view, string $column): ?array
-	{
-		$view = strtolower($view);
-		$place = $this->source->get(
-			'screen.' . $view . '.place.' . strtolower($column),
-			null
-		);
-
-		if (!is_array($place) || ($place['tab'] ?? '') === '')
-		{
-			return null;
-		}
-
-		$tab = strtolower((string) $place['tab']);
-		$alignment = (int) ($place['alignment'] ?? 1);
-		$order = (int) ($place['order'] ?? 1);
-
-		if (!empty($place['generated']))
-		{
-			return [
-				'tab' => self::PUBLISHING_TAB,
-				'alignment' => $alignment > 0 ? $alignment : 1,
-				'order' => $order
-			];
-		}
-
-		$number = 0;
-
-		foreach ((array) $this->source->get('screen.' . $view . '.tabs', []) as $entry)
-		{
-			$number++;
-
-			if (strtolower(trim((string) (((array) $entry)['key'] ?? ''))) === $tab)
-			{
-				return [
-					'tab' => $number,
-					'alignment' => $alignment > 0 ? $alignment : 1,
-					'order' => $order
-				];
-			}
-		}
-
-		return null;
 	}
 
 	/**

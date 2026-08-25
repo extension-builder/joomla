@@ -78,14 +78,6 @@ final class Dispatcher
 	protected WriterInterface $conditions;
 
 	/**
-	 * The Admin Custom Tabs Writer.
-	 *
-	 * @var    WriterInterface
-	 * @since  6.1.6
-	 */
-	protected WriterInterface $tabs;
-
-	/**
 	 * The Component Admin Views Writer.
 	 *
 	 * @var    WriterInterface
@@ -116,22 +108,6 @@ final class Dispatcher
 	 * @since  6.1.6
 	 */
 	protected WriterInterface $sitelink;
-
-	/**
-	 * The Layout Writer.
-	 *
-	 * @var    WriterInterface
-	 * @since  6.1.6
-	 */
-	protected WriterInterface $layout;
-
-	/**
-	 * The Template Writer.
-	 *
-	 * @var    WriterInterface
-	 * @since  6.1.6
-	 */
-	protected WriterInterface $template;
 
 	/**
 	 * The Dynamic Get Writer.
@@ -166,13 +142,10 @@ final class Dispatcher
 	 * @param   WriterInterface  $adminview    The admin view writer.
 	 * @param   WriterInterface  $adminfields  The admin fields writer.
 	 * @param   WriterInterface  $conditions   The field conditions writer.
-	 * @param   WriterInterface  $tabs         The custom tabs writer.
 	 * @param   WriterInterface  $component    The component link writer.
 	 * @param   WriterInterface  $details      The component details writer.
 	 * @param   WriterInterface  $siteview     The site view writer.
 	 * @param   WriterInterface  $sitelink     The component site views writer.
-	 * @param   WriterInterface  $layout           The layout writer.
-	 * @param   WriterInterface  $template         The template writer.
 	 * @param   WriterInterface  $dynamicget       The dynamic get writer.
 	 * @param   WriterInterface  $customadminview  The custom admin view writer.
 	 * @param   WriterInterface  $customlink       The component custom admin views writer.
@@ -186,11 +159,8 @@ final class Dispatcher
 		WriterInterface $adminview,
 		WriterInterface $adminfields,
 		WriterInterface $conditions,
-		WriterInterface $tabs,
 		WriterInterface $component,
 		WriterInterface $details,
-		WriterInterface $layout,
-		WriterInterface $template,
 		WriterInterface $siteview,
 		WriterInterface $sitelink,
 		WriterInterface $dynamicget,
@@ -204,11 +174,8 @@ final class Dispatcher
 		$this->adminview = $adminview;
 		$this->adminfields = $adminfields;
 		$this->conditions = $conditions;
-		$this->tabs = $tabs;
 		$this->component = $component;
 		$this->details = $details;
-		$this->layout = $layout;
-		$this->template = $template;
 		$this->siteview = $siteview;
 		$this->sitelink = $sitelink;
 		$this->dynamicget = $dynamicget;
@@ -254,11 +221,8 @@ final class Dispatcher
 			$order['admin_view'] = $this->adminview;
 			$order['admin_fields'] = $this->adminfields;
 			$order['admin_fields_conditions'] = $this->conditions;
-			$order['admin_custom_tabs'] = $this->tabs;
 		}
 
-		$order['layout'] = $this->layout;
-		$order['template'] = $this->template;
 		$order['dynamic_get'] = $this->dynamicget;
 		$order['site_view'] = $this->siteview;
 		$order['component_site_views'] = $this->sitelink;
