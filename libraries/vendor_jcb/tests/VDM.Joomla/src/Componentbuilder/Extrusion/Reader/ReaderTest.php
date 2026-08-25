@@ -406,9 +406,10 @@ PHP;
 			'unsigned' => false,
 			'null' => 'NOT NULL',
 			'default' => '',
+			'default_stated' => false,
 			'auto_increment' => true,
 			'comment' => null,
-			'key' => 2,
+			'key' => 3,
 			'ordinal' => 0
 		], $parsed['columns']['id']);
 
@@ -420,9 +421,10 @@ PHP;
 			'unsigned' => false,
 			'null' => 'NOT NULL',
 			'default' => '',
+			'default_stated' => true,
 			'auto_increment' => false,
 			'comment' => '{"label":"Item Name","type":"text"}',
-			'key' => 0,
+			'key' => 1,
 			'ordinal' => 1
 		], $parsed['columns']['name']);
 
@@ -438,7 +440,69 @@ PHP;
 	}
 
 	/**
-	 * Table level key clauses decide the 2, 1, and 0 key ranks.
+	 * A column stating no default is not a column defaulting to nothing.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAnAbsentDefaultIsToldApartFromAnEmptyOne(): void
+	{
+		$parsed = (new CreateTable())->parse(
+			"CREATE TABLE `#__d` (\n"
+			. "\t`absent` DATE NULL,\n"
+			. "\t`empty` VARCHAR(20) NULL DEFAULT '',\n"
+			. "\t`zero` INT(11) NULL DEFAULT 0\n"
+			. ')'
+		);
+
+		$this->assertIsArray($parsed);
+		$this->assertFalse(
+			$parsed['columns']['absent']['default_stated'],
+			'A column carrying no DEFAULT clause states no default, and only '
+			. 'this can tell it from one defaulting to the empty string.'
+		);
+		$this->assertSame('', $parsed['columns']['absent']['default']);
+		$this->assertTrue($parsed['columns']['empty']['default_stated']);
+		$this->assertSame('', $parsed['columns']['empty']['default']);
+		$this->assertTrue($parsed['columns']['zero']['default_stated']);
+		$this->assertSame('0', $parsed['columns']['zero']['default']);
+	}
+
+	/**
+	 * A table states its own engine, character set, collation and row format.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testATableStatesItsOwnEngineAndCharacterSet(): void
+	{
+		$create = new CreateTable();
+		$parsed = $create->parse(
+			"CREATE TABLE `#__d` (`id` INT(11) NOT NULL) ENGINE=InnoDB "
+			. 'AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE='
+			. 'utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;'
+		);
+
+		$this->assertIsArray($parsed);
+		$this->assertSame([
+			'engine' => 'InnoDB',
+			'charset' => 'utf8mb4',
+			'collate' => 'utf8mb4_unicode_ci',
+			'row_format' => 'DYNAMIC'
+		], $parsed['options']);
+
+		$bare = $create->parse('CREATE TABLE `#__d` (`id` INT(11) NOT NULL)');
+
+		$this->assertIsArray($bare);
+		$this->assertSame(
+			[],
+			$bare['options'],
+			'A table stating none of this leaves every one of them to JCB.'
+		);
+	}
+
+	/**
+	 * Table level key clauses decide the 3, 2, 1, and 0 key ranks.
 	 *
 	 * @return  void
 	 * @since   6.1.6
@@ -449,20 +513,29 @@ PHP;
 		$fixture = $create->parse((new Splitter())->split(ExtrusionComponentFixture::SCHEMA)[0]);
 
 		$this->assertIsArray($fixture);
-		$this->assertSame(2, $fixture['columns']['id']['key']);
-		$this->assertSame(1, $fixture['columns']['alias']['key']);
-		$this->assertSame(0, $fixture['columns']['name']['key']);
-		$this->assertSame(0, $fixture['columns']['colour']['key']);
+		$this->assertSame(3, $fixture['columns']['id']['key'], 'primary');
+		$this->assertSame(2, $fixture['columns']['alias']['key'], 'unique');
+		$this->assertSame(
+			1,
+			$fixture['columns']['name']['key'],
+			'A plain KEY is an index the component asked for, and a composite '
+			. 'one indexes every column it names.'
+		);
+		$this->assertSame(1, $fixture['columns']['colour']['key']);
 
 		$composite = $create->parse(self::COMPOSITE);
 
 		$this->assertIsArray($composite);
 		$this->assertSame('#__pair', $composite['table']);
-		$this->assertSame(2, $composite['columns']['left']['key']);
-		$this->assertSame(2, $composite['columns']['right']['key']);
-		$this->assertSame(1, $composite['columns']['one']['key']);
-		$this->assertSame(1, $composite['columns']['two']['key']);
-		$this->assertSame(0, $composite['columns']['plain']['key']);
+		$this->assertSame(3, $composite['columns']['left']['key']);
+		$this->assertSame(3, $composite['columns']['right']['key']);
+		$this->assertSame(2, $composite['columns']['one']['key']);
+		$this->assertSame(2, $composite['columns']['two']['key']);
+		$this->assertSame(
+			1,
+			$composite['columns']['plain']['key'],
+			'A plain KEY names an index the component asked for.'
+		);
 		$this->assertSame('NOT NULL', $composite['columns']['left']['null']);
 		$this->assertSame('NOT NULL', $composite['columns']['right']['null']);
 	}
@@ -563,8 +636,8 @@ PHP;
 			'{"label":"Item Name","type":"text"}',
 			$this->schema->get('table.___example_item.column.name.comment')
 		);
-		$this->assertSame(2, $this->schema->get('table.___example_item.column.id.key'));
-		$this->assertSame(1, $this->schema->get('table.___example_item.column.alias.key'));
+		$this->assertSame(3, $this->schema->get('table.___example_item.column.id.key'));
+		$this->assertSame(2, $this->schema->get('table.___example_item.column.alias.key'));
 		$this->assertTrue($this->schema->get('table.___example_item.column.counter.unsigned'));
 		$this->assertSame(6, $this->schema->get('table.___example_item.column.counter.ordinal'));
 		$this->assertCount(9, (array) $this->schema->get('table.___example_item.column'));

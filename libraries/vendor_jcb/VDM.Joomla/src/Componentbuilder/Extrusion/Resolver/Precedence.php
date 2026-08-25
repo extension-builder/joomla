@@ -297,6 +297,10 @@ final class Precedence implements PrecedenceInterface
 		$this->offer($candidates, 'datatype', 'derived', $row['type'] ?? null);
 		$this->offer($candidates, 'size', 'derived', $row['size'] ?? null);
 		$this->offer($candidates, 'default', 'derived', $row['default'] ?? null);
+		// the column's own default is a separate thing from the form's, and
+		// only the schema and the table class ever state it
+		$this->offer($candidates, 'db_default', 'derived', $row['default'] ?? null);
+		$this->offer($candidates, 'db_default_stated', 'derived', $row['default_stated'] ?? null);
 		$this->offer($candidates, 'null', 'derived', $row['null'] ?? null);
 		$this->offer($candidates, 'key', 'derived', $row['key'] ?? null);
 		$this->offer($candidates, 'ordinal', 'derived', $row['ordinal'] ?? null);
@@ -505,6 +509,7 @@ final class Precedence implements PrecedenceInterface
 			$this->offer($candidates, 'size', 'table', $this->size($db['type'] ?? ''));
 			$this->offer($candidates, 'null', 'table', $db['null_switch'] ?? null);
 			$this->offer($candidates, 'default', 'table', $this->defaultValue($db['default'] ?? null));
+			$this->offer($candidates, 'db_default', 'table', $this->defaultValue($db['default'] ?? null));
 			$this->offer($candidates, 'key', 'table', $this->keyStatus($db));
 		}
 
@@ -590,12 +595,12 @@ final class Precedence implements PrecedenceInterface
 	{
 		if (!empty($db['primary_key']))
 		{
-			return 2;
+			return 3;
 		}
 
 		if (!empty($db['unique_key']))
 		{
-			return 1;
+			return 2;
 		}
 
 		return null;

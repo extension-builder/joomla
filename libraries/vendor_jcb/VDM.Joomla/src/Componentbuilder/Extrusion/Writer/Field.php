@@ -295,7 +295,9 @@ final class Field extends Writer
 		$definition->name = $this->readable($label, $column);
 		$definition->fieldtype = $identity;
 		$definition->datatype = (string) $this->value($properties, 'datatype', 'TEXT');
-		$definition->indexes = (int) $this->value($properties, 'key', 0);
+		$definition->indexes = $this->indexes(
+			(int) $this->value($properties, 'key', 0)
+		);
 		$definition->null_switch = (string) $this->value($properties, 'null', 'NULL');
 		$definition->store = $this->storeCode((string) $this->value($properties, 'store', ''));
 		$definition->xml = $this->fieldxml->build($column, $properties);
@@ -305,10 +307,27 @@ final class Field extends Writer
 			? $size
 			: 'Other';
 		$definition->datalenght_other = $definition->datalenght === 'Other' ? $size : '';
-		$definition->datadefault = in_array($default, self::DEFAULTS, true) || $default === ''
-			? $default
-			: 'Other';
-		$definition->datadefault_other = $definition->datadefault === 'Other' ? $default : '';
+		// the column's default is what the schema states for the column; the
+		// form's default attribute is a different thing entirely, and reading
+		// one as the other writes the form's placeholder into the table
+		$columnDefault = (string) $this->value($properties, 'db_default', '');
+		$stated = $this->value($properties, 'db_default_stated', null);
+
+		if ($stated === false)
+		{
+			// a column carrying no DEFAULT clause is not a column defaulting to
+			// nothing, and JCB spells that difference EMPTY: without it the
+			// compiler gives every such column a default the source never had
+			$definition->datadefault = 'Other';
+			$definition->datadefault_other = 'EMPTY';
+		}
+		else
+		{
+			$definition->datadefault = in_array($columnDefault, self::DEFAULTS, true) || $columnDefault === ''
+				? $columnDefault
+				: 'Other';
+			$definition->datadefault_other = $definition->datadefault === 'Other' ? $columnDefault : '';
+		}
 
 		// a column default can only be as long as the Table class says the
 		// datadefault_other column holds; a longer harvested default is a
@@ -320,7 +339,7 @@ final class Field extends Writer
 			$definition->datadefault_other = '';
 			$this->report->set(
 				'skipped.default.too_long.' . $this->key($column),
-				strlen($default)
+				strlen($columnDefault)
 			);
 		}
 
@@ -429,6 +448,34 @@ final class Field extends Writer
 		}
 
 		return $attributes;
+	}
+
+	/**
+	 * The index a field carries, on the scale JCB's own form offers.
+	 *
+	 * The schema and the field record rank keys differently, and the two used
+	 * to be passed straight between each other: a source column's ranks run
+	 * none, index, unique, primary, while the field form offers unique as 1 and
+	 * a plain index as 2. Read one as the other and a unique key survives only
+	 * by coincidence, a primary key becomes a plain index, and every plain
+	 * index the component asked for is lost entirely.
+	 *
+	 * The primary key is not among them, because it is not a field: JCB writes
+	 * the id column and its primary key itself.
+	 *
+	 * @param   int  $rank  The source column's key rank.
+	 *
+	 * @return  int  The value the field record stores.
+	 * @since   6.1.8
+	 */
+	protected function indexes(int $rank): int
+	{
+		return match ($rank)
+		{
+			2 => 1,
+			1 => 2,
+			default => 0
+		};
 	}
 
 	/**
