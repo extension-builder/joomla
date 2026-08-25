@@ -47,8 +47,8 @@ final class Constants
 	 * @since  6.1.8
 	 */
 	private const CALLS = [
-		'Text:' . ':_', 'Text:' . ':sprintf', 'Text:' . ':plural',
-		'Text:' . ':script', 'Text:' . ':alt', 'JustTEXT:' . ':_'
+		'Text:' . ':_', 'Text:' . ':sprintf', 'Text:' . ':script',
+		'JustTEXT:' . ':_'
 	];
 
 	/**
@@ -128,7 +128,11 @@ final class Constants
 			{
 				$constant = $found[3];
 				$quote = $found[2];
-				$text = $this->language->resolve($constant, '');
+				$text = str_replace(
+					["\r", "\n"],
+					' ',
+					$this->language->resolve($constant, '')
+				);
 
 				if ($text === '' || $text === $constant)
 				{
@@ -141,7 +145,24 @@ final class Constants
 					return $found[0];
 				}
 
-				return $found[1] . $quote . $this->quote($text, $quote) . $quote;
+				$quote = $this->quoting($text, $quote);
+
+				if ($quote === '')
+				{
+					// the compiler's extractor reads what stands between the
+					// call's quotes and knows nothing of escaping, so text
+					// carrying both quote marks cannot be written for it: the
+					// constant stands, and the report says why
+					$this->report->set(
+						'unquotable.code_language.' . $constant,
+						'the text carries both quote marks, which the language '
+						. 'extractor cannot read, so the constant stands'
+					);
+
+					return $found[0];
+				}
+
+				return $found[1] . $quote . $text . $quote;
 			},
 			$code
 		);
@@ -150,22 +171,29 @@ final class Constants
 	}
 
 	/**
-	 * One resolved string, safe inside the quotes the call already used.
+	 * The quote one resolved string can be written between.
+	 *
+	 * The compiler's extractor takes what stands between the call's opening
+	 * quote and the next one of the same kind, so an escaped quote inside the
+	 * text would cut the string short and mint a key from the fragment. It
+	 * reads either quoting, though, so the one the text does not carry is the
+	 * one to write it in.
 	 *
 	 * @param   string  $text   The resolved text.
 	 * @param   string  $quote  The quote character the call used.
 	 *
-	 * @return  string  The text, escaped for that quoting.
+	 * @return  string  The quote to use, or an empty string when neither works.
 	 * @since   6.1.8
 	 */
-	protected function quote(string $text, string $quote): string
+	protected function quoting(string $text, string $quote): string
 	{
-		$text = str_replace(["\r", "\n"], ' ', $text);
+		if (!str_contains($text, $quote))
+		{
+			return $quote;
+		}
 
-		return str_replace(
-			['\\', $quote],
-			['\\\\', '\\' . $quote],
-			$text
-		);
+		$other = $quote === '"' ? "'" : '"';
+
+		return str_contains($text, $other) ? '' : $other;
 	}
 }
