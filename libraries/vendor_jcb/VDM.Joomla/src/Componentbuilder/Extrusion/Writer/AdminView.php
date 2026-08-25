@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
@@ -59,6 +60,14 @@ final class AdminView extends Writer
 	protected Guid $guid;
 
 	/**
+	 * The Permission Actions Resolver.
+	 *
+	 * @var    Actions
+	 * @since  6.1.8
+	 */
+	protected Actions $actions;
+
+	/**
 	 * The Source Registry.
 	 *
 	 * @var    Source
@@ -84,6 +93,7 @@ final class AdminView extends Writer
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
 	 * @param   Pairing        $pairing   The pairing resolver.
+	 * @param   Actions        $actions   The permission actions resolver.
 	 *
 	 * @since   6.1.6
 	 */
@@ -94,7 +104,8 @@ final class AdminView extends Writer
 		Report $report,
 		Guid $guid,
 		Source $source,
-		Pairing $pairing
+		Pairing $pairing,
+		Actions $actions
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
@@ -102,6 +113,7 @@ final class AdminView extends Writer
 		$this->guid = $guid;
 		$this->source = $source;
 		$this->pairing = $pairing;
+		$this->actions = $actions;
 	}
 
 	/**
@@ -269,6 +281,23 @@ final class AdminView extends Writer
 			$stated[$action] = str_starts_with($action, 'core.')
 				? 1
 				: (isset($stated[$action]) ? 3 : 1);
+		}
+
+		// a permission row names an action from the list JCB's own form offers.
+		// Everything else the access rules carry -- batch, version, export and
+		// import, the menu and dashboard actions -- the compiler writes from
+		// the view's switches, and storing it here would leave a row nobody
+		// can read, showing the first option in its place
+		foreach (array_keys($stated) as $action)
+		{
+			if (!$this->actions->offers((string) $action))
+			{
+				unset($stated[$action]);
+				$this->report->set(
+					'permissions.generated.' . $this->key($view) . '.' . $this->key((string) $action),
+					'the compiler writes this action from the view\'s own switches'
+				);
+			}
 		}
 
 		if ($stated !== [])

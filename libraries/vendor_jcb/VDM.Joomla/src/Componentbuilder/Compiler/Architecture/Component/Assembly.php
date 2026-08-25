@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Component;
 
 
+use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\CryptKey;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\LicenseLock;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\UninstallSql;

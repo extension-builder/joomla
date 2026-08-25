@@ -159,6 +159,17 @@ final class AdminFields extends Writer
 		$listOrder = 0;
 		$editOrder = [];
 
+		// the component's own list screen says which fields it shows, in what
+		// order, and which of them it filters on -- so a field is listed
+		// because the source lists it, not because a name suggested it
+		$listed = $this->listed($view);
+		$permissions = $this->permissions($view);
+		$searchable = (array) $this->source->get(
+			'mvc.' . $listed['screen'] . '.search',
+			[]
+		);
+		$ranks = [];
+
 		foreach ($fields as $key => $properties)
 		{
 			$properties = (array) $properties;
@@ -185,10 +196,20 @@ final class AdminFields extends Writer
 			}
 
 			$role = (array) ($roles[$column] ?? []);
-			$isTitle = !empty($role['title']);
+			// the list screen opens the record on one column, which is the
+			// component saying which field names its records
+			$isTitle = ($listed['title'] ?? '') !== ''
+				? strtolower($column) === $listed['title']
+				: !empty($role['title']);
 			$isAlias = !empty($role['alias']);
-			$isList = !empty($role['list']);
-			$isLink = $isTitle || ($isList && !$linked);
+			$shown = $listed['columns'][strtolower($column)] ?? null;
+			$isList = $listed['stated'] ? $shown !== null : !empty($role['list']);
+			// the screen links its records on one cell: where it says which,
+			// that cell is the only link; where it does not, the first field
+			// the list shows carries it
+			$isLink = ($listed['title'] ?? '') !== ''
+				? $isTitle
+				: ($isTitle || ($isList && !$linked));
 
 			if ($isLink)
 			{
@@ -213,11 +234,18 @@ final class AdminFields extends Writer
 			$editOrder[$tab] = (int) ($editOrder[$tab] ?? 0) + 1;
 			$order = (int) ($stated['order'] ?? $editOrder[$tab]);
 
+			// the list selection speaks the form's own options: 1 shows the
+			// field in every list view and an empty value is the form's
+			// default. Never 2 -- the compiler reads that as a field with no
+			// database column at all (Compiler\Model\Fields, "2 = none
+			// database"), which would drop the column from the table
 			$row = [
 				'field' => $fieldGuid,
 				'list' => $isList ? '1' : '',
 				'order_list' => (string) ($isList ? ++$listOrder : 0),
-				'filter' => $isList ? '1' : '',
+				'filter' => $listed['stated']
+					? (string) ($listed['filters'][strtolower($column)] ?? '')
+					: ($isList ? '1' : ''),
 				'tab' => (string) $tab,
 				'alignment' => (int) ($placed['alignment']
 					?? ($isTitle || $isAlias ? 4 : (($number % 2 === 0) ? 2 : 1))),
@@ -234,9 +262,25 @@ final class AdminFields extends Writer
 				$row['alias'] = '1';
 			}
 
-			if ($isList)
+			// the head of the list says which columns it sorts by, which is
+			// not the same set as the columns the body shows
+			if ($listed['stated']
+				? !empty($listed['sortable'][strtolower($column)])
+				: $isList)
 			{
 				$row['sort'] = '1';
+			}
+
+			// a field the component guards on its own has an access rule
+			// naming it, which is where JCB keeps the field's permission
+			if (isset($permissions[strtolower($column)]))
+			{
+				$row['permission'] = $permissions[strtolower($column)];
+			}
+
+			// the fields the search box matches are the ones its query compares
+			if ($listed['stated'] ? !empty($searchable[strtolower($column)]) : $isList)
+			{
 				$row['search'] = '1';
 			}
 
@@ -246,6 +290,11 @@ final class AdminFields extends Writer
 			}
 
 			$subform['addfields' . $number] = $row;
+
+			if ($isList && $shown !== null)
+			{
+				$ranks['addfields' . $number] = $shown;
+			}
 			$number++;
 		}
 
@@ -254,12 +303,136 @@ final class AdminFields extends Writer
 			return false;
 		}
 
+		// the list order is the order the component's own list screen shows
+		// its columns in, counted from one over the fields it shows
+		asort($ranks);
+		$order = 0;
+
+		foreach (array_keys($ranks) as $key)
+		{
+			$subform[$key]['order_list'] = (string) ++$order;
+		}
+
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
 		$definition->addfields = $this->merge($viewGuid, $subform);
 		$definition->published = 1;
 
 		return $this->store($definition);
+	}
+
+	/**
+	 * The permissions the component's access rules give one view's fields.
+	 *
+	 * The compiler writes a field's own permission as
+	 * "view.<edit|access|view>.<field>" at both levels
+	 * (Compiler\Creator\AccessSections), so an action of that shape whose
+	 * tail is not one of the view's own standing actions names a field.
+	 *
+	 * @param   string  $view  The view name.
+	 *
+	 * @return  array<string, array<int, string>>  Column keyed to its permission ids.
+	 * @since   6.1.8
+	 */
+	protected function permissions(string $view): array
+	{
+		$view = strtolower(trim($view));
+		$options = ['edit' => '1', 'access' => '2', 'view' => '3'];
+		$standing = ['own', 'state', 'created', 'created_by', 'access'];
+		$found = [];
+
+		foreach (['component', $view] as $section)
+		{
+			foreach ((array) $this->source->get('access.' . $section, []) as $action)
+			{
+				$parts = explode('.', strtolower(trim((string) $action)));
+
+				if (count($parts) !== 3 || $parts[0] !== $view
+					|| !isset($options[$parts[1]]) || in_array($parts[2], $standing, true))
+				{
+					continue;
+				}
+
+				$found[$parts[2]][$options[$parts[1]]] = true;
+			}
+		}
+
+		$permissions = [];
+
+		foreach ($found as $column => $ids)
+		{
+			$ids = array_keys($ids);
+			sort($ids);
+			$permissions[$column] = array_values($ids);
+		}
+
+		return $permissions;
+	}
+
+	/**
+	 * What the component's own list screen shows for one view.
+	 *
+	 * @param   string  $view  The view name.
+	 *
+	 * @return  array{stated: bool, screen: string, title: string, columns: array<string, int>, filters: array<string, string>, sortable: array<string, bool>}  The listing.
+	 * @since   6.1.8
+	 */
+	protected function listed(string $view): array
+	{
+		$view = strtolower(trim($view));
+		$screen = strtolower(trim((string) $this->source->get('mvc_list.' . $view, '')));
+		$listing = [
+			'stated' => false,
+			'screen' => $screen,
+			'title' => '',
+			'columns' => [],
+			'filters' => [],
+			'sortable' => []
+		];
+
+		if ($screen === '')
+		{
+			return $listing;
+		}
+
+		$columns = (array) $this->source->get('screen.' . $screen . '.list', []);
+		$filters = (array) $this->source->get('screen.' . $screen . '.filter', []);
+		$sortable = (array) $this->source->get('screen.' . $screen . '.sort', []);
+
+		if ($columns === [])
+		{
+			return $listing;
+		}
+
+		$order = 0;
+
+		foreach ($columns as $column => $position)
+		{
+			$listing['columns'][strtolower((string) $column)] = ++$order;
+		}
+
+		foreach ($filters as $column => $kind)
+		{
+			if ($kind)
+			{
+				$listing['filters'][strtolower((string) $column)] = (string) $kind;
+			}
+		}
+
+		foreach ($sortable as $column => $on)
+		{
+			if ($on)
+			{
+				$listing['sortable'][strtolower((string) $column)] = true;
+			}
+		}
+
+		$listing['title'] = strtolower(trim(
+			(string) $this->source->get('screen.' . $screen . '.title', '')
+		));
+		$listing['stated'] = true;
+
+		return $listing;
 	}
 
 	/**

@@ -407,7 +407,7 @@ final class Candidates
 			$name = (string) ($entry['name'] ?? $key);
 
 			if ($name === '' || !empty($entry['crud']) || $this->answered($name)
-				|| $this->listScreen($name)
+				|| $this->listScreen($name) || !$this->named($name)
 				|| $this->existingAnswers($name, $existing))
 			{
 				continue;
@@ -429,6 +429,32 @@ final class Candidates
 		}
 
 		return $candidates;
+	}
+
+	/**
+	 * Whether the component itself names one screen.
+	 *
+	 * A component names every screen it guards, in its access rules, and every
+	 * screen it puts in a menu, in its manifest. A folder neither speaks for
+	 * is generated output or something left behind, never a screen to offer.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the component names it.
+	 * @since   6.1.8
+	 */
+	protected function named(string $name): bool
+	{
+		$name = strtolower(trim($name));
+		$menu = (array) $this->source->get('menu', []);
+		$screens = (array) $this->source->get('access_screens', []);
+
+		if (isset($menu[$name]) || !empty($screens[$name]))
+		{
+			return true;
+		}
+
+		return $menu === [] && $screens === [];
 	}
 
 	/**

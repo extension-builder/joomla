@@ -138,7 +138,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing')
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Resolver.Actions')
 		);
 	}
 
@@ -239,7 +240,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Source')
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Constants')
 		);
 	}
 

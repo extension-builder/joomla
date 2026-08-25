@@ -349,7 +349,7 @@ PHP;
 		$this->read($classes);
 
 		$text = new Text();
-		$language = new Language($this->catalogue, $this->report);
+		$language = new Language($this->catalogue, $this->report, $this->source);
 		$viewname = new ViewName($this->source, $text);
 		$this->tab = new Tab($this->form, $language, $this->report, $this->source);
 

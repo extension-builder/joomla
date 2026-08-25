@@ -1071,7 +1071,7 @@ final class ResolverTest extends TestCase
 		$catalogue->set('constant.COM_DEMO_EMPTY_LABEL', '');
 		$report = new Report();
 
-		return [new Language($catalogue, $report), $report];
+		return [new Language($catalogue, $report, new Source()), $report];
 	}
 
 	/**
@@ -1104,7 +1104,7 @@ final class ResolverTest extends TestCase
 		$catalogue->set('constant.COM_DEMO_PUBLISHING_FIELDSET', 'Publishing Options');
 		$report = new Report();
 
-		return [new Tab($form, new Language($catalogue, $report), $report, new Source()), $report];
+		return [new Tab($form, new Language($catalogue, $report, new Source()), $report, new Source()), $report];
 	}
 
 	/**

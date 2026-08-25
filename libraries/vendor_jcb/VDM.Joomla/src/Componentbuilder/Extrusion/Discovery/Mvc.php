@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Methods;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
@@ -69,12 +70,21 @@ final class Mvc
 	protected Report $report;
 
 	/**
+	 * The PHP method reader.
+	 *
+	 * @var    Methods
+	 * @since  6.1.8
+	 */
+	protected Methods $methods;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Scanner   $scanner   The source tree scanner.
 	 * @param   Selector  $selector  The layout selector.
 	 * @param   Source    $source    The source identity registry.
 	 * @param   Report    $report    The run report registry.
+	 * @param   Methods   $methods   The PHP method reader.
 	 *
 	 * @since   6.1.8
 	 */
@@ -82,13 +92,15 @@ final class Mvc
 		Scanner $scanner,
 		Selector $selector,
 		Source $source,
-		Report $report
+		Report $report,
+		Methods $methods
 	)
 	{
 		$this->scanner = $scanner;
 		$this->selector = $selector;
 		$this->source = $source;
 		$this->report = $report;
+		$this->methods = $methods;
 	}
 
 	/**
@@ -103,7 +115,7 @@ final class Mvc
 	{
 		$read = 0;
 
-		foreach ($this->directories($root) as $directory)
+		foreach ($this->directories($root, 'controller_dir') as $directory)
 		{
 			foreach ($this->files($directory) as $path)
 			{
@@ -114,12 +126,110 @@ final class Mvc
 			}
 		}
 
+		foreach ($this->directories($root, 'model_dir') as $directory)
+		{
+			foreach ($this->files($directory) as $path)
+			{
+				$this->model($path);
+			}
+		}
+
 		if ($read > 0)
 		{
 			$this->report->set('source.controllers', (int) $this->source->get('mvc_count', 0));
 		}
 
 		return $read;
+	}
+
+	/**
+	 * Read one model file: what it is, and the query it builds.
+	 *
+	 * A screen that has no table of its own still fetches its data, and its
+	 * model is where that is written. JCB keeps the same thing in a dynamic
+	 * get's custom query, so the method that builds the query is exactly what
+	 * a recovered screen needs in order to show anything at all.
+	 *
+	 * @param   string  $path  Absolute path to the model.
+	 *
+	 * @return  bool  True when the file named a view.
+	 * @since   6.1.8
+	 */
+	protected function model(string $path): bool
+	{
+		$code = $this->scanner->read($path);
+
+		if ($code === null || $code === '')
+		{
+			return false;
+		}
+
+		$class = $this->className($code);
+
+		if ($class === '')
+		{
+			return false;
+		}
+
+		$view = $this->viewOf($class, 'Model');
+
+		if ($view === '')
+		{
+			return false;
+		}
+
+		$this->source->set('mvc.' . $view . '.model_class', $class);
+		$this->source->set('mvc.' . $view . '.model_extends', $this->baseOf($code, $class));
+
+		$methods = $this->methods->parse($code);
+
+		foreach (['getlistquery' => 'query', 'getitems' => 'items', 'getitem' => 'item'] as $method => $key)
+		{
+			foreach ($methods as $name => $found)
+			{
+				if (strtolower((string) $name) !== $method)
+				{
+					continue;
+				}
+
+				$body = trim((string) ($found['body'] ?? ''));
+
+				if ($body !== '')
+				{
+					$this->source->set('mvc.' . $view . '.' . $key, $body);
+					$this->searchable($view, $body);
+				}
+
+				break;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Record the fields one query searches on.
+	 *
+	 * A list screen's search box matches the fields the component chose, and
+	 * says which in the only place it can: the comparison it builds for them.
+	 *
+	 * @param   string  $view  The view name.
+	 * @param   string  $body  The query method's body.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function searchable(string $view, string $body): void
+	{
+		if (preg_match_all('/\ba\.([A-Za-z0-9_]+)\s+LIKE\b/i', $body, $found) === false)
+		{
+			return;
+		}
+
+		foreach ((array) ($found[1] ?? []) as $column)
+		{
+			$this->source->set('mvc.' . $view . '.search.' . strtolower((string) $column), true);
+		}
 	}
 
 	/**
@@ -186,20 +296,21 @@ final class Mvc
 	}
 
 	/**
-	 * Every controller directory below one root.
+	 * Every directory one placement kind resolves to below a root.
 	 *
 	 * @param   string  $root  The resolved source root.
+	 * @param   string  $kind  The placement kind.
 	 *
 	 * @return  array<string>  Absolute directory paths.
 	 * @since   6.1.8
 	 */
-	protected function directories(string $root): array
+	protected function directories(string $root, string $kind): array
 	{
 		$found = [];
 		$layout = $this->selector->layout();
 		$tokens = ['option' => (string) $this->source->get('code_name', ''), 'tag' => 'en-GB'];
 
-		foreach ($layout->candidates('controller_dir', $tokens) as $relative)
+		foreach ($layout->candidates($kind, $tokens) as $relative)
 		{
 			$path = $this->scanner->resolve($root, $relative);
 
@@ -276,26 +387,29 @@ final class Mvc
 	 * naming prefixes the component and the word Controller instead. Both say
 	 * the same thing, and the word Controller is the marker in each.
 	 *
-	 * @param   string  $class  The controller class name.
+	 * @param   string  $class   The class name.
+	 * @param   string  $suffix  The word that marks the class's part.
 	 *
 	 * @return  string  The lower-case view name, or an empty string.
 	 * @since   6.1.8
 	 */
-	protected function viewOf(string $class): string
+	protected function viewOf(string $class, string $suffix = 'Controller'): string
 	{
-		if (str_ends_with($class, 'Controller'))
+		$length = strlen($suffix);
+
+		if (str_ends_with($class, $suffix))
 		{
-			return strtolower(substr($class, 0, -10));
+			return strtolower(substr($class, 0, -$length));
 		}
 
-		$position = strrpos($class, 'Controller');
+		$position = strrpos($class, $suffix);
 
 		if ($position === false)
 		{
 			return '';
 		}
 
-		return strtolower(substr($class, $position + 10));
+		return strtolower(substr($class, $position + $length));
 	}
 
 	/**

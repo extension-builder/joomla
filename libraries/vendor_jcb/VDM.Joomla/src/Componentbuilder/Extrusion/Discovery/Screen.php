@@ -121,6 +121,8 @@ final class Screen
 		{
 			foreach ($this->folders($directory) as $view => $path)
 			{
+				$this->listing($root, (string) $view, $path);
+
 				if ($this->one($root, (string) $view, $path))
 				{
 					$read++;
@@ -206,6 +208,233 @@ final class Screen
 		$this->source->set('screen.' . $view . '.tab_count', $number);
 
 		return true;
+	}
+
+	/**
+	 * Read the list screen of one view: its columns, and what it filters by.
+	 *
+	 * A list screen shows the fields the component chose to show, in the order
+	 * it shows them, and each column it lets a person sort by says so in the
+	 * same call. Beside it, the screen's own filter form names the fields it
+	 * filters on. Together they are what JCB keeps against each field of a
+	 * view -- whether it appears in a list at all, where, and whether it can
+	 * be sorted or filtered.
+	 *
+	 * @param   string  $root    The resolved source root.
+	 * @param   string  $view    The view folder name.
+	 * @param   string  $folder  Absolute path to the view's template folder.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function listing(string $root, string $view, string $folder): void
+	{
+		$code = '';
+
+		foreach (['default_head.php', 'tmpl/default_head.php', 'default.php', 'tmpl/default.php'] as $relative)
+		{
+			$path = $folder . '/' . $relative;
+
+			if (is_file($path))
+			{
+				$code = (string) $this->scanner->read($path);
+
+				if (str_contains($code, 'searchtools.sort'))
+				{
+					break;
+				}
+
+				$code = '';
+			}
+		}
+
+		if ($code !== '')
+		{
+			$pattern = '/searchtools\.sort[\'"]\s*,\s*[\'"][^\'"]*[\'"]\s*,\s*[\'"]a\.([A-Za-z0-9_]+)[\'"]/';
+
+			if (preg_match_all($pattern, $code, $found) !== false)
+			{
+				$order = 0;
+
+				foreach ((array) ($found[1] ?? []) as $column)
+				{
+					$column = strtolower((string) $column);
+					$this->source->set('screen.' . $view . '.sort.' . $column, true);
+
+					if ($this->source->exists('screen.' . $view . '.list.' . $column))
+					{
+						continue;
+					}
+
+					// a column the list gives a heading of its own to is a
+					// field the screen lists; what the body echoes beside it
+					// belongs to another field's cell
+					$this->source->set('screen.' . $view . '.list.' . $column, ++$order);
+				}
+			}
+		}
+
+		$this->shown($view, $folder);
+
+		foreach ($this->filters($root, $view) as $column => $kind)
+		{
+			$this->source->set('screen.' . $view . '.filter.' . $column, $kind);
+		}
+
+		$this->titled($view, $folder);
+	}
+
+	/**
+	 * Record the column one list screen links to the record with.
+	 *
+	 * The cell that opens the record is the screen saying which field names
+	 * it, which is what JCB keeps as the view's title field.
+	 *
+	 * @param   string  $view    The view folder name.
+	 * @param   string  $folder  Absolute path to the view's template folder.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function titled(string $view, string $folder): void
+	{
+		foreach (['default_body.php', 'tmpl/default_body.php', 'default.php', 'tmpl/default.php'] as $relative)
+		{
+			$path = $folder . '/' . $relative;
+
+			if (!is_file($path))
+			{
+				continue;
+			}
+
+			$code = (string) $this->scanner->read($path);
+			$position = strpos($code, '$edit;');
+
+			if ($position === false)
+			{
+				continue;
+			}
+
+			// the row's own id carries the link; the field that follows it is
+			// the one the screen shows as the record's name
+			if (preg_match_all(
+				'/\\$item->([A-Za-z0-9_]+)/',
+				substr($code, $position),
+				$found
+			) === false)
+			{
+				continue;
+			}
+
+			foreach ((array) ($found[1] ?? []) as $column)
+			{
+				$column = strtolower((string) $column);
+
+				if ($column === 'id')
+				{
+					continue;
+				}
+
+				$this->source->set('screen.' . $view . '.title', $column);
+
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Record every column one list screen's body echoes.
+	 *
+	 * The head gives each listed field a heading of its own; the body may
+	 * echo other fields beside them, inside another field's cell. Recording
+	 * both apart is what keeps a field that is merely mentioned from being
+	 * stored as a column of the list.
+	 *
+	 * @param   string  $view    The view folder name.
+	 * @param   string  $folder  Absolute path to the view's template folder.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	protected function shown(string $view, string $folder): void
+	{
+		foreach (['default_body.php', 'tmpl/default_body.php'] as $relative)
+		{
+			$path = $folder . '/' . $relative;
+
+			if (!is_file($path))
+			{
+				continue;
+			}
+
+			$code = (string) $this->scanner->read($path);
+
+			if (preg_match_all('/\\$item->([A-Za-z0-9_]+)/', $code, $found) === false)
+			{
+				return;
+			}
+
+			foreach ((array) ($found[1] ?? []) as $column)
+			{
+				$this->source->set(
+					'screen.' . $view . '.shows.' . strtolower((string) $column),
+					true
+				);
+			}
+
+			return;
+		}
+	}
+
+	/**
+	 * The fields one list screen's own filter form names.
+	 *
+	 * @param   string  $root  The resolved source root.
+	 * @param   string  $view  The view folder name.
+	 *
+	 * @return  array<string, string>  Column name keyed to the filter it takes.
+	 * @since   6.1.8
+	 */
+	protected function filters(string $root, string $view): array
+	{
+		$found = [];
+
+		foreach ($this->directories($root, 'form_dir') as $directory)
+		{
+			$path = $directory . '/filter_' . $view . '.xml';
+
+			if (!is_file($path))
+			{
+				continue;
+			}
+
+			$xml = @simplexml_load_file($path);
+
+			if ($xml === false)
+			{
+				continue;
+			}
+
+			foreach ($xml->xpath('//field') ?: [] as $field)
+			{
+				$name = strtolower(trim((string) $field['name']));
+				$type = strtolower(trim((string) $field['type']));
+
+				// the search box, the ordering, the page size and the state
+				// the toolbar posts are Joomla's own, not fields of the view
+				if ($name === '' || $type === 'hidden'
+					|| in_array($name, ['search', 'fullordering', 'limit', 'form_submited'], true))
+				{
+					continue;
+				}
+
+				// a filter that takes more than one value is stored as such
+				$found[$name] = strtolower(trim((string) $field['multiple'])) === 'true'
+					? '2' : '1';
+			}
+		}
+
+		return $found;
 	}
 
 	/**

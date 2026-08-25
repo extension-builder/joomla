@@ -4128,6 +4128,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Actions.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Assembler.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/AssemblerTest.php'

@@ -149,6 +149,24 @@ view belongs to that view; a `core.*` action of the component section
 belongs to the component itself, and one in a view's own section is view
 level, because that is what the compiler makes of it.
 
+**A permission row may only name an action JCB's own form offers.**
+`admin/forms/admin_view.xml` declares `addpermissions.action` as a list with
+a closed set of options (the `core.*` and `view.*` edit/create/delete/access
+family). An action outside it cannot be selected by hand and is not
+displayed either -- the browser shows the first option in its place -- so a
+stored row naming one is a row nobody can read. Everything else a
+component's access rules carry is the compiler's own output, written from
+the view's switches: `view.batch` on every admin view
+(`Creator/Permission.php::initBatch()`), `view.version` with `history`,
+`view.export`/`view.import` with `port`, and the menu and dashboard actions
+with `submenu`, `dashboard_list` and `dashboard_add`
+(`Creator/AccessSections.php`). Those belong to the switches, never to this
+list -- and the switches can be read back from the same rules.
+
+A field's own permission is written the same way, as
+`view.<edit|access|view>.<field>` at implementation 3, so an action of that
+shape whose tail is not one of the view's standing actions names a field.
+
 `admin_view.addpermissions` is rows of `action` plus `implementation`
 (`Compiler/Model/Permissions.php` accepts a legacy parallel-array shape
 too, but the form renders rows). `implementation` is `1` view-level,
@@ -166,6 +184,27 @@ an empty string in their place stops the compile outright. The values that
 are not checkboxes (`icomoon`, `add_api`, `filter`, `edit_create_site_view`,
 `order`, and a custom admin view's `before`) are always carried, because
 the compiler reads them whether or not they are set.
+
+## What a list screen states about its fields
+
+A compiled list screen says, in its own markup and forms, what JCB keeps
+against every field of a view:
+
+- `tmpl/<list>/default_head.php` gives each **listed** field a heading of
+  its own through `Html::_('searchtools.sort', …, 'a.<column>', …)`, in the
+  order the list shows them. What the body echoes beside them belongs to
+  another field's cell and is not a column of the list.
+- `tmpl/<list>/default_body.php` opens the record on one cell, and the
+  field echoed there is the view's **title** field, which is also the one
+  that carries the link.
+- `forms/filter_<list>.xml` names the fields the screen **filters** on, and
+  a filter declared `multiple="true"` is the multi-value filter.
+- The list model's own query compares the fields the **search** box
+  matches (`a.<column> LIKE`).
+
+One value must never be guessed: `list` = `2` means *no database column at
+all* (`Compiler/Model/Fields.php`, "2 = none database"), so a field merely
+absent from the list takes the form's empty default instead.
 
 ## What a view's main get has to be
 
@@ -193,6 +232,15 @@ without a table are built.
   routes recompute the namespace at compile time, which is what lets the
   same power compile into different components.
 
+## Fields are shared, not repeated
+
+A field is a record of its own in JCB, and every view that needs it links
+it -- which is why JCB's own components have one Globally Unique ID field
+linked by seventeen views rather than seventeen copies of it. Two harvested
+columns stating the same field (same name, type, column behind it and xml)
+are therefore one field: the first is written, and every other view links
+it. Only a person's own pairing verdict overrides that.
+
 ## Language
 
 **JCB stores the English string; its compiler makes the constant.** The
@@ -215,3 +263,11 @@ text"* (`JCB-Custom-Codes.md`).
 
 A constant the catalogue cannot answer is left exactly as it stands and
 reported, because inventing text for it would misstate the source.
+
+The catalogue is not always filled by the run itself: a library harvested
+on its own reads no component, and a class may name a constant of another
+component altogether. A constant names the component it belongs to, and an
+installed component keeps its translations in this site's own language
+folders, so a constant the run cannot answer is looked up there --
+`administrator/language/<tag>/` and `language/<tag>/`, under the component
+the constant names.

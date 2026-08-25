@@ -164,6 +164,20 @@ final class CustomAdminView extends Writer
 				continue;
 			}
 
+			// a screen the component never names is not a screen the component
+			// has: its own access rules name every screen they guard and its
+			// manifest names every screen it puts in a menu, so a folder
+			// neither speaks for is generated output or something left behind
+			if (!$this->named($name))
+			{
+				$this->report->set(
+					'skipped.custom_admin_view.' . $this->key($name),
+					'nothing in the component names this screen'
+				);
+
+				continue;
+			}
+
 			if ($this->one($name, (string) $key, $entry))
 			{
 				$written++;
@@ -230,6 +244,30 @@ final class CustomAdminView extends Writer
 		$this->resolved->set('custom_admin_view.' . $this->key($name) . '.name', $name);
 
 		return true;
+	}
+
+	/**
+	 * Whether the component itself names one screen.
+	 *
+	 * @param   string  $name  The folder's code name.
+	 *
+	 * @return  bool  True when the component names it.
+	 * @since   6.1.8
+	 */
+	protected function named(string $name): bool
+	{
+		$name = strtolower(trim($name));
+		$menu = (array) $this->source->get('menu', []);
+		$screens = (array) $this->source->get('access_screens', []);
+
+		if (isset($menu[$name]) || !empty($screens[$name]))
+		{
+			return true;
+		}
+
+		// a component with neither access rules nor a menu states nothing
+		// either way, and then the screen stands on its own evidence
+		return $menu === [] && $screens === [];
 	}
 
 	/**

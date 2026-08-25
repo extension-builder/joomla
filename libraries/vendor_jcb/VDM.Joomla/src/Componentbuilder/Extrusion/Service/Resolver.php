@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
@@ -50,6 +51,9 @@ class Resolver implements ServiceProviderInterface
 	 */
 	public function register(Container $container)
 	{
+		$container->alias(Actions::class, 'Extrusion.Resolver.Actions')
+			->share('Extrusion.Resolver.Actions', [$this, 'getActions'], true);
+
 		$container->alias(Guid::class, 'Extrusion.Resolver.Guid')
 			->share('Extrusion.Resolver.Guid', [$this, 'getGuid'], true);
 
@@ -103,6 +107,21 @@ class Resolver implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the permission actions resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Actions
+	 * @since   6.1.8
+	 */
+	public function getActions(Container $container): Actions
+	{
+		return new Actions(
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
 	 * Get the identity resolver.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -140,7 +159,8 @@ class Resolver implements ServiceProviderInterface
 	{
 		return new LanguageResolver(
 			$container->get('Extrusion.Registry.Language'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Source')
 		);
 	}
 
