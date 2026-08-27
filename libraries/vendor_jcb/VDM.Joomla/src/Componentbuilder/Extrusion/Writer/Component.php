@@ -161,16 +161,14 @@ final class Component extends Writer
 			return 1;
 		}
 
-		$record = (object) (['id' => $component] + $definition);
-
-		if (!$this->item->table($this->table())->set($record, 'id'))
+		// the same gate every other record passes: the run's policy on what
+		// already stands is read in exactly one place, and a component row is
+		// no more exempt from it than a field is
+		if (!$this->store((object) (['id' => $component] + $definition), [], 'id'))
 		{
-			$this->report->set('failed.joomla_component.' . $component, true);
-
 			return 0;
 		}
 
-		$this->report->set('written.joomla_component.' . $component, true);
 		$this->report->set('counts.joomla_component', 1);
 
 		return 1;
@@ -226,15 +224,17 @@ final class Component extends Writer
 			return 1;
 		}
 
-		if (!$this->item->table($this->table())->set($definition, 'guid'))
+		// the naming and the version are scaffolding for a component that does
+		// not exist yet; a person who has since named their own must keep it
+		if (!$this->store($definition, [
+			'system_name', 'published', 'short_description', 'description',
+			'component_version'
+		]))
 		{
-			$this->report->set('failed.joomla_component.' . $guid, true);
-
 			return 0;
 		}
 
 		$this->resolved->set('component.guid', $guid);
-		$this->report->set('written.joomla_component.' . $guid, true);
 		$this->report->set('counts.joomla_component', 1);
 
 		return 1;

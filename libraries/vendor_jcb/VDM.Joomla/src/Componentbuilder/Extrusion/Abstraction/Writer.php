@@ -139,9 +139,9 @@ abstract class Writer implements WriterInterface
 	 * @return  bool  True when the definition was written, or a dry run skipped it.
 	 * @since   6.1.6
 	 */
-	protected function store(object $definition, array $boilerplate = []): bool
+	protected function store(object $definition, array $boilerplate = [], ?string $key = null): bool
 	{
-		$key = $this->linkKey();
+		$key = $key ?? $this->linkKey();
 		$identity = (string) ($definition->{$key} ?? '');
 
 		if ($identity === '')

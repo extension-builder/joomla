@@ -323,6 +323,31 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * A dotted folder speaks only for a namespace it actually opens.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAFolderThatDoesNotOpenTheNamespaceDefersNothing(): void
+	{
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'Zoo\Joomla\Abstraction.Model',
+			$namespacer->placeholderize('Zoo\Joomla\Abstraction.Model', 'vdm.io'),
+			'Carrying dots is not the same as naming these segments. Deferring '
+			. 'on the first would fold this class onto whatever power already '
+			. 'stands at that tail, and a run updating what exists would then '
+			. 'write over it.'
+		);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\Abstraction.Model',
+			$namespacer->placeholderize('Zoo\Joomla\Abstraction.Model', 'Zoo.Joomla'),
+			'A folder that does open it still speaks for it.'
+		);
+	}
+
+	/**
 	 * Unfolding a stored namespace into the class it compiles to.
 	 *
 	 * @return  void

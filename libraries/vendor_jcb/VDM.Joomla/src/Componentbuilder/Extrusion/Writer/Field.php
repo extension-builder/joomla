@@ -300,7 +300,10 @@ final class Field extends Writer
 			$column
 		);
 		$definition->null_switch = (string) $this->value($properties, 'null', 'NULL');
-		$definition->store = $this->storeCode((string) $this->value($properties, 'store', ''));
+		$definition->store = $this->storeCode(
+			$column,
+			(string) $this->value($properties, 'store', '')
+		);
 		$definition->xml = $this->fieldxml->build($column, $properties);
 		$definition->published = 1;
 
@@ -467,6 +470,29 @@ final class Field extends Writer
 	}
 
 	/**
+	 * How a column's stored form is numbered, as JCB's own compiler reads it.
+	 *
+	 * Compiler\Creator\Builders::store() is the authority and it switches on
+	 * these numbers: 1 is json, 2 is base64, and 5 is the medium encryption --
+	 * which is the reverse of the order the words suggest. Reading them the
+	 * other way round does not fail, it succeeds quietly: a base64 column is
+	 * marked json, and the component built from it then tries to json decode
+	 * every value the old one wrote. admin/forms/field.xml offers the same
+	 * numbers, bar 4, which the compiler still handles.
+	 *
+	 * @var    array<string, int>
+	 * @since  6.1.8
+	 */
+	private const STORES = [
+		'json' => 1,
+		'base64' => 2,
+		'basic_encryption' => 3,
+		'whmcs_encryption' => 4,
+		'medium_encryption' => 5,
+		'expert_mode' => 6
+	];
+
+	/**
 	 * The index names JCB claims for the columns it manages itself.
 	 *
 	 * Compiler\Architecture\Component\InstallSql writes each of these after a
@@ -548,23 +574,29 @@ final class Field extends Writer
 	 * @return  int  The JCB store code.
 	 * @since   6.1.6
 	 */
-	protected function storeCode(string $store): int
+	protected function storeCode(string $column, string $store): int
 	{
-		switch (strtolower(trim($store)))
+		$store = strtolower(trim($store));
+
+		if ($store === '')
 		{
-			case 'base64':
-				return 1;
-			case 'json':
-				return 2;
-			case 'basic_encryption':
-				return 3;
-			case 'whmcs_encryption':
-				return 4;
-			case 'expert_mode_encryption':
-				return 5;
-			default:
-				return 0;
+			return 0;
 		}
+
+		if (!isset(self::STORES[$store]))
+		{
+			// a codec nobody recognises must not become "no codec": that both
+			// strips the encryption the source asked for and gives the field
+			// the shape of a plain one, which is how it then merges with them
+			$this->report->set(
+				'failed.field.unknown_store.' . $this->key($column),
+				$store
+			);
+
+			return 0;
+		}
+
+		return self::STORES[$store];
 	}
 
 	/**
