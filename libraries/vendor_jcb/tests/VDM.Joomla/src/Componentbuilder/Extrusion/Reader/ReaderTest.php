@@ -469,6 +469,30 @@ PHP;
 	}
 
 	/**
+	 * DEFAULT NULL states what stating no default states.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testADefaultOfNullStatesNoDefaultAtAll(): void
+	{
+		$parsed = (new CreateTable())->parse(
+			"CREATE TABLE `#__d` (\n"
+			. "\t`site` VARCHAR(255) DEFAULT NULL,\n"
+			. "\t`note` VARCHAR(255) DEFAULT ''\n"
+			. ')'
+		);
+
+		$this->assertIsArray($parsed);
+		$this->assertFalse(
+			$parsed['columns']['site']['default_stated'],
+			'A column falling back to NULL is not a column defaulting to the '
+			. 'empty string, and a query can tell the two apart.'
+		);
+		$this->assertTrue($parsed['columns']['note']['default_stated']);
+	}
+
+	/**
 	 * A table states its own engine, character set, collation and row format.
 	 *
 	 * @return  void

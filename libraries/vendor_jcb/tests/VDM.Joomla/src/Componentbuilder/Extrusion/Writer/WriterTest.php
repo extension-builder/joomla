@@ -586,6 +586,36 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A column defaulting to the word JCB reserves is named, not passed over.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAColumnDefaultingToTheReservedWordIsReported(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'marker', [
+			'xml_type' => 'text',
+			'datatype' => 'VARCHAR',
+			'size' => '20',
+			'db_default' => 'EMPTY',
+			'db_default_stated' => true
+		]);
+
+		$this->assertSame(1, $this->field()->write());
+
+		$definition = $this->item->definitions('field')[0];
+
+		$this->assertSame('', $definition->datadefault);
+		$this->assertSame('', $definition->datadefault_other);
+		$this->assertStringContainsString(
+			'reserves for a column carrying no default',
+			(string) $this->report->get('skipped.default.reserved_word.marker'),
+			'What cannot be carried is named rather than lost quietly.'
+		);
+	}
+
+	/**
 	 * A field never asks for an index name JCB claims for its own columns.
 	 *
 	 * @return  void
