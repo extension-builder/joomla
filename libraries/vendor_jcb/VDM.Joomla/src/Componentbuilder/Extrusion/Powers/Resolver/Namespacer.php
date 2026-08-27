@@ -127,6 +127,32 @@ final class Namespacer
 	}
 
 	/**
+	 * Whether a library folder's dotted name is this namespace's own head.
+	 *
+	 * Carrying dots is not the same proposition as naming these segments, and
+	 * reading the first as the second defers a vendor prefix that was never
+	 * the library's: a folder called vdm.io holding Zoo\Joomla\Abstraction
+	 * would fold onto whatever stock power already stands at that tail, and a
+	 * run updating what exists would then write over it. The head only speaks
+	 * for a namespace it actually opens -- which is the test head() already
+	 * applies when it decides how many segments the head keeps.
+	 *
+	 * @param   string         $library  The library's own folder name.
+	 * @param   array<string>  $head     The stored form's backslash head.
+	 *
+	 * @return  bool  True when the folder names this head.
+	 * @since   6.1.8
+	 */
+	protected function opens(string $library, array $head): bool
+	{
+		$stated = $this->vendor($library);
+		$length = count($stated);
+
+		return $length > 0 && $length <= count($head)
+			&& $stated === array_slice($head, 0, $length);
+	}
+
+	/**
 	 * The namespace segments one library folder name states.
 	 *
 	 * The dots in a library's folder name are the convention's own record of
@@ -201,9 +227,9 @@ final class Namespacer
 	{
 		$prefix = $this->placeholders->prefix();
 		$component = $this->placeholders->component();
-		$stated = $this->vendor($library) !== [];
 		$sections = explode('\\', $stored);
 		$last = count($sections) - 1;
+		$stated = $this->opens($library, array_slice($sections, 0, max($last, 0)));
 
 		foreach ($sections as $index => $section)
 		{

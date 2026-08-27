@@ -682,13 +682,15 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue($resolved->get('view.item.roles.name.list'));
 		$this->assertSame('table', $report->get('roles.item.origin'));
 		$this->assertSame(
-			1,
+			2,
 			$this->item->definition('field', '66666666-7777-4888-8999-aaaaaaaaaaaa')->store,
-			'A base64 store is written as the JCB store code, never applied to values.'
+			'A base64 store is written as the code the compiler reads base64 '
+			. 'from -- 2, not 1, which is json.'
 		);
 		$this->assertSame(
-			2,
-			$this->item->definition('field', 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff')->store
+			1,
+			$this->item->definition('field', 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff')->store,
+			'And a json store is 1, which is the pair of the line above.'
 		);
 		$this->assertSame(['Item Details', 'Metrics'], $resolved->get('view.item.tabs'));
 		$this->assertSame(['Details'], $resolved->get('view.category.tabs'));

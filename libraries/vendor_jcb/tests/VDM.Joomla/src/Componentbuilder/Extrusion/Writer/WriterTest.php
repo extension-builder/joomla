@@ -534,7 +534,8 @@ final class WriterTest extends TestCase
 			'structured' => 'json',
 			'secret' => 'basic_encryption',
 			'guarded' => 'whmcs_encryption',
-			'expert' => 'expert_mode_encryption',
+			'medium' => 'medium_encryption',
+			'expert' => 'expert_mode',
 			'unknown' => 'something_else'
 		];
 
@@ -543,10 +544,21 @@ final class WriterTest extends TestCase
 			$this->seedField('item', $column, ['xml_type' => 'text', 'store' => $store]);
 		}
 
-		$this->assertSame(8, $this->field()->write());
+		$this->assertSame(9, $this->field()->write());
 		$this->assertSame(
-			[0, 1, 1, 2, 3, 4, 5, 0],
-			array_column($this->item->definitions('field'), 'store')
+			[0, 2, 2, 1, 3, 4, 5, 6, 0],
+			array_column($this->item->definitions('field'), 'store'),
+			'These numbers are the compiler\'s, not a reading of the words: '
+			. 'Compiler\\Creator\\Builders::store() switches 1 to json and 2 to '
+			. 'base64, and admin/forms/field.xml offers the same. Reading them '
+			. 'the other way round does not fail -- it marks a base64 column as '
+			. 'json, and the built component then json decodes what the old one '
+			. 'base64 encoded.'
+		);
+		$this->assertSame(
+			'something_else',
+			$this->report->get('failed.field.unknown_store.unknown'),
+			'A codec nobody recognises is named, never quietly turned into none.'
 		);
 	}
 
@@ -691,6 +703,44 @@ final class WriterTest extends TestCase
 		$this->form->set($path . 'fullordering.option.2.value', 'a.name DESC');
 		$this->form->set($path . 'limit.name', 'limit');
 		$this->form->set($path . 'limit.fieldset', 'list');
+	}
+
+	/**
+	 * The component record passes the same gate every other record passes.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheComponentRecordHonoursTheOnExistingPolicy(): void
+	{
+		$this->config->set('onExisting', 'skip');
+		$this->source->set('code_name', 'com_example');
+		$this->source->set('name', 'Example');
+
+		$guid = $this->guid->derive(['joomla_component', 'example']);
+		$this->item->identity('joomla_component', $guid, 9);
+
+		$catalogue = new LanguageRegistry();
+		$writer = new Component(
+			$this->config,
+			$this->resolved,
+			$this->item,
+			$this->report,
+			$this->source,
+			new Language($catalogue, $this->report, $this->source),
+			$this->guid
+		);
+
+		$this->assertSame(1, $writer->write());
+		$this->assertSame(
+			[],
+			$this->item->records(),
+			'A component row is no more exempt from the run\'s policy on what '
+			. 'already stands than a field is.'
+		);
+		$this->assertTrue(
+			(bool) $this->report->get('skipped.existing.joomla_component.' . $guid)
+		);
 	}
 
 	/**
