@@ -503,7 +503,11 @@ final class CreateTable
 
 		if (strcasecmp($raw, 'NULL') === 0)
 		{
-			return '';
+			// DEFAULT NULL states the same thing as stating no default at all:
+			// the column falls back to NULL. Reading it as the empty string
+			// would give the column a default of '' instead, which is a
+			// different value a query can tell apart
+			return null;
 		}
 
 		return $raw . $this->call($text, strlen($raw));

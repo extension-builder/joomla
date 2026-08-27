@@ -322,6 +322,21 @@ final class Field extends Writer
 			$definition->datadefault = 'Other';
 			$definition->datadefault_other = 'EMPTY';
 		}
+		elseif ($columnDefault === 'EMPTY')
+		{
+			// EMPTY is the word JCB reserves for "this column carries no
+			// DEFAULT clause", so a column whose default is literally that
+			// word cannot be stored as itself. Dropping the clause would leave
+			// a NOT NULL column with no default at all, so the nearest thing
+			// is kept and the loss is named rather than passed over
+			$definition->datadefault = '';
+			$definition->datadefault_other = '';
+			$this->report->set(
+				'skipped.default.reserved_word.' . $this->key($column),
+				'the column defaults to the word EMPTY, which JCB reserves for '
+				. 'a column carrying no default at all'
+			);
+		}
 		else
 		{
 			$definition->datadefault = in_array($columnDefault, self::DEFAULTS, true) || $columnDefault === ''
