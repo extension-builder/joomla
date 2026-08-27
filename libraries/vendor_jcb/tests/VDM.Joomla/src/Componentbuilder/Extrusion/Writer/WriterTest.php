@@ -586,6 +586,51 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A field never asks for an index name JCB claims for its own columns.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testAFieldNeverClaimsAnIndexNameJcbUsesItself(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'state', [
+			'xml_type' => 'list',
+			'datatype' => 'TINYINT',
+			'size' => '3',
+			'key' => 1
+		]);
+		$this->seedField('item', 'title', [
+			'xml_type' => 'text',
+			'datatype' => 'VARCHAR',
+			'size' => '255',
+			'key' => 1
+		]);
+
+		$this->assertSame(2, $this->field()->write());
+
+		[$state, $title] = $this->item->definitions('field');
+
+		$this->assertSame(
+			0,
+			$state->indexes,
+			'JCB names the published column\'s index idx_state, and a table '
+			. 'carrying that name twice is refused outright -- the column and '
+			. 'its field stand, only the index is given up.'
+		);
+		$this->assertSame(
+			2,
+			$title->indexes,
+			'A column claiming no name of JCB\'s keeps the index it asked for.'
+		);
+		$this->assertStringContainsString(
+			'cannot carry that name twice',
+			(string) $this->report->get('skipped.index.claimed.state'),
+			'What was given up is named, with the reason.'
+		);
+	}
+
+	/**
 	 * A column with no default of its own is written as JCB spells that.
 	 *
 	 * @return  void

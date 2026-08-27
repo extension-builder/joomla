@@ -296,7 +296,8 @@ final class Field extends Writer
 		$definition->fieldtype = $identity;
 		$definition->datatype = (string) $this->value($properties, 'datatype', 'TEXT');
 		$definition->indexes = $this->indexes(
-			(int) $this->value($properties, 'key', 0)
+			(int) $this->value($properties, 'key', 0),
+			$column
 		);
 		$definition->null_switch = (string) $this->value($properties, 'null', 'NULL');
 		$definition->store = $this->storeCode((string) $this->value($properties, 'store', ''));
@@ -451,6 +452,27 @@ final class Field extends Writer
 	}
 
 	/**
+	 * The index names JCB claims for the columns it manages itself.
+	 *
+	 * Compiler\Architecture\Component\InstallSql writes each of these after a
+	 * view's own field indexes, guarding each on the name of the column it
+	 * indexes rather than on the name of the index. A field named for one of
+	 * these indexes therefore slips past the guard and the table is written
+	 * with the same key name twice, which MySQL refuses outright (1061) -- so
+	 * the component builds and then installs nothing at all.
+	 *
+	 * @var    array<string, string>
+	 * @since  6.1.8
+	 */
+	private const CLAIMED = [
+		'idx_access' => 'access',
+		'idx_checkout' => 'checked_out',
+		'idx_createdby' => 'created_by',
+		'idx_modifiedby' => 'modified_by',
+		'idx_state' => 'published'
+	];
+
+	/**
 	 * The index a field carries, on the scale JCB's own form offers.
 	 *
 	 * The schema and the field record rank keys differently, and the two used
@@ -468,14 +490,39 @@ final class Field extends Writer
 	 * @return  int  The value the field record stores.
 	 * @since   6.1.8
 	 */
-	protected function indexes(int $rank): int
+	protected function indexes(int $rank, string $column): int
 	{
-		return match ($rank)
+		$index = match ($rank)
 		{
 			2 => 1,
 			1 => 2,
 			default => 0
 		};
+
+		if ($index === 0)
+		{
+			return 0;
+		}
+
+		// JCB names a field's index after its column and its own five after
+		// the columns it manages, and MySQL refuses a table carrying one name
+		// twice. A source column named "state" therefore asks for the very
+		// name JCB gives the published column, and the whole install fails
+		// with nothing built -- so the column and its field stand, and only
+		// the index it asked for is given up, which a person can restore.
+		if (isset(self::CLAIMED['idx_' . strtolower(trim($column))]))
+		{
+			$this->report->set(
+				'skipped.index.claimed.' . $this->key($column),
+				'JCB names its own index for the ' . self::CLAIMED['idx_' . strtolower(trim($column))]
+				. ' column idx_' . strtolower(trim($column))
+				. ', and one table cannot carry that name twice'
+			);
+
+			return 0;
+		}
+
+		return $index;
 	}
 
 	/**
