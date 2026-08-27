@@ -616,6 +616,84 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A list screen's settings come from the filter form the component ships.
+	 *
+	 * This is the whole of what replaced reading a compiled list screen, and it
+	 * is stated by a file every Joomla component offering a list ships, whoever
+	 * built it: the filter fieldset names what the screen filters on, and the
+	 * ordering field names every column it sorts by.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	public function testTheFilterFormStatesTheListSettings(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.name_list', 'items');
+		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
+		$this->seedField('item', 'counter', ['xml_type' => 'number']);
+		$this->seedField('item', 'colour', ['xml_type' => 'color']);
+		$this->seedWritten('item', 'view', self::VIEW_GUID);
+		$this->seedWritten('item', 'name', 'ffffffff-0000-4000-8000-00000000f001');
+		$this->seedWritten('item', 'counter', 'ffffffff-0000-4000-8000-00000000f002');
+		$this->seedWritten('item', 'colour', 'ffffffff-0000-4000-8000-00000000f003');
+		$this->seedFilterForm();
+
+		$this->assertSame(1, $this->adminFields()->write());
+
+		$rows = [];
+
+		foreach ((array) $this->item->definitions('admin_fields')[0]->addfields as $row)
+		{
+			$rows[(string) $row['field']] = $row;
+		}
+
+		$name = $rows['ffffffff-0000-4000-8000-00000000f001'];
+		$counter = $rows['ffffffff-0000-4000-8000-00000000f002'];
+		$colour = $rows['ffffffff-0000-4000-8000-00000000f003'];
+
+		$this->assertSame('1', $name['sort'] ?? '', 'The ordering field names a.name.');
+		$this->assertSame('1', $name['list'] ?? '');
+		$this->assertSame(
+			'2',
+			$counter['filter'] ?? '',
+			'A filter declared multiple takes several values at once.'
+		);
+		$this->assertSame(
+			'',
+			$colour['list'] ?? '',
+			'A column the form never names is not on the screen -- and is never '
+			. 'stored as 2, which would take its database column away.'
+		);
+		$this->assertSame('', $colour['filter'] ?? '');
+	}
+
+	/**
+	 * Seed a list filter form of the shape every Joomla component ships.
+	 *
+	 * @return  void
+	 * @since   6.1.8
+	 */
+	private function seedFilterForm(): void
+	{
+		$path = 'view.filter_items.field.';
+
+		$this->form->set('view.filter_items.name', 'filter_items');
+		$this->form->set($path . 'search.name', 'search');
+		$this->form->set($path . 'search.fieldset', 'filter');
+		$this->form->set($path . 'counter.name', 'counter');
+		$this->form->set($path . 'counter.fieldset', 'filter');
+		$this->form->set($path . 'counter.attribute.multiple', 'true');
+		$this->form->set($path . 'fullordering.name', 'fullordering');
+		$this->form->set($path . 'fullordering.fieldset', 'list');
+		$this->form->set($path . 'fullordering.option.0.value', '');
+		$this->form->set($path . 'fullordering.option.1.value', 'a.name ASC');
+		$this->form->set($path . 'fullordering.option.2.value', 'a.name DESC');
+		$this->form->set($path . 'limit.name', 'limit');
+		$this->form->set($path . 'limit.fieldset', 'list');
+	}
+
+	/**
 	 * A field never asks for an index name JCB claims for its own columns.
 	 *
 	 * @return  void
