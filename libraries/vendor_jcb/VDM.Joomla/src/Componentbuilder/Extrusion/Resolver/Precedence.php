@@ -399,10 +399,16 @@ final class Precedence implements PrecedenceInterface
 				if (is_array($option) && isset($option['text'])
 					&& $this->language->isConstant($option['text']))
 				{
-					$option['text'] = $this->language->resolve(
+					$resolved = $this->language->resolve(
 						$option['text'],
 						(string) $option['text']
 					);
+
+					// an option whose text nothing answered for keeps its
+					// value as its face rather than carrying the constant
+					$option['text'] = $this->language->isConstant($resolved)
+						? ''
+						: $resolved;
 				}
 			}
 
