@@ -194,7 +194,9 @@ final class AdminView extends Writer
 		// the engine, character set, collation and row format a table runs on
 		// are stated by the table itself; without them JCB falls back to its
 		// own defaults and quietly rebuilds a modern table as MyISAM and utf8
-		foreach ((array) $this->resolved->get($path . '.table_options', []) as $option => $value)
+		$options = (array) $this->resolved->get($path . '.table_options', []);
+
+		foreach ($options as $option => $value)
 		{
 			$value = trim((string) $value);
 
@@ -202,6 +204,18 @@ final class AdminView extends Writer
 			{
 				$definition->{'mysql_table_' . $option} = $value;
 			}
+		}
+
+		// a table stating its character set and no collation means, by MySQL's
+		// own rule, that charset's default collation. Left unsaid here, JCB
+		// pairs the stated charset with its own utf8 default instead, and
+		// MySQL refuses the table outright (1253) -- so what the statement
+		// means is written out
+		if (trim((string) ($options['charset'] ?? '')) !== ''
+			&& trim((string) ($options['collate'] ?? '')) === '')
+		{
+			$definition->mysql_table_collate =
+				trim((string) $options['charset']) . '_general_ci';
 		}
 
 		if (is_string($seed) && $seed !== '')

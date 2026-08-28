@@ -400,11 +400,17 @@ final class ExtruderTest extends FilesystemTestCase
 			'The second run must not inherit an identity only the first run could write.'
 		);
 		$this->assertCount(
-			3,
+			8,
 			(array) $second->get('written.field'),
-			'The report counts only what this run wrote, and two views stating '
-			. 'the same field state one field: the rest are linked to it rather '
-			. 'than written again under another identity.'
+			'No two columns of this component state the same identity, so every '
+			. 'field is its own. The old in-writer sharing map survived reset() '
+			. 'and quietly related this run\'s columns to the previous '
+			. 'component\'s fields -- sharing now lives in the run\'s own '
+			. 'registries, which reset clears.'
+		);
+		$this->assertNull(
+			$second->get('counts.fields_shared'),
+			'And nothing is reported shared where nothing is.'
 		);
 		$this->assertGreaterThan($written, count($this->item->records()));
 		$this->assertSame(

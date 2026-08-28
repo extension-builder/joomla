@@ -4144,6 +4144,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CandidatesTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Sharing.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/SharingTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Role.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'

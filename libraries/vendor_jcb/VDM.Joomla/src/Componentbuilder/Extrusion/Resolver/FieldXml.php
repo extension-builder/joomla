@@ -123,6 +123,49 @@ final class FieldXml
 	}
 
 	/**
+	 * The stated identity of one resolved field, as one canonical string.
+	 *
+	 * Two columns are the same field exactly when everything their sources
+	 * stated matches: the code name, the label, the type, and every stated
+	 * property -- required true and required false are two different fields.
+	 * This is that statement, canonicalised: the stated attribute bag and the
+	 * option list, sorted, with nothing the composer would later pad in. The
+	 * padding never belongs here, because two identical statements must match
+	 * whatever examples a field type happens to declare.
+	 *
+	 * @param   string                                              $column      The source column name.
+	 * @param   array<string, array{value: mixed, origin: string}>  $properties  Resolved properties.
+	 *
+	 * @return  string  The canonical stated identity.
+	 * @since   6.1.9
+	 */
+	public function essence(string $column, array $properties): string
+	{
+		$stated = $this->bag($column, $properties);
+		$option = $this->optionAttribute($properties);
+
+		if ($option !== '')
+		{
+			$stated['option'] = $option;
+		}
+
+		$stated['type'] = strtolower(trim(
+			(string) ($properties['xml_type']['value'] ?? '')
+		));
+
+		ksort($stated);
+
+		$parts = [];
+
+		foreach ($stated as $name => $value)
+		{
+			$parts[] = $name . '="' . $value . '"';
+		}
+
+		return implode(' ', $parts);
+	}
+
+	/**
 	 * The ordered, filtered attribute set for one resolved field.
 	 *
 	 * @param   string                                            $column      The source column name.

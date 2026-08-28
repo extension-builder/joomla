@@ -29,6 +29,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Sharing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\ViewName;
@@ -77,6 +78,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Role::class, 'Extrusion.Resolver.Role')
 			->share('Extrusion.Resolver.Role', [$this, 'getRole'], true);
+
+		$container->alias(Sharing::class, 'Extrusion.Resolver.Sharing')
+			->share('Extrusion.Resolver.Sharing', [$this, 'getSharing'], true);
 
 		$container->alias(Tab::class, 'Extrusion.Resolver.Tab')
 			->share('Extrusion.Resolver.Tab', [$this, 'getTab'], true);
@@ -247,6 +251,26 @@ class Resolver implements ServiceProviderInterface
 	{
 		return new Role(
 			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the sharing resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Sharing
+	 * @since   6.1.9
+	 */
+	public function getSharing(Container $container): Sharing
+	{
+		return new Sharing(
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Resolver.Guid'),
+			$container->get('Extrusion.Resolver.FieldXml'),
 			$container->get('Extrusion.Registry.Report')
 		);
 	}

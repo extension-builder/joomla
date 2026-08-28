@@ -706,6 +706,36 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A stated charset with no collation means that charset's own default.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAStatedCharsetWithoutACollationCarriesItsOwnDefault(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.table_options', [
+			'engine' => 'InnoDB',
+			'charset' => 'utf8mb4'
+		]);
+		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$definition = $this->item->definitions('admin_view')[0];
+
+		$this->assertSame('InnoDB', $definition->mysql_table_engine);
+		$this->assertSame('utf8mb4', $definition->mysql_table_charset);
+		$this->assertSame(
+			'utf8mb4_general_ci',
+			$definition->mysql_table_collate,
+			'By MySQL\'s own rule a stated charset with no COLLATE means that '
+			. 'charset\'s default collation; left unsaid, JCB pairs the charset '
+			. 'with its utf8 default and MySQL refuses the table outright.'
+		);
+	}
+
+	/**
 	 * The component record passes the same gate every other record passes.
 	 *
 	 * @return  void

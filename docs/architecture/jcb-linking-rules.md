@@ -293,10 +293,29 @@ each rewrites the table:
 
 A field is a record of its own in JCB, and every view that needs it links
 it -- which is why JCB's own components have one Globally Unique ID field
-linked by seventeen views rather than seventeen copies of it. Two harvested
-columns stating the same field (same name, type, column behind it and xml)
-are therefore one field: the first is written, and every other view links
-it. Only a person's own pairing verdict overrides that.
+linked by seventeen views rather than seventeen copies of it.
+
+Which harvested columns are one field is settled before anything is
+written (`Extrusion/Resolver/Sharing`), so the list a person approves
+already shows one field and the views it serves. The rule, in the order it
+runs:
+
+- **A stated Global Unique ID outranks everything.** The same guid is the
+  same field always -- it will never differ for the same field -- and a
+  column stating no guid whose statement matches a guid-stating column
+  belongs to that guid.
+- **Otherwise the sources' own statements decide, exactly.** The code
+  name, the label, the field type, the database shape, and every stated
+  XML property must match -- `required="true"` and `required="false"` are
+  two different fields, and a per-view description is a statement like any
+  other. The match runs on what the sources *stated*, never on the padding
+  a field type's examples would add.
+
+The first view in table order owns the record; every later view links its
+guid. A person's pairing verdict on one column detaches exactly that view.
+Nothing looks outside the component being extruded: a field that already
+stands elsewhere in the system is linked by a pairing decision on the
+board, never by resemblance.
 
 ## Language
 
