@@ -127,32 +127,6 @@ final class Namespacer
 	}
 
 	/**
-	 * Whether a library folder's dotted name is this namespace's own head.
-	 *
-	 * Carrying dots is not the same proposition as naming these segments, and
-	 * reading the first as the second defers a vendor prefix that was never
-	 * the library's: a folder called vdm.io holding Zoo\Joomla\Abstraction
-	 * would fold onto whatever stock power already stands at that tail, and a
-	 * run updating what exists would then write over it. The head only speaks
-	 * for a namespace it actually opens -- which is the test head() already
-	 * applies when it decides how many segments the head keeps.
-	 *
-	 * @param   string         $library  The library's own folder name.
-	 * @param   array<string>  $head     The stored form's backslash head.
-	 *
-	 * @return  bool  True when the folder names this head.
-	 * @since   6.1.8
-	 */
-	protected function opens(string $library, array $head): bool
-	{
-		$stated = $this->vendor($library);
-		$length = count($stated);
-
-		return $length > 0 && $length <= count($head)
-			&& $stated === array_slice($head, 0, $length);
-	}
-
-	/**
 	 * The namespace segments one library folder name states.
 	 *
 	 * The dots in a library's folder name are the convention's own record of
@@ -208,46 +182,43 @@ final class Namespacer
 	 * Defer the resolved prefix and component segments back to placeholders.
 	 *
 	 * The vendor prefix is the first segment: that is what the convention
-	 * means, and every power JCB ships carries the placeholder there. So a
-	 * library that states its head in a dotted folder name has stated its
-	 * prefix along with it, and the segment is deferred whatever it reads --
-	 * which is the whole point, since deferring it is what lets one class
-	 * serve components whose prefixes differ. A library whose folder states
-	 * nothing is only deferred when its first segment is the prefix the run
-	 * already resolves to, because nothing else has claimed the convention on
-	 * its behalf.
+	 * means, and every power JCB ships carries the placeholder there -- so
+	 * the first segment is ALWAYS deferred, whatever it reads. Deferring it
+	 * is the whole point: one class then serves components whose prefixes
+	 * differ, and a harvested library folds onto the very powers it was
+	 * compiled from.
 	 *
-	 * @param   string  $stored   The stored form with concrete values.
-	 * @param   string  $library  The library's own folder name, when it has one.
+	 * A segment that answers, case aside, to a component namespace this run
+	 * knows -- the component being extruded, the component being paired, or
+	 * either one's placeholder overrides -- is that component's own segment,
+	 * and is deferred the same way. What it actually read is witnessed with
+	 * the vendor prefix beside it, so the run can record the values the
+	 * placeholders must resolve back to.
+	 *
+	 * @param   string  $stored  The stored form with concrete values.
 	 *
 	 * @return  string  The stored form as a power row carries it.
 	 * @since   6.1.7
 	 */
-	public function placeholderize(string $stored, string $library = ''): string
+	public function placeholderize(string $stored): string
 	{
-		$prefix = $this->placeholders->prefix();
-		$component = $this->placeholders->component();
 		$sections = explode('\\', $stored);
 		$last = count($sections) - 1;
-		$stated = $this->opens($library, array_slice($sections, 0, max($last, 0)));
+		$vendor = (string) $sections[0];
+		$component = null;
 
 		foreach ($sections as $index => $section)
 		{
-			if ($index === 0 && $last > 0
-				&& ($stated || ($prefix !== '' && $section === $prefix)))
+			if ($index === 0 && $last > 0)
 			{
 				$sections[0] = Placeholders::PREFIX;
 
 				continue;
 			}
 
-			if ($component === '')
+			if ($index < $last && $this->placeholders->answers($section))
 			{
-				continue;
-			}
-
-			if ($index < $last && $section === $component)
-			{
+				$component ??= $section;
 				$sections[$index] = Placeholders::COMPONENT;
 
 				continue;
@@ -260,8 +231,9 @@ final class Namespacer
 				// the final part is the class itself, never a placeholder
 				foreach (array_slice(array_keys($parts), 0, -1) as $key)
 				{
-					if ($parts[$key] === $component)
+					if ($this->placeholders->answers($parts[$key]))
 					{
+						$component ??= $parts[$key];
 						$parts[$key] = Placeholders::COMPONENT;
 					}
 				}
@@ -270,7 +242,28 @@ final class Namespacer
 			}
 		}
 
+		if ($component !== null)
+		{
+			// a class carrying the component's segment is the component's own,
+			// so its library states the very values the placeholders must
+			// resolve back to when the component is compiled again
+			$this->placeholders->witness($vendor, $component);
+		}
+
 		return implode('\\', $sections);
+	}
+
+	/**
+	 * Drop everything the conversions witnessed, so a fresh run reads fresh.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.9
+	 */
+	public function forget(): self
+	{
+		$this->placeholders->forget();
+
+		return $this;
 	}
 
 	/**

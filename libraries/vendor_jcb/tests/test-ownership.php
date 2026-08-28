@@ -4004,6 +4004,10 @@ return [
 		'mode' => 'integration',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/ExtruderTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Writer/Vendor.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/ExtruderTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Dispatcher.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/ReaderTest.php'

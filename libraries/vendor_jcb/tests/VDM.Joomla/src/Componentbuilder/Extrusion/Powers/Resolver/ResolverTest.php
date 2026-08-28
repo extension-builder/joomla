@@ -164,10 +164,12 @@ final class ResolverTest extends TestCase
 	public function testComponentOverridesOutrankEverything(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
+		// override values travel base64 encoded, exactly as the compiler
+		// decodes them in applyComponentOverrides
 		$this->load->overrides('comp-guid', [
-			['target' => '[[[NamespacePrefix]]]', 'value' => 'Custom'],
-			['target' => '###ComponentNamespace###', 'value' => 'Rebuilt'],
-			['target' => 'Unrelated', 'value' => 'Noise']
+			['target' => '[[[NamespacePrefix]]]', 'value' => base64_encode('Custom')],
+			['target' => '###ComponentNamespace###', 'value' => base64_encode('Rebuilt')],
+			['target' => 'Unrelated', 'value' => base64_encode('Noise')]
 		]);
 		$this->config->set('component', 3);
 		$placeholders = $this->placeholders();
@@ -284,66 +286,48 @@ final class ResolverTest extends TestCase
 			'The final dot part is the class itself, never a placeholder.'
 		);
 		$this->assertSame(
-			'Other\Joomla\Data.Load',
+			'[[[NamespacePrefix]]]\Joomla\Data.Load',
 			$namespacer->placeholderize('Other\Joomla\Data.Load'),
-			'A prefix that is not the resolved one stays as written.'
+			'The prefix is ALWAYS the first segment, whatever it reads -- '
+			. 'deferring it is what lets one class serve components whose '
+			. 'prefixes differ.'
 		);
 	}
 
 	/**
-	 * A library that states its head has stated its prefix along with it.
+	 * The prefix is always the first segment, and the component answers by word.
 	 *
 	 * @return  void
 	 * @since   6.1.8
 	 */
-	public function testALibraryStatingItsHeadHasItsPrefixDeferred(): void
+	public function testThePrefixIsAlwaysDeferredAndTheComponentAnswersByWord(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
 		$this->config->set('component', 3);
-		$namespacer = $this->namespacer();
+		$placeholders = $this->placeholders();
+		$namespacer = new Namespacer($placeholders);
 
 		$this->assertSame(
 			'[[[NamespacePrefix]]]\Joomla\Data.Load',
-			$namespacer->placeholderize('Other\Joomla\Data.Load', 'Other.Joomla'),
-			'Deferring the prefix whatever it reads is the point: it is what '
-			. 'lets one class serve components whose prefixes differ.'
+			$namespacer->placeholderize('Other\Joomla\Data.Load'),
+			'The first segment is the vendor prefix, whatever it reads.'
 		);
 		$this->assertSame(
 			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].File.Display',
-			$namespacer->placeholderize(
-				'Other\Joomla\Componentbuilder.File.Display', 'Other.Joomla'
-			)
+			$namespacer->placeholderize('Other\Joomla\ComponentBuilder.File.Display'),
+			'A namespace is case-insensitive to PHP: the segment answers by '
+			. 'its word, and the casing it actually carried is witnessed.'
 		);
 		$this->assertSame(
-			'Acme\Query',
-			$namespacer->placeholderize('Acme\Query', 'Acme'),
-			'A folder stating no head has not claimed the convention, so a '
-			. 'vendor of its own is left exactly as it is.'
-		);
-	}
-
-	/**
-	 * A dotted folder speaks only for a namespace it actually opens.
-	 *
-	 * @return  void
-	 * @since   6.1.8
-	 */
-	public function testAFolderThatDoesNotOpenTheNamespaceDefersNothing(): void
-	{
-		$namespacer = $this->namespacer();
-
-		$this->assertSame(
-			'Zoo\Joomla\Abstraction.Model',
-			$namespacer->placeholderize('Zoo\Joomla\Abstraction.Model', 'vdm.io'),
-			'Carrying dots is not the same as naming these segments. Deferring '
-			. 'on the first would fold this class onto whatever power already '
-			. 'stands at that tail, and a run updating what exists would then '
-			. 'write over it.'
+			'[[[NamespacePrefix]]]\Query',
+			$namespacer->placeholderize('Acme\Query'),
+			'A vendor of its own defers its prefix like any other.'
 		);
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\Abstraction.Model',
-			$namespacer->placeholderize('Zoo\Joomla\Abstraction.Model', 'Zoo.Joomla'),
-			'A folder that does open it still speaks for it.'
+			[['prefix' => 'Other', 'component' => 'ComponentBuilder', 'count' => 1]],
+			$placeholders->witnessed(),
+			'The component-owned class witnessed the values its library was '
+			. 'built with.'
 		);
 	}
 
@@ -575,7 +559,7 @@ final class ResolverTest extends TestCase
 	{
 		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->load->overrides('comp-guid', [
-			['target' => '[[[ComponentNamespace]]]', 'value' => '[[[Component]]]Portal']
+			['target' => '[[[ComponentNamespace]]]', 'value' => base64_encode('[[[Component]]]Portal')]
 		]);
 		$this->config->set('component', 3);
 		$placeholders = $this->placeholders();

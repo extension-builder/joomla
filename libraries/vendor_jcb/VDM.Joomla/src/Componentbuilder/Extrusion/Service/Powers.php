@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Power as PowerWriter;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Vendor as VendorWriter;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 
 
@@ -71,6 +72,9 @@ class Powers implements ServiceProviderInterface
 
 		$container->alias(PowerWriter::class, 'Extrusion.Powers.Writer.Power')
 			->share('Extrusion.Powers.Writer.Power', [$this, 'getPowerWriter'], true);
+
+		$container->alias(VendorWriter::class, 'Extrusion.Powers.Writer.Vendor')
+			->share('Extrusion.Powers.Writer.Vendor', [$this, 'getVendor'], true);
 
 		$container->alias(Extruder::class, 'Extrusion.Powers.Extruder')
 			->alias(PowersExtruderInterface::class, 'Extrusion.Powers.Extruder')
@@ -217,6 +221,25 @@ class Powers implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Vendor Placeholder Writer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  VendorWriter
+	 * @since   6.1.9
+	 */
+	public function getVendor(Container $container): VendorWriter
+	{
+		return new VendorWriter(
+			$container->get('Extrusion.Config'),
+			$container->get('Load'),
+			$container->get('Data.Item'),
+			$container->get('Extrusion.Powers.Resolver.Placeholders'),
+			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
 	 * Get the Powers Extruder.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -232,6 +255,7 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Powers.Harvester'),
 			$container->get('Extrusion.Powers.Assembler'),
 			$container->get('Extrusion.Powers.Writer.Power'),
+			$container->get('Extrusion.Powers.Writer.Vendor'),
 			$container->get('Extrusion.Registry.Harvest'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Message')
