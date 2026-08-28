@@ -4148,6 +4148,14 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/SharingTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Record.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Writer/WriterTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Standing.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/SharingTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Role.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'

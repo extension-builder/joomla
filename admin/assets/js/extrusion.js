@@ -261,6 +261,17 @@
 	 * Re-draw the proposed pairings from the current catalogue. Explicit
 	 * decisions are cleared, because they pointed into another component.
 	 */
+	/**
+	 * A name answering inside what the component itself links is that record
+	 * rediscovered, exactly as the server pairs it -- so the board proposes
+	 * the update the import will perform, never a creation it will not.
+	 */
+	function scopedLabel(candidate) {
+		if (candidate.match && candidate.match.by === 'name') {
+			candidate.match.by = 'scoped';
+		}
+	}
+
 	function rematch() {
 		if (!state.data || !state.data.candidates) {
 			return;
@@ -269,6 +280,7 @@
 		const catalogue = state.catalogue || {};
 		(candidates.admin_view || []).forEach((view) => {
 			view.match = match(view, [view.label, view.detail], catalogue.admin_views);
+			scopedLabel(view);
 			// the fields the paired view already links are its own wiring: a
 			// column answering to one of them is that wiring rediscovered, so
 			// it weighs like an identity rather than a mere resemblance
@@ -276,6 +288,14 @@
 				? (catalogue.fields || []).filter((row) => row.view === view.match.guid)
 				: [];
 			(view.fields || []).forEach((field) => {
+				// a shared member is decided on its owner's row: the group is
+				// one field, so this row takes no pairing of its own unless
+				// the person detaches it first
+				if (field.shared) {
+					field.match = null;
+					field.detached = false;
+					return;
+				}
 				let found = matchByGuid(field.guid, catalogue.fields);
 				if (!found) {
 					found = matchByName([field.label, field.detail], scoped);
@@ -289,9 +309,11 @@
 		});
 		(candidates.site_view || []).forEach((candidate) => {
 			candidate.match = match(candidate, [candidate.label], catalogue.site_views);
+			scopedLabel(candidate);
 		});
 		(candidates.custom_admin_view || []).forEach((candidate) => {
 			candidate.match = match(candidate, [candidate.label], catalogue.custom_admin_views);
+			scopedLabel(candidate);
 		});
 		(candidates.layout || []).forEach((candidate) => {
 			candidate.match = match(candidate, [candidate.label], catalogue.layouts);
@@ -399,8 +421,11 @@
 	function counts(list) {
 		let matched = 0;
 		let similar = 0;
+		let shared = 0;
 		(list || []).forEach((candidate) => {
-			if ((candidate.match
+			if (candidate.shared && !candidate.detached) {
+				shared++;
+			} else if ((candidate.match
 				&& (candidate.match.by === 'guid' || candidate.match.by === 'scoped'))
 				|| (candidate.kind === 'power' && candidate.exists)) {
 				matched++;
@@ -410,7 +435,8 @@
 		});
 		return ' <small>(' + list.length + ' ' + esc(T.items) + ', ' + matched + ' '
 			+ esc(T.matched) + ', ' + similar + ' ' + esc(T.similar) + ', '
-			+ (list.length - matched) + ' ' + esc(T.newItem) + ')</small>';
+			+ (shared ? shared + ' ' + esc(T.shared) + ', ' : '')
+			+ (list.length - matched - shared) + ' ' + esc(T.newItem) + ')</small>';
 	}
 
 	function kindSection(kind, label, list, withFields) {
@@ -462,11 +488,33 @@
 	/**
 	 * One candidate row: tick, identity, and the three decisions --
 	 * create new first, then update with a chosen target, then ignore.
+	 *
+	 * A shared member renders as its group's row instead: one field, owned by
+	 * the view that states it first, this view linking it. It takes no
+	 * decision of its own unless the person detaches it -- a detached member
+	 * becomes an ordinary row whose verdict speaks for this one view only.
 	 */
 	function row(candidate) {
-		const current = decision(candidate);
 		const id = candidate.kind + '|' + candidate.key;
+		if (candidate.shared && !candidate.detached) {
+			return '<div class="extrusion-row extrusion-shared" data-extrusion-row="'
+				+ esc(id) + '">'
+				+ '<span class="extrusion-tick"></span>'
+				+ '<span class="extrusion-identity"><b>' + esc(candidate.label) + '</b>'
+				+ (candidate.detail && candidate.detail !== candidate.label
+					? ' <small>' + esc(candidate.detail) + '</small>' : '')
+				+ ' <span class="badge bg-info extrusion-shared-note">'
+				+ esc(T.sharedWith) + ' ' + esc(candidate.shared.owner) + '</span>'
+				+ '</span>'
+				+ '<span class="extrusion-actions">'
+				+ '<button type="button" class="btn btn-sm extrusion-act" '
+				+ 'data-extrusion-act="detach" title="' + esc(T.detachHint) + '">'
+				+ esc(T.detach) + '</button>'
+			+ '</span></div>';
+		}
+		const current = decision(candidate);
 		const isExplicit = explicit(candidate);
+		const isGroup = Boolean(candidate.shared_by && candidate.shared_by.length);
 		const active = (action) => current.action === action ? ' active' : '';
 		const targetLabel = current.action === 'update' && current.label
 			? esc(current.label) : esc(T.update);
@@ -477,6 +525,15 @@
 			+ '<span class="extrusion-identity"><b>' + esc(candidate.label) + '</b>'
 			+ (candidate.detail && candidate.detail !== candidate.label
 				? ' <small>' + esc(candidate.detail) + '</small>' : '')
+			+ (isGroup
+				? ' <span class="badge bg-success extrusion-shared-note">'
+					+ esc(T.oneField) + ' ' + (candidate.shared_by.length + 1) + ' '
+					+ esc(T.views) + '</span>'
+				: '')
+			+ (candidate.shared && candidate.detached
+				? ' <span class="badge bg-warning extrusion-shared-note">'
+					+ esc(T.detached) + '</span>'
+				: '')
 			+ '</span>'
 			+ '<span class="extrusion-actions">'
 			+ '<button type="button" class="btn btn-sm extrusion-act' + active('create')
@@ -486,7 +543,7 @@
 			+ targetLabel + '</button>'
 			+ '<button type="button" class="btn btn-sm extrusion-act' + active('ignore')
 			+ '" data-extrusion-act="ignore">' + esc(T.ignore) + '</button>'
-			+ (isExplicit
+			+ (isExplicit || (candidate.shared && candidate.detached)
 				? '<button type="button" class="btn btn-sm extrusion-act extrusion-act-reset" '
 					+ 'data-extrusion-act="reset" title="' + esc(T.proposed) + '">&#8634;</button>'
 				: '')
@@ -514,8 +571,19 @@
 					decide(candidate, { action: 'create' });
 				} else if (action === 'ignore') {
 					decide(candidate, { action: 'ignore' });
+				} else if (action === 'detach') {
+					// the person takes this one view out of its group: the row
+					// becomes an ordinary candidate whose verdict is its own --
+					// and detaching IS a verdict, or the import would quietly
+					// return the view to its group
+					candidate.detached = true;
+					decide(candidate, { action: 'create' });
 				} else if (action === 'reset') {
 					decide(candidate, null);
+					if (candidate.shared) {
+						candidate.detached = false;
+						state.selected.delete(candidate.kind + '|' + candidate.key);
+					}
 				} else if (action === 'update') {
 					openModal(candidate);
 					return;
@@ -604,8 +672,18 @@
 			if (!candidate) {
 				return;
 			}
+			// a shared member still standing in its group has no decision to
+			// bulk: it is decided on its owner's row, or detached one by one
+			if (candidate.shared && !candidate.detached) {
+				state.selected.delete(id);
+				return;
+			}
 			if (action === 'reset') {
 				decide(candidate, null);
+				if (candidate.shared) {
+					candidate.detached = false;
+					state.selected.delete(id);
+				}
 			} else {
 				decide(candidate, { action: action });
 			}
@@ -639,29 +717,35 @@
 	}
 
 	/**
-	 * Only what a person decided -- or what pairing proposed as an update --
-	 * travels as a verdict. An untouched new candidate keeps the engine's
-	 * own identity, so a re-run stays deterministic.
+	 * Only what a person explicitly decided travels as a verdict.
+	 *
+	 * An untouched row ships nothing: the engine settles it -- shared groups
+	 * keep one field, matched candidates update what stands, and what is
+	 * genuinely new takes the engine's own identity, so a re-run stays
+	 * deterministic. A proposal shipped back as if a person had chosen it
+	 * would detach shared members and force fresh copies of fields that
+	 * merely resemble something -- the exact duplication this board exists
+	 * to prevent.
+	 *
+	 * A decision on a group's owner row speaks for the whole group, so it
+	 * travels under its own kind; a decision on a detached member speaks for
+	 * that one view only.
 	 */
 	function buildDecisions() {
 		const payload = {};
 		allCandidates().forEach((candidate) => {
+			if (!explicit(candidate)) {
+				return;
+			}
 			const current = decision(candidate);
-			const wouldUpdate = candidate.kind === 'power'
-				? candidate.exists : Boolean(candidate.match);
-			let verdict = null;
-			if (current.action === 'ignore') {
-				verdict = { action: 'ignore' };
-			} else if (current.action === 'update'
-				&& (candidate.kind !== 'power' || current.target !== candidate.guid)) {
-				verdict = { action: 'update', target: current.target };
-			} else if (current.action === 'create' && wouldUpdate) {
-				verdict = { action: 'create' };
-			}
-			if (verdict) {
-				payload[candidate.kind] = payload[candidate.kind] || {};
-				payload[candidate.kind][candidate.key] = verdict;
-			}
+			const verdict = current.action === 'update'
+				? { action: 'update', target: current.target }
+				: { action: current.action };
+			const kind = candidate.kind === 'field'
+				&& candidate.shared_by && candidate.shared_by.length
+				? 'field_group' : candidate.kind;
+			payload[kind] = payload[kind] || {};
+			payload[kind][candidate.key] = verdict;
 		});
 		return payload;
 	}
@@ -721,7 +805,8 @@
 		if (messageHtml) {
 			html += '<h4>' + esc(T.messages) + '</h4>' + messageHtml;
 		}
-		['written', 'skipped', 'failed'].forEach((section) => {
+		['written', 'shared', 'adopted', 'consolidated', 'reuse', 'kept',
+			'skipped', 'failed'].forEach((section) => {
 			const tree = report[section];
 			if (!tree || typeof tree !== 'object') {
 				return;
@@ -730,7 +815,16 @@
 			if (!rows.length) {
 				return;
 			}
-			const label = { written: T.written, skipped: T.skipped, failed: T.failed }[section];
+			const label = {
+				written: T.written,
+				shared: T.sharedSection,
+				adopted: T.adopted,
+				consolidated: T.consolidated,
+				reuse: T.reused,
+				kept: T.kept,
+				skipped: T.skipped,
+				failed: T.failed
+			}[section];
 			html += '<details' + (section === 'failed' ? ' open' : '') + '><summary>'
 				+ esc(label) + ' <small>(' + rows.length + ')</small></summary>'
 				+ '<table class="table table-sm"><tbody>'

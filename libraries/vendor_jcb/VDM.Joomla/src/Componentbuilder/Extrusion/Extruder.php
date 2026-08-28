@@ -707,6 +707,30 @@ final class Extruder implements ExtruderInterface
 	 */
 	protected function achieved(int $views, int $written): void
 	{
+		// sharing and consolidation are the run understanding identity, and a
+		// person must be able to see that on the page rather than deduce it
+		// from a smaller written count
+		$shared = (int) $this->report->get('counts.fields_shared', 0);
+		$consolidated = (int) $this->report->get('counts.fields_consolidated', 0);
+
+		if ($shared > 0)
+		{
+			$this->message->notice(
+				$shared . ' column(s) stated a field another view also states, so '
+				. 'each links that one shared field instead of creating a copy.',
+				'shared.field'
+			);
+		}
+
+		if ($consolidated > 0)
+		{
+			$this->message->notice(
+				$consolidated . ' standing duplicate field link(s) were consolidated '
+				. 'onto one field; the records no longer linked are named in the report.',
+				'consolidated.field'
+			);
+		}
+
 		if ($this->config->get('dryRun', false))
 		{
 			$this->message->success(

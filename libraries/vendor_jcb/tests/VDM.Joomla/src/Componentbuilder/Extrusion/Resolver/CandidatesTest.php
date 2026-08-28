@@ -322,12 +322,12 @@ final class CandidatesTest extends TestCase
 		);
 		$this->assertSame(
 			['action' => 'update', 'target' => self::FIELD],
-			$decision->get('field.item_legacy_flag'),
+			$decision->get('field.item.legacy_flag'),
 			'A field whose stated guid already stands IS that field, and updates it.'
 		);
 		$this->assertSame(
 			['action' => 'update', 'target' => self::FIELD],
-			$decision->get('field.item_title'),
+			$decision->get('field.item.title'),
 			'A field the paired view already links is its wiring, and is reused.'
 		);
 		$this->assertSame(
@@ -335,7 +335,7 @@ final class CandidatesTest extends TestCase
 			$this->resolved->get('view.item.linked.title.guid'),
 			'The identity is recorded so the view links the standing field.'
 		);
-		$this->assertSame(self::FIELD, $report->get('reuse.field.item_legacy_flag'));
+		$this->assertSame(self::FIELD, $report->get('reuse.field.item.legacy_flag'));
 		$this->assertContains(
 			'item',
 			(array) $this->resolved->get('existing.admin_view_names', []),

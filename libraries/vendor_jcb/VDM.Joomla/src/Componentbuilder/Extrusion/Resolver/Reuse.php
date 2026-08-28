@@ -184,6 +184,15 @@ final class Reuse
 		$match = $entry['match'] ?? null;
 		$reused = 0;
 
+		if ($kind === 'field' && $this->shared($key))
+		{
+			// a column carrying a share note already has its identity: the
+			// sharing resolver settled the whole group onto one field, and a
+			// default recorded here would detach this member from it -- the
+			// exact quiet duplication this layer must never cause
+			return 0;
+		}
+
 		if ($kind !== '' && $key !== '' && is_array($match)
 			&& in_array($match['by'] ?? '', ['guid', 'scoped'], true))
 		{
@@ -214,5 +223,27 @@ final class Reuse
 		}
 
 		return $reused;
+	}
+
+	/**
+	 * Whether one field candidate's column carries a share note.
+	 *
+	 * @param   string  $key  The candidate key, view dot column.
+	 *
+	 * @return  bool  True when the sharing resolver settled this column.
+	 * @since   6.1.9
+	 */
+	protected function shared(string $key): bool
+	{
+		$dot = strpos($key, '.');
+
+		if ($dot === false)
+		{
+			return false;
+		}
+
+		return is_array($this->resolved->get(
+			'view.' . substr($key, 0, $dot) . '.field.' . substr($key, $dot + 1) . '.share'
+		));
 	}
 }

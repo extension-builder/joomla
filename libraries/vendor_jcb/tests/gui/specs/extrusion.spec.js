@@ -237,6 +237,39 @@ test.describe('the extrusion view', () => {
 		expect(await views.locator('.extrusion-row').count()).toBeGreaterThan(10);
 		await expect(views.locator('details.extrusion-fields').first()).toBeAttached();
 
+		// columns many views state identically -- the guid field above all --
+		// group into ONE field: the members render as shared rows that offer
+		// only Detach, never the three decisions of an ordinary row
+		const sharedRows = views.locator('.extrusion-row.extrusion-shared');
+		expect(await sharedRows.count(),
+			'A real component states the same field in many views, so the '
+			+ 'board must show shared members').toBeGreaterThan(0);
+		// the field groups render collapsed, so open them before interacting
+		await page.evaluate(() => {
+			document.querySelectorAll('details.extrusion-fields')
+				.forEach((group) => { group.open = true; });
+		});
+		const member = sharedRows.first();
+		await expect(member.locator('[data-extrusion-act="detach"]')).toBeVisible();
+		await expect(member.locator('[data-extrusion-act="create"]')).toHaveCount(0);
+
+		// detaching turns the member into an ordinary row, and reset
+		// returns it to its group -- each render collapses the groups
+		// again, so they are re-opened before every interaction
+		const openGroups = () => page.evaluate(() => {
+			document.querySelectorAll('details.extrusion-fields')
+				.forEach((group) => { group.open = true; });
+		});
+		const memberId = await member.getAttribute('data-extrusion-row');
+		await member.locator('[data-extrusion-act="detach"]').click();
+		await openGroups();
+		const detached = page.locator('[data-extrusion-row="' + memberId + '"]');
+		await expect(detached.locator('[data-extrusion-act="create"]')).toBeVisible();
+		await detached.locator('[data-extrusion-act="reset"]').click();
+		await openGroups();
+		await expect(page.locator('[data-extrusion-row="' + memberId + '"]')
+			.locator('[data-extrusion-act="detach"]')).toBeVisible();
+
 		// the administrator screens outside the tables -- compiler, import and
 		// their kin -- stand on the board as custom admin views, because a
 		// component is more than its tables and losing these screens was

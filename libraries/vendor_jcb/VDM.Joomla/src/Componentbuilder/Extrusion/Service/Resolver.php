@@ -27,9 +27,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language as LanguageResolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Precedence;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Record;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Relation;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Role;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Sharing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Standing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Tab;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\ViewName;
@@ -78,6 +80,12 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Role::class, 'Extrusion.Resolver.Role')
 			->share('Extrusion.Resolver.Role', [$this, 'getRole'], true);
+
+		$container->alias(Record::class, 'Extrusion.Resolver.Record')
+			->share('Extrusion.Resolver.Record', [$this, 'getRecord'], true);
+
+		$container->alias(Standing::class, 'Extrusion.Resolver.Standing')
+			->share('Extrusion.Resolver.Standing', [$this, 'getStanding'], true);
 
 		$container->alias(Sharing::class, 'Extrusion.Resolver.Sharing')
 			->share('Extrusion.Resolver.Sharing', [$this, 'getSharing'], true);
@@ -256,6 +264,43 @@ class Resolver implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the record resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Record
+	 * @since   6.1.9
+	 */
+	public function getRecord(Container $container): Record
+	{
+		return new Record(
+			$container->get('Extrusion.Resolver.Fieldtype'),
+			$container->get('Extrusion.Resolver.FieldXml'),
+			$container->get('Table')
+		);
+	}
+
+	/**
+	 * Get the standing recognition resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Standing
+	 * @since   6.1.9
+	 */
+	public function getStanding(Container $container): Standing
+	{
+		return new Standing(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Resolved'),
+			$container->get('Extrusion.Registry.Source'),
+			$container->get('Extrusion.Resolver.Candidates'),
+			$container->get('Extrusion.Resolver.Record'),
+			$container->get('Extrusion.Resolver.Guid')
+		);
+	}
+
+	/**
 	 * Get the sharing resolver.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -271,6 +316,7 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Pairing'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Resolver.FieldXml'),
+			$container->get('Extrusion.Resolver.Standing'),
 			$container->get('Extrusion.Registry.Report')
 		);
 	}
