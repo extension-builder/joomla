@@ -340,6 +340,56 @@ PHP;
 	}
 
 	/**
+	 * An unresolved language constant is dropped, never carried as a value.
+	 *
+	 * JCB stores the language itself and its compiler builds the constants
+	 * back from the English -- a stored constant becomes a key built from a
+	 * key. And since every view's constants name that view, carrying one also
+	 * makes two identical fields look different in the only place they never
+	 * were: two views' guid fields with per-view constants resolving to the
+	 * same English are one field, and per-view constants nothing answered for
+	 * must not split them either.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAnUnresolvedConstantIsDroppedNotCarried(): void
+	{
+		$this->catalogue->set('constant.COM_DEMO_A_GUID_LABEL', 'Guid');
+
+		$language = new Language(
+			$this->catalogue,
+			$this->report,
+			new SourceRegistry()
+		);
+
+		$resolved = $language->bag(
+			[
+				'label' => 'COM_DEMO_A_GUID_LABEL',
+				'description' => 'COM_DEMO_A_GUID_DESCRIPTION',
+				'hint' => 'Auto Generated'
+			],
+			['label', 'description', 'hint']
+		);
+
+		$this->assertSame('Guid', $resolved['label']);
+		$this->assertArrayNotHasKey(
+			'description',
+			$resolved,
+			'A constant nothing answered for is dropped and named in the '
+			. 'report, never stored as the value it only names.'
+		);
+		$this->assertSame(
+			'Auto Generated',
+			$resolved['hint'],
+			'Plain English passes through untouched.'
+		);
+		$this->assertTrue(
+			(bool) $this->report->get('unresolved.language.COM_DEMO_A_GUID_DESCRIPTION')
+		);
+	}
+
+	/**
 	 * The default tier order settles each boundary in favour of the stronger tier.
 	 *
 	 * @return  void
@@ -656,8 +706,15 @@ PHP;
 
 		$ghosted = $this->probe('ghosted');
 
-		$this->assertSame('COM_EXAMPLE_PROBE_MISSING_LABEL', $ghosted['label']['value']);
-		$this->assertSame('xml', $ghosted['label']['origin']);
+		$this->assertSame(
+			'Ghosted',
+			$ghosted['label']['value'],
+			'A constant nothing answered for is dropped, never stored as the '
+			. 'value it only names -- the compiler builds constants back from '
+			. 'the English, and a stored constant becomes a key built from a '
+			. 'key. The derived tier\'s own humanised column name stands in.'
+		);
+		$this->assertSame('derived', $ghosted['label']['origin']);
 		$this->assertTrue($this->report->get('unresolved.language.COM_EXAMPLE_PROBE_MISSING_LABEL'));
 
 		$description = $this->item('name')['description'];

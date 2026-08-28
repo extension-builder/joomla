@@ -293,6 +293,46 @@ final class SharingTest extends TestCase
 	}
 
 	/**
+	 * Per-view constants resolving to one English are one field.
+	 *
+	 * This is the sermon distributor case: category and sermon each state a
+	 * guid field whose label, description and hint constants carry the view's
+	 * own name -- and every one of them resolves to the same English. After
+	 * the reversal the statements are identical, so the fields are identical.
+	 * The essence never sees the constants, only what they resolved to.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testConstantsResolvingToOneEnglishAreOneField(): void
+	{
+		// the language reversal happens before the properties reach the
+		// resolved registry, so both views arrive stating the same English
+		foreach (['category', 'sermon'] as $view)
+		{
+			$this->seed($view, 'guid', [
+				'label' => 'Guid',
+				'description' => 'Globally Unique Identifier',
+				'hint' => 'Auto Generated',
+				'xml_type' => 'text',
+				'datatype' => 'VARCHAR',
+				'size' => '36',
+				'readonly' => 'true',
+				'filter' => 'CMD',
+				'validate' => 'guid'
+			]);
+		}
+
+		$this->assertSame(1, $this->sharing()->settle());
+		$this->assertSame(
+			'category.guid',
+			$this->resolved->get('view.sermon.field.guid.share.owner'),
+			'What differed was only the constants, and the constants only name '
+			. 'the language -- the language itself matched.'
+		);
+	}
+
+	/**
 	 * Seed one resolved column the way the assembler records it.
 	 *
 	 * @param   string                $view    The view name.

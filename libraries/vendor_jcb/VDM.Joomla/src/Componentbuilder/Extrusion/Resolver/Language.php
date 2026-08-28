@@ -310,10 +310,28 @@ final class Language
 	{
 		foreach ($keys as $key)
 		{
-			if (isset($attributes[$key]) && $this->isConstant($attributes[$key]))
+			if (!isset($attributes[$key]) || !$this->isConstant($attributes[$key]))
 			{
-				$attributes[$key] = $this->resolve($attributes[$key]);
+				continue;
 			}
+
+			$resolved = $this->resolve($attributes[$key]);
+
+			if ($this->isConstant($resolved))
+			{
+				// JCB stores the language itself; the constant only names it,
+				// and the compiler builds constants back from the English. A
+				// constant nothing answered for therefore cannot be carried:
+				// stored, it becomes a key built from a key -- and since every
+				// view's constants name that view, it also makes two identical
+				// fields look different in the only place they never were.
+				// resolve() already named the loss in the report
+				unset($attributes[$key]);
+
+				continue;
+			}
+
+			$attributes[$key] = $resolved;
 		}
 
 		return $attributes;
