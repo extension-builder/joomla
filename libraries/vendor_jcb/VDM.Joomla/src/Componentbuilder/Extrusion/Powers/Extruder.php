@@ -15,6 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Power as PowerWriter;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Vendor as VendorWriter;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -82,6 +83,14 @@ final class Extruder implements PowersExtruderInterface
 	protected PowerWriter $writer;
 
 	/**
+	 * The Vendor Writer.
+	 *
+	 * @var    VendorWriter
+	 * @since  6.1.9
+	 */
+	protected VendorWriter $vendor;
+
+	/**
 	 * The Harvest Registry.
 	 *
 	 * @var    Harvest
@@ -113,6 +122,7 @@ final class Extruder implements PowersExtruderInterface
 	 * @param   Harvester    $harvester  The library harvester.
 	 * @param   Assembler    $assembler  The definition assembler.
 	 * @param   PowerWriter  $writer     The power writer.
+	 * @param   VendorWriter  $vendor     The vendor placeholder writer.
 	 * @param   Harvest      $harvest    The harvest registry.
 	 * @param   Report       $report     The run report registry.
 	 * @param   Message      $message    The message bus.
@@ -125,6 +135,7 @@ final class Extruder implements PowersExtruderInterface
 		Harvester $harvester,
 		Assembler $assembler,
 		PowerWriter $writer,
+		VendorWriter $vendor,
 		Harvest $harvest,
 		Report $report,
 		Message $message
@@ -135,6 +146,7 @@ final class Extruder implements PowersExtruderInterface
 		$this->harvester = $harvester;
 		$this->assembler = $assembler;
 		$this->writer = $writer;
+		$this->vendor = $vendor;
 		$this->harvest = $harvest;
 		$this->report = $report;
 		$this->message = $message;
@@ -407,6 +419,11 @@ final class Extruder implements PowersExtruderInterface
 		}
 
 		$this->writer->write();
+
+		// the values the library was built with are recorded onto the paired
+		// component, so compiling it resolves every class back to its own home
+		$this->vendor->write();
+
 		$this->achieved($assembled);
 
 		return $this->finish(true);

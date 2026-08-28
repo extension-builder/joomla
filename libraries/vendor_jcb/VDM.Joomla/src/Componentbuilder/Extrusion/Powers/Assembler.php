@@ -282,7 +282,7 @@ final class Assembler
 
 		if (!(bool) ($candidate['exists'] ?? false))
 		{
-			$definition->system_name = str_replace('\\', '.', (string) $candidate['fqn']);
+			$definition->system_name = $this->systemName((string) $candidate['stored']);
 			$definition->power_version = '1.0.0';
 			$definition->published = 1;
 		}
@@ -452,6 +452,31 @@ final class Assembler
 			$definition->head = implode("\n", $head);
 			$definition->add_head = 1;
 		}
+	}
+
+	/**
+	 * The system name one stored namespace derives.
+	 *
+	 * JCB's own powers speak this convention -- VDM.Data.Action.Load for the
+	 * class stored as [[[NamespacePrefix]]]\Joomla\Data.Action.Load -- the
+	 * vendor prefix, then the dotted tail with the class, and none of the
+	 * connecting head between them.
+	 *
+	 * @param   string  $stored  The stored form with concrete values.
+	 *
+	 * @return  string  The system name.
+	 * @since   6.1.9
+	 */
+	protected function systemName(string $stored): string
+	{
+		$sections = explode('\\', trim($stored, '\\'));
+
+		if (count($sections) < 2)
+		{
+			return str_replace('\\', '.', $stored);
+		}
+
+		return $sections[0] . '.' . end($sections);
 	}
 
 	/**

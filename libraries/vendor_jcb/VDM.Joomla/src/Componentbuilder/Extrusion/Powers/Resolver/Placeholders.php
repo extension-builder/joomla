@@ -94,10 +94,18 @@ final class Placeholders
 	/**
 	 * The resolved values, cached per component the run speaks for.
 	 *
-	 * @var    array<string, array{prefix: string, component: string}>
+	 * @var    array<string, array{prefix: string, component: string, recognise: array<string>}>
 	 * @since  6.1.7
 	 */
 	protected array $resolved = [];
+
+	/**
+	 * The vendor prefix and component segment the harvested classes witnessed.
+	 *
+	 * @var    array<string, array{prefix: string, component: string, count: int}>
+	 * @since  6.1.9
+	 */
+	protected array $witnessed = [];
 
 	/**
 	 * Constructor.
@@ -145,6 +153,90 @@ final class Placeholders
 	public function component(): string
 	{
 		return $this->values()['component'];
+	}
+
+	/**
+	 * Whether one namespace segment answers to a component this run knows.
+	 *
+	 * A namespace is case-insensitive to PHP, and the segment's identity is
+	 * the word, not its casing -- SermonDistributor and Sermondistributor are
+	 * one component area. The set answered against holds every component
+	 * namespace the run can know: the component being extruded, the component
+	 * being paired against, and what either one's overrides resolve to.
+	 *
+	 * @param   string  $segment  The namespace segment.
+	 *
+	 * @return  bool  True when the segment is a known component namespace.
+	 * @since   6.1.9
+	 */
+	public function answers(string $segment): bool
+	{
+		$segment = strtolower(trim($segment));
+
+		return $segment !== ''
+			&& in_array($segment, $this->values()['recognise'], true);
+	}
+
+	/**
+	 * Witness the concrete values one component-owned class actually carries.
+	 *
+	 * The stored namespace defers these to placeholders; compiling the
+	 * component again must resolve them back to the very values the library
+	 * was built with, or every class lands in a different folder. What the
+	 * classes witnessed is what a run can record onto the component.
+	 *
+	 * @param   string  $prefix     The vendor prefix the class carried.
+	 * @param   string  $component  The component segment the class carried.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function witness(string $prefix, string $component): void
+	{
+		$prefix = trim($prefix);
+		$component = trim($component);
+		$key = $prefix . '|' . $component;
+
+		$this->witnessed[$key] ??= [
+			'prefix' => $prefix,
+			'component' => $component,
+			'count' => 0
+		];
+		$this->witnessed[$key]['count']++;
+	}
+
+	/**
+	 * What the harvested classes witnessed, most spoken-for first.
+	 *
+	 * @return  array<int, array{prefix: string, component: string, count: int}>  The witnessed pairs.
+	 * @since   6.1.9
+	 */
+	public function witnessed(): array
+	{
+		$witnessed = array_values($this->witnessed);
+
+		usort(
+			$witnessed,
+			static fn (array $one, array $two): int => $two['count'] <=> $one['count']
+		);
+
+		return $witnessed;
+	}
+
+	/**
+	 * Drop everything witnessed and resolved, so a fresh run reads fresh.
+	 *
+	 * The resolved cache goes with the witnesses, because a run that has just
+	 * recorded an override onto the component has changed what these very
+	 * placeholders resolve to.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function forget(): void
+	{
+		$this->witnessed = [];
+		$this->resolved = [];
 	}
 
 	/**
@@ -252,6 +344,7 @@ final class Placeholders
 			$prefix = $this->fallbackPrefix();
 		}
 
+		$derived = $component;
 		[$prefix, $component] = $this->override($guid, $prefix, $component, $code);
 
 		// a built class only ever carries the namespace-safe form of these
@@ -261,6 +354,21 @@ final class Placeholders
 			? ''
 			: NamespaceHelper::safeSegment($component);
 
+		// every component namespace this run can know answers for a harvested
+		// segment: the paired component's own value, the value it derives
+		// without its overrides, and the component the source itself names
+		$recognise = [];
+
+		foreach ([$component, $derived, $this->segment($this->code($named))] as $known)
+		{
+			$known = strtolower(trim((string) $known));
+
+			if ($known !== '' && !in_array($known, $recognise, true))
+			{
+				$recognise[] = $known;
+			}
+		}
+
 		$this->report->set('powers.placeholders', [
 			'prefix' => $prefix,
 			'component' => $component
@@ -268,7 +376,8 @@ final class Placeholders
 
 		return $this->resolved[$key] = [
 			'prefix' => $prefix,
-			'component' => $component
+			'component' => $component,
+			'recognise' => $recognise
 		];
 	}
 
@@ -318,10 +427,12 @@ final class Placeholders
 		{
 			$row = (array) $row;
 			$target = $this->target((string) ($row['target'] ?? ''));
+			// an override value travels base64 encoded, exactly as the
+			// compiler's applyComponentOverrides decodes it before use
 			$value = trim(str_replace(
 				array_keys($known),
 				array_values($known),
-				(string) ($row['value'] ?? '')
+				base64_decode((string) ($row['value'] ?? ''))
 			));
 
 			if ($value === '')
@@ -469,7 +580,7 @@ final class Placeholders
 	 * @return  string  The bare target name.
 	 * @since   6.1.7
 	 */
-	protected function target(string $target): string
+	public function target(string $target): string
 	{
 		$target = trim($target);
 

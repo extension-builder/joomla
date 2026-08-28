@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Extruder;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Harvester;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Power as PowerWriter;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Vendor as VendorWriter;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -53,6 +54,7 @@ use VDM\Tests\Support\FilesystemTestCase;
 #[CoversClass(Harvester::class)]
 #[CoversClass(Assembler::class)]
 #[CoversClass(PowerWriter::class)]
+#[CoversClass(VendorWriter::class)]
 #[UsesClass(Config::class)]
 #[UsesClass(Harvest::class)]
 #[UsesClass(Report::class)]
@@ -322,7 +324,10 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame('Fetch', $fetch->name);
 		$this->assertSame('abstract class', $fetch->type);
 		$this->assertSame('[[[NamespacePrefix]]]\Joomla\Data.Action.Fetch', $fetch->namespace);
-		$this->assertSame('Demo.Joomla.Data.Action.Fetch', $fetch->system_name);
+		// the system name speaks JCB's own convention: the vendor prefix,
+		// then the dotted tail -- VDM.Data.Action.Load, never the Joomla
+		// connector between them
+		$this->assertSame('Demo.Data.Action.Fetch', $fetch->system_name);
 		$this->assertSame('1.0.0', $fetch->power_version);
 		$this->assertSame(1, $fetch->published);
 		$this->assertSame(ExtrusionLibraryFixture::LICENSE, $fetch->licensing_template);
@@ -535,6 +540,76 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertSame($first, $extruder->harvested());
 		$this->assertSame(3, $this->report()->get('counts.powers.classes'));
+	}
+
+	/**
+	 * The witnessed placeholder values are recorded onto the component.
+	 *
+	 * A component-owned class carries the very values its placeholders must
+	 * resolve back to. The person's standing prefix is never overwritten --
+	 * only the disagreement is named -- while the component segment's own
+	 * casing, differing from what the code name derives, is recorded as a
+	 * ComponentNamespace override, base64 encoded exactly as the compiler
+	 * decodes it.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheWitnessedValuesAreRecordedOnTheComponent(): void
+	{
+		$this->writeTemporaryFile(
+			'vend/Acme.Joomla/src/DeMo/Helper.php',
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+		);
+
+		$report = $this->extruder()->reset()
+			->library($this->temporaryPath('vend/Acme.Joomla'))
+			->component(3)
+			->extrude();
+
+		$this->assertTrue((bool) $report->get('powers.completed'));
+
+		$power = $this->item->definition(
+			'power',
+			(new Guid())->derive([
+				'power',
+				'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper'
+			])
+		);
+
+		$this->assertNotNull($power);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper',
+			$power->namespace,
+			'The prefix is always deferred, and the segment answers by word.'
+		);
+		$this->assertSame('Acme.DeMo.Helper', $power->system_name);
+
+		$this->assertSame(
+			'Demo (the library was built with Acme)',
+			$report->get('powers.vendor.kept.namespace_prefix'),
+			'The person\'s standing prefix is kept, and the disagreement named.'
+		);
+
+		// the placeholder row is keyed by its component, not by a guid
+		$placeholders = null;
+
+		foreach ($this->item->definitions('component_placeholders') as $definition)
+		{
+			if ((string) ($definition->joomla_component ?? '') === 'comp-guid-0001')
+			{
+				$placeholders = $definition;
+			}
+		}
+
+		$this->assertNotNull($placeholders);
+		$this->assertSame(
+			['target' => '[[[ComponentNamespace]]]', 'value' => base64_encode('DeMo')],
+			(array) ($placeholders->addplaceholders['addplaceholders0'] ?? null),
+			'The casing the library was built with is recorded for the compiler '
+			. 'to resolve back to.'
+		);
+		$this->assertSame('DeMo', $report->get('powers.vendor.component_namespace'));
 	}
 
 	/**

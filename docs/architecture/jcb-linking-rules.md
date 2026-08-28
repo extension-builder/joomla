@@ -259,14 +259,29 @@ Folding a built class back:
   extension folder is what Joomla installs; the vendor folder inside it
   (`VDM.Joomla`, `JoomVenue.Joomla`) names the namespace head in its own
   dotted name and keeps its classes under `src`.
-- That dotted name is also the statement that this library follows the
-  convention, so its **first segment is the vendor prefix** and is
-  deferred whatever it reads. A folder carrying no dots has claimed
-  nothing, and is left exactly as written.
-- The **component segment** needs the component the library belongs to. A
-  run harvesting a component and its library together already knows what
-  that component is called, and derives the segment from the code name the
-  way `Compiler\Component\Placeholder` does.
+- The **first segment of every namespace is the vendor prefix**, and it is
+  ALWAYS deferred to `[[[NamespacePrefix]]]`, whatever it reads -- that is
+  the convention's own statement, and deferring it is what lets one class
+  serve components whose prefixes differ.
+- A **component segment answers by its word, not its casing** -- PHP
+  namespaces are case-insensitive, so `SermonDistributor` and
+  `Sermondistributor` are one component area. The set answered against
+  holds every component namespace the run can know: the component being
+  extruded, the component being paired against (its code name derived the
+  way `Compiler\Component\Placeholder` does, plus its
+  `component_placeholders` overrides, whose values travel **base64
+  encoded** exactly as `applyComponentOverrides` decodes them). A match
+  becomes `[[[ComponentNamespace]]]`.
+- The **casing the library actually carries is witnessed and recorded**
+  onto the paired component -- the vendor prefix onto the component row
+  where none stands, and a differing component-segment casing as a
+  ComponentNamespace override -- so compiling the component resolves every
+  class back to the very folders it was harvested from. A person's
+  standing values are never overwritten, only reported when the library
+  disagrees.
+- The `system_name` speaks JCB's own convention: the vendor prefix, then
+  the dotted tail with the class -- `VDM.Data.Action.Load` -- never the
+  connecting head between them.
 
 ## What a table has to have to be a view
 

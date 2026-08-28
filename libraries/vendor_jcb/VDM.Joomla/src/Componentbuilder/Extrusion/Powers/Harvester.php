@@ -161,9 +161,11 @@ final class Harvester
 			return (int) $this->report->get('counts.powers.classes', 0);
 		}
 
-		// a fresh gather must see the table as it stands now
+		// a fresh gather must see the table as it stands now, and witness the
+		// placeholder values of its own classes rather than an earlier run's
 		$this->harvest->clear();
 		$this->existing->refresh();
+		$this->namespacer->forget();
 
 		$found = 0;
 		$existing = 0;
@@ -408,7 +410,7 @@ final class Harvester
 			$this->report->set('powers.derived.convention.' . md5($file), $fqn);
 		}
 
-		$placeholder = $this->namespacer->placeholderize($stored, $folder);
+		$placeholder = $this->namespacer->placeholderize($stored);
 
 		// a power is the same power when it folds to the same stored
 		// namespace, whatever prefix the library it came out of was built with
