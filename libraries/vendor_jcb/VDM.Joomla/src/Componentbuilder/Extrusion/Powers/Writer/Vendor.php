@@ -117,9 +117,18 @@ final class Vendor
 		$witnessed = $this->placeholders->witnessed();
 		$id = (int) $this->config->get('component', 0);
 
-		if ($witnessed === [] || $id <= 0)
+		if ($witnessed === [])
 		{
 			return 0;
+		}
+
+		if ($id <= 0)
+		{
+			// no component row stands to carry the values, so the component
+			// segment is remembered as a global placeholder instead -- the
+			// system's own memory of the name, which every later run
+			// recognises and every compile overrides with its own component
+			return $this->remember($witnessed[0]);
 		}
 
 		if (count($witnessed) > 1)
@@ -148,6 +157,84 @@ final class Vendor
 
 		return $this->prefix($row, (string) $witnessed[0]['prefix'])
 			+ $this->override($row, (string) $witnessed[0]['component']);
+	}
+
+	/**
+	 * Remember the witnessed component segment as a global placeholder.
+	 *
+	 * @param   array{prefix: string, component: string, count: int}  $pair  The witnessed pair.
+	 *
+	 * @return  int  One when recorded, zero otherwise.
+	 * @since   6.1.9
+	 */
+	protected function remember(array $pair): int
+	{
+		$component = trim((string) ($pair['component'] ?? ''));
+		$prefix = trim((string) ($pair['prefix'] ?? ''));
+
+		if ($component === '')
+		{
+			return 0;
+		}
+
+		if ($prefix !== '')
+		{
+			// with no component row there is no place the prefix belongs;
+			// it is named so the run's record still carries it
+			$this->report->set('powers.vendor.unplaced.namespace_prefix', $prefix);
+		}
+
+		$rows = $this->load->items(
+			['a.target' => 'target', 'a.value' => 'value'],
+			['a' => 'placeholder']
+		);
+
+		foreach ((array) $rows as $row)
+		{
+			$row = (array) $row;
+
+			if ($this->placeholders->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
+			{
+				continue;
+			}
+
+			$standing = trim(base64_decode((string) ($row['value'] ?? '')));
+
+			if ($standing !== $component)
+			{
+				$this->report->set(
+					'powers.vendor.kept.global_component_namespace',
+					$standing . ' (the library was built with ' . $component . ')'
+				);
+			}
+
+			return 0;
+		}
+
+		if ($this->config->get('dryRun', false))
+		{
+			$this->report->set('powers.vendor.dryrun.global_component_namespace', $component);
+
+			return 1;
+		}
+
+		$definition = new \stdClass();
+		$definition->target = '[[[ComponentNamespace]]]';
+		// the value travels raw: the placeholder table's own storage encoding
+		// is applied by the Data pipeline, exactly as every writer passes it
+		$definition->value = $component;
+		$definition->published = 1;
+
+		if (!$this->item->table('placeholder')->set($definition, 'target'))
+		{
+			$this->report->set('powers.vendor.failed.global_component_namespace', $component);
+
+			return 0;
+		}
+
+		$this->report->set('powers.vendor.global_component_namespace', $component);
+
+		return 1;
 	}
 
 	/**

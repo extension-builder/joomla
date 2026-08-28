@@ -105,6 +105,7 @@
 				.map((line) => line.trim()).filter((line) => line !== ''),
 			component: componentField === '' ? 0 : parseInt(componentField, 10) || 0,
 			detect: componentField === '',
+			component_code: value('component_code', '').trim(),
 			mode: radio('mode', 'create'),
 			on_existing: radio('on_existing', 'update'),
 			layout: value('layout', 'auto'),
@@ -950,6 +951,18 @@
 		E = window.JCBExtrusion || E;
 		T = E.text || {};
 		decorateFolderFields();
+		// the component name input stands only when everything is created
+		// new: with a target selected or detection on, the target answers
+		const componentSelect = document.querySelector('[name="component_id"]');
+		const componentCode = document.querySelector('[name="component_code"]');
+		if (componentSelect && componentCode) {
+			const nameRow = componentCode.closest('.control-group') || componentCode;
+			const toggleName = () => {
+				nameRow.style.display = componentSelect.value === '0' ? '' : 'none';
+			};
+			componentSelect.addEventListener('change', toggleName);
+			toggleName();
+		}
 		$('extrusion-folder-close').addEventListener('click', closeFolderPicker);
 		$('extrusion-folder-choose').addEventListener('click', chooseFolder);
 		$('extrusion-folder-list').addEventListener('click', (event) => {
