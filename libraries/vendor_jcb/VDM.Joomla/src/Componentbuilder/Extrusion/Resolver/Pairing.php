@@ -199,6 +199,50 @@ final class Pairing
 	}
 
 	/**
+	 * Record a settled verdict for one candidate, unless the caller already spoke.
+	 *
+	 * The sharing resolver settles one identity for a whole group of columns,
+	 * and the writers must then write exactly that identity -- so the group's
+	 * steering lands here, in the same registry a person's verdict lands in,
+	 * where every writer already looks. A verdict that already stands always
+	 * outranks this: a person spoke, or the group was settled once already,
+	 * and neither is overwritten.
+	 *
+	 * @param   string  $kind    The candidate kind, such as field.
+	 * @param   string  $key     The candidate key within its kind.
+	 * @param   string  $action  The verdict action: create, update, or ignore.
+	 * @param   string  $target  The identity an update verdict points at.
+	 *
+	 * @return  bool  True when the verdict was recorded.
+	 * @since   6.1.9
+	 */
+	public function decide(string $kind, string $key, string $action, string $target = ''): bool
+	{
+		$kind = $this->key($kind);
+		$key = $this->key($key);
+		$action = strtolower(trim($action));
+		$target = strtolower(trim($target));
+
+		if ($kind === '' || $key === '' || !in_array($action, self::ACTIONS, true)
+			|| ($action === 'update' && !$this->guid->valid($target))
+			|| $this->decision->get($kind . '.' . $key) !== null)
+		{
+			return false;
+		}
+
+		$this->decision->set($kind . '.' . $key, [
+			'action' => $action,
+			'target' => $action === 'update' ? $target : ''
+		]);
+		$this->report->set(
+			'settled.' . $kind . '.' . $key,
+			$action . ($target !== '' ? ' ' . $target : '')
+		);
+
+		return true;
+	}
+
+	/**
 	 * The identity one candidate is written under, after its verdict.
 	 *
 	 * Without a verdict the derived identity stands. An ignore verdict answers
@@ -243,15 +287,22 @@ final class Pairing
 	}
 
 	/**
-	 * Sanitise one registry path segment.
+	 * Sanitise one decision key.
+	 *
+	 * The dot is kept, because it is the seam between a key's own segments --
+	 * a field key is view dot column, each segment already sanitised by its
+	 * caller. Collapsing the dot would fold distinct keys together: the view
+	 * invoice with column line_total and the view invoice_line with column
+	 * total are two different columns, and folding their decisions into one
+	 * slot writes one field's verdict onto the other.
 	 *
 	 * @param   string  $segment  The raw segment.
 	 *
-	 * @return  string  A segment safe to use in a dotted registry path.
+	 * @return  string  A key safe to use in a dotted registry path.
 	 * @since   6.1.7
 	 */
 	public function key(string $segment): string
 	{
-		return preg_replace('/[^A-Za-z0-9_]/', '_', trim($segment)) ?? $segment;
+		return preg_replace('/[^A-Za-z0-9_.]/', '_', trim($segment)) ?? $segment;
 	}
 }

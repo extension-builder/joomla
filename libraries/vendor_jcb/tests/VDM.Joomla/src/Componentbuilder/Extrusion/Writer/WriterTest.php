@@ -34,6 +34,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Record;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFieldsConditions;
@@ -72,6 +73,7 @@ use VDM\Tests\Support\TestCase;
  */
 #[CoversClass(Writer::class)]
 #[CoversClass(Actions::class)]
+#[CoversClass(Record::class)]
 #[CoversClass(AdminFields::class)]
 #[CoversClass(AdminFieldsConditions::class)]
 #[CoversClass(AdminView::class)]
@@ -2050,12 +2052,14 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
-			$fieldtype,
-			new FieldXml($fieldtype, $this->report),
+			new Record(
+				$fieldtype,
+				new FieldXml($fieldtype, $this->report),
+				new Table()
+			),
 			$this->guid,
 			$this->source,
-			$this->pairing(),
-			new Table()
+			$this->pairing()
 		);
 	}
 

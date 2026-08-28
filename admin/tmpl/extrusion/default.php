@@ -238,7 +238,19 @@ window.JCBExtrusion = {
 		upOneFolder: '<?php echo Text::_('Up one folder', true); ?>',
 		emptyFolder: '<?php echo Text::_('This folder holds no folders', true); ?>',
 		folderFailed: '<?php echo Text::_('The folder list could not be loaded.', true); ?>',
-		catalogueFailed: '<?php echo Text::_('The existing definitions could not be loaded, so nothing could be matched against this component.', true); ?>'
+		catalogueFailed: '<?php echo Text::_('The existing definitions could not be loaded, so nothing could be matched against this component.', true); ?>',
+		shared: '<?php echo Text::_('shared', true); ?>',
+		sharedWith: '<?php echo Text::_('One field, owned by', true); ?>',
+		detach: '<?php echo Text::_('Detach', true); ?>',
+		detachHint: '<?php echo Text::_('Decide this view on its own instead of sharing the field', true); ?>',
+		detached: '<?php echo Text::_('detached', true); ?>',
+		oneField: '<?php echo Text::_('One field linked by', true); ?>',
+		views: '<?php echo Text::_('views', true); ?>',
+		sharedSection: '<?php echo Text::_('Shared', true); ?>',
+		adopted: '<?php echo Text::_('Adopted', true); ?>',
+		consolidated: '<?php echo Text::_('Consolidated', true); ?>',
+		reused: '<?php echo Text::_('Reused', true); ?>',
+		kept: '<?php echo Text::_('Kept', true); ?>'
 	}
 };
 </script>

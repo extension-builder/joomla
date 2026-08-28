@@ -169,6 +169,7 @@ final class AdminFields extends Writer
 		$linked = false;
 		$listOrder = 0;
 		$editOrder = [];
+		$superseded = $this->superseded($view);
 
 		// the view's own list filter form says which fields the screen filters
 		// on and which columns it sorts by -- so a field is listed because the
@@ -191,6 +192,10 @@ final class AdminFields extends Writer
 				$path . '.written.' . $columnKey . '.guid',
 				(string) $this->resolved->get($path . '.linked.' . $columnKey . '.guid', '')
 			);
+
+			// a fallback identity may name a record the run just superseded --
+			// linking it would resurrect the very duplicate being consolidated
+			$fieldGuid = $superseded[strtolower(trim($fieldGuid))] ?? $fieldGuid;
 
 			if ($fieldGuid === '')
 			{
@@ -324,7 +329,7 @@ final class AdminFields extends Writer
 
 		$definition = new \stdClass();
 		$definition->admin_view = $viewGuid;
-		$definition->addfields = $this->merge($viewGuid, $subform);
+		$definition->addfields = $this->merge($view, $viewGuid, $subform);
 		$definition->published = 1;
 
 		return $this->store($definition);
@@ -614,13 +619,22 @@ final class AdminFields extends Writer
 	 * linked adds nothing; one the view does not yet link is appended, its
 	 * edit order counted on from what each tab already holds.
 	 *
-	 * @param   string                              $viewGuid  The view the links belong to.
+	 * One exception heals rather than preserves: a standing link the sharing
+	 * resolver marked superseded points at a record that now speaks as another
+	 * field, so the link is turned onto the settled identity in place -- the
+	 * person's placement and flags travel with it -- and a second row landing
+	 * on the same field collapses into the first. Nothing is deleted: the
+	 * superseded record itself stands, named in the report, for a person to
+	 * retire.
+	 *
+	 * @param   string                               $view      The view name.
+	 * @param   string                               $viewGuid  The view the links belong to.
 	 * @param   array<string, array<string, mixed>>  $subform   The harvested field links.
 	 *
 	 * @return  array<string, array<string, mixed>>  The merged subform.
 	 * @since   6.1.8
 	 */
-	protected function merge(string $viewGuid, array $subform): array
+	protected function merge(string $view, string $viewGuid, array $subform): array
 	{
 		$stored = $this->load->value(
 			['a.addfields' => 'addfields'],
@@ -634,19 +648,59 @@ final class AdminFields extends Writer
 			return $subform;
 		}
 
+		$superseded = $this->superseded($view);
+
+		// the person's own rows come first: every link they hold that was not
+		// superseded stands verbatim, placement, flags and all -- including a
+		// deliberate double link, which is theirs to keep
 		$linked = [];
+
+		foreach ($existing as $row)
+		{
+			$field = strtolower(trim((string) (((array) $row)['field'] ?? '')));
+
+			if ($field !== '' && !isset($superseded[$field]))
+			{
+				$linked[$field] = true;
+			}
+		}
+
+		// a superseded link is turned onto the settled identity in place --
+		// unless the person already links that identity themselves, in which
+		// case their own row carries the link and the stale row folds away
+		foreach ($existing as $slot => $row)
+		{
+			$row = (array) $row;
+			$field = strtolower(trim((string) ($row['field'] ?? '')));
+
+			if ($field === '' || !isset($superseded[$field]))
+			{
+				continue;
+			}
+
+			$target = $superseded[$field];
+			$this->report->set(
+				'consolidated.admin_fields.' . $this->key($view) . '.' . $field,
+				$target
+			);
+
+			if (isset($linked[$target]))
+			{
+				unset($existing[$slot]);
+
+				continue;
+			}
+
+			$row['field'] = $target;
+			$existing[$slot] = $row;
+			$linked[$target] = true;
+		}
+
 		$orders = [];
 
 		foreach ($existing as $row)
 		{
 			$row = (array) $row;
-			$field = strtolower(trim((string) ($row['field'] ?? '')));
-
-			if ($field !== '')
-			{
-				$linked[$field] = true;
-			}
-
 			$tab = (string) ((int) ($row['tab'] ?? 1));
 			$orders[$tab] = max((int) ($orders[$tab] ?? 0), (int) ($row['order_edit'] ?? 0));
 		}
@@ -674,6 +728,29 @@ final class AdminFields extends Writer
 		}
 
 		return $merged;
+	}
+
+	/**
+	 * The standing identities this run superseded for one view.
+	 *
+	 * @param   string  $view  The view name.
+	 *
+	 * @return  array<string, string>  Old identity to the settled identity.
+	 * @since   6.1.9
+	 */
+	protected function superseded(string $view): array
+	{
+		$superseded = [];
+
+		foreach ((array) $this->resolved->get($this->path($view) . '.superseded', []) as $old => $new)
+		{
+			if (is_scalar($new) && trim((string) $new) !== '')
+			{
+				$superseded[strtolower(trim((string) $old))] = strtolower(trim((string) $new));
+			}
+		}
+
+		return $superseded;
 	}
 
 	/**

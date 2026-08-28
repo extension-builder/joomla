@@ -311,10 +311,35 @@ runs:
   other. The match runs on what the sources *stated*, never on the padding
   a field type's examples would add.
 
-The first view in table order owns the record; every later view links its
-guid. A person's pairing verdict on one column detaches exactly that view.
-Nothing looks outside the component being extruded: a field that already
-stands elsewhere in the system is linked by a pairing decision on the
+A settled group then takes **one written identity**, chosen in rank:
+
+- **A person's verdict on the group outranks all.** The pairing board
+  renders the group on its owner's row -- one field, and the views it
+  serves -- and that row's verdict travels as a `field_group` decision the
+  settle step applies to every member: point the group at a chosen field,
+  create one fresh shared field, or set the whole group aside. A verdict on
+  a single member (the board's *detach*) still moves exactly that view and
+  nothing else.
+- **When a component is paired, what already stands in it is recognised**
+  (`Extrusion/Resolver/Standing`): a record standing under a member's own
+  derived identity, under the fresh identity a create verdict once salted,
+  or under the paired view's own link whose stored properties hash to
+  exactly what this run would write (`Extrusion/Resolver/Record` -- the
+  same composition the writer persists, distilled to one hash) IS this
+  field already written. It is reused: the owner updates it, every view
+  links it, and standing links a member once carried to another copy are
+  **consolidated** onto it -- turned in place by the admin fields writer,
+  with the newly unlinked records named in the report, never deleted. A
+  lookalike whose hash differs is somebody's own field: its link stands,
+  and the resemblance is reported for a person to decide.
+- **Otherwise the first view in table order owns a fresh record**, and
+  every later view links its guid.
+
+The owner's write is steered through the same decision registry a person's
+verdict lands in, so the engine's own reuse defaults can never detach a
+member from its group -- only a person can. Nothing looks outside the
+component being extruded and the component it is paired against: a field
+that stands elsewhere in the system is linked by a pairing decision on the
 board, never by resemblance.
 
 ## Language

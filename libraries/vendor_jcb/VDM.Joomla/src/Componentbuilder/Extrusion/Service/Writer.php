@@ -98,12 +98,10 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Fieldtype'),
-			$container->get('Extrusion.Resolver.FieldXml'),
+			$container->get('Extrusion.Resolver.Record'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing'),
-			$container->get('Table')
+			$container->get('Extrusion.Resolver.Pairing')
 		);
 	}
 

@@ -109,8 +109,10 @@ final class PairingTest extends TestCase
 		$this->pairing->load(['field' => ['item.title' => ['action' => 'ignore']]]);
 
 		$this->assertNull($this->pairing->guid('field', 'item.title', 'derived-guid'));
+		// the dot is the seam between the view and its column, and it is
+		// kept: folding it away would merge two different columns' verdicts
 		$this->assertTrue(
-			(bool) $this->report->get('skipped.decision.field.item_title')
+			(bool) $this->report->get('skipped.decision.field.item.title')
 		);
 	}
 

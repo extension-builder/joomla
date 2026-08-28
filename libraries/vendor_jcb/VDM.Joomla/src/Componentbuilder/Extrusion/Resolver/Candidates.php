@@ -309,6 +309,52 @@ final class Candidates
 			];
 		}
 
+		return $this->grouped($candidates);
+	}
+
+	/**
+	 * Mark every owner row with the members that share its field.
+	 *
+	 * A shared member names its owner, and the board renders the group on the
+	 * owner's row -- one field, and the views it serves -- so the owner has to
+	 * know its members without the page re-deriving the grouping.
+	 *
+	 * @param   array<int, array<string, mixed>>  $candidates  The admin view candidates.
+	 *
+	 * @return  array<int, array<string, mixed>>  The candidates, owners marked.
+	 * @since   6.1.9
+	 */
+	protected function grouped(array $candidates): array
+	{
+		$owners = [];
+
+		foreach ($candidates as $viewIndex => $view)
+		{
+			foreach ((array) ($view['fields'] ?? []) as $fieldIndex => $field)
+			{
+				$owners[(string) ($field['key'] ?? '')] = [$viewIndex, $fieldIndex];
+			}
+		}
+
+		foreach ($candidates as $view)
+		{
+			foreach ((array) ($view['fields'] ?? []) as $field)
+			{
+				$owner = (string) ($field['shared']['owner'] ?? '');
+
+				if ($owner === '' || !isset($owners[$owner]))
+				{
+					continue;
+				}
+
+				[$viewIndex, $fieldIndex] = $owners[$owner];
+				$candidates[$viewIndex]['fields'][$fieldIndex]['shared_by'][] = [
+					'key' => (string) ($field['key'] ?? ''),
+					'label' => (string) ($field['label'] ?? '')
+				];
+			}
+		}
+
 		return $candidates;
 	}
 
@@ -368,25 +414,31 @@ final class Candidates
 				'key' => $viewKey . '.' . $this->key($column),
 				'label' => $label,
 				'detail' => $column,
-				'guid' => $derived,
-				'match' => $this->matchByGuid($derived, $pool)
-					?? $this->scopedMatch([$label, $column], $scoped)
-					?? $this->matchByName([$label, $column], $pool)
+				'guid' => $derived
 			];
 
 			// a column whose stated identity another view already carries is
-			// one field linked twice, and the list shows it as exactly that
+			// one field linked twice: the board shows it under its owner, so
+			// this row carries the group instead of a pairing of its own --
+			// a match here would only invite a verdict that detaches it
 			$share = $this->resolved->get(
 				$path . '.field.' . $this->key($column) . '.share'
 			);
 
 			if (is_array($share) && trim((string) ($share['guid'] ?? '')) !== '')
 			{
+				$candidate['match'] = null;
 				$candidate['shared'] = [
 					'guid' => trim((string) $share['guid']),
 					'owner' => (string) ($share['owner'] ?? ''),
 					'by' => (string) ($share['by'] ?? '')
 				];
+			}
+			else
+			{
+				$candidate['match'] = $this->matchByGuid($derived, $pool)
+					?? $this->scopedMatch([$label, $column], $scoped)
+					?? $this->matchByName([$label, $column], $pool);
 			}
 
 			$candidates[] = $candidate;
@@ -757,6 +809,49 @@ final class Candidates
 	}
 
 	/**
+	 * One standing field, with every column its properties hash speaks for.
+	 *
+	 * The lean pool answers who stands where; this answers what one of them
+	 * actually is, so a lookalike can be proven the same field -- or not --
+	 * by its stored properties rather than by its name.
+	 *
+	 * @param   string  $guid  The field's identity.
+	 *
+	 * @return  array<string, mixed>|null  The full row, or null when none stands.
+	 * @since   6.1.9
+	 */
+	public function field(string $guid): ?array
+	{
+		$guid = strtolower(trim($guid));
+
+		if (!$this->guid->valid($guid))
+		{
+			return null;
+		}
+
+		$row = $this->load->item(
+			[
+				'a.guid' => 'guid',
+				'a.name' => 'name',
+				'a.fieldtype' => 'fieldtype',
+				'a.datatype' => 'datatype',
+				'a.datalenght' => 'datalenght',
+				'a.datalenght_other' => 'datalenght_other',
+				'a.datadefault' => 'datadefault',
+				'a.datadefault_other' => 'datadefault_other',
+				'a.indexes' => 'indexes',
+				'a.null_switch' => 'null_switch',
+				'a.store' => 'store',
+				'a.xml' => 'xml'
+			],
+			['a' => 'field'],
+			['a.guid' => $guid]
+		);
+
+		return $row === null ? null : (array) $row;
+	}
+
+	/**
 	 * The fields the given admin views already link, each carrying its view.
 	 *
 	 * @param   array<string>  $views  The admin view guids.
@@ -814,7 +909,7 @@ final class Candidates
 
 				if ($this->guid->valid($field))
 				{
-					$byField[strtolower($field)] = $view;
+					$byField[strtolower($field)][$view] = true;
 				}
 			}
 		}
@@ -826,7 +921,12 @@ final class Candidates
 
 		foreach ($pool as &$row)
 		{
-			$row['view'] = $byField[strtolower((string) $row['guid'])] ?? '';
+			// a shared field is linked by several views, and every one of
+			// them is its home -- the single mark stays for the board, the
+			// full list is what recognition walks
+			$views = array_keys($byField[strtolower((string) $row['guid'])] ?? []);
+			$row['view'] = $views === [] ? '' : end($views);
+			$row['views'] = $views;
 		}
 
 		unset($row);

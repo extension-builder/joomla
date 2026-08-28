@@ -99,6 +99,66 @@ final class Table extends Locator
 			$candidates[] = $entry;
 		}
 
-		return $this->recorded(array_merge($preferred, $candidates));
+		return $this->recorded(array_merge($preferred, $candidates, $this->central($root)));
+	}
+
+	/**
+	 * The central table definition class an installed site keeps for this component.
+	 *
+	 * A component folder holds its table definition class only while it
+	 * travels as an install package. Once installed, the class lives where the
+	 * project's power namespace resolves to -- a vendor library under the
+	 * site's own libraries folder -- so a harvest aimed at an installed
+	 * JCB-built component would otherwise never see the highest-precedence
+	 * source it ships, and with it the stated identity of every field. The
+	 * probes are bounded to the vendor layout the compiler itself writes, and
+	 * only a folder named for this very component may answer, because another
+	 * component's map read as this one's would poison every column it names.
+	 *
+	 * @param   string  $root  The resolved source root.
+	 *
+	 * @return  array<int, array{path: string, tier: string, name: string|null}>  Located artifacts.
+	 * @since   6.1.9
+	 */
+	protected function central(string $root): array
+	{
+		$code = strtolower(trim(str_replace('com_', '', $this->option())));
+		$parent = strtolower(basename(dirname($root)));
+
+		if ($code === '' || $parent !== 'components')
+		{
+			return [];
+		}
+
+		$site = dirname($root, 2);
+
+		if (strtolower(basename($site)) === 'administrator')
+		{
+			$site = dirname($site);
+		}
+
+		$found = [];
+
+		foreach (['/libraries/*/*/src/*/Table.php', '/libraries/*/*/src/*/*/Table.php'] as $pattern)
+		{
+			foreach (glob($site . $pattern, GLOB_NOSORT) ?: [] as $path)
+			{
+				if (strtolower(basename(dirname($path))) !== $code)
+				{
+					continue;
+				}
+
+				$content = $this->scanner->read($path);
+
+				if ($content === null || !$this->heuristic->isTableClass($content))
+				{
+					continue;
+				}
+
+				$found[$path] = $this->entry($path, 'central');
+			}
+		}
+
+		return array_values($found);
 	}
 }
