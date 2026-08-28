@@ -179,6 +179,54 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * A library harvested on its own still recognises the component area.
+	 *
+	 * No component is paired and no source names one -- but the system knows
+	 * the component by name, and its segment answers by its word whatever
+	 * casing the library carries.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testALibraryAloneStillRecognisesAKnownComponent(): void
+	{
+		$this->load->component(9, 'guid-nine', 'sermondistributor');
+		$namespacer = $this->namespacer();
+
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Utilities.Permitted.Actions',
+			$namespacer->placeholderize(
+				'TrueChristianSermon\Joomla\SermonDistributor.Utilities.Permitted.Actions'
+			),
+			'The component the system knows answers for its segment, paired '
+			. 'or not.'
+		);
+	}
+
+	/**
+	 * A reference written under another prefix folds to its power.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAReferenceUnderAnotherPrefixFoldsToItsPower(): void
+	{
+		$this->load->power(
+			5, 'eeeeeeee-5555-4555-8555-555555555555', 'GetHelper',
+			'[[[NamespacePrefix]]]\Joomla\Utilities.GetHelper'
+		);
+		$existing = $this->existing();
+
+		$this->assertSame(
+			'eeeeeeee-5555-4555-8555-555555555555',
+			$existing->fold('TrueChristianSermon\Joomla\Utilities\GetHelper')['guid'] ?? null,
+			'An import written under another component\'s prefix is still '
+			. 'that power.'
+		);
+		$this->assertNull($existing->fold('Registry'));
+	}
+
+	/**
 	 * Folding a class's location back into the stored dot form.
 	 *
 	 * @return  void

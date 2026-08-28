@@ -356,10 +356,15 @@ final class Placeholders
 
 		// every component namespace this run can know answers for a harvested
 		// segment: the paired component's own value, the value it derives
-		// without its overrides, and the component the source itself names
+		// without its overrides, the component the source itself names --
+		// and every component JCB already holds, because a library harvested
+		// on its own still belongs to a component the system knows by name
 		$recognise = [];
 
-		foreach ([$component, $derived, $this->segment($this->code($named))] as $known)
+		foreach (array_merge(
+			[$component, $derived, $this->segment($this->code($named))],
+			$this->catalogue()
+		) as $known)
 		{
 			$known = strtolower(trim((string) $known));
 
@@ -371,7 +376,8 @@ final class Placeholders
 
 		$this->report->set('powers.placeholders', [
 			'prefix' => $prefix,
-			'component' => $component
+			'component' => $component,
+			'recognise' => $recognise
 		]);
 
 		return $this->resolved[$key] = [
@@ -379,6 +385,74 @@ final class Placeholders
 			'component' => $component,
 			'recognise' => $recognise
 		];
+	}
+
+	/**
+	 * Every component namespace the whole system knows.
+	 *
+	 * Each component's code name derives its segment the way the compiler
+	 * does, and each ComponentNamespace override -- base64 encoded, exactly
+	 * as the compiler decodes it -- states the value a person chose instead.
+	 * Together they are every value the placeholder has ever resolved to on
+	 * this system, which is what lets a library harvested on its own still
+	 * recognise the component area its classes carry.
+	 *
+	 * @return  array<string>  The known component namespace values.
+	 * @since   6.1.9
+	 */
+	protected function catalogue(): array
+	{
+		$known = [];
+		$rows = $this->load->items(
+			['a.name_code' => 'name_code'],
+			['a' => 'joomla_component']
+		);
+
+		foreach ((array) $rows as $row)
+		{
+			$known[] = $this->segment($this->code(
+				(string) (((array) $row)['name_code'] ?? '')
+			));
+		}
+
+		$overrides = $this->load->values(
+			['a.addplaceholders' => 'addplaceholders'],
+			['a' => 'component_placeholders']
+		);
+
+		foreach ((array) $overrides as $stored)
+		{
+			if (!is_string($stored) || trim($stored) === '')
+			{
+				continue;
+			}
+
+			$rows = json_decode($stored, true);
+
+			if (!is_array($rows))
+			{
+				continue;
+			}
+
+			foreach ($rows as $row)
+			{
+				$row = (array) $row;
+
+				if ($this->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
+				{
+					continue;
+				}
+
+				$value = trim(base64_decode((string) ($row['value'] ?? '')));
+
+				if ($value !== '')
+				{
+					$known[] = NamespaceHelper::safeSegment($value);
+				}
+			}
+		}
+
+		return array_values(array_filter($known, 'strlen'));
 	}
 
 	/**

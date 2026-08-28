@@ -645,7 +645,12 @@ final class Assembler
 			return $this->local[$key];
 		}
 
-		return $this->existing->find($fqn)['guid'] ?? null;
+		// a power's identity is its stored namespace, and an import written
+		// under another component's prefix or casing is still that power --
+		// so a reference no resolved name answers for folds to its stored
+		// form and matches by identity, exactly as harvested classes do
+		return ($this->existing->find($fqn) ?? $this->existing->fold($fqn))['guid']
+			?? null;
 	}
 
 	/**
