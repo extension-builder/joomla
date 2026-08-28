@@ -24,6 +24,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Prefix;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Sharing;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher as WriterDispatcher;
 
 
@@ -148,6 +149,14 @@ final class Extruder implements ExtruderInterface
 	protected Candidates $candidates;
 
 	/**
+	 * The Sharing Resolver.
+	 *
+	 * @var    Sharing
+	 * @since  6.1.9
+	 */
+	protected Sharing $sharing;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -178,7 +187,8 @@ final class Extruder implements ExtruderInterface
 		Source $source,
 		Prefix $prefix,
 		Reuse $reuse,
-		Candidates $candidates
+		Candidates $candidates,
+		Sharing $sharing
 	)
 	{
 		$this->config = $config;
@@ -194,6 +204,7 @@ final class Extruder implements ExtruderInterface
 		$this->prefix = $prefix;
 		$this->reuse = $reuse;
 		$this->candidates = $candidates;
+		$this->sharing = $sharing;
 	}
 
 	/**
@@ -627,6 +638,11 @@ final class Extruder implements ExtruderInterface
 		$this->identity();
 		$views = $this->assembler->assemble();
 		$this->report->set('counts.views', $views);
+
+		// ten views stating the same field are stating one field, and the
+		// decision is settled here so the list a person approves already
+		// shows one field and the views it serves
+		$this->sharing->settle();
 
 		return $views;
 	}

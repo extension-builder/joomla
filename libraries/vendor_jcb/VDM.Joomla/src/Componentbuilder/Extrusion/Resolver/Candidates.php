@@ -363,7 +363,7 @@ final class Candidates
 				[$this->option(), 'field', $view, $column]
 			);
 
-			$candidates[] = [
+			$candidate = [
 				'kind' => 'field',
 				'key' => $viewKey . '.' . $this->key($column),
 				'label' => $label,
@@ -373,6 +373,23 @@ final class Candidates
 					?? $this->scopedMatch([$label, $column], $scoped)
 					?? $this->matchByName([$label, $column], $pool)
 			];
+
+			// a column whose stated identity another view already carries is
+			// one field linked twice, and the list shows it as exactly that
+			$share = $this->resolved->get(
+				$path . '.field.' . $this->key($column) . '.share'
+			);
+
+			if (is_array($share) && trim((string) ($share['guid'] ?? '')) !== '')
+			{
+				$candidate['shared'] = [
+					'guid' => trim((string) $share['guid']),
+					'owner' => (string) ($share['owner'] ?? ''),
+					'by' => (string) ($share['by'] ?? '')
+				];
+			}
+
+			$candidates[] = $candidate;
 		}
 
 		return $candidates;

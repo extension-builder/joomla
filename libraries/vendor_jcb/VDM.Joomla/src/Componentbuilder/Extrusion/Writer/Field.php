@@ -38,14 +38,6 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
 final class Field extends Writer
 {
 	/**
-	 * The identity of every field this run has written, by its shape.
-	 *
-	 * @var    array<string, string>
-	 * @since  6.1.8
-	 */
-	protected array $shared = [];
-
-	/**
 	 * Whether the caller chose the identity of the field being written.
 	 *
 	 * @var    bool
@@ -362,19 +354,23 @@ final class Field extends Writer
 			);
 		}
 
-		// two views stating the same field are stating one field: JCB holds
-		// fields on their own and every view that needs one links it, so a
-		// definition already written this run is linked again rather than
-		// written a second time under another identity
-		$shape = $this->shape($definition);
-		$standing = $this->shared[$shape] ?? null;
+		// two views stating the same field are stating one field: the sharing
+		// resolver settled that before anything was written, and a column
+		// carrying its note links the field another view owns. A person's
+		// verdict on this very column outranks the note, which is how one
+		// view is pointed elsewhere without touching the rest
+		$share = $this->resolved->get(
+			$this->path($view) . '.field.' . $this->key($column) . '.share'
+		);
 
-		if ($standing !== null && $standing !== $guid && !$this->chosen)
+		if (!$this->chosen && is_array($share)
+			&& trim((string) ($share['guid'] ?? '')) !== '')
 		{
-			$this->relate($view, $column, $standing, $fieldtype['name']);
-			$this->report->set(
-				'field.shared.' . $this->key($view) . '.' . $this->key($column),
-				$standing
+			$this->relate(
+				$view,
+				$column,
+				trim((string) $share['guid']),
+				$fieldtype['name']
 			);
 
 			return true;
@@ -388,7 +384,6 @@ final class Field extends Writer
 			return false;
 		}
 
-		$this->shared[$shape] ??= $guid;
 		$this->relate($view, $column, $guid, $fieldtype['name']);
 
 		return true;
@@ -415,33 +410,6 @@ final class Field extends Writer
 			$this->path($view) . '.written.' . $this->key($column) . '.fieldtype',
 			$fieldtype
 		);
-	}
-
-	/**
-	 * What makes one field the field it is.
-	 *
-	 * Two definitions of the same shape are one field: the same name, the
-	 * same type, the same column behind it and the same xml. Anything that
-	 * differs in any of those is a field of its own.
-	 *
-	 * @param   object  $definition  The field definition.
-	 *
-	 * @return  string  The shape.
-	 * @since   6.1.8
-	 */
-	protected function shape(object $definition): string
-	{
-		$shape = [];
-
-		foreach ([
-			'name', 'fieldtype', 'datatype', 'indexes', 'null_switch', 'store',
-			'datalenght', 'datalenght_other', 'datadefault', 'datadefault_other', 'xml'
-		] as $property)
-		{
-			$shape[$property] = $definition->{$property} ?? null;
-		}
-
-		return md5((string) json_encode($shape));
 	}
 
 	/**
@@ -585,9 +553,8 @@ final class Field extends Writer
 
 		if (!isset(self::STORES[$store]))
 		{
-			// a codec nobody recognises must not become "no codec": that both
-			// strips the encryption the source asked for and gives the field
-			// the shape of a plain one, which is how it then merges with them
+			// a codec nobody recognises must not quietly become "no codec",
+			// which would strip the encryption the source asked for
 			$this->report->set(
 				'failed.field.unknown_store.' . $this->key($column),
 				$store
