@@ -452,6 +452,28 @@ final class Placeholders
 			}
 		}
 
+		$globals = $this->load->items(
+			['a.target' => 'target', 'a.value' => 'value'],
+			['a' => 'placeholder']
+		);
+
+		foreach ((array) $globals as $row)
+		{
+			$row = (array) $row;
+
+			if ($this->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
+			{
+				continue;
+			}
+
+			$value = trim(base64_decode((string) ($row['value'] ?? '')));
+
+			if ($value !== '')
+			{
+				$known[] = NamespaceHelper::safeSegment($value);
+			}
+		}
+
 		return array_values(array_filter($known, 'strlen'));
 	}
 

@@ -244,7 +244,12 @@ final class Extruder implements PowersExtruderInterface
 	 */
 	public function componentCode(string $codeName): self
 	{
-		$this->config->set('componentCode', trim($codeName));
+		// the segment is derived from the code name alone, exactly as the
+		// compiler does it -- the com_ prefix is Joomla's, never the name's
+		$this->config->set(
+			'componentCode',
+			(string) preg_replace('/^com_/i', '', trim($codeName))
+		);
 
 		return $this;
 	}

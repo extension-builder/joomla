@@ -7295,6 +7295,7 @@ class AjaxModel extends ListModel
 			(array) ($options['libraries'] ?? []))));
 
 		$component = max(0, (int) ($options['component'] ?? 0));
+		$componentCode = trim((string) ($options['component_code'] ?? ''));
 		$onExisting = (string) ($options['on_existing'] ?? 'update');
 		$dryRun = !empty($options['dry_run']);
 		$depth = max(1, (int) ($options['depth'] ?? 12));
@@ -7322,6 +7323,13 @@ class AjaxModel extends ListModel
 			if ($dump !== '')
 			{
 				$extruder->dump($dump);
+			}
+
+			if ($componentCode !== '')
+			{
+				// the person named the component the run creates for, so the
+				// component namespace placeholder has a value to stand on
+				$extruder->codeName($componentCode);
 			}
 
 			$extruder
@@ -7352,6 +7360,11 @@ class AjaxModel extends ListModel
 
 		if ($libraries !== [])
 		{
+			if ($componentCode !== '')
+			{
+				$powers->componentCode($componentCode);
+			}
+
 			$powers
 				->libraries($libraries)
 				->component($component)

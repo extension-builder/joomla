@@ -624,6 +624,66 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * With no component paired, the named component is remembered globally.
+	 *
+	 * The person selected none and named the component instead: the classes
+	 * still defer the component segment to its placeholder, and the casing
+	 * the library carries is remembered as a global placeholder row -- the
+	 * system's own memory of the name -- since no component row stands to
+	 * carry it.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testANamedComponentIsRememberedGlobally(): void
+	{
+		$this->writeTemporaryFile(
+			'named/Acme.Joomla/src/DeMo/Helper.php',
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+		);
+
+		$report = $this->extruder()->reset()
+			->library($this->temporaryPath('named/Acme.Joomla'))
+			->component(0)
+			->componentCode('com_demo')
+			->extrude();
+
+		$this->assertTrue((bool) $report->get('powers.completed'));
+
+		$power = $this->item->definition(
+			'power',
+			(new Guid())->derive([
+				'power',
+				'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper'
+			])
+		);
+
+		$this->assertNotNull($power);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper',
+			$power->namespace,
+			'The named component answers for its segment with no row paired.'
+		);
+
+		$global = null;
+
+		foreach ($this->item->definitions('placeholder') as $definition)
+		{
+			$global = $definition;
+		}
+
+		$this->assertNotNull($global);
+		$this->assertSame('[[[ComponentNamespace]]]', $global->target);
+		$this->assertSame(
+			'DeMo',
+			$global->value,
+			'The casing the library carries is remembered raw; the table\'s '
+			. 'own storage encoding is the pipeline\'s to apply.'
+		);
+		$this->assertSame('DeMo', $report->get('powers.vendor.global_component_namespace'));
+	}
+
+	/**
 	 * The powers extruder under test.
 	 *
 	 * @return  Extruder  The resolved entry point.

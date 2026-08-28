@@ -244,6 +244,15 @@ class HtmlView extends BaseHtmlView
 		}
 		$this->field($form, 'source', $attributes, $options);
 
+		// component code name attributes
+		$this->field($form, 'source', [
+			'type' => 'text',
+			'name' => 'component_code',
+			'label' => Text::_('Component code name'),
+			'size' => '40',
+			'hint' => 'com_component',
+			'description' => Text::_('The component the harvested classes belong to, when everything is created new and no target component is selected. This name is what the component namespace placeholder stands on, so every class keeps the placeholder instead of a hard-coded segment.')]);
+
 		// mode attributes
 		$this->field($form, 'switches', [
 			'type' => 'radio',
