@@ -128,6 +128,38 @@ final class Existing
 	}
 
 	/**
+	 * The existing power one written reference folds to.
+	 *
+	 * An import or a parent written under another component's prefix or
+	 * casing is still the same power: the reference is folded to its stored
+	 * form by the convention every power JCB ships follows -- two head
+	 * segments, then dots -- and matched by that identity. Nothing is
+	 * witnessed on the way: a reference merely refers.
+	 *
+	 * @param   string  $fqn  The fully qualified class name as written.
+	 *
+	 * @return  array{guid: string, id: int, name: string}|null  The power, or null when none matches.
+	 * @since   6.1.9
+	 */
+	public function fold(string $fqn): ?array
+	{
+		$segments = array_values(array_filter(
+			explode('\\', trim($fqn, '\\')),
+			'strlen'
+		));
+
+		if (count($segments) < 2)
+		{
+			return null;
+		}
+
+		$class = (string) array_pop($segments);
+		$stored = $this->namespacer->conventional(implode('\\', $segments), $class);
+
+		return $this->match($this->namespacer->placeholderize($stored, false));
+	}
+
+	/**
 	 * How many existing powers the catalogue holds.
 	 *
 	 * @return  int  The number of matchable powers.

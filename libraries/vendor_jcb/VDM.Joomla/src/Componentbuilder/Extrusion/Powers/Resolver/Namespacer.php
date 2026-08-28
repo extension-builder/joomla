@@ -195,12 +195,13 @@ final class Namespacer
 	 * the vendor prefix beside it, so the run can record the values the
 	 * placeholders must resolve back to.
 	 *
-	 * @param   string  $stored  The stored form with concrete values.
+	 * @param   string  $stored   The stored form with concrete values.
+	 * @param   bool    $witness  Whether a recognised component segment is witnessed.
 	 *
 	 * @return  string  The stored form as a power row carries it.
 	 * @since   6.1.7
 	 */
-	public function placeholderize(string $stored): string
+	public function placeholderize(string $stored, bool $witness = true): string
 	{
 		$sections = explode('\\', $stored);
 		$last = count($sections) - 1;
@@ -242,11 +243,12 @@ final class Namespacer
 			}
 		}
 
-		if ($component !== null)
+		if ($witness && $component !== null)
 		{
 			// a class carrying the component's segment is the component's own,
 			// so its library states the very values the placeholders must
-			// resolve back to when the component is compiled again
+			// resolve back to when the component is compiled again -- an
+			// import merely refers, so it never testifies
 			$this->placeholders->witness($vendor, $component);
 		}
 

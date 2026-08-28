@@ -176,6 +176,11 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 			return $this->powers === [] ? null : $this->powers;
 		}
 
+		if (($tables['a'] ?? '') === 'joomla_component')
+		{
+			return $this->components === [] ? null : array_values($this->components);
+		}
+
 		return null;
 	}
 
@@ -288,6 +293,11 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	public function values(array $select, array $tables, ?array $where = null,
 		?array $order = null, ?int $limit = null): ?array
 	{
+		if (($tables['a'] ?? '') === 'component_placeholders')
+		{
+			return $this->overrides === [] ? null : array_values($this->overrides);
+		}
+
 		return null;
 	}
 }

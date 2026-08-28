@@ -559,7 +559,7 @@ final class ExtruderTest extends FilesystemTestCase
 	{
 		$this->writeTemporaryFile(
 			'vend/Acme.Joomla/src/DeMo/Helper.php',
-			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\nuse Acme\\Joomla\\Interfaces\\LoaderInterface;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
 		);
 
 		$report = $this->extruder()->reset()
@@ -584,6 +584,17 @@ final class ExtruderTest extends FilesystemTestCase
 			'The prefix is always deferred, and the segment answers by word.'
 		);
 		$this->assertSame('Acme.DeMo.Helper', $power->system_name);
+		$this->assertSame(
+			[['use' => self::EXISTING_GUID, 'as' => 'default']],
+			array_values(array_map(
+				static fn ($row): array => (array) $row,
+				(array) $power->use_selection
+			)),
+			'An import written under this library\'s own prefix is the very '
+			. 'power that already stands, so it links by identity instead of '
+			. 'landing in the class header.'
+		);
+		$this->assertSame('', $power->head);
 
 		$this->assertSame(
 			'Demo (the library was built with Acme)',
