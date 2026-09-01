@@ -12,6 +12,13 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowDelete as ApiAllowDelete;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowView as ApiAllowView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\GetModel as ApiGetModel;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\RecordId as ApiRecordId;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions as ApiFieldPermissions;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Fields as ApiFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ApiPrepareItem;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript;
@@ -238,6 +245,62 @@ final class EditView
 	protected LicenseLock $licenselock;
 
 	/**
+	 * The Api Controller GetModel Class.
+	 *
+	 * @var   ApiGetModel
+	 * @since 6.1.7
+	 */
+	protected ApiGetModel $apigetmodel;
+
+	/**
+	 * The Api Controller RecordId Class.
+	 *
+	 * @var   ApiRecordId
+	 * @since 6.1.7
+	 */
+	protected ApiRecordId $apirecordid;
+
+	/**
+	 * The Api Controller AllowView Class.
+	 *
+	 * @var   ApiAllowView
+	 * @since 6.1.7
+	 */
+	protected ApiAllowView $apiallowview;
+
+	/**
+	 * The Api Controller AllowDelete Class.
+	 *
+	 * @var   ApiAllowDelete
+	 * @since 6.1.7
+	 */
+	protected ApiAllowDelete $apiallowdelete;
+
+	/**
+	 * The Api View Fields Class.
+	 *
+	 * @var   ApiFields
+	 * @since 6.1.7
+	 */
+	protected ApiFields $apifields;
+
+	/**
+	 * The Api View FieldPermissions Class.
+	 *
+	 * @var   ApiFieldPermissions
+	 * @since 6.1.7
+	 */
+	protected ApiFieldPermissions $apifieldpermissions;
+
+	/**
+	 * The Api View PrepareItem Class.
+	 *
+	 * @var   ApiPrepareItem
+	 * @since 6.1.7
+	 */
+	protected ApiPrepareItem $apiprepareitem;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                            $config                                The Config Class.
@@ -263,6 +326,13 @@ final class EditView
 	 * @param SetAccessControl                  $setaccesscontrol                      The Field SetAccessControl Class.
 	 * @param TableConstructor                  $tableconstructor                      The Table Constructor Class.
 	 * @param LicenseLock                       $licenselock                           The Component LicenseLock Class.
+	 * @param ApiGetModel   $apigetmodel   The Api Controller GetModel Class.
+	 * @param ApiRecordId   $apirecordid   The Api Controller RecordId Class.
+	 * @param ApiAllowView   $apiallowview   The Api Controller AllowView Class.
+	 * @param ApiAllowDelete   $apiallowdelete   The Api Controller AllowDelete Class.
+	 * @param ApiFields   $apifields   The Api View Fields Class.
+	 * @param ApiFieldPermissions   $apifieldpermissions   The Api View FieldPermissions Class.
+	 * @param ApiPrepareItem   $apiprepareitem   The Api View PrepareItem Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -288,7 +358,14 @@ final class EditView
 		ValidationFix $validationfix,
 		SetAccessControl $setaccesscontrol,
 		TableConstructor $tableconstructor,
-		LicenseLock $licenselock)
+		LicenseLock $licenselock,
+		ApiGetModel $apigetmodel,
+		ApiRecordId $apirecordid,
+		ApiAllowView $apiallowview,
+		ApiAllowDelete $apiallowdelete,
+		ApiFields $apifields,
+		ApiFieldPermissions $apifieldpermissions,
+		ApiPrepareItem $apiprepareitem)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -313,6 +390,13 @@ final class EditView
 		$this->setaccesscontrol = $setaccesscontrol;
 		$this->tableconstructor = $tableconstructor;
 		$this->licenselock = $licenselock;
+		$this->apigetmodel = $apigetmodel;
+		$this->apirecordid = $apirecordid;
+		$this->apiallowview = $apiallowview;
+		$this->apiallowdelete = $apiallowdelete;
+		$this->apifields = $apifields;
+		$this->apifieldpermissions = $apifieldpermissions;
+		$this->apiprepareitem = $apiprepareitem;
 	}
 
 	/**
@@ -646,6 +730,55 @@ final class EditView
 				$this->header->get(
 					'api.view.json',
 					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_CONTROLLER_GETMODEL <<<DYNAMIC>>> add the explicit model mapping to the api controller
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_CONTROLLER_GETMODEL',
+				$this->apigetmodel->get(
+					$nameSingleCode, $nameListCode
+				)
+			);
+
+			// API_VIEW_CONTROLLER_RECORDID <<<DYNAMIC>>> add the record id resolution to the api controller
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_CONTROLLER_RECORDID',
+				$this->apirecordid->get(
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_CONTROLLER_ALLOWVIEW <<<DYNAMIC>>> add the allow view permission to the api controller
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_CONTROLLER_ALLOWVIEW',
+				$this->apiallowview->get(
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_CONTROLLER_ALLOWDELETE <<<DYNAMIC>>> add the allow delete permission to the api controller
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_CONTROLLER_ALLOWDELETE',
+				$this->apiallowdelete->get(
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_JSON_FIELDS <<<DYNAMIC>>> add the fields to render to the api json view
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_JSON_FIELDS',
+				$this->apifields->get(
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_JSON_PERMISSIONS <<<DYNAMIC>>> add the field permission guards to the api json view
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_JSON_PERMISSIONS',
+				$this->apifieldpermissions->get(
+					$nameSingleCode, true
+				)
+			);
+
+			// API_VIEW_JSON_PREPAREITEM <<<DYNAMIC>>> add the prepare item code to the api json view
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_JSON_PREPAREITEM',
+				$this->apiprepareitem->get(
+					$nameSingleCode, false
 				)
 			);
 

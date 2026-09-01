@@ -131,6 +131,22 @@ final class EditViewTest extends ArchitectureTestCase
 		$this->assertContains('jcb_ce_onAfterBuildAdminEditViewContent', $fired);
 	}
 
+	public function testTheApiControllerAndViewAreGivenTheirBodies(): void
+	{
+		$this->build($this->view('demo'));
+
+		$written = $this->multi->get('demo');
+
+		$this->assertStringContainsString("\$name = 'demos';", $written['###API_VIEW_CONTROLLER_GETMODEL###']);
+		$this->assertStringContainsString('return parent::getModel($name, $prefix, $config);', $written['###API_VIEW_CONTROLLER_GETMODEL###']);
+		$this->assertStringContainsString("\$id = \$this->input->getInt('id', 0);", $written['###API_VIEW_CONTROLLER_RECORDID###']);
+		$this->assertStringContainsString('return true;', $written['###API_VIEW_CONTROLLER_ALLOWVIEW###']);
+		$this->assertStringContainsString("return \$user->authorise('core.delete', \$this->option);", $written['###API_VIEW_CONTROLLER_ALLOWDELETE###']);
+		$this->assertStringContainsString("\t\t'id',", $written['###API_VIEW_JSON_FIELDS###']);
+		$this->assertSame('', $written['###API_VIEW_JSON_PERMISSIONS###']);
+		$this->assertSame('', $written['###API_VIEW_JSON_PREPAREITEM###']);
+	}
+
 	/**
 	 * Build the edit view of one admin view.
 	 *

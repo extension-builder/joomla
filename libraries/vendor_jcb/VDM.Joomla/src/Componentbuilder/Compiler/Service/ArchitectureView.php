@@ -2273,7 +2273,14 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Model.ValidationFix'),
 			$container->get('Architecture.Field.SetAccessControl'),
 			$container->get('Architecture.Table.Constructor'),
-			$container->get('Architecture.Component.LicenseLock')
+			$container->get('Architecture.Component.LicenseLock'),
+			$container->get('Architecture.Api.Controller.GetModel'),
+			$container->get('Architecture.Api.Controller.RecordId'),
+			$container->get('Architecture.Api.Controller.AllowView'),
+			$container->get('Architecture.Api.Controller.AllowDelete'),
+			$container->get('Architecture.Api.View.Fields'),
+			$container->get('Architecture.Api.View.FieldPermissions'),
+			$container->get('Architecture.Api.View.PrepareItem')
 		);
 	}
 
@@ -2324,7 +2331,12 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Model.SelectionTranslation'),
 			$container->get('Architecture.Model.SelectionTranslationMethod'),
 			$container->get('Architecture.Model.SortFields'),
-			$container->get('Architecture.Model.StoredId')
+			$container->get('Architecture.Model.StoredId'),
+			$container->get('Architecture.Api.Controller.GetModel'),
+			$container->get('Architecture.Api.Controller.DisplayList'),
+			$container->get('Architecture.Api.View.Fields'),
+			$container->get('Architecture.Api.View.FieldPermissions'),
+			$container->get('Architecture.Api.View.PrepareItem')
 		);
 	}
 

@@ -12,6 +12,11 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\DisplayList as ApiDisplayList;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\GetModel as ApiGetModel;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions as ApiFieldPermissions;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Fields as ApiFields;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ApiPrepareItem;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImportCustomScripts;
@@ -366,6 +371,46 @@ final class ListView
 	protected StoredId $storedid;
 
 	/**
+	 * The Api Controller GetModel Class.
+	 *
+	 * @var   ApiGetModel
+	 * @since 6.1.7
+	 */
+	protected ApiGetModel $apigetmodel;
+
+	/**
+	 * The Api Controller DisplayList Class.
+	 *
+	 * @var   ApiDisplayList
+	 * @since 6.1.7
+	 */
+	protected ApiDisplayList $apidisplaylist;
+
+	/**
+	 * The Api View Fields Class.
+	 *
+	 * @var   ApiFields
+	 * @since 6.1.7
+	 */
+	protected ApiFields $apifields;
+
+	/**
+	 * The Api View FieldPermissions Class.
+	 *
+	 * @var   ApiFieldPermissions
+	 * @since 6.1.7
+	 */
+	protected ApiFieldPermissions $apifieldpermissions;
+
+	/**
+	 * The Api View PrepareItem Class.
+	 *
+	 * @var   ApiPrepareItem
+	 * @since 6.1.7
+	 */
+	protected ApiPrepareItem $apiprepareitem;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                     $config                         The Config Class.
@@ -405,6 +450,11 @@ final class ListView
 	 * @param SelectionTranslationMethod $selectiontranslationmethod     The Model SelectionTranslationMethod Class.
 	 * @param SortFields                 $sortfields                     The Model SortFields Class.
 	 * @param StoredId                   $storedid                       The Model StoredId Class.
+	 * @param ApiGetModel   $apigetmodel   The Api Controller GetModel Class.
+	 * @param ApiDisplayList   $apidisplaylist   The Api Controller DisplayList Class.
+	 * @param ApiFields   $apifields   The Api View Fields Class.
+	 * @param ApiFieldPermissions   $apifieldpermissions   The Api View FieldPermissions Class.
+	 * @param ApiPrepareItem   $apiprepareitem   The Api View PrepareItem Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -444,7 +494,12 @@ final class ListView
 		SelectionTranslation $selectiontranslation,
 		SelectionTranslationMethod $selectiontranslationmethod,
 		SortFields $sortfields,
-		StoredId $storedid)
+		StoredId $storedid,
+		ApiGetModel $apigetmodel,
+		ApiDisplayList $apidisplaylist,
+		ApiFields $apifields,
+		ApiFieldPermissions $apifieldpermissions,
+		ApiPrepareItem $apiprepareitem)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -483,6 +538,11 @@ final class ListView
 		$this->selectiontranslationmethod = $selectiontranslationmethod;
 		$this->sortfields = $sortfields;
 		$this->storedid = $storedid;
+		$this->apigetmodel = $apigetmodel;
+		$this->apidisplaylist = $apidisplaylist;
+		$this->apifields = $apifields;
+		$this->apifieldpermissions = $apifieldpermissions;
+		$this->apiprepareitem = $apiprepareitem;
 	}
 
 	/**
@@ -862,6 +922,41 @@ final class ListView
 			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_HEADER',
 				$this->header->get(
 					'api.views.json', $nameListCode
+				)
+			);
+
+			// API_VIEWS_CONTROLLER_GETMODEL <<<DYNAMIC>>> add the explicit model mapping to the api controller
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_CONTROLLER_GETMODEL',
+				$this->apigetmodel->get(
+					$nameSingleCode, $nameListCode
+				)
+			);
+
+			// API_VIEWS_CONTROLLER_DISPLAYLIST <<<DYNAMIC>>> add the list state mapping to the api controller
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_CONTROLLER_DISPLAYLIST',
+				$this->apidisplaylist->get(
+					$nameSingleCode, $nameListCode
+				)
+			);
+
+			// API_VIEWS_JSON_FIELDS <<<DYNAMIC>>> add the fields to render to the api json view
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_FIELDS',
+				$this->apifields->get(
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEWS_JSON_PERMISSIONS <<<DYNAMIC>>> add the field permission guards to the api json view
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_PERMISSIONS',
+				$this->apifieldpermissions->get(
+					$nameSingleCode, false
+				)
+			);
+
+			// API_VIEWS_JSON_PREPAREITEM <<<DYNAMIC>>> add the prepare item code to the api json view
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_PREPAREITEM',
+				$this->apiprepareitem->get(
+					$nameSingleCode, true
 				)
 			);
 
