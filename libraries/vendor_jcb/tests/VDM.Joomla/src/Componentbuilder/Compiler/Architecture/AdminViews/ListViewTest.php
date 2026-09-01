@@ -167,6 +167,20 @@ final class ListViewTest extends ArchitectureTestCase
 		$this->assertContains('jcb_ce_onAfterBuildAdminListViewContent', $fired);
 	}
 
+	public function testTheApiControllerAndViewAreGivenTheirBodies(): void
+	{
+		$this->build($this->view('demos'));
+
+		$written = $this->multi->get('demos');
+
+		$this->assertStringContainsString("\$name = 'demos';", $written['###API_VIEWS_CONTROLLER_GETMODEL###']);
+		$this->assertStringContainsString("\$this->modelState->set('filter.search'", $written['###API_VIEWS_CONTROLLER_DISPLAYLIST###']);
+		$this->assertStringContainsString('return parent::displayList();', $written['###API_VIEWS_CONTROLLER_DISPLAYLIST###']);
+		$this->assertStringContainsString("\t\t'id',", $written['###API_VIEWS_JSON_FIELDS###']);
+		$this->assertSame('', $written['###API_VIEWS_JSON_PERMISSIONS###']);
+		$this->assertSame('', $written['###API_VIEWS_JSON_PREPAREITEM###']);
+	}
+
 	/**
 	 * Build the list view of one admin view.
 	 *

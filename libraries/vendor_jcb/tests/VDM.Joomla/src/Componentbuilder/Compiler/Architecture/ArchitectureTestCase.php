@@ -324,6 +324,52 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 	 * @return  Dispenser
 	 * @since   6.1.6
 	 */
+	/**
+	 * A permission creator that already knows some of a view's actions.
+	 *
+	 * @param   array  $core     Core lookups, `view|core.action` to the view's action name.
+	 * @param   array  $actions  View level actions, `action|view` to the view.
+	 * @param   array  $globals  Component level actions, `action|view` to the view.
+	 *
+	 * @return  Permission
+	 * @since   6.1.7
+	 */
+	protected function permissionWith(array $core, array $actions = [], array $globals = []): Permission
+	{
+		$permissioncore = new PermissionCore();
+		$permissionaction = new PermissionAction();
+		$permissionglobalaction = new PermissionGlobalAction();
+
+		foreach ($core as $key => $action)
+		{
+			$permissioncore->set($key, $action);
+		}
+
+		foreach ($actions as $key => $view)
+		{
+			$permissionaction->set($key, $view);
+		}
+
+		foreach ($globals as $key => $view)
+		{
+			$permissionglobalaction->set($key, $view);
+		}
+
+		$valuation = (new ReflectionClass(Valuation::class))->newInstanceWithoutConstructor();
+
+		return new Permission(
+			$this->architectureConfig,
+			$permissioncore,
+			new PermissionViews(),
+			$permissionaction,
+			new PermissionComponent(),
+			$permissionglobalaction,
+			new PermissionDashboard(),
+			new Counter($valuation),
+			$this->architectureLanguage
+		);
+	}
+
 	private function createDispenser(): Dispenser
 	{
 		$dispenser = $this->createStub(Dispenser::class);

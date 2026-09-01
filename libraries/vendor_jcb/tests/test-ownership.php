@@ -732,6 +732,38 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Alias/DataTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowDelete.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowDeleteTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowView.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/DisplayList.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/DisplayListTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/GetModel.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/GetModelTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/RecordId.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/RecordIdTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldPermissions.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldPermissionsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/Fields.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/PrepareItem.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/PrepareItemTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/EditBody.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedEditBodyRendererTest.php'
@@ -3593,6 +3625,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/CoreStateTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Service/Adminview.php' => [
+		'mode' => 'provider',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Service/ProviderCatalogTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Service/ArchitectureApi.php' => [
 		'mode' => 'provider',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Service/ProviderCatalogTest.php'
 	],
