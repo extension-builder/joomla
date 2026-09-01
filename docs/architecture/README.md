@@ -45,6 +45,9 @@ understood before changing the legacy helper chain.
 12. [Extrusion engine](extrusion.md) — the reverse direction: the current SQL
    dump contract and the proposed roadmap for extruding an existing component's
    source tree into JCB definitions.
+13. [API generation](api-generation.md) — the Joomla web-services contract,
+   the four generated API classes, and the design that completes them for
+   every admin view with the API option set.
 
 Repository-wide instructions for coding agents are in [`AGENTS.md`](../../AGENTS.md).
 Before changing any path, read the authoritative
