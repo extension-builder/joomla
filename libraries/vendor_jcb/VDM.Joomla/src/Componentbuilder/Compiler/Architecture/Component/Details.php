@@ -330,6 +330,9 @@ final class Details
 			$this->config->joomla_versions[$this->config->joomla_version]['xml_version']
 		);
 
+		// set the api files block of the manifest
+		$this->contentone->set('API_FILES', $this->apiFiles());
+
 		// Component_name
 		$name = $this->component->get('name');
 		$this->contentone->set('Component_name',
@@ -482,5 +485,32 @@ final class Details
 		{
 			$this->contentone->set($globalPlaceholder, $gloabalValue);
 		}
+	}
+
+	/**
+	 * The manifest block that installs the api folder.
+	 *
+	 * The block is only written when an admin view asked for an API, since
+	 * the api folder is removed from the build otherwise.
+	 *
+	 * @return  string  The api files block, or nothing.
+	 * @since   6.1.7
+	 */
+	private function apiFiles(): string
+	{
+		if ($this->config->get('add_api') === null)
+		{
+			return '';
+		}
+
+		$files = [];
+		$files[] = PHP_EOL . PHP_EOL . Indent::_(1) . '<api>';
+		$files[] = Indent::_(2) . '<files folder="api">';
+		$files[] = Indent::_(3) . '<filename>index.html</filename>';
+		$files[] = Indent::_(3) . '<folder>src</folder>';
+		$files[] = Indent::_(2) . '</files>';
+		$files[] = Indent::_(1) . '</api>';
+
+		return implode(PHP_EOL, $files);
 	}
 }
