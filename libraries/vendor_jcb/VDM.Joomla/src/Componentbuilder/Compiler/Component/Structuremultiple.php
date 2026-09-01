@@ -422,6 +422,13 @@ final class Structuremultiple
 			$target = ['api' => $settings->name_list];
 			$this->structure->build($target, 'list', false, $config);
 		}
+
+		// build the serializer (the item and the list resource share it)
+		if ($settings->name_single != 'null')
+		{
+			$target = ['api' => $settings->name_single];
+			$this->structure->build($target, 'serializer', false, $config);
+		}
 	}
 
 	/**
@@ -442,4 +449,3 @@ final class Structuremultiple
 		$this->structure->build($target, $view_type, false, $config);
 	}
 }
-

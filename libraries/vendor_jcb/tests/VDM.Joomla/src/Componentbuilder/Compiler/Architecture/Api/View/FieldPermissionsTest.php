@@ -48,6 +48,7 @@ final class FieldPermissionsTest extends ArchitectureTestCase
 			|| ($id == 0 && !$user->authorise('demo.access.secret', 'com_demo')))
 		{
 			$this->fieldsToRenderItem = array_values(array_diff($this->fieldsToRenderItem, ['secret']));
+			$this->relationship = array_values(array_diff($this->relationship, ['secret']));
 		}
 
 		// Remove the notes value based on View access controls.
@@ -55,6 +56,7 @@ final class FieldPermissionsTest extends ArchitectureTestCase
 			|| ($id == 0 && !$user->authorise('demo.view.notes', 'com_demo')))
 		{
 			$this->fieldsToRenderItem = array_values(array_diff($this->fieldsToRenderItem, ['notes']));
+			$this->relationship = array_values(array_diff($this->relationship, ['notes']));
 		}
 GEN;
 
@@ -73,12 +75,14 @@ GEN;
 		if (!$user->authorise('demo.access.secret', 'com_demo'))
 		{
 			$this->fieldsToRenderList = array_values(array_diff($this->fieldsToRenderList, ['secret']));
+			$this->relationship = array_values(array_diff($this->relationship, ['secret']));
 		}
 
 		// Remove the notes value based on View access controls.
 		if (!$user->authorise('demo.view.notes', 'com_demo'))
 		{
 			$this->fieldsToRenderList = array_values(array_diff($this->fieldsToRenderList, ['notes']));
+			$this->relationship = array_values(array_diff($this->relationship, ['notes']));
 		}
 GEN;
 

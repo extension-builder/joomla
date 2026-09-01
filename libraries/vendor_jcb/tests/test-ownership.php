@@ -752,6 +752,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/RecordIdTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/Relations.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/RelationsTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldPermissions.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldPermissionsTest.php'
@@ -763,6 +767,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/PrepareItem.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/PrepareItemTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/Relationships.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/RelationshipsTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminView/EditBody.php' => [
 		'mode' => 'contract',

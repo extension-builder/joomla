@@ -19,6 +19,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\RecordId as
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions as ApiFieldPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Fields as ApiFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ApiPrepareItem;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships as ApiRelationships;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Serializer\Relations as ApiRelations;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\TabLayoutFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript;
@@ -301,6 +303,22 @@ final class EditView
 	protected ApiPrepareItem $apiprepareitem;
 
 	/**
+	 * The Api View Relationships Class.
+	 *
+	 * @var   ApiRelationships
+	 * @since 6.1.7
+	 */
+	protected ApiRelationships $apirelationships;
+
+	/**
+	 * The Api Serializer Relations Class.
+	 *
+	 * @var   ApiRelations
+	 * @since 6.1.7
+	 */
+	protected ApiRelations $apirelations;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                            $config                                The Config Class.
@@ -333,6 +351,8 @@ final class EditView
 	 * @param ApiFields   $apifields   The Api View Fields Class.
 	 * @param ApiFieldPermissions   $apifieldpermissions   The Api View FieldPermissions Class.
 	 * @param ApiPrepareItem   $apiprepareitem   The Api View PrepareItem Class.
+	 * @param ApiRelationships   $apirelationships   The Api View Relationships Class.
+	 * @param ApiRelations   $apirelations   The Api Serializer Relations Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -365,7 +385,9 @@ final class EditView
 		ApiAllowDelete $apiallowdelete,
 		ApiFields $apifields,
 		ApiFieldPermissions $apifieldpermissions,
-		ApiPrepareItem $apiprepareitem)
+		ApiPrepareItem $apiprepareitem,
+		ApiRelationships $apirelationships,
+		ApiRelations $apirelations)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -397,6 +419,8 @@ final class EditView
 		$this->apifields = $apifields;
 		$this->apifieldpermissions = $apifieldpermissions;
 		$this->apiprepareitem = $apiprepareitem;
+		$this->apirelationships = $apirelationships;
+		$this->apirelations = $apirelations;
 	}
 
 	/**
@@ -779,6 +803,28 @@ final class EditView
 			$this->contentmulti->set($nameSingleCode . '|API_VIEW_JSON_PREPAREITEM',
 				$this->apiprepareitem->get(
 					$nameSingleCode, false
+				)
+			);
+
+			// API_VIEW_JSON_RELATIONSHIP <<<DYNAMIC>>> add the relationships to the api json view
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_JSON_RELATIONSHIP',
+				$this->apirelationships->get(
+					$nameSingleCode, $nameListCode, true
+				)
+			);
+
+			// API_VIEW_SERIALIZER_HEADER <<<DYNAMIC>>> add the header details for the serializer
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_SERIALIZER_HEADER',
+				$this->header->get(
+					'api.view.serializer',
+					$nameSingleCode
+				)
+			);
+
+			// API_VIEW_SERIALIZER_RELATIONS <<<DYNAMIC>>> add the relationship methods to the api serializer
+			$this->contentmulti->set($nameSingleCode . '|API_VIEW_SERIALIZER_RELATIONS',
+				$this->apirelations->get(
+					$nameSingleCode, $nameListCode
 				)
 			);
 

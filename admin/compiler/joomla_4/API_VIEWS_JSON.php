@@ -16,6 +16,7 @@ defined('_JCB_TEMPLATE') or die;
 namespace ###NAMESPACEPREFIX###\Component\###ComponentNamespace###\Api\View\###Views###;
 
 ###API_VIEWS_JSON_HEADER###
+use ###NAMESPACEPREFIX###\Component\###ComponentNamespace###\Api\Serializer\###View###Serializer;
 
 // No direct access to this file
 \defined('_JEXEC') or die;
@@ -35,6 +36,33 @@ class JsonapiView extends BaseApiView
 	 */
 	protected $fieldsToRenderList = [###API_VIEWS_JSON_FIELDS###
 	];
+
+	/**
+	 * The relationships the items have
+	 *
+	 * @var    array
+	 * @since  4.0.0
+	 */
+	protected $relationship = [###API_VIEWS_JSON_RELATIONSHIP###
+	];
+
+	/**
+	 * Constructor.
+	 *
+	 * @param   array  $config  A named configuration array for object construction.
+	 *                          contentType: the name (optional) of the content type to use for the serialization
+	 *
+	 * @since   4.0.0
+	 */
+	public function __construct($config = [])
+	{
+		if (\array_key_exists('contentType', $config))
+		{
+			$this->serializer = new ###View###Serializer($config['contentType']);
+		}
+
+		parent::__construct($config);
+	}
 
 	/**
 	 * Execute and display a template script.
