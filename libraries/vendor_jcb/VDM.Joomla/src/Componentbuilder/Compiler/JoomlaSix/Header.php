@@ -640,6 +640,15 @@ final class Header implements HeaderInterface
 				$headers[] = 'use Joomla\Registry\Registry;';
 				break;
 
+			case 'api.view.serializer':
+				$headers = [];
+				$headers[] = 'use Joomla\CMS\Serializer\JoomlaSerializer;';
+				$headers[] = 'use Joomla\CMS\Tag\TagApiSerializerTrait;';
+				$headers[] = 'use Tobscure\JsonApi\Collection;';
+				$headers[] = 'use Tobscure\JsonApi\Relationship;';
+				$headers[] = 'use Tobscure\JsonApi\Resource;';
+				break;
+
 			default:
 				break;
 		}

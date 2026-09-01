@@ -37,6 +37,7 @@
 		"api": {
 			"src": {
 				"Controller": "Controller",
+				"Serializer": "Serializer",
 				"View": "View"
 			}
 		},
@@ -625,6 +626,12 @@
 					"rename": "new",
 					"newName": "JsonapiView.php",
 					"type": "list"
+				},
+				"API_VIEW_SERIALIZER.php": {
+					"path": "c0mp0n3nt/api/src/Serializer",
+					"rename": "new",
+					"newName": "[[[Name]]]Serializer.php",
+					"type": "serializer"
 				}
 			},
 			"site": {

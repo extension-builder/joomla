@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\GetModel as
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions as ApiFieldPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Fields as ApiFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ApiPrepareItem;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships as ApiRelationships;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImportCustomScripts;
@@ -411,6 +412,14 @@ final class ListView
 	protected ApiPrepareItem $apiprepareitem;
 
 	/**
+	 * The Api View Relationships Class.
+	 *
+	 * @var   ApiRelationships
+	 * @since 6.1.7
+	 */
+	protected ApiRelationships $apirelationships;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                     $config                         The Config Class.
@@ -455,6 +464,7 @@ final class ListView
 	 * @param ApiFields   $apifields   The Api View Fields Class.
 	 * @param ApiFieldPermissions   $apifieldpermissions   The Api View FieldPermissions Class.
 	 * @param ApiPrepareItem   $apiprepareitem   The Api View PrepareItem Class.
+	 * @param ApiRelationships   $apirelationships   The Api View Relationships Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -499,7 +509,8 @@ final class ListView
 		ApiDisplayList $apidisplaylist,
 		ApiFields $apifields,
 		ApiFieldPermissions $apifieldpermissions,
-		ApiPrepareItem $apiprepareitem)
+		ApiPrepareItem $apiprepareitem,
+		ApiRelationships $apirelationships)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -543,6 +554,7 @@ final class ListView
 		$this->apifields = $apifields;
 		$this->apifieldpermissions = $apifieldpermissions;
 		$this->apiprepareitem = $apiprepareitem;
+		$this->apirelationships = $apirelationships;
 	}
 
 	/**
@@ -957,6 +969,13 @@ final class ListView
 			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_PREPAREITEM',
 				$this->apiprepareitem->get(
 					$nameSingleCode, true
+				)
+			);
+
+			// API_VIEWS_JSON_RELATIONSHIP <<<DYNAMIC>>> add the relationships to the api json view
+			$this->contentmulti->set($nameListCode . '|API_VIEWS_JSON_RELATIONSHIP',
+				$this->apirelationships->get(
+					$nameSingleCode, $nameListCode, false
 				)
 			);
 

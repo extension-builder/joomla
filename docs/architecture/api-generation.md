@@ -38,6 +38,7 @@ build folder, as mapped by the `move.dynamic.api` bucket of
 | `API_VIEW_JSON.php` | `api/src/View/<View>/JsonapiView.php` | `add_api` = 3 or 2 |
 | `API_VIEWS_CONTROLLER.php` | `api/src/Controller/<Views>Controller.php` | `add_api` = 1 or 2 |
 | `API_VIEWS_JSON.php` | `api/src/View/<Views>/JsonapiView.php` | `add_api` = 1 or 2 |
+| `API_VIEW_SERIALIZER.php` | `api/src/Serializer/<View>Serializer.php` | any `add_api` (built by phase 1) |
 
 Joomla 4, 5 and 6 all compile from the `joomla_4` template folder
 (`Config::getJoomlaversions()` maps every target major at or above 4 to
@@ -184,8 +185,19 @@ class ArticlesController extends ApiController
 class JsonapiView extends BaseApiView
 {
 	protected $fieldsToRenderItem = [ /* every table column */ ];   // or $fieldsToRenderList
+	protected $relationship = [ /* linked, user, category fields, created_by, modified_by, tags */ ];
+	public function __construct($config = [])  { /* bind ArticleSerializer, parent */ }
 	public function displayItem($item = null) { /* drop fields the user may not view/access, parent */ }
 	protected function prepareItem($item)     { /* decode stored values the model left raw, tags */ }
+}
+
+// api/src/Serializer/ArticleSerializer.php  (shared by both views)
+class ArticleSerializer extends JoomlaSerializer
+{
+	use TagApiSerializerTrait;                 // when the view has tags
+	public function author($item)    { return $this->related($item->author ?? null, 'authors'); }
+	public function createdBy($item) { return $this->related($item->created_by ?? null, 'users'); }
+	protected function related($value, string $type): Relationship { /* one Resource, or a Collection for many ids */ }
 }
 ```
 
@@ -204,10 +216,17 @@ class JsonapiView extends BaseApiView
 - `delete()` is generated in full because the base implementation checks the
   core action names inline on Joomla 4 and older 5, which bypasses per-view
   permission names.
-- Relationships (`$relationship`) are not emitted in phase 1. Joomla's
-  serializer resolves them through plugins or a per-type serializer, and the
-  linker data in `ComponentFields[...]['link']` is the input for that later
-  step.
+- Relationships are emitted from the field map. Every field that links to
+  another table (`ComponentFields[...]['link']`), every user and category
+  field, the users who created and last changed the record, and the tags
+  become JSON:API relationships. A generated `api/src/Serializer/<View>Serializer.php`
+  extends `JoomlaSerializer` with one method per relationship, and both
+  JSON views bind it in their constructor, as Joomla's own components do.
+  The related type is the list name of the linked admin view when the view
+  is this component's, else the linked view's own name, else the linked
+  table's name without the database and component prefix. The tags come from
+  Joomla's `TagApiSerializerTrait` and are only related on the item, since
+  the list model yields tag names rather than ids.
 
 ### 4.2 Placeholders
 
@@ -228,6 +247,10 @@ existing `API_*_HEADER` keys.
 | `###API_VIEWS_JSON_FIELDS###` | `ListView` | `Api\View\Fields` | entries of `$fieldsToRenderList` |
 | `###API_VIEWS_JSON_PERMISSIONS###` | `ListView` | `Api\View\FieldPermissions` | guard lines in `displayList()` |
 | `###API_VIEWS_JSON_PREPAREITEM###` | `ListView` | `Api\View\PrepareItem` | body of `prepareItem()` |
+| `###API_VIEW_JSON_RELATIONSHIP###` | `EditView` | `Api\View\Relationships` | entries of `$relationship` (item) |
+| `###API_VIEWS_JSON_RELATIONSHIP###` | `ListView` | `Api\View\Relationships` | entries of `$relationship` (list) |
+| `###API_VIEW_SERIALIZER_HEADER###` | `EditView` | `Header` (`api.view.serializer`) | imports of the serializer |
+| `###API_VIEW_SERIALIZER_RELATIONS###` | `EditView` | `Api\Serializer\Relations` | relationship methods of the serializer |
 
 `###JCONTROLLERFORM_ALLOWADD###`, `###JCONTROLLERFORM_ALLOWEDIT###` and the
 four header keys are unchanged. Everything that does not vary per view
@@ -259,6 +282,8 @@ factory.
 | `Api\View\Fields` | `ComponentFields`, `Config->default_fields`, `AccessSwitch`, `MetaData`, `FieldNames` |
 | `Api\View\FieldPermissions` | `PermissionFields`, `Config->component_code_name` |
 | `Api\View\PrepareItem` | `JsonString`, `JsonItem`, `JsonItemArray`, `BaseSixFour`, `ModelBasicField`, `ModelMediumField`, `ModelWhmcsField`, `ItemsMethodListString`, `Tags`, `ContentOne`, `Config->cryption_types` |
+| `Api\View\Relationships` | `ComponentFields` (type and link), `FieldNames`, `Tags`, `Component->admin_views` |
+| `Api\Serializer\Relations` | `Api\View\Relationships` |
 
 `ComponentFields` is the table map the compiler already builds per view in
 `Creator/Builders::configureLayoutAndComponentField()`: for every stored
@@ -325,9 +350,10 @@ exception, filter and helper imports the generated bodies need.
 
 ## 5. Phases
 
-**Phase 1 — the four classes (this change).** Touches: the four API
-templates and `settings.json` are unchanged in path and name; the templates
-gain the placeholders of §4.2; `JoomlaFour|Five|Six/Header` gain imports for
+**Phase 1 — the four classes and the serializer (this change).** Touches:
+the four API templates keep their paths and names and gain the placeholders
+of §4.2; `settings.json` gains the `API_VIEW_SERIALIZER.php` template, built
+by `Structuremultiple::buildApi()` for every view with an API; `JoomlaFour|Five|Six/Header` gain imports for
 the `api.*` contexts; new `Architecture/Api/*` renderers, `Service/ArchitectureApi`,
 `Factory` registration; `AdminViews/EditView` and `ListView` set the new keys.
 Deliverable: a component compiled with `add_api` on a view produces

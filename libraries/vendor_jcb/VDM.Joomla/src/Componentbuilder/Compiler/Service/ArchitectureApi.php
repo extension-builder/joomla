@@ -22,6 +22,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\DisplayList
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Fields as ViewFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions as ViewFieldPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ViewPrepareItem;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships as ViewRelationships;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Serializer\Relations as SerializerRelations;
 
 
 /**
@@ -67,6 +69,12 @@ class ArchitectureApi implements ServiceProviderInterface
 
 		$container->alias(ViewPrepareItem::class, 'Architecture.Api.View.PrepareItem')
 			->share('Architecture.Api.View.PrepareItem', [$this, 'getViewPrepareItem'], true);
+
+		$container->alias(ViewRelationships::class, 'Architecture.Api.View.Relationships')
+			->share('Architecture.Api.View.Relationships', [$this, 'getViewRelationships'], true);
+
+		$container->alias(SerializerRelations::class, 'Architecture.Api.Serializer.Relations')
+			->share('Architecture.Api.Serializer.Relations', [$this, 'getSerializerRelations'], true);
 	}
 
 	/**
@@ -206,6 +214,40 @@ class ArchitectureApi implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Compiler.Builder.Items.Method.List.String'),
 			$container->get('Compiler.Builder.Tags')
+		);
+	}
+
+	/**
+	 * Get The Api View Relationships Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewRelationships
+	 * @since 6.1.7
+	 */
+	public function getViewRelationships(Container $container): ViewRelationships
+	{
+		return new ViewRelationships(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Component.Fields'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Tags'),
+			$container->get('Component')
+		);
+	}
+
+	/**
+	 * Get The Api Serializer Relations Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  SerializerRelations
+	 * @since 6.1.7
+	 */
+	public function getSerializerRelations(Container $container): SerializerRelations
+	{
+		return new SerializerRelations(
+			$container->get('Architecture.Api.View.Relationships')
 		);
 	}
 }

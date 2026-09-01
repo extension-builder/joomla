@@ -118,6 +118,9 @@ final class FieldPermissions
 				$code[] = Indent::_(3) . "\$this->" . $property
 					. " = array_values(array_diff(\$this->" . $property . ", ['"
 					. $fieldName . "']));";
+				$code[] = Indent::_(3) . "\$this->relationship"
+					. " = array_values(array_diff(\$this->relationship, ['"
+					. $fieldName . "']));";
 				$code[] = Indent::_(2) . "}";
 			}
 		}

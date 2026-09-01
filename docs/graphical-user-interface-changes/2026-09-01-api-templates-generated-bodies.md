@@ -16,14 +16,18 @@
 - **Authorized paths:** `admin/compiler/joomla_4/API_VIEW_CONTROLLER.php`,
   `admin/compiler/joomla_4/API_VIEW_JSON.php`,
   `admin/compiler/joomla_4/API_VIEWS_CONTROLLER.php`,
-  `admin/compiler/joomla_4/API_VIEWS_JSON.php`
+  `admin/compiler/joomla_4/API_VIEWS_JSON.php`,
+  `admin/compiler/joomla_4/API_VIEW_SERIALIZER.php`,
+  `admin/compiler/joomla_4/settings.json`
 - **Authorized outcome:** the four API templates carry the placeholders and
   the static method bodies that make the generated API controllers and JSON
   views complete, so that a component compiled with the API option on an
   admin view gets working list, item, create, update and delete classes.
-- **Permission summary:** template edits only; no other `admin/**` path and
-  no `media/js/**` path is touched. `settings.json` and the file names the
-  templates map to are unchanged.
+- **Permission summary:** template edits, one new serializer template and
+  its `settings.json` mapping; no other `admin/**` path and no `media/js/**`
+  path is touched. The file names the existing templates map to are
+  unchanged. The follow-up "relationships ... must be added" in the same
+  session authorizes the serializer template.
 
 ## Purpose and rationale
 
@@ -42,7 +46,7 @@ per view belong in the templates the same way the existing shells do. See
 
 ### Created
 
-- None
+- `admin/compiler/joomla_4/API_VIEW_SERIALIZER.php`
 
 ### Modified
 
@@ -50,6 +54,7 @@ per view belong in the templates the same way the existing shells do. See
 - `admin/compiler/joomla_4/API_VIEW_JSON.php`
 - `admin/compiler/joomla_4/API_VIEWS_CONTROLLER.php`
 - `admin/compiler/joomla_4/API_VIEWS_JSON.php`
+- `admin/compiler/joomla_4/settings.json`
 
 ### Moved or renamed
 
@@ -99,6 +104,8 @@ per view belong in the templates the same way the existing shells do. See
 - **Change type:** Modified
 - **Stable location(s):** class `JsonapiView` (item)
 - **What changed:** `$fieldsToRenderItem` (`###API_VIEW_JSON_FIELDS###`),
+  `$relationship` (`###API_VIEW_JSON_RELATIONSHIP###`), a constructor that
+  binds the view's `###View###Serializer` (imported after the header),
   `displayItem()` with `###API_VIEW_JSON_PERMISSIONS###`, and `prepareItem()`
   with `###API_VIEW_JSON_PREPAREITEM###`.
 - **Why:** Joomla renders only declared fields; the field permissions and the
@@ -111,12 +118,43 @@ per view belong in the templates the same way the existing shells do. See
 - **Change type:** Modified
 - **Stable location(s):** class `JsonapiView` (list)
 - **What changed:** `$fieldsToRenderList` (`###API_VIEWS_JSON_FIELDS###`),
+  `$relationship` (`###API_VIEWS_JSON_RELATIONSHIP###`), a constructor that
+  binds the view's `###View###Serializer` (imported after the header),
   `displayList()` with `###API_VIEWS_JSON_PERMISSIONS###`, and `prepareItem()`
   with `###API_VIEWS_JSON_PREPAREITEM###`.
 - **Why:** the list renders every table column, so the values the list model
   leaves raw are decoded here and the field permissions applied.
 - **Related paths/symbols:** `Compiler\Architecture\Api\View\*`,
   `Compiler\Architecture\AdminViews\ListView`.
+
+### `admin/compiler/joomla_4/API_VIEW_SERIALIZER.php`
+
+- **Change type:** Created
+- **Stable location(s):** class `###View###Serializer`
+- **What changed:** a new template: the resource serializer extending
+  `JoomlaSerializer`, with `###API_VIEW_SERIALIZER_HEADER###`,
+  `###API_VIEW_SERIALIZER_RELATIONS###` (one method per relationship, the
+  tag trait when the view has tags) and the static `related()` helper that
+  builds one resource or a collection of them.
+- **Why:** Joomla resolves JSON:API relationships through the serializer's
+  methods; the relationships come from the component field map.
+- **Related paths/symbols:** `Compiler\Architecture\Api\Serializer\Relations`,
+  `Compiler\Architecture\Api\View\Relationships`,
+  `Compiler\Component\Structuremultiple::buildApi()`, `Compiler\Joomla*\Header`
+  (`api.view.serializer` imports).
+
+### `admin/compiler/joomla_4/settings.json`
+
+- **Change type:** Modified
+- **Stable location(s):** `create.api.src` and `move.dynamic.api`
+- **What changed:** `Serializer` is added to the created `api/src` folders,
+  and `API_VIEW_SERIALIZER.php` is mapped to
+  `c0mp0n3nt/api/src/Serializer/[[[Name]]]Serializer.php` with the build
+  type `serializer`.
+- **Why:** the serializer is built once per view with an API, whichever of
+  the item or list resources the view asked for.
+- **Related paths/symbols:** `Compiler\Component\Structuremultiple::buildApi()`,
+  `Compiler\Utilities\Structure::build()`.
 
 ## Impact
 
@@ -178,6 +216,8 @@ per view belong in the templates the same way the existing shells do. See
 | `admin/compiler/joomla_4/API_VIEW_JSON.php` | Itself | No | Not applicable — owner confirmed | As above. |
 | `admin/compiler/joomla_4/API_VIEWS_CONTROLLER.php` | Itself | No | Not applicable — owner confirmed | As above. |
 | `admin/compiler/joomla_4/API_VIEWS_JSON.php` | Itself | No | Not applicable — owner confirmed | As above. |
+| `admin/compiler/joomla_4/API_VIEW_SERIALIZER.php` | Itself | No | Not applicable — owner confirmed | As above. |
+| `admin/compiler/joomla_4/settings.json` | Itself | No | Not applicable — owner confirmed | Compiler input data (see the 2026-08-19 admin layouts record); the owner asked for the relationships in this session. No next action. |
 
 ## Final consistency check
 

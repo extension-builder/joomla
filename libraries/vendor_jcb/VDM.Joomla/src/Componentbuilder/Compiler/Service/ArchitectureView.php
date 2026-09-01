@@ -2280,7 +2280,9 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Api.Controller.AllowDelete'),
 			$container->get('Architecture.Api.View.Fields'),
 			$container->get('Architecture.Api.View.FieldPermissions'),
-			$container->get('Architecture.Api.View.PrepareItem')
+			$container->get('Architecture.Api.View.PrepareItem'),
+			$container->get('Architecture.Api.View.Relationships'),
+			$container->get('Architecture.Api.Serializer.Relations')
 		);
 	}
 
@@ -2336,7 +2338,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Api.Controller.DisplayList'),
 			$container->get('Architecture.Api.View.Fields'),
 			$container->get('Architecture.Api.View.FieldPermissions'),
-			$container->get('Architecture.Api.View.PrepareItem')
+			$container->get('Architecture.Api.View.PrepareItem'),
+			$container->get('Architecture.Api.View.Relationships')
 		);
 	}
 

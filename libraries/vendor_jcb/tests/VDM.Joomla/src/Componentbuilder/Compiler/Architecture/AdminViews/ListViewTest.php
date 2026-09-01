@@ -185,6 +185,7 @@ final class ListViewTest extends ArchitectureTestCase
 		$this->assertStringContainsString("\t\t'id',", $written['###API_VIEWS_JSON_FIELDS###']);
 		$this->assertSame('', $written['###API_VIEWS_JSON_PERMISSIONS###']);
 		$this->assertSame('', $written['###API_VIEWS_JSON_PREPAREITEM###']);
+		$this->assertStringContainsString("\t\t'modified_by',", $written['###API_VIEWS_JSON_RELATIONSHIP###']);
 	}
 
 	/**

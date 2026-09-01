@@ -119,7 +119,7 @@ final class StructureTest extends CompilerDomainTestCase
 		$modifieddate->expects($this->once())->method('get')->willReturn('14th August, 2026');
 		$builds = [];
 		$structure = $this->createMock(UtilityStructure::class);
-		$structure->expects($this->exactly(6))
+		$structure->expects($this->exactly(7))
 			->method('build')
 			->willReturnCallback(static function (
 				array $target,
@@ -148,10 +148,12 @@ final class StructureTest extends CompilerDomainTestCase
 			'single_modal',
 			'list',
 			'list_modal',
-			'single'
+			'single',
+			'serializer'
 		], array_column($builds, 1));
 		$this->assertSame(['admin' => 'example'], $builds[0][0]);
 		$this->assertSame(['api' => 'article'], $builds[5][0]);
+		$this->assertSame(['api' => 'article'], $builds[6][0]);
 		$this->assertSame('1st January, 2026', $builds[1][3]['###CREATIONDATE###']);
 		$this->assertSame('14th August, 2026', $builds[1][3]['###BUILDDATE###']);
 		$this->assertSame('2.4.0', $builds[1][3]['###VERSION###']);
