@@ -33,6 +33,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class FieldsTest extends ArchitectureTestCase
 {
+	/**
+	 * The field entries of a view with only the default columns.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_DEFAULTS = <<<'GEN'
 
 		'id',
@@ -46,6 +52,12 @@ final class FieldsTest extends ArchitectureTestCase
 		'hits',
 GEN;
 
+	/**
+	 * A view without fields still renders the default columns.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithoutFieldsStillRendersTheDefaultColumns(): void
 	{
 		$subject = $this->renderer(Fields::class);
@@ -53,6 +65,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_DEFAULTS, $subject->get('demo'));
 	}
 
+	/**
+	 * The views own fields lead and every table column follows.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheViewsOwnFieldsLeadAndEveryTableColumnFollows(): void
 	{
 		$fields = new ComponentFields();
@@ -86,6 +104,12 @@ GEN;
 		);
 	}
 
+	/**
+	 * Another views fields are not rendered.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnotherViewsFieldsAreNotRendered(): void
 	{
 		$fields = new ComponentFields();

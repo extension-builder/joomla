@@ -215,4 +215,3 @@ abstract class Factory extends ExtendingFactory implements FactoryInterface
 			->registerServiceProvider(new DependenciesGet());
 	}
 }
-

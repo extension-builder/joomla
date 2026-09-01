@@ -167,6 +167,12 @@ final class ListViewTest extends ArchitectureTestCase
 		$this->assertContains('jcb_ce_onAfterBuildAdminListViewContent', $fired);
 	}
 
+	/**
+	 * The api controller and view are given their bodies.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheApiControllerAndViewAreGivenTheirBodies(): void
 	{
 		$this->build($this->view('demos'));

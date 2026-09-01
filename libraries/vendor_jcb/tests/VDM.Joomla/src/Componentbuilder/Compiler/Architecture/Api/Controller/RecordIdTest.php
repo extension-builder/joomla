@@ -31,6 +31,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class RecordIdTest extends ArchitectureTestCase
 {
+	/**
+	 * The record resolution of a table with no unique key.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_ID_ONLY = <<<'GEN'
 
 		// Take the primary key when the request carries it.
@@ -44,6 +50,12 @@ final class RecordIdTest extends ArchitectureTestCase
 		return 0;
 GEN;
 
+	/**
+	 * The record resolution through the guid and a unique code.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_WITH_KEYS = <<<'GEN'
 
 		// Take the primary key when the request carries it.
@@ -77,6 +89,12 @@ GEN;
 		return 0;
 GEN;
 
+	/**
+	 * A table with no unique key is resolved by id alone.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testATableWithNoUniqueKeyIsResolvedByIdAlone(): void
 	{
 		$subject = $this->renderer(RecordId::class);
@@ -84,6 +102,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_ID_ONLY, $subject->get('demo'));
 	}
 
+	/**
+	 * The guid leads and every unique key follows.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheGuidLeadsAndEveryUniqueKeyFollows(): void
 	{
 		$keys = new DatabaseUniqueKeys();
@@ -96,6 +120,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_WITH_KEYS, $subject->get('demo'));
 	}
 
+	/**
+	 * A guid without a unique index still resolves the record.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAGuidWithoutAUniqueIndexStillResolvesTheRecord(): void
 	{
 		$guid = new DatabaseUniqueGuid();
@@ -106,6 +136,12 @@ GEN;
 		$this->assertStringContainsString("foreach (['guid'] as \$key)", $subject->get('demo'));
 	}
 
+	/**
+	 * Another views keys are not borrowed.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnotherViewsKeysAreNotBorrowed(): void
 	{
 		$keys = new DatabaseUniqueKeys();

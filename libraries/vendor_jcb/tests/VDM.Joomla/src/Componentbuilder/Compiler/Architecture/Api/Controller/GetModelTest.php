@@ -28,6 +28,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class GetModelTest extends ArchitectureTestCase
 {
+	/**
+	 * The get model body of a view named demo and demos.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED = <<<'GEN'
 
 		// The model names of this view are explicit, the content type is never inflected.
@@ -43,6 +49,12 @@ final class GetModelTest extends ArchitectureTestCase
 		return parent::getModel($name, $prefix, $config);
 GEN;
 
+	/**
+	 * The list name maps to the list model and everything else to the item model.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheListNameMapsToTheListModelAndEverythingElseToTheItemModel(): void
 	{
 		$subject = $this->renderer(GetModel::class);
@@ -50,6 +62,12 @@ GEN;
 		$this->assertSame(self::EXPECTED, $subject->get('demo', 'demos'));
 	}
 
+	/**
+	 * The names are taken as given and never inflected.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheNamesAreTakenAsGivenAndNeverInflected(): void
 	{
 		$subject = $this->renderer(GetModel::class);

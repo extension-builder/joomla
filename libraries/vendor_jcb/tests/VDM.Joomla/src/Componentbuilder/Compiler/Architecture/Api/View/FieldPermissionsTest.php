@@ -30,6 +30,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class FieldPermissionsTest extends ArchitectureTestCase
 {
+	/**
+	 * The item guards of a view with access and view field permissions.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_ITEM = <<<'GEN'
 
 
@@ -52,6 +58,12 @@ final class FieldPermissionsTest extends ArchitectureTestCase
 		}
 GEN;
 
+	/**
+	 * The list guards of the same view.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_LIST = <<<'GEN'
 
 
@@ -71,6 +83,12 @@ GEN;
 		}
 GEN;
 
+	/**
+	 * A view without field permissions guards nothing.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithoutFieldPermissionsGuardsNothing(): void
 	{
 		$subject = $this->renderer(FieldPermissions::class);
@@ -79,16 +97,34 @@ GEN;
 		$this->assertSame('', $subject->get('demo', false));
 	}
 
+	/**
+	 * The item guards check the record and the component.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheItemGuardsCheckTheRecordAndTheComponent(): void
 	{
 		$this->assertSame(self::EXPECTED_ITEM, $this->subject()->get('demo'));
 	}
 
+	/**
+	 * The list guards check the component.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheListGuardsCheckTheComponent(): void
 	{
 		$this->assertSame(self::EXPECTED_LIST, $this->subject()->get('demo', false));
 	}
 
+	/**
+	 * An edit permission does not hide a field.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnEditPermissionDoesNotHideAField(): void
 	{
 		$code = $this->subject()->get('demo');
