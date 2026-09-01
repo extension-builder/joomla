@@ -131,6 +131,12 @@ final class EditViewTest extends ArchitectureTestCase
 		$this->assertContains('jcb_ce_onAfterBuildAdminEditViewContent', $fired);
 	}
 
+	/**
+	 * The api controller and view are given their bodies.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheApiControllerAndViewAreGivenTheirBodies(): void
 	{
 		$this->build($this->view('demo'));

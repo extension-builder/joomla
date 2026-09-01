@@ -29,12 +29,24 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class AllowViewTest extends ArchitectureTestCase
 {
+	/**
+	 * The view check of a view without an access permission.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_OPEN = <<<'GEN'
 
 		// In the absence of an access permission, every authenticated user may view.
 		return true;
 GEN;
 
+	/**
+	 * The view check of a view with an access permission.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_GUARDED = <<<'GEN'
 
 		// Get user object.
@@ -44,6 +56,12 @@ GEN;
 		return ($user->authorise('demo.access', 'com_demo.demo.' . $id) && $user->authorise('demo.access', 'com_demo'));
 GEN;
 
+	/**
+	 * A view without an access permission lets every user view.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithoutAnAccessPermissionLetsEveryUserView(): void
 	{
 		$subject = $this->renderer(AllowView::class);
@@ -51,6 +69,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_OPEN, $subject->get('demo'));
 	}
 
+	/**
+	 * A view with an access permission checks the record and the component.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithAnAccessPermissionChecksTheRecordAndTheComponent(): void
 	{
 		$subject = $this->renderer(AllowView::class, [
@@ -60,6 +84,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_GUARDED, $subject->get('demo'));
 	}
 
+	/**
+	 * An access permission of another view is not applied.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnAccessPermissionOfAnotherViewIsNotApplied(): void
 	{
 		$subject = $this->renderer(AllowView::class, [

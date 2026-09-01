@@ -29,6 +29,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class AllowDeleteTest extends ArchitectureTestCase
 {
+	/**
+	 * The delete check of a view without its own permissions.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_CORE = <<<'GEN'
 
 		// Get user object.
@@ -37,6 +43,12 @@ final class AllowDeleteTest extends ArchitectureTestCase
 		return $user->authorise('core.delete', $this->option);
 GEN;
 
+	/**
+	 * The delete check of a view with its own access and delete permissions.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_VIEW = <<<'GEN'
 
 		// Get user object.
@@ -51,6 +63,12 @@ GEN;
 		return $user->authorise('demo.delete', $this->option);
 GEN;
 
+	/**
+	 * A view without its own permissions reverts to the core delete action.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithoutItsOwnPermissionsRevertsToTheCoreDeleteAction(): void
 	{
 		$subject = $this->renderer(AllowDelete::class);
@@ -58,6 +76,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_CORE, $subject->get('demo'));
 	}
 
+	/**
+	 * A view with its own permissions is gated by access and uses its delete action.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithItsOwnPermissionsIsGatedByAccessAndUsesItsDeleteAction(): void
 	{
 		$subject = $this->renderer(AllowDelete::class, [

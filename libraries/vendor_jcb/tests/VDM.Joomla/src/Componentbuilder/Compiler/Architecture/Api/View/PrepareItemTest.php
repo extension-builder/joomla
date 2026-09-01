@@ -37,6 +37,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class PrepareItemTest extends ArchitectureTestCase
 {
+	/**
+	 * The tag conversion of an item view with tags.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_TAGS = <<<'GEN'
 
 
@@ -51,6 +57,12 @@ final class PrepareItemTest extends ArchitectureTestCase
 
 GEN;
 
+	/**
+	 * The decoding of a list item with base64, encrypted and JSON stored values.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_LIST = <<<'GEN'
 
 
@@ -87,6 +99,12 @@ GEN;
 
 GEN;
 
+	/**
+	 * An item without tags needs nothing done.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnItemWithoutTagsNeedsNothingDone(): void
 	{
 		$subject = $this->renderer(PrepareItem::class);
@@ -94,6 +112,12 @@ GEN;
 		$this->assertSame('', $subject->get('demo'));
 	}
 
+	/**
+	 * An items tags become their names.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnItemsTagsBecomeTheirNames(): void
 	{
 		$tags = new Tags();
@@ -104,11 +128,23 @@ GEN;
 		$this->assertSame(self::EXPECTED_TAGS, $subject->get('demo'));
 	}
 
+	/**
+	 * A list item decodes what the list model left raw.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAListItemDecodesWhatTheListModelLeftRaw(): void
 	{
 		$this->assertSame(self::EXPECTED_LIST, $this->subject()->get('demo', true));
 	}
 
+	/**
+	 * A list item leaves what the list model already prepared.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAListItemLeavesWhatTheListModelAlreadyPrepared(): void
 	{
 		$code = $this->subject()->get('demo', true);
@@ -116,6 +152,12 @@ GEN;
 		$this->assertStringNotContainsString('$item->params', $code);
 	}
 
+	/**
+	 * A list item needs nothing done when nothing is stored encoded.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAListItemNeedsNothingDoneWhenNothingIsStoredEncoded(): void
 	{
 		$subject = $this->renderer(PrepareItem::class);

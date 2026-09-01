@@ -34,6 +34,12 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class DisplayListTest extends ArchitectureTestCase
 {
+	/**
+	 * The list state mapping of a view without filters or sorting.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_BARE = <<<'GEN'
 
 		// Map the request filters onto the list model state.
@@ -64,6 +70,12 @@ final class DisplayListTest extends ArchitectureTestCase
 		return parent::displayList();
 GEN;
 
+	/**
+	 * The mapping of one filter of the view.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_STATUS_FILTER = <<<'GEN'
 
 		if (isset($filters['status']))
@@ -72,6 +84,12 @@ GEN;
 		}
 GEN;
 
+	/**
+	 * The ordering map of a view with access, custom and category sorting.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
 	private const EXPECTED_ORDERING = <<<'GEN'
 		$ordering = [
 			'id' => 'a.id',
@@ -86,6 +104,12 @@ GEN;
 		];
 GEN;
 
+	/**
+	 * A view without filters maps search published and the default ordering.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAViewWithoutFiltersMapsSearchPublishedAndTheDefaultOrdering(): void
 	{
 		$subject = $this->renderer(DisplayList::class);
@@ -93,6 +117,12 @@ GEN;
 		$this->assertSame(self::EXPECTED_BARE, $subject->get('demo', 'demos'));
 	}
 
+	/**
+	 * Every filter of the view is mapped and categories are read by id.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testEveryFilterOfTheViewIsMappedAndCategoriesAreReadById(): void
 	{
 		$code = $this->subject()->get('demo', 'demos');
@@ -105,6 +135,12 @@ GEN;
 		$this->assertStringNotContainsString("isset(\$filters['search'])", $code);
 	}
 
+	/**
+	 * The ordering offers what the admin sort field offers.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testTheOrderingOffersWhatTheAdminSortFieldOffers(): void
 	{
 		$code = $this->subject()->get('demo', 'demos');
@@ -112,6 +148,12 @@ GEN;
 		$this->assertStringContainsString(self::EXPECTED_ORDERING, $code);
 	}
 
+	/**
+	 * An overridden access field is not filtered as the default one.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
 	public function testAnOverriddenAccessFieldIsNotFilteredAsTheDefaultOne(): void
 	{
 		$names = new FieldNames();
