@@ -80,8 +80,9 @@ final class FieldPermissions
 		$property = $item ? 'fieldsToRenderItem' : 'fieldsToRenderList';
 		$code = [];
 
-		$code[] = PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
-			. " Get user object.";
+		// the item guards follow a closing brace, the list guards the opening one
+		$code[] = ($item ? PHP_EOL . PHP_EOL : PHP_EOL) . Indent::_(2) . "//"
+			. Line::_(__LINE__, __CLASS__) . " Get user object.";
 		$code[] = Indent::_(2) . "\$user = Factory::getApplication()->getIdentity();";
 
 		if ($item)

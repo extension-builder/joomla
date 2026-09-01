@@ -180,7 +180,8 @@ final class PrepareItem
 			? $this->decode($nameSingleCode)
 			: $this->tags($nameSingleCode);
 
-		return ($script === '') ? '' : $script . PHP_EOL;
+		// the body follows the opening brace, so it opens with one line break
+		return ($script === '') ? '' : PHP_EOL . ltrim($script, PHP_EOL) . PHP_EOL;
 	}
 
 	/**

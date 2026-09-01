@@ -45,7 +45,6 @@ final class PrepareItemTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_TAGS = <<<'GEN'
 
-
 		if (isset($item->tags) && $item->tags instanceof TagsHelper)
 		{
 			// Convert the tags to their names.
@@ -64,7 +63,6 @@ GEN;
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_LIST = <<<'GEN'
-
 
 		if (isset($item->blob) && is_string($item->blob) && $item->blob !== '')
 		{

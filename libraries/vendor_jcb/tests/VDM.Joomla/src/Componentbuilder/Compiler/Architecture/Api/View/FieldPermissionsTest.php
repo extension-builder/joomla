@@ -66,7 +66,6 @@ GEN;
 	 */
 	private const EXPECTED_LIST = <<<'GEN'
 
-
 		// Get user object.
 		$user = Factory::getApplication()->getIdentity();
 
