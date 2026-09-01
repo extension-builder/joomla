@@ -9,7 +9,8 @@ Joomla 4, 5 and 6.
 **Implementation status:** phase 1 (the four generated classes) is
 implemented under `Compiler/Architecture/Api` and wired through
 `Architecture/AdminViews/EditView` and `ListView`. Phase 2 (the manifest
-`<api>` block) is a separate, small change. Phase 3 (route registration) is
+`<api>` block, written by `Architecture/Component/Details` when a view asked
+for an API) is implemented. Phase 3 (route registration) is
 deliberately out of scope: routes live in a `webservices` plugin that a JCB
 user creates in the plugin area and links to the component, and the compiler
 will only fill placeholders inside it. Section 7 records that footnote.
@@ -333,12 +334,12 @@ Deliverable: a component compiled with `add_api` on a view produces
 controllers and views that answer list, item, create, update and delete
 requests with the admin permissions, once a route reaches them.
 
-**Phase 2 — install the folder.** Touches: `component.xml` gains an
-`###API_FILES###` placeholder rendered as
-`<api><files folder="api"><folder>src</folder></files></api>` when
-`Config->add_api` is set and as nothing otherwise, alongside the existing
-`EXSTRA_*` placeholders. Deliverable: the installer copies `api/` and the
-namespace map registers the `Api` namespace.
+**Phase 2 — install the folder (implemented).** `component.xml` carries an
+`###API_FILES###` placeholder after the administration block, which
+`Architecture/Component/Details::set()` renders as
+`<api><files folder="api"><filename>index.html</filename><folder>src</folder></files></api>`
+when `Config->add_api` is set and as nothing otherwise. Deliverable: the
+installer copies `api/` and the namespace map registers the `Api` namespace.
 
 **Phase 3 — routes (footnote, not scheduled).** A `webservices` plugin created
 in the JCB plugin area and linked to the component, carrying placeholders the

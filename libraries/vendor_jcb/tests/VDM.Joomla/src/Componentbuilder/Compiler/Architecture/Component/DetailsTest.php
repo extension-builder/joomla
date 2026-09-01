@@ -344,6 +344,36 @@ final class DetailsTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * A component without an api installs no api folder.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAComponentWithoutAnApiInstallsNoApiFolder(): void
+	{
+		$this->fill();
+
+		$this->assertSame('', $this->content->get('API_FILES'));
+	}
+
+	/**
+	 * A component with an api installs the api folder.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAComponentWithAnApiInstallsTheApiFolder(): void
+	{
+		$this->config()->set('add_api', 1);
+		$this->fill();
+
+		$this->assertSame(
+			"\n\n\t<api>\n\t\t<files folder=\"api\">\n\t\t\t<filename>index.html</filename>\n\t\t\t<folder>src</folder>\n\t\t</files>\n\t</api>",
+			$this->content->get('API_FILES')
+		);
+	}
+
+	/**
 	 * Fill in what one component says about itself.
 	 *
 	 * @param   array  $said       What the component was asked, and answered.
