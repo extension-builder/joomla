@@ -530,7 +530,9 @@ final class Extruder implements PowersExtruderInterface
 				. 'class they declare',
 			'powers.namespace.restated' => 'existing power(s) were recognised by '
 				. 'the class they compile to, and had their stored namespace '
-				. 'restated from where the class really sits'
+				. 'restated from where the class really sits',
+			'powers.undecodable.placeholder' => 'system-wide placeholder row(s) do '
+				. 'not decode to text and were left out of the namespace resolution'
 		];
 
 		foreach ($counts as $key => $tail)

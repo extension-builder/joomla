@@ -171,7 +171,7 @@ board's own files can fix what the board sends and shows.
 | --- | --- | --- |
 | Fresh import of a two-view component whose views state identical name/guid/state fields, decisions untouched | Local Joomla 6 + JCB lab, MySQL, CLI mirror of the AJAX flow | Pass — one field per identity, both views link it, `counts.fields_shared` reported; previously three per-view duplicates were salted |
 | Re-import over a database already carrying per-view duplicates from the pre-sharing engine | Same lab, duplicates seeded by the era engine | Pass — the standing record is adopted, the second view's old link is consolidated onto it, no new field records; the orphaned duplicates are named in the report |
-| Harvest of an installed JCB-built component whose table definition class lives under the site's `libraries/` | Same lab, com_venuedecisionmatrix installed | Pass — the class is located centrally, its stated guids group every view's guid column into one field |
+| Harvest of an installed JCB-built component whose table definition class lives under the site's `libraries/` | Same lab, a JCB-built component installed on the site | Pass — the class is located centrally, its stated guids group every view's guid column into one field |
 
 ### GUI test coverage
 

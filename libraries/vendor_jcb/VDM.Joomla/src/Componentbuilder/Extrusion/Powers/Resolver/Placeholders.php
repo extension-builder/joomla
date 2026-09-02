@@ -425,10 +425,50 @@ final class Placeholders
 				continue;
 			}
 
-			$this->globals[$target] = base64_decode((string) ($row['value'] ?? ''));
+			$value = base64_decode((string) ($row['value'] ?? ''));
+
+			if (!$this->text($value))
+			{
+				// a row that does not decode to text cannot stand for anything,
+				// and must never reach a report a page has to read
+				$this->report->set(
+					'powers.undecodable.placeholder.' . $this->key($target),
+					$target
+				);
+
+				continue;
+			}
+
+			$this->globals[$target] = $value;
 		}
 
 		return $this->globals;
+	}
+
+	/**
+	 * Whether a value is text a report can carry and a namespace can be built from.
+	 *
+	 * @param   string  $value  The value to test.
+	 *
+	 * @return  bool  True when the value is valid UTF-8.
+	 * @since   6.1.9
+	 */
+	protected function text(string $value): bool
+	{
+		return preg_match('//u', $value) === 1;
+	}
+
+	/**
+	 * Sanitise one registry path segment.
+	 *
+	 * @param   string  $segment  The raw segment.
+	 *
+	 * @return  string  A segment safe to use in a dotted registry path.
+	 * @since   6.1.9
+	 */
+	protected function key(string $segment): string
+	{
+		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 
 	/**
@@ -476,7 +516,12 @@ final class Placeholders
 		{
 			// a fresh run reads a fresh report, which must still carry the
 			// values that drive every namespace conversion
-			$this->report->set('powers.placeholders', $this->resolved[$key]);
+			$this->report->set('powers.placeholders', [
+				'prefix' => $this->resolved[$key]['prefix'],
+				'component' => $this->resolved[$key]['component'],
+				'recognise' => $this->resolved[$key]['recognise'],
+				'overrides' => array_keys($this->resolved[$key]['overrides'])
+			]);
 
 			return $this->resolved[$key];
 		}
@@ -560,11 +605,13 @@ final class Placeholders
 			}
 		}
 
+		// the report names which overrides stood, never their values: a
+		// value is a person's free text, and the report is read by a page
 		$this->report->set('powers.placeholders', [
 			'prefix' => $prefix,
 			'component' => $component,
 			'recognise' => $recognise,
-			'overrides' => $overrides
+			'overrides' => array_keys($overrides)
 		]);
 
 		return $this->resolved[$key] = [
@@ -579,8 +626,9 @@ final class Placeholders
 	 * Every component namespace the whole system knows.
 	 *
 	 * Each component's code name derives its segment the way the compiler
-	 * does, and each ComponentNamespace override -- base64 encoded, exactly
-	 * as the compiler decodes it -- states the value a person chose instead.
+	 * does, and each ComponentNamespace override -- stored as the plain text
+	 * the person typed, exactly as the compiler reads it -- states the value
+	 * a person chose instead.
 	 * Together they are every value the placeholder has ever resolved to on
 	 * this system, which is what lets a library harvested on its own still
 	 * recognise the component area its classes carry.
@@ -631,9 +679,9 @@ final class Placeholders
 					continue;
 				}
 
-				$value = trim(base64_decode((string) ($row['value'] ?? '')));
+				$value = trim((string) ($row['value'] ?? ''));
 
-				if ($value !== '')
+				if ($value !== '' && $this->text($value))
 				{
 					$known[] = NamespaceHelper::safeSegment($value);
 				}
@@ -690,23 +738,28 @@ final class Placeholders
 			return [$prefix, $component, []];
 		}
 
-		$known = $this->known($code, $prefix, $component);
+		// the compiler substitutes what it has already loaded -- the
+		// system-wide rows, then the core values -- into every override
+		$known = [];
+
+		foreach ($this->globals() as $target => $value)
+		{
+			$known[$this->wrap($target)] = $value;
+		}
+
+		$known = array_merge($known, $this->known($code, $prefix, $component));
 		$overrides = [];
 
 		foreach ($rows as $row)
 		{
 			$row = (array) $row;
 			$target = $this->target((string) ($row['target'] ?? ''));
-			// an override value travels base64 encoded, exactly as the
-			// compiler's applyComponentOverrides decodes it before use
-			$raw = trim(base64_decode((string) ($row['value'] ?? '')));
-			$value = trim(str_replace(
-				array_keys($known),
-				array_values($known),
-				$raw
-			));
+			// an override value is stored as the plain text the person typed,
+			// exactly as the compiler's applyComponentOverrides reads it
+			$raw = trim((string) ($row['value'] ?? ''));
+			$value = trim($this->substitute($raw, $known));
 
-			if ($target === '' || $value === '')
+			if ($target === '' || $value === '' || !$this->text($raw))
 			{
 				continue;
 			}

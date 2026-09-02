@@ -573,7 +573,7 @@ final class ExtruderTest extends FilesystemTestCase
 	 * resolve back to. The person's standing prefix is never overwritten --
 	 * only the disagreement is named -- while the component segment's own
 	 * casing, differing from what the code name derives, is recorded as a
-	 * ComponentNamespace override, base64 encoded exactly as the compiler
+	 * ComponentNamespace override, as the plain text the compiler
 	 * decodes it.
 	 *
 	 * @return  void
@@ -639,7 +639,7 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertNotNull($placeholders);
 		$this->assertSame(
-			['target' => '[[[ComponentNamespace]]]', 'value' => base64_encode('DeMo')],
+			['target' => '[[[ComponentNamespace]]]', 'value' => 'DeMo'],
 			(array) ($placeholders->addplaceholders['addplaceholders0'] ?? null),
 			'The casing the library was built with is recorded for the compiler '
 			. 'to resolve back to.'

@@ -2504,11 +2504,11 @@ final class WriterTest extends TestCase
 		$this->view->set('custom_admin_view.editor.name', 'editor');
 		$this->view->set('custom_admin_view.editor.default', '<p>edited</p>');
 		$this->view->set('custom_admin_view.editor.crud', 1);
-		$this->view->set('custom_admin_view.venues.name', 'venues');
-		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
+		$this->view->set('custom_admin_view.galleries.name', 'galleries');
+		$this->view->set('custom_admin_view.galleries.default', '<p>galleries</p>');
 		$this->view->set('custom_admin_view.itemsall.name', 'itemsall');
 		$this->view->set('custom_admin_view.itemsall.default', '<p>list</p>');
-		$this->resolved->set('existing.admin_view_names', ['venues', 'itemsall']);
+		$this->resolved->set('existing.admin_view_names', ['galleries', 'itemsall']);
 
 		$this->assertSame(1, $this->customAdminView()->write());
 
@@ -2543,7 +2543,7 @@ final class WriterTest extends TestCase
 		);
 		$this->assertSame(
 			'a table view answers for this template',
-			$this->report->get('skipped.custom_admin_view.venues'),
+			$this->report->get('skipped.custom_admin_view.galleries'),
 			'A folder answering to one of the component\'s own admin views in the '
 			. 'database is that view\'s territory, whether or not this run resolved it.'
 		);

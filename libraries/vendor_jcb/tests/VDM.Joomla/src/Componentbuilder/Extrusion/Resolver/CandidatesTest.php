@@ -138,8 +138,8 @@ final class CandidatesTest extends TestCase
 			->table('admin_view', [
 				['guid' => self::VIEW, 'name_single' => 'Item', 'name_list' => 'Items',
 					'system_name' => 'Demo Item'],
-				['guid' => 'dddddddd-4444-4444-8444-dddddddddddd', 'name_single' => 'Venue',
-					'name_list' => 'Venues', 'system_name' => 'Demo Venue']
+				['guid' => 'dddddddd-4444-4444-8444-dddddddddddd', 'name_single' => 'Gallery',
+					'name_list' => 'Galleries', 'system_name' => 'Demo Gallery']
 			])
 			->table('admin_fields', [
 				['admin_view' => self::VIEW,
@@ -390,10 +390,10 @@ final class CandidatesTest extends TestCase
 		$this->view->set('custom_admin_view.wizard.default', '<p>wizard</p>');
 		$this->view->set('custom_admin_view.items.name', 'items');
 		$this->view->set('custom_admin_view.items.default', '<p>list</p>');
-		// venues answers to a view the component links in the DATABASE alone:
+		// galleries answers to a view the component links in the DATABASE alone:
 		// this run never resolved it, so only the ground truth can refuse it
-		$this->view->set('custom_admin_view.venues.name', 'venues');
-		$this->view->set('custom_admin_view.venues.default', '<p>venues</p>');
+		$this->view->set('custom_admin_view.galleries.name', 'galleries');
+		$this->view->set('custom_admin_view.galleries.default', '<p>galleries</p>');
 
 		$candidates = $this->candidates->candidates(3);
 
