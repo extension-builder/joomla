@@ -164,12 +164,12 @@ final class ResolverTest extends TestCase
 	public function testComponentOverridesOutrankEverything(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
-		// override values travel base64 encoded, exactly as the compiler
-		// decodes them in applyComponentOverrides
+		// override values are stored as the plain text the person typed,
+		// exactly as the compiler reads them in applyComponentOverrides
 		$this->load->overrides('comp-guid', [
-			['target' => '[[[NamespacePrefix]]]', 'value' => base64_encode('Custom')],
-			['target' => '###ComponentNamespace###', 'value' => base64_encode('Rebuilt')],
-			['target' => 'Unrelated', 'value' => base64_encode('Noise')]
+			['target' => '[[[NamespacePrefix]]]', 'value' => 'Custom'],
+			['target' => '###ComponentNamespace###', 'value' => 'Rebuilt'],
+			['target' => 'Unrelated', 'value' => 'Noise']
 		]);
 		$this->config->set('component', 3);
 		$placeholders = $this->placeholders();
@@ -607,7 +607,7 @@ final class ResolverTest extends TestCase
 	{
 		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->load->overrides('comp-guid', [
-			['target' => '[[[ComponentNamespace]]]', 'value' => base64_encode('[[[Component]]]Portal')]
+			['target' => '[[[ComponentNamespace]]]', 'value' => '[[[Component]]]Portal']
 		]);
 		$this->config->set('component', 3);
 		$placeholders = $this->placeholders();
@@ -651,12 +651,12 @@ final class ResolverTest extends TestCase
 	public function testTheSeamIsReadFromTheFilesRealAncestry(): void
 	{
 		$namespacer = $this->namespacer();
-		$site = ['var', 'www', 'html', 'administrator', 'components', 'com_venue', 'src'];
+		$site = ['var', 'www', 'html', 'administrator', 'components', 'com_demo', 'src'];
 
 		$this->assertSame(
-			'VDM\Component\Venue\Administrator\Engine.Team',
+			'VDM\Component\Demo\Administrator\Engine.Team',
 			$namespacer->stored(
-				'VDM\Component\Venue\Administrator\Engine', 'Team', [], 'Engine',
+				'VDM\Component\Demo\Administrator\Engine', 'Team', [], 'Engine',
 				array_merge($site, ['Engine'])
 			),
 			'Aimed at the Engine folder itself, the folder above the root still '
@@ -664,15 +664,15 @@ final class ResolverTest extends TestCase
 			. 'a dot part, never part of the head.'
 		);
 		$this->assertSame(
-			'VDM\Component\Venue\Administrator\Engine.Team',
+			'VDM\Component\Demo\Administrator\Engine.Team',
 			$namespacer->stored(
-				'VDM\Component\Venue\Administrator\Engine', 'Team', ['Engine'], 'src', $site
+				'VDM\Component\Demo\Administrator\Engine', 'Team', ['Engine'], 'src', $site
 			),
 			'Aimed at src, the folder below the root says the same thing.'
 		);
 		$this->assertSame(
-			'VDM\Component\Venue\Administrator\Team',
-			$namespacer->stored('VDM\Component\Venue\Administrator', 'Team', [], 'src', $site),
+			'VDM\Component\Demo\Administrator\Team',
+			$namespacer->stored('VDM\Component\Demo\Administrator', 'Team', [], 'src', $site),
 			'A class directly below the area\'s src has no dot part: the head is '
 			. 'the area, exactly as the compiler places it.'
 		);
@@ -685,16 +685,16 @@ final class ResolverTest extends TestCase
 			'A vendor folder in the libraries layout folds exactly as before.'
 		);
 		$this->assertSame(
-			'VDM\Plugin\System\Venue\Extension.Venue',
+			'VDM\Plugin\System\Demo\Extension.Demo',
 			$namespacer->stored(
-				'VDM\Plugin\System\Venue\Extension', 'Venue', [], 'Extension',
-				['var', 'www', 'html', 'plugins', 'system', 'venue', 'src', 'Extension']
+				'VDM\Plugin\System\Demo\Extension', 'Demo', [], 'Extension',
+				['var', 'www', 'html', 'plugins', 'system', 'demo', 'src', 'Extension']
 			),
 			'The mirroring stops at src, so a plugin keeps its whole head.'
 		);
 		$this->assertNull(
 			$namespacer->stored(
-				'VDM\Component\Venue\Administrator\Engine', 'Team', ['Other'], 'src', $site
+				'VDM\Component\Demo\Administrator\Engine', 'Team', ['Other'], 'src', $site
 			),
 			'A folder below the root that the namespace does not mirror is still '
 			. 'a contradiction.'
@@ -709,7 +709,7 @@ final class ResolverTest extends TestCase
 	 */
 	public function testThePersonsPlaceholdersResolveInTheCompilersOrder(): void
 	{
-		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->load
 			->placeholder(
 				1, '[[[ComponentEngineNamespace]]]',
@@ -720,7 +720,7 @@ final class ResolverTest extends TestCase
 		$this->load->overrides('comp-guid', [
 			[
 				'target' => '[[[ComponentMotorNamespace]]]',
-				'value' => base64_encode('[[[ComponentEngineNamespace]]]\Motor')
+				'value' => '[[[ComponentEngineNamespace]]]\Motor'
 			]
 		]);
 		$this->config->set('component', 3);
@@ -731,7 +731,7 @@ final class ResolverTest extends TestCase
 			[
 				'[[[ComponentEngineNamespace]]]' => '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine',
 				'[[[COMPANY]]]' => 'VDM',
-				'[[[ComponentNamespace]]]' => 'Venuedecisionmatrix',
+				'[[[ComponentNamespace]]]' => 'Demo',
 				'[[[NamespacePrefix]]]' => 'VDM',
 				'[[[ComponentMotorNamespace]]]' => '[[[ComponentEngineNamespace]]]\Motor'
 			],
@@ -742,13 +742,13 @@ final class ResolverTest extends TestCase
 			. 'placeholders they lean on.'
 		);
 		$this->assertSame(
-			'VDM\Component\Venuedecisionmatrix\Administrator\Engine\Team',
+			'VDM\Component\Demo\Administrator\Engine\Team',
 			$namespacer->resolve('[[[ComponentEngineNamespace]]].Team'),
 			'A namespace stored through the person\'s placeholder resolves to '
 			. 'the very class the compiler writes.'
 		);
 		$this->assertSame(
-			'VDM\Component\Venuedecisionmatrix\Administrator\Engine\Motor\Belt',
+			'VDM\Component\Demo\Administrator\Engine\Motor\Belt',
 			$namespacer->resolve('[[[ComponentMotorNamespace]]].Belt'),
 			'A value that names another placeholder is reached however the '
 			. 'definitions are ordered.'
@@ -790,7 +790,7 @@ final class ResolverTest extends TestCase
 	 */
 	public function testExpressWritesThroughTheLongestKnownPlaceholder(): void
 	{
-		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->load
 			->placeholder(
 				1, '[[[ComponentAdminNamespace]]]',
@@ -801,7 +801,7 @@ final class ResolverTest extends TestCase
 			->placeholder(4, '[[[gitea_url]]]', 'git.vdm.dev')
 			->placeholder(
 				5, '[[[ComponentSiteNamespace]]]',
-				'VDM\Component\Venuedecisionmatrix\Site'
+				'VDM\Component\Demo\Site'
 			);
 		$this->config->set('component', 3);
 		$namespacer = $this->namespacer();
@@ -857,7 +857,7 @@ final class ResolverTest extends TestCase
 	public function testTheCatalogueMatchesAPowerStoredThroughAPersonsPlaceholder(): void
 	{
 		$guid = 'aaaaaaaa-1111-4111-8111-111111111111';
-		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->load->placeholder(
 			1, '[[[ComponentEngineNamespace]]]',
 			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine'
@@ -880,7 +880,7 @@ final class ResolverTest extends TestCase
 		);
 		$this->assertSame(
 			$guid,
-			$existing->find('VDM\Component\Venuedecisionmatrix\Administrator\Engine\Team')['guid'] ?? null,
+			$existing->find('VDM\Component\Demo\Administrator\Engine\Team')['guid'] ?? null,
 			'The class it compiles to resolves through the person\'s placeholder.'
 		);
 		$this->assertSame(
@@ -889,7 +889,7 @@ final class ResolverTest extends TestCase
 		);
 		$this->assertSame(
 			$guid,
-			$existing->fold('Other\Component\VenueDecisionMatrix\Administrator\Engine\Team')['guid'] ?? null,
+			$existing->fold('Other\Component\DEMO\Administrator\Engine\Team')['guid'] ?? null,
 			'A reference under another prefix folds at the seam the power '
 			. 'keeps, not only at the conventional one.'
 		);
@@ -897,6 +897,68 @@ final class ResolverTest extends TestCase
 			$this->report->get('powers.unresolved.namespace.aaaaaaaa_1111_4111_8111_111111111111'),
 			'Nothing is unresolved: the person\'s placeholder has a value.'
 		);
+	}
+
+	/**
+	 * An override is the plain text the person typed, and the report never carries it.
+	 *
+	 * JCB stores a component's override values exactly as typed -- "7M" for
+	 * an upload limit -- and the compiler reads them as they stand. Treating
+	 * them as base64 turned such a value into bytes that are not text, and a
+	 * report carrying those bytes cannot be encoded for the page, which then
+	 * received an empty response. The value must reach the map as typed, and
+	 * the report must name the override without carrying its value.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAnOverrideIsPlainTextAndTheReportStaysEncodable(): void
+	{
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'Demo');
+		$this->load->overrides('comp-guid', [
+			['target' => '[[[upload_max_filesize]]]', 'value' => '7M'],
+			['target' => '[[[post_max_size]]]', 'value' => '6M'],
+			['target' => '[[[ComponentNamespace]]]', 'value' => 'DeMo']
+		]);
+		$this->config->set('component', 3);
+		$placeholders = $this->placeholders();
+
+		$this->assertSame('DeMo', $placeholders->component());
+		$this->assertSame('7M', $placeholders->map()['[[[upload_max_filesize]]]'] ?? null);
+		$this->assertSame(
+			['[[[upload_max_filesize]]]' => '7M', '[[[post_max_size]]]' => '6M'],
+			$placeholders->custom()
+		);
+		$this->assertSame(
+			['upload_max_filesize', 'post_max_size', 'ComponentNamespace'],
+			$this->report->get('powers.placeholders.overrides'),
+			'The report names the overrides that stood, never their values.'
+		);
+		$this->assertNotFalse(
+			json_encode($this->report->toArray()),
+			'Whatever a person typed, the report the page reads must encode.'
+		);
+	}
+
+	/**
+	 * A system-wide row that does not decode to text is left out and named.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAnUndecodableGlobalRowIsLeftOutAndNamed(): void
+	{
+		$this->load
+			->placeholder(1, '[[[COMPANY]]]', 'VDM')
+			->placeholder(2, '[[[Broken]]]', "\xff\xfe binary");
+		$placeholders = $this->placeholders();
+
+		$this->assertSame(['[[[COMPANY]]]' => 'VDM'], $placeholders->custom());
+		$this->assertSame(
+			'Broken',
+			$this->report->get('powers.undecodable.placeholder.Broken')
+		);
+		$this->assertNotFalse(json_encode($this->report->toArray()));
 	}
 
 	/**

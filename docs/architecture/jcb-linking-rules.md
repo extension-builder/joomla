@@ -257,7 +257,7 @@ Folding a built class back:
 
 - A Joomla library extension is a folder of **vendor folders**. The
   extension folder is what Joomla installs; the vendor folder inside it
-  (`VDM.Joomla`, `JoomVenue.Joomla`) names the namespace head in its own
+  (`VDM.Joomla`, `Acme.Joomla`) names the namespace head in its own
   dotted name and keeps its classes under `src`.
 - The **first segment of every namespace is the vendor prefix**, and it is
   ALWAYS deferred to `[[[NamespacePrefix]]]`, whatever it reads -- that is
@@ -269,9 +269,10 @@ Folding a built class back:
   holds every component namespace the run can know: the component being
   extruded, the component being paired against (its code name derived the
   way `Compiler\Component\Placeholder` does, plus its
-  `component_placeholders` overrides, whose values travel **base64
-  encoded** exactly as `applyComponentOverrides` decodes them). A match
-  becomes `[[[ComponentNamespace]]]`.
+  `component_placeholders` overrides, whose values are **plain text**
+  exactly as `applyComponentOverrides` reads them -- only the system-wide
+  `placeholder` table is base64 encoded). A match becomes
+  `[[[ComponentNamespace]]]`.
 - The **casing the library actually carries is witnessed and recorded**
   onto the paired component -- the vendor prefix onto the component row
   where none stands, and a differing component-segment casing as a

@@ -29,8 +29,8 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  * this writer records them where the compiler reads them: the vendor prefix
  * onto the component row, and the component segment, when its casing differs
  * from what the code name derives, as a ComponentNamespace override in the
- * component's own placeholder table, base64 encoded exactly as the compiler
- * decodes it.
+ * component's own placeholder table, as the plain text the compiler reads
+ * it as.
  *
  * What a person already set always stands: a standing prefix or a standing
  * override is never overwritten, only reported when the library disagrees
@@ -328,7 +328,7 @@ final class Vendor
 
 			if ($this->placeholders->target((string) ($standing['target'] ?? '')) === 'ComponentNamespace')
 			{
-				$value = base64_decode((string) ($standing['value'] ?? ''));
+				$value = trim((string) ($standing['value'] ?? ''));
 
 				if ($value !== $component)
 				{
@@ -357,9 +357,11 @@ final class Vendor
 			$next++;
 		}
 
+		// an override value is stored as plain text: the subform holds what
+		// the person typed, and the compiler reads it as it stands
 		$rows['addplaceholders' . $next] = [
 			'target' => '[[[ComponentNamespace]]]',
-			'value' => base64_encode($component)
+			'value' => $component
 		];
 
 		$definition = new \stdClass();
