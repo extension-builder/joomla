@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\RecordId;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseUniqueKeys;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
@@ -108,7 +109,7 @@ GEN;
 	 */
 	public function onBeforeApiRoute(&$router): void
 	{
-		// No admin view of com_demo has an API.
+		// No view of com_demo has an API.
 	}
 GEN;
 
@@ -121,7 +122,7 @@ GEN;
 	public function testAComponentWithoutApiViewsRegistersNothing(): void
 	{
 		$subject = $this->subject();
-		$none = '// No admin view of com_demo has an API.';
+		$none = '// No view of com_demo has an API.';
 
 		$this->assertSame($none, $subject->get([]));
 		$this->assertSame($none, $subject->get([$this->view('note', 'notes', 0)]));
@@ -218,7 +219,7 @@ GEN;
 		$this->config()->set('joomla_version', 3);
 
 		$this->assertSame(
-			'// No admin view of com_demo has an API.',
+			'// No view of com_demo has an API.',
 			$this->subject()->get([$this->view('article', 'articles', 2)])
 		);
 	}
@@ -274,6 +275,92 @@ GEN;
 	}
 
 	/**
+	 * The routes of a public site item view, a site list view and a custom admin view.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const EXPECTED_DYNAMIC = <<<'GEN'
+// Register the JSON:API routes of com_demo.
+		$defaults = ['component' => 'com_demo'];
+		$getDefaults = ['public' => false, 'component' => 'com_demo'];
+		$publicDefaults = ['public' => true, 'component' => 'com_demo'];
+
+		// The routes of the authors resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/authors', 'authors.displayList', [], $getDefaults),
+		]);
+
+		// The routes of the report resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/report', 'report.displayList', [], $getDefaults),
+		]);
+
+		// The routes of the site_author resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/site_author', 'site_author.displayItem', [], $publicDefaults),
+			new \Joomla\Router\Route(['GET'], 'v1/demo/site_author/:id', 'site_author.displayItem', ['id' => '(\d+)'], $publicDefaults),
+		]);
+
+		// The routes of the page resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/page', 'page.displayList', [], $getDefaults),
+		]);
+GEN;
+
+	/**
+	 * The custom admin views and site views get their read routes after the admin views.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheDynamicViewsGetTheirReadRoutesAfterTheAdminViews(): void
+	{
+		$code = $this->subject()->get(
+			[$this->view('author', 'authors', 1)],
+			[$this->dynamic('report', 2)],
+			[$this->dynamic('author', 1, ['public_access' => 1]), $this->dynamic('page', 2)]
+		);
+
+		$this->assertSame(self::EXPECTED_DYNAMIC, $code);
+	}
+
+	/**
+	 * Without an admin API the dynamic views get no route.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testWithoutAnAdminApiTheDynamicViewsGetNoRoute(): void
+	{
+		$this->assertSame(
+			'// No view of com_demo has an API.',
+			$this->subject()->get([$this->view('author', 'authors', 0)], [$this->dynamic('report', 2)], [$this->dynamic('page', 1)])
+		);
+	}
+
+	/**
+	 * A site view or custom admin view link.
+	 *
+	 * @param   string  $code  The view code.
+	 * @param   int     $type  The main get type.
+	 * @param   array   $link  The link flags.
+	 *
+	 * @return  array
+	 * @since   6.1.7
+	 */
+	private function dynamic(string $code, int $type, array $link = []): array
+	{
+		return $link + [
+			'settings' => (object) [
+				'code' => $code,
+				'Code' => ucfirst($code),
+				'main_get' => (object) ['gettype' => $type, 'main_source' => 1],
+			],
+		];
+	}
+
+	/**
 	 * The renderer with the article table carrying a guid and a unique alias.
 	 *
 	 * @return  Routes
@@ -286,6 +373,7 @@ GEN;
 		$keys->add('article', 'alias', true);
 
 		return $this->renderer(Routes::class, [
+			'resources' => new Resources($this->config()),
 			'recordid' => $this->renderer(RecordId::class, ['databaseuniquekeys' => $keys]),
 		]);
 	}

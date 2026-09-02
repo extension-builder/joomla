@@ -25,6 +25,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as Vi
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships as ViewRelationships;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Serializer\Relations as SerializerRelations;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes as PluginRoutes;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\GetModel as DynamicGetModel;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\AllowView as DynamicAllowView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Expectations as DynamicExpectations;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\PrepareItem as DynamicPrepareItem;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Meta as DynamicMeta;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as DynamicResource;
 
 
 /**
@@ -79,6 +86,27 @@ class ArchitectureApi implements ServiceProviderInterface
 
 		$container->alias(PluginRoutes::class, 'Architecture.Api.Plugin.Routes')
 			->share('Architecture.Api.Plugin.Routes', [$this, 'getPluginRoutes'], true);
+
+		$container->alias(Resources::class, 'Architecture.Api.Resources')
+			->share('Architecture.Api.Resources', [$this, 'getResources'], true);
+
+		$container->alias(DynamicGetModel::class, 'Architecture.Api.Dynamic.GetModel')
+			->share('Architecture.Api.Dynamic.GetModel', [$this, 'getDynamicGetModel'], true);
+
+		$container->alias(DynamicAllowView::class, 'Architecture.Api.Dynamic.AllowView')
+			->share('Architecture.Api.Dynamic.AllowView', [$this, 'getDynamicAllowView'], true);
+
+		$container->alias(DynamicExpectations::class, 'Architecture.Api.Dynamic.Expectations')
+			->share('Architecture.Api.Dynamic.Expectations', [$this, 'getDynamicExpectations'], true);
+
+		$container->alias(DynamicPrepareItem::class, 'Architecture.Api.Dynamic.PrepareItem')
+			->share('Architecture.Api.Dynamic.PrepareItem', [$this, 'getDynamicPrepareItem'], true);
+
+		$container->alias(DynamicMeta::class, 'Architecture.Api.Dynamic.Meta')
+			->share('Architecture.Api.Dynamic.Meta', [$this, 'getDynamicMeta'], true);
+
+		$container->alias(DynamicResource::class, 'Architecture.Api.Dynamic.Resource')
+			->share('Architecture.Api.Dynamic.Resource', [$this, 'getDynamicResource'], true);
 	}
 
 	/**
@@ -268,7 +296,115 @@ class ArchitectureApi implements ServiceProviderInterface
 		return new PluginRoutes(
 			$container->get('Config'),
 			$container->get('Placeholder'),
+			$container->get('Architecture.Api.Resources'),
 			$container->get('Architecture.Api.Controller.RecordId')
+		);
+	}
+
+	/**
+	 * Get The Api Resources Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Resources
+	 * @since 6.1.7
+	 */
+	public function getResources(Container $container): Resources
+	{
+		return new Resources(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The Api Dynamic GetModel Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicGetModel
+	 * @since 6.1.7
+	 */
+	public function getDynamicGetModel(Container $container): DynamicGetModel
+	{
+		return new DynamicGetModel();
+	}
+
+	/**
+	 * Get The Api Dynamic AllowView Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicAllowView
+	 * @since 6.1.7
+	 */
+	public function getDynamicAllowView(Container $container): DynamicAllowView
+	{
+		return new DynamicAllowView(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Get The Api Dynamic Expectations Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicExpectations
+	 * @since 6.1.7
+	 */
+	public function getDynamicExpectations(Container $container): DynamicExpectations
+	{
+		return new DynamicExpectations();
+	}
+
+	/**
+	 * Get The Api Dynamic PrepareItem Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicPrepareItem
+	 * @since 6.1.7
+	 */
+	public function getDynamicPrepareItem(Container $container): DynamicPrepareItem
+	{
+		return new DynamicPrepareItem(
+			$container->get('Dynamicget.JoinStructure')
+		);
+	}
+
+	/**
+	 * Get The Api Dynamic Meta Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicMeta
+	 * @since 6.1.7
+	 */
+	public function getDynamicMeta(Container $container): DynamicMeta
+	{
+		return new DynamicMeta();
+	}
+
+	/**
+	 * Get The Api Dynamic Resource Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  DynamicResource
+	 * @since 6.1.7
+	 */
+	public function getDynamicResource(Container $container): DynamicResource
+	{
+		return new DynamicResource(
+			$container->get('Architecture.Api.Resources'),
+			$container->get('Component'),
+			$container->get('Header'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Architecture.Api.Dynamic.GetModel'),
+			$container->get('Architecture.Api.Dynamic.AllowView'),
+			$container->get('Architecture.Api.Dynamic.Expectations'),
+			$container->get('Architecture.Api.Dynamic.PrepareItem'),
+			$container->get('Architecture.Api.Dynamic.Meta')
 		);
 	}
 }

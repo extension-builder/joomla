@@ -212,6 +212,61 @@ final class ItemOrchestrationTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * The main fail-safe answers 404 under the API client before it redirects.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testGetItemMainFailSafeAnswersNotFoundUnderTheApiClient(): void
+	{
+		$config = $this->compilerConfig([
+			'joomla_version' => 6,
+			'cryption_types' => [],
+			'build_target' => 'site',
+			'lang_prefix' => 'COM_DEMO',
+			'lang_target' => 'site',
+			'component_code_name' => 'demo'
+		]);
+		$subject = new GetItem(
+			$config,
+			new SiteDecrypt(),
+			new Placeholder($config),
+			new Language($config),
+			$this->componentContent(),
+			new SiteFieldData(),
+			new SiteFieldDecodeFilter(),
+			new ModelExpertFieldInitiator(),
+			new EventDispatcher(),
+			$this->inertCompilerCollaborator(DecodeColumn::class),
+			$this->inertCompilerCollaborator(FilterColumn::class),
+			$this->inertCompilerCollaborator(FieldonContentPrepare::class),
+			$this->inertCompilerCollaborator(UikitLoader::class),
+			new Globals(),
+			$this->inertCompilerCollaborator(CustomJoin::class),
+			$this->inertCompilerCollaborator(Queries::class),
+			$this->inertCompilerCollaborator(QueryFilter::class),
+			$this->inertCompilerCollaborator(QueryWhere::class),
+			$this->inertCompilerCollaborator(QueryOrder::class),
+			$this->inertCompilerCollaborator(QueryGroup::class)
+		);
+
+		$output = $subject->get((object) ['configured' => true], 'article');
+
+		$guard = strpos($output, "if (\$app->isClient('api'))");
+		$redirect = strpos($output, '$app->redirect(');
+
+		$this->assertNotFalse($guard);
+		$this->assertNotFalse($redirect);
+		$this->assertLessThan($redirect, $guard);
+		$this->assertStringContainsString('// The API answers not found instead of redirecting.', $output);
+		$this->assertStringContainsString(
+			"throw new \\Exception(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('COM_DEMO_NOT_FOUND_OR_ACCESS_DENIED'), 404);",
+			$output
+		);
+		$this->assertStringContainsString("\$this->_item[\$pk] = \$data;", $output);
+	}
+
+	/**
 	 * Create global content containing the generated component class prefix.
 	 *
 	 * @return  ContentOne

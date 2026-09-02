@@ -2438,7 +2438,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.CustomView.SubmitButtonScript'),
 			$container->get('Architecture.CustomView.CodeBody'),
 			$container->get('Architecture.CustomView.ExtraDisplayMethods'),
-			$container->get('Architecture.View.PrepareDocument')
+			$container->get('Architecture.View.PrepareDocument'),
+			$container->get('Architecture.Api.Dynamic.Resource')
 		);
 	}
 
@@ -2511,7 +2512,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Menu.CustomView'),
 			$container->get('Architecture.SiteView.AddToolBar'),
 			$container->get('Architecture.SiteViews.ModelData'),
-			$container->get('Architecture.SiteViews.Headers')
+			$container->get('Architecture.SiteViews.Headers'),
+			$container->get('Architecture.Api.Dynamic.Resource')
 		);
 	}
 

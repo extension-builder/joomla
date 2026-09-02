@@ -17,6 +17,7 @@ use Joomla\CMS\Application\CMSApplicationInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
@@ -131,6 +132,8 @@ final class StructureTest extends CompilerDomainTestCase
 				$builds[] = [$target, $type, $fileName, $buildConfig];
 				return true;
 			});
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->never())->method('enqueueMessage');
 		$subject = new Structuremultiple(
 			$config,
 			$registry,
@@ -138,7 +141,9 @@ final class StructureTest extends CompilerDomainTestCase
 			$component,
 			$createdate,
 			$modifieddate,
-			$structure
+			$structure,
+			new Resources($config),
+			$app
 		);
 
 		$this->assertTrue($subject->build());
@@ -338,6 +343,83 @@ final class StructureTest extends CompilerDomainTestCase
 		{
 			throw new RuntimeException('Unable to remove the single-structure fixture directory: ' . $directory);
 		}
+	}
+
+	/**
+	 * Site views and custom admin views get their API files under their resolved names, and a collision is reported.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testMultipleStructureBuildsTheDynamicApiOfSiteAndCustomAdminViews(): void
+	{
+		$config = $this->compilerConfig(['joomla_version' => 6]);
+		$settings = $this->createStub(SettingsInterface::class);
+		$settings->method('exists')->willReturn(true);
+		$component = $this->component();
+		$component->set('name_code', 'example');
+		$component->set('admin_views', [[
+			'add_api' => 1,
+			'settings' => (object) ['name_single' => 'truck', 'name_list' => 'trucks', 'name_single_code' => 'truck', 'name_list_code' => 'trucks', 'version' => '1.0.0']
+		]]);
+		$component->set('custom_admin_views', [
+			['settings' => (object) ['code' => 'report', 'version' => '1.0.0', 'main_get' => (object) ['gettype' => 2, 'main_source' => 1]]],
+			['settings' => (object) ['code' => 'trucks', 'version' => '1.0.0', 'main_get' => (object) ['gettype' => 1, 'main_source' => 1]]],
+		]);
+		$component->set('site_views', [
+			['settings' => (object) ['code' => 'truck', 'version' => '1.0.0', 'main_get' => (object) ['gettype' => 1, 'main_source' => 1]]],
+			['settings' => (object) ['code' => 'raw', 'version' => '1.0.0', 'main_get' => (object) ['gettype' => 2, 'main_source' => 3]]],
+		]);
+		$createdate = $this->createStub(Createdate::class);
+		$createdate->method('get')->willReturn('1st January, 2026');
+		$modifieddate = $this->createStub(Modifieddate::class);
+		$modifieddate->method('get')->willReturn('14th August, 2026');
+		$builds = [];
+		$structure = $this->createStub(UtilityStructure::class);
+		$structure->method('build')
+			->willReturnCallback(static function (array $target, string $type) use (&$builds): bool
+			{
+				$builds[] = [$target, $type];
+				return true;
+			});
+		$warnings = [];
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->once())->method('enqueueMessage')
+			->willReturnCallback(static function (string $message, string $type) use (&$warnings): void
+			{
+				$warnings[] = [$message, $type];
+			});
+		$subject = new Structuremultiple(
+			$config,
+			$this->createStub(Registry::class),
+			$settings,
+			$component,
+			$createdate,
+			$modifieddate,
+			$structure,
+			new Resources($config),
+			$app
+		);
+
+		$this->assertTrue($subject->build());
+		$this->assertSame([
+			[['admin' => 'example'], 'dashboard'],
+			[['admin' => 'truck'], 'single'],
+			[['admin' => 'truck'], 'single_modal'],
+			[['admin' => 'trucks'], 'list'],
+			[['admin' => 'trucks'], 'list_modal'],
+			[['api' => 'trucks'], 'list'],
+			[['api' => 'truck'], 'serializer'],
+			[['site' => 'truck'], 'single'],
+			[['api' => 'site_truck'], 'dynamic_single'],
+			[['site' => 'raw'], 'list'],
+			[['custom_admin' => 'report'], 'list'],
+			[['api' => 'report'], 'dynamic_list'],
+			[['custom_admin' => 'trucks'], 'single'],
+		], $builds);
+		$this->assertCount(1, $warnings);
+		$this->assertSame('Warning', $warnings[0][1]);
+		$this->assertStringContainsString('custom admin view <b>trucks</b>', $warnings[0][0]);
 	}
 
 	/**

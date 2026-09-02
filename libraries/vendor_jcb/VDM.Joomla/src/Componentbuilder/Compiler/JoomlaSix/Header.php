@@ -640,6 +640,21 @@ final class Header implements HeaderInterface
 				$headers[] = 'use Joomla\Registry\Registry;';
 				break;
 
+			case 'api.dynamic.view.controller':
+			case 'api.dynamic.views.controller':
+				$headers = [];
+				$headers[] = 'use Joomla\CMS\Factory;';
+				$headers[] = 'use Joomla\CMS\Language\Text;';
+				$headers[] = 'use Joomla\CMS\MVC\Controller\ApiController;';
+				$headers[] = 'use Joomla\CMS\MVC\Controller\Exception\NotAllowed;';
+				break;
+
+			case 'api.dynamic.view.json':
+			case 'api.dynamic.views.json':
+				$headers = [];
+				$headers[] = 'use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;';
+				break;
+
 			case 'api.view.serializer':
 				$headers = [];
 				$headers[] = 'use Joomla\CMS\Serializer\JoomlaSerializer;';

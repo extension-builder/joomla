@@ -75,7 +75,9 @@ class Joomlaplugins
 		{
 			// make the API routes of the admin views available to the plugins
 			$this->routes->set(
-				ArrayHelper::check($item->admin_views ?? null) ? $item->admin_views : []
+				ArrayHelper::check($item->admin_views ?? null) ? $item->admin_views : [],
+				ArrayHelper::check($item->custom_admin_views ?? null) ? $item->custom_admin_views : [],
+				ArrayHelper::check($item->site_views ?? null) ? $item->site_views : []
 			);
 
 			$joomla_plugins = array_map(

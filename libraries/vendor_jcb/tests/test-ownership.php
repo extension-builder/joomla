@@ -752,6 +752,30 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/RecordIdTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/AllowView.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/AllowViewTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/Expectations.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/ExpectationsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/GetModel.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/GetModelTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/Meta.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/MetaTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/PrepareItem.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/PrepareItemTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/Resource.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Dynamic/ResourceTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Plugin/Routes.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Plugin/RoutesTest.php'
@@ -759,6 +783,10 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/Relations.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/RelationsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Resources.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/ResourcesTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/View/FieldPermissions.php' => [
 		'mode' => 'unit',

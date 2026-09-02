@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomAdminViews\Builder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as ApiResource;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
@@ -124,9 +125,24 @@ final class BuilderTest extends ArchitectureTestCase
 			$component->set('custom_admin_views', $views);
 		}
 
+		$expected = [];
+
+		foreach ($views as $view)
+		{
+			$expected[] = [$view, 'custom_admin'];
+		}
+
+		$apiresource = $this->createMock(ApiResource::class);
+		$apiresource->expects($this->exactly(count($views)))->method('set')
+			->willReturnCallback(static function (array $view, string $area) use (&$expected): void
+			{
+				self::assertSame(array_shift($expected), [$view, $area]);
+			});
+
 		$subject = $this->renderer(Builder::class, [
 			'contentmulti' => $this->multi,
-			'component' => $component
+			'component' => $component,
+			'apiresource' => $apiresource
 		]);
 
 		$subject->build();

@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Layouts as Cust
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\SubmitButtonScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\TemplateBody as CustomViewTemplateBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as ApiResource;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
@@ -263,6 +264,14 @@ final class Builder
 	protected PrepareDocument $preparedocument;
 
 	/**
+	 * The Api Dynamic Resource Class.
+	 *
+	 * @var   ApiResource
+	 * @since 6.1.7
+	 */
+	protected ApiResource $apiresource;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                           $config                               The Config Class.
@@ -319,7 +328,8 @@ final class Builder
 		SubmitButtonScript $submitbuttonscript,
 		CodeBody $customviewcodebody,
 		ExtraDisplayMethods $extradisplaymethods,
-		PrepareDocument $preparedocument)
+		PrepareDocument $preparedocument,
+		ApiResource $apiresource)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -347,6 +357,7 @@ final class Builder
 		$this->customviewcodebody = $customviewcodebody;
 		$this->extradisplaymethods = $extradisplaymethods;
 		$this->preparedocument = $preparedocument;
+		$this->apiresource = $apiresource;
 	}
 
 	/**
@@ -506,6 +517,9 @@ final class Builder
 						)
 					);
 				}
+
+				// the API resource of this view, when the component has an API
+				$this->apiresource->set($view, 'custom_admin');
 
 				// CUSTOM_ADMIN_CUSTOM_METHODS <<<DYNAMIC>>>
 				$this->contentmulti->set($view['settings']->code . '|CUSTOM_ADMIN_CUSTOM_METHODS',

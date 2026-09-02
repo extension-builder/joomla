@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\TemplateBody as
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Router\SiteRouter;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\Headers;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\ModelData;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as ApiResource;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
@@ -220,6 +221,14 @@ final class Builder
 	protected Headers $headers;
 
 	/**
+	 * The Api Dynamic Resource Class.
+	 *
+	 * @var   ApiResource
+	 * @since 6.1.7
+	 */
+	protected ApiResource $apiresource;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                           $config                               The Config Class.
@@ -268,7 +277,8 @@ final class Builder
 		MenuCustomViewInterface $menucustomview,
 		SiteViewAddToolBarInterface $siteviewaddtoolbar,
 		ModelData $modeldata,
-		Headers $headers)
+		Headers $headers,
+		ApiResource $apiresource)
 	{
 		$this->config = $config;
 		$this->event = $event;
@@ -292,6 +302,7 @@ final class Builder
 		$this->siteviewaddtoolbar = $siteviewaddtoolbar;
 		$this->modeldata = $modeldata;
 		$this->headers = $headers;
+		$this->apiresource = $apiresource;
 	}
 
 	/**
@@ -369,6 +380,9 @@ final class Builder
 
 		// the model data this view's main get type asks for
 		$this->modeldata->set($view);
+
+		// the API resource of this view, when the component has an API
+		$this->apiresource->set($view, 'site');
 		// add to lang array
 		$this->language->set(
 			'site',

@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\SiteViews\Builder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as ApiResource;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
@@ -230,12 +231,16 @@ final class BuilderTest extends ArchitectureTestCase
 		$this->multi = new ContentMulti();
 		$this->one = new ContentOne();
 
+		$apiresource = $this->createMock(ApiResource::class);
+		$apiresource->expects($this->once())->method('set')->with($view, 'site');
+
 		$subject = $this->renderer(Builder::class, [
 			'contentmulti' => $this->multi,
 			'contentone' => $this->one,
 			'config' => $this->config(),
 			'placeholder' => $this->placeholder(),
-			'language' => $this->language()
+			'language' => $this->language(),
+			'apiresource' => $apiresource
 		]);
 
 		$subject->build($view);
