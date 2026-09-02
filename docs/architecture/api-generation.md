@@ -14,7 +14,9 @@ for an API) is implemented. Phase 3 (route registration) is implemented as
 placeholders: routes live in a `webservices` plugin that a JCB user creates in
 the plugin area and links to the component, and the compiler fills the
 `API_ROUTES` placeholders inside it (§4.7). The compiler never generates a
-plugin on its own.
+plugin on its own. Phase 4 (§8) extends the same API to the site views and
+custom admin views, read-only resources whose shape is the dynamic get of
+the view.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
@@ -455,3 +457,189 @@ a plugin on its own.
   match `getItem()` and the admin export) or withheld.
 - Whether a per-field API selector in the GUI is wanted; the current answer is
   no: every column is rendered and the field permissions decide who sees it.
+- A per-link API switch for site views and custom admin views (§8.9); until
+  the GUI carries one, every such view of a component that has an admin API
+  gets its resource.
+
+## 8. Dynamic get resources: site views and custom admin views
+
+### 8.1 Current contract
+
+A site view and a custom admin view share one data model
+([`Customview\Data`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Customview/Data.php)):
+a safe `code` unique within its area, a `main_get` and optional `custom_get`
+dynamic gets, and the PHP, JavaScript and CSS the developer adds. The main
+get's `gettype` selects the generated model: `1` builds an item model whose
+`getItem($pk)` reads the id from the `<code>.id` state, `2` builds a list
+model whose `getListQuery()` and `getItems()` serve the list, paginated when
+the get's `pagination` flag is set and otherwise with `list.limit` forced to
+`0`. Custom gets of type `3` and `4` become model methods named by
+`getcustom`, and the HTML view assigns each to a property named after the
+method without its `get` prefix. Multi-row joins of the main get become
+per-item methods `get<Name>($value)` that the templates call with a field of
+the row ([`Dynamicget\JoinStructure`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/JoinStructure.php)).
+
+The query is built from the dynamic get alone
+([`Model\Dynamicget`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Model/Dynamicget.php)
+and the `Dynamicget\*` renderers): the source table, the selection or
+every column, joins merged into the row, the filters by id, user, access
+levels, user groups, request variables and other expressions, the where,
+order, group and global clauses, the calculations, and the post-processing
+that decodes JSON and base64, resolves list values and linked names,
+decrypts and prepares content. A main get whose source is custom SQL
+(`main_source` 3) bypasses all of it.
+
+Two behaviours of the generated models assume the web application: the
+access check the link's `access` flag adds to `getItem()` and `getItems()`
+redirects when `site.<code>.access` (or `<code>.access` for a custom admin
+view) is not granted, and the empty-result fail-safe of `getItem()` enqueues
+"Not found, or access denied" and redirects.
+
+### 8.2 Objective
+
+Every site view and custom admin view of a component that already has an
+admin API gets a read-only resource whose result is exactly what the view's
+model returns: the main get's item or list after every step of its
+processing, with the custom gets attached. Permissions run before the model
+so the API answers with status codes, filters and custom PHP stay the
+model's, and pagination follows the get's own flag.
+
+### 8.3 Naming and collisions
+
+API names are resolved once per compile by `Architecture\Api\Resources`,
+in this order:
+
+1. Admin views reserve their single and list codes, with or without an API,
+   so a later API on the admin view never changes a name.
+2. Custom admin views take their code. A code that is already reserved is a
+   defect of the component: the resource is skipped and the compiler emits a
+   warning naming the collision.
+3. Site views take their code. A code that is already reserved takes the
+   `site_` prefix (`truck` becomes `site_truck`, class `Site_truckController`,
+   type and path `site_truck`). A prefixed name that still collides is
+   skipped with a warning.
+
+The resolved name is the JSON:API type, the resource path segment, the
+controller class and the JSON view folder. The routes of §4.7 and the file
+build read the same map, so they always agree.
+
+### 8.4 Generated output
+
+| File | Template | Built for |
+| --- | --- | --- |
+| `api/src/Controller/<Name>Controller.php` | `API_DYNAMIC_VIEW_CONTROLLER.php` | item views (`gettype` 1), type `dynamic_single` |
+| `api/src/View/<Name>/JsonapiView.php` | `API_DYNAMIC_VIEW_JSON.php` | item views, type `dynamic_single` |
+| `api/src/Controller/<Name>Controller.php` | `API_DYNAMIC_VIEWS_CONTROLLER.php` | list views (`gettype` 2), type `dynamic_list` |
+| `api/src/View/<Name>/JsonapiView.php` | `API_DYNAMIC_VIEWS_JSON.php` | list views, type `dynamic_list` |
+
+`Component\Structuremultiple` builds them beside the view's own files in the
+site and custom admin loops; the serializer is Joomla's `JoomlaSerializer`,
+since these resources declare no relationships.
+
+The `ContentMulti` keys, `<api name>|<KEY>`:
+
+| Placeholder | Renderer | Content |
+| --- | --- | --- |
+| `###ApiName###`, `###apiname###` | `Api\Dynamic\Resource` | the resolved name, class case and lower case |
+| `###API_DYNAMIC_VIEW(S)_CONTROLLER_HEADER###`, `###API_DYNAMIC_VIEW(S)_JSON_HEADER###` | `Header` (`api.dynamic.*`) | imports |
+| `###API_DYNAMIC_VIEW(S)_CONTROLLER_GETMODEL###` | `Api\Dynamic\GetModel` | body of `getModel()`: the view's model from the `Site` or `Administrator` namespace, request state ignored |
+| `###API_DYNAMIC_VIEW(S)_CONTROLLER_ALLOWVIEW###` | `Api\Dynamic\AllowView` | body of `allowView()` |
+| `###API_DYNAMIC_VIEW(S)_CONTROLLER_EXPECTATIONS###` | `Api\Dynamic\Expectations` | docblock lines describing what the request must carry (§8.7) |
+| `###API_DYNAMIC_VIEW(S)_JSON_PREPAREITEM###` | `Api\Dynamic\PrepareItem` | id guard, per-item join methods, and on the item the custom gets |
+| `###API_DYNAMIC_VIEWS_JSON_META###` | `Api\Dynamic\Meta` | the custom gets of a list view as document meta |
+
+Everything that does not vary per view is template text: the read-only
+guards, the runtime field discovery, the model call.
+
+### 8.5 Renderers
+
+| Renderer | Reads |
+| --- | --- |
+| `Api\Resources` | the admin, custom admin and site view links, `Config->joomla_version` |
+| `Api\Dynamic\Resource` | `Resources`, `Header`, `ContentMulti`, the renderers below |
+| `Api\Dynamic\GetModel` | the view code and area |
+| `Api\Dynamic\AllowView` | the link's `access` flag, the area, `Config->component_code_name` |
+| `Api\Dynamic\Expectations` | the main get's filter, where, order, group, pagination and PHP hook flags |
+| `Api\Dynamic\PrepareItem` | the main get's multi-row joins through `Dynamicget\JoinStructure`, the custom gets |
+| `Api\Dynamic\Meta` | the custom gets |
+
+They are registered by `Service/ArchitectureApi` as
+`Architecture.Api.Resources` and `Architecture.Api.Dynamic.<Name>`, and
+injected into `Architecture\SiteViews\Builder`,
+`Architecture\CustomAdminViews\Builder`, `Component\Structuremultiple` and
+`Api\Plugin\Routes`.
+
+### 8.6 Permissions and public access
+
+`allowView()` runs before the model, so a refusal is a 403 and never a
+redirect. A site resource requires `site.<code>.access` when the link sets
+`access`, and nothing otherwise beyond the API token. A custom admin
+resource requires `core.manage` on the component, and `<code>.access` when
+the link sets `access`. A site view whose link sets `public_access` gets its
+GET routes registered with `'public' => true`, so no token is needed and the
+model runs as the guest, with the guest's access levels in every
+access-level and user-group filter of the get.
+
+### 8.7 Request contract
+
+Item resources answer on `GET v1/<component>/<name>` and
+`GET v1/<component>/<name>/:id`; the id, when given, is the `<code>.id`
+state `getItem()` reads and the `$pk` of the get's id filters. A get whose
+filters do not use the id ignores it. List resources answer on
+`GET v1/<component>/<name>`, paginated with `page[offset]` and `page[limit]`
+when the get paginates, else with every record.
+
+Filters, where, order and group are the get's own; nothing of the request
+is mapped onto model state. A filter that reads a request variable (the
+function-variable type, or another expression) reads it from the API
+request under the same name the site URL would use. The custom PHP of the
+get, before and after the item or the items and in the list query, runs
+unchanged. When the result is empty the item resource answers 404 with the
+component's "Not found, or access denied" message and the list resource
+answers an empty list.
+
+What the compiler can see, it documents: the generated `displayItem()` or
+`displayList()` docblock lists each filter and clause of the get in words,
+names the request variables it reads, says whether the resource paginates,
+and notes where custom PHP may add conditions the compiler cannot describe.
+
+### 8.8 Response shape
+
+The resource attributes are the keys of the object the model returns,
+discovered at runtime (`array_keys(get_object_vars($item))` for an item,
+the union over the page for a list), so the dynamic get's selection, joins,
+globals, calculations and post-processing decide the shape without a
+compile-time field map. JSON:API needs an id: when the selection carries
+none, the item takes the requested id and a list row its position on the
+page.
+
+Custom gets ride along: on an item resource each becomes an attribute named
+as the HTML view names it (the method without its `get` prefix, made safe);
+on a list resource each becomes a document `meta` entry under that name,
+since they belong to the view and not to a row. The multi-row join methods
+of the main get are called for every row with the row's own field and
+attached under the joined table's name.
+
+### 8.9 Enablement and the model change
+
+There is no GUI switch yet. The rule is: a component whose admin views ask
+for an API (§1) gets a resource for every site view and custom admin view
+whose main get is not custom SQL. `Resources` carries the future per-link
+check as a commented, noted hook, so the switch lands without moving code.
+
+One generated behaviour changes: the empty-result fail-safe of `getItem()`
+in site and custom admin models throws the existing "Not found, or access
+denied" text as a 404 exception when the running client is the API, and
+keeps enqueueing the message and redirecting otherwise. The access check
+needs no change because the API controller refuses first.
+
+### 8.10 Proof
+
+Unit tests per renderer and for `Resources` under
+`tests/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api`; the
+site views, custom admin views and structure tests assert the new keys and
+builds; the routes test covers the dynamic and public routes; the item
+orchestration test covers the API fail-safe; provider catalogue, ownership
+ledger and gates as before. The golden proof stays the Joomla 6 golden
+master with a component carrying an admin API, a site view and a custom
+admin view.

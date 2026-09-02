@@ -46,8 +46,8 @@ understood before changing the legacy helper chain.
    dump contract and the proposed roadmap for extruding an existing component's
    source tree into JCB definitions.
 13. [API generation](api-generation.md) — the Joomla web-services contract,
-   the four generated API classes, and the design that completes them for
-   every admin view with the API option set.
+   the generated API classes, the route placeholders of the linked plugin,
+   and the read-only resources of site views and custom admin views.
 
 Repository-wide instructions for coding agents are in [`AGENTS.md`](../../AGENTS.md).
 Before changing any path, read the authoritative
