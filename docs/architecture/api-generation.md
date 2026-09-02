@@ -10,10 +10,11 @@ Joomla 4, 5 and 6.
 implemented under `Compiler/Architecture/Api` and wired through
 `Architecture/AdminViews/EditView` and `ListView`. Phase 2 (the manifest
 `<api>` block, written by `Architecture/Component/Details` when a view asked
-for an API) is implemented. Phase 3 (route registration) is
-deliberately out of scope: routes live in a `webservices` plugin that a JCB
-user creates in the plugin area and links to the component, and the compiler
-will only fill placeholders inside it. Section 7 records that footnote.
+for an API) is implemented. Phase 3 (route registration) is implemented as
+placeholders: routes live in a `webservices` plugin that a JCB user creates in
+the plugin area and links to the component, and the compiler fills the
+`API_ROUTES` placeholders inside it (§4.7). The compiler never generates a
+plugin on its own.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
@@ -257,20 +258,34 @@ four header keys are unchanged. Everything that does not vary per view
 (`edit()`, `delete()`, the read-only guards, the filter cleaning helper) is
 template text, as the templates already do for the class shells.
 
+Two more placeholders are not template keys but entries of the `Placeholder`
+registry, the one `Joomlaplugin\*\Data` applies to the main class code of a
+linked plugin. They are registered in both the `[[[KEY]]]` and the
+`###KEY###` form:
+
+| Placeholder | Set by | Renderer | Content |
+| --- | --- | --- | --- |
+| `[[[API_ROUTES]]]` | `Model\Joomlaplugins` | `Api\Plugin\Routes::get()` | body of `onBeforeApiRoute()`: every route of every view with an API |
+| `[[[API_ROUTES_METHOD]]]` | `Model\Joomlaplugins` | `Api\Plugin\Routes::getMethod()` | the whole `onBeforeApiRoute()` method, with the signature of the compile target |
+
 ### 4.3 Renderer family
 
 **Placement rule.** The API area is one generated objective, so its renderers
-live under `Compiler/Architecture/Api/Controller` and
-`Compiler/Architecture/Api/View`. Their output is identical for Joomla 4, 5
-and 6 and never built for Joomla 3, so, following the system map's rule that a
-target class must earn its existence, each renderer is one root class with no
-`Joomla*` variant. They are registered by
+live under `Compiler/Architecture/Api/Controller`,
+`Compiler/Architecture/Api/View`, `Compiler/Architecture/Api/Serializer` and
+`Compiler/Architecture/Api/Plugin`. Their output is identical for Joomla 4, 5
+and 6 and never built for Joomla 3 (the one signature that differs, the route
+method of the plugin, is selected on `Config->joomla_version` inside the
+renderer), so, following the system map's rule that a target class must earn
+its existence, each renderer is one root class with no `Joomla*` variant.
+They are registered by
 [`Service/ArchitectureApi`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Service/ArchitectureApi.php)
-as shared services keyed `Architecture.Api.Controller.<Name>` and
-`Architecture.Api.View.<Name>`, and injected into `EditView` and `ListView`
-by their existing provider factories. Every renderer takes typed constructor
-dependencies and reads only `Config` and Builder registries; none resolves a
-factory.
+as shared services keyed `Architecture.Api.Controller.<Name>`,
+`Architecture.Api.View.<Name>`, `Architecture.Api.Serializer.<Name>` and
+`Architecture.Api.Plugin.<Name>`, and injected into `EditView`, `ListView`
+and `Model\Joomlaplugins` by their existing provider factories. Every
+renderer takes typed constructor dependencies and reads only `Config` and
+Builder registries; none resolves a factory.
 
 | Renderer | Reads |
 | --- | --- |
@@ -284,6 +299,7 @@ factory.
 | `Api\View\PrepareItem` | `JsonString`, `JsonItem`, `JsonItemArray`, `BaseSixFour`, `ModelBasicField`, `ModelMediumField`, `ModelWhmcsField`, `ItemsMethodListString`, `Tags`, `ContentOne`, `Config->cryption_types` |
 | `Api\View\Relationships` | `ComponentFields` (type and link), `FieldNames`, `Tags`, `Component->admin_views` |
 | `Api\Serializer\Relations` | `Api\View\Relationships` |
+| `Api\Plugin\Routes` | the admin view links (`add_api`, the two names), `Api\Controller\RecordId::keys()`, `Config->joomla_version`, `Placeholder` |
 
 `ComponentFields` is the table map the compiler already builds per view in
 `Creator/Builders::configureLayoutAndComponentField()`: for every stored
@@ -326,21 +342,64 @@ matching the edit form, which is the stricter of the two.
 Values are cleaned with `InputFilter` as strings (element-wise for arrays);
 the generated list query already treats numeric and string values correctly.
 
+Pagination needs nothing from the generated code: `ApiController::displayList()`
+turns `page[offset]` and `page[limit]` into `list.start` and `list.limit` on
+the list model (twenty items when no limit is given, 404 when the offset is
+past the total), and `JsonApiView::displayList()` answers with the
+`total-pages` meta and the `self`, `first`, `previous`, `next` and `last`
+links from the model's pagination. The ordering a request asks for is kept
+only when the list model's `filter_fields` carry the column expression, which
+the generated `filter_fields` do for every entry of the ordering map.
+
 ### 4.6 Key resolution contract
 
 `getRecordId()` returns the integer `id` from the input when present, else
 loads the table through the item model by the first key present in the input,
 in this order: `guid` when the table has one, then every column indexed as
 `UNIQUE KEY`. A key that matches nothing yields `0`, which the base methods
-turn into 404. This is what the future routes rely on:
+turn into 404. The key routes of §4.7 rely on this: a route variable named
+after the key lands in the request input, where `getRecordId()` finds it.
 
-```php
-$router->addRoute(new Route(['GET'], 'v1/demo/articles/guid/:guid', 'article.displayItem', ['guid' => '([0-9a-fA-F-]{36})'], $defaults));
-$router->addRoute(new Route(['PATCH'], 'v1/demo/articles/guid/:guid', 'article.edit', [...], $defaults));
-$router->addRoute(new Route(['DELETE'], 'v1/demo/articles/guid/:guid', 'article.delete', [...], $defaults));
-```
+### 4.7 Route registration in the linked plugin
 
-### 4.7 Version axis
+The compiler does not generate a plugin. The JCB user creates a plugin of the
+`webservices` group in the plugin area, links it to the component, and writes
+one of the two placeholders of §4.2 into its main class code: `[[[API_ROUTES]]]`
+inside an `onBeforeApiRoute()` method of their own, or `[[[API_ROUTES_METHOD]]]`
+in place of the whole method. `Model\Joomlaplugins::set()` registers both in
+the `Placeholder` registry through `Api\Plugin\Routes::set()` right before
+the linked plugins load, so `Joomlaplugin\*\Data` resolves them together with
+`[[[Component]]]` and the other component placeholders; the Joomla 5 and 6
+plugin assembler then finds the `on*` method by parsing the class code and
+needs no `getSubscribedEvents()` entry for it.
+
+The routes of one view, from its `add_api` option and the keys of §4.6,
+`v1/<component>/<views>` being the resource path and the JSON:API type:
+
+| Option | Method and path | Controller task | Variable pattern |
+| --- | --- | --- | --- |
+| List, Both | `GET v1/demo/articles` | `articles.displayList` | |
+| Item, Both | `GET v1/demo/articles/:id` | `article.displayItem` | `(\d+)` |
+| Item, Both | `GET v1/demo/articles/<key>/:<key>` | `article.displayItem` | `([0-9a-fA-F-]{36})` for the guid, `([^/]+)` for another key |
+| Item, Both | `POST v1/demo/articles` | `article.add` | |
+| Item, Both | `PATCH v1/demo/articles/:id`, `.../<key>/:<key>` | `article.edit` | as above |
+| Item, Both | `DELETE v1/demo/articles/:id`, `.../<key>/:<key>` | `article.delete` | as above |
+
+Every route carries `['component' => 'com_demo']`; the `GET` routes also carry
+`'public' => false`, as `createCRUDRoutes()` does by default, so every request
+authenticates. The routes are `\Joomla\Router\Route` objects passed to
+`$router->addRoutes()`, fully qualified so the plugin needs no import.
+
+The method placeholder selects its signature on the compile target: Joomla 4
+gets `onBeforeApiRoute(&$router): void`, Joomla 5 and 6 get
+`onBeforeApiRoute(\Joomla\CMS\Event\Application\BeforeApiRouteEvent $event): void`
+and take the router from the event. The body placeholder assumes `$router`
+is in scope, which both signatures provide. Both placeholders render their
+first line bare and indent the following lines as a method body (two tabs)
+or a class member (one tab), so the placeholder is written where the code
+starts. A component whose views have no API renders a comment saying so.
+
+### 4.8 Version axis
 
 All selection is on the compile target, `Config->joomla_version`.
 `Structuremultiple::hasApi()` already limits the API to targets at or above 4.
@@ -367,10 +426,12 @@ requests with the admin permissions, once a route reaches them.
 when `Config->add_api` is set and as nothing otherwise. Deliverable: the
 installer copies `api/` and the namespace map registers the `Api` namespace.
 
-**Phase 3 — routes (footnote, not scheduled).** A `webservices` plugin created
-in the JCB plugin area and linked to the component, carrying placeholders the
-compiler fills with `createCRUDRoutes()` and the key routes of §4.6 for every
-view that has an API. The compiler must not generate a plugin on its own.
+**Phase 3 — routes (implemented).** A `webservices` plugin created in the
+JCB plugin area and linked to the component carries the `[[[API_ROUTES]]]` or
+`[[[API_ROUTES_METHOD]]]` placeholder, which `Api\Plugin\Routes` fills with
+the routes of §4.7 for every view that has an API, registered by
+`Model\Joomlaplugins` before the plugins load. The compiler does not generate
+a plugin on its own.
 
 ## 6. Proof
 
@@ -387,9 +448,10 @@ view that has an API. The compiler must not generate a plugin on its own.
 
 ## 7. Open decisions
 
-- Whether `GET` routes of a resource should ever be public (`createCRUDRoutes`
-  fourth argument); the generated controllers assume an authenticated user.
+- Whether `GET` routes of a resource should ever be public; the generated
+  routes set `'public' => false` and the generated controllers assume an
+  authenticated user. A per-view option would need a GUI change.
 - Whether encrypted fields should be decrypted in list output (they are, to
   match `getItem()` and the admin export) or withheld.
-- Route prefix convention for the plugin: `v1/<component>/<views>` is
-  assumed in this document.
+- Whether a per-field API selector in the GUI is wanted; the current answer is
+  no: every column is rendered and the field permissions decide who sees it.
