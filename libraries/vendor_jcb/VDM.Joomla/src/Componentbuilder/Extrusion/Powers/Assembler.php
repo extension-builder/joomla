@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
@@ -88,6 +89,14 @@ final class Assembler
 	protected Constants $constants;
 
 	/**
+	 * The Namespacer Resolver.
+	 *
+	 * @var    Namespacer
+	 * @since  6.1.9
+	 */
+	protected Namespacer $namespacer;
+
+	/**
 	 * The selected candidates' identities, class name keyed to guid.
 	 *
 	 * @var    array<string, string>
@@ -103,7 +112,8 @@ final class Assembler
 	 * @param   Existing   $existing   The existing power resolver.
 	 * @param   Pairing    $pairing    The pairing resolver.
 	 * @param   Report     $report     The run report registry.
-	 * @param   Constants  $constants  The language constant resolver.
+	 * @param   Constants   $constants   The language constant resolver.
+	 * @param   Namespacer  $namespacer  The namespace conversion resolver.
 	 *
 	 * @since   6.1.7
 	 */
@@ -113,7 +123,8 @@ final class Assembler
 		Existing $existing,
 		Pairing $pairing,
 		Report $report,
-		Constants $constants
+		Constants $constants,
+		Namespacer $namespacer
 	)
 	{
 		$this->config = $config;
@@ -122,6 +133,7 @@ final class Assembler
 		$this->pairing = $pairing;
 		$this->report = $report;
 		$this->constants = $constants;
+		$this->namespacer = $namespacer;
 	}
 
 	/**
@@ -173,6 +185,18 @@ final class Assembler
 				$candidate['guid'] = $decided;
 				$candidate['exists'] = $verdict['action'] === 'update';
 				$action = (string) $verdict['action'];
+
+				if ($decided !== $guid)
+				{
+					// the person paired this class to another power, so that
+					// power's own stored namespace is the one an update weighs
+					$standing = (string) ($this->existing->power($decided)['namespace'] ?? '');
+					$candidate['standing'] = $standing;
+					$candidate['matched'] = $standing !== ''
+						&& $this->existing->identity($standing)
+							=== $this->existing->identity((string) $candidate['placeholder'])
+						? 'identity' : 'class';
+				}
 			}
 
 			// every candidate claims its identity before any linking, a dropped
@@ -267,8 +291,8 @@ final class Assembler
 		$definition = new \stdClass();
 		$definition->guid = $guid;
 		$definition->name = (string) $candidate['class'];
-		$definition->namespace = (string) $candidate['placeholder'];
 		$definition->type = $type;
+		$this->placement($definition, $candidate);
 		// JCB stores code speaking text and lets its compiler make the
 		// constant, so a class harvested out of a compiled component has to
 		// speak text again -- otherwise the compiler builds a key from a key
@@ -313,6 +337,57 @@ final class Assembler
 		$this->selections($definition, $guid, $imports);
 
 		return $definition;
+	}
+
+	/**
+	 * State the namespace a definition is written with, or leave the standing one.
+	 *
+	 * A power recognised by its stored namespace already sits exactly where
+	 * the class does, in the form the person stored it -- through a
+	 * placeholder of their own or not -- so nothing is restated. A new power,
+	 * or one recognised only by the class name it compiles to, is written
+	 * with the placement the file itself states, expressed through whatever
+	 * placeholder the person has defined for that head, so it lands beside
+	 * the powers they already keep there.
+	 *
+	 * @param   object                $definition  The definition being built.
+	 * @param   array<string, mixed>  $candidate   The harvest candidate.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	protected function placement(object $definition, array $candidate): void
+	{
+		$guid = (string) $candidate['guid'];
+		$standing = (string) ($candidate['standing'] ?? '');
+		$namespace = $this->namespacer->express((string) $candidate['placeholder']);
+
+		if ((bool) ($candidate['exists'] ?? false) && $standing !== ''
+			&& (string) ($candidate['matched'] ?? '') === 'identity')
+		{
+			if ($standing !== $namespace)
+			{
+				$this->report->set(
+					'powers.namespace.kept.' . $this->key($guid),
+					$standing
+				);
+			}
+
+			return;
+		}
+
+		$definition->namespace = $namespace;
+
+		if ($standing !== '' && $standing !== $namespace)
+		{
+			// the class compiles to the same name but its stored placement
+			// says otherwise: the file is the evidence of where the class
+			// really sits, so the placement follows the file
+			$this->report->set('powers.namespace.restated.' . $this->key($guid), [
+				'from' => $standing,
+				'to' => $namespace
+			]);
+		}
 	}
 
 	/**

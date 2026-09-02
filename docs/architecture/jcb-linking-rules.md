@@ -283,6 +283,50 @@ Folding a built class back:
   the dotted tail with the class -- `VDM.Data.Action.Load` -- never the
   connecting head between them.
 
+Powers outside the libraries folder:
+
+- The compiler's own core map (`Compiler\Joomla\Path`) places a power whose
+  namespace opens with `[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator`
+  (or `\Site`, or a `\Module\` or `\Plugin\` head) in that extension's own
+  `src`. Under such a head only the **dot parts are folders**; a further
+  backslash segment is not a folder at all, so `...\Administrator\Engine\Team`
+  would be written to `src/Team.php` while declaring the Engine namespace.
+  The stored form for `administrator/components/com_x/src/Engine/Team.php`
+  is therefore `...\Administrator\Engine.Team`, and for `src/Team.php` it is
+  `...\Administrator\Team`.
+- **The seam is read from the file's real ancestry, not from the folder the
+  run was aimed at.** The trailing namespace segments that mirror the file's
+  parent folder names, name for name, are the dot parts; the mirroring stops
+  at the source root (`src`) in every layout the compiler writes, and what
+  is left is the head. Aiming the run at `.../src/Engine`, at `.../src`, or
+  at the component folder lands on the same stored form. A folder below the
+  aimed folder that the namespace does not mirror is still a contradiction,
+  and falls back to the two-segment convention with a report entry.
+- **A person's placeholders are resolved in the compiler's order.** The
+  system-wide `placeholder` table (every target, base64 decoded), then the
+  core values over it in place, then the paired component's
+  `component_placeholders` overrides (every target). A power a person stores
+  as `[[[ComponentEngineNamespace]]].Team`, with that placeholder standing for
+  `[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine`,
+  resolves to the very class the compiler writes, so the catalogue answers
+  for it by class name as well as by identity.
+- **Identity is the canonical form.** Every placeholder the person defined
+  is unfolded, the core placeholders stay standing, and both wrapper forms
+  become one -- so `[[[ComponentEngineNamespace]]].Team` and the long form
+  it stands for are one power. A reference written under another prefix
+  folds at every seam the written name allows, not only the conventional
+  two-segment one, so an import of such a power still links by identity.
+- **A power recognised by identity keeps the namespace the person stored**,
+  through their placeholder or not; nothing is restated. A new power, or one
+  recognised only by the class it compiles to (an earlier run's misplaced
+  form, say), is written with the placement the file states, **expressed
+  through the longest placeholder whose value stands for a leading run of
+  the head** -- the joiner after the covered run kept, a dot where a folder
+  follows -- so it lands beside the powers the person already keeps there:
+  `[[[ComponentEngineNamespace]]].Match`. Only a value that is itself a
+  namespace fragment can stand for a head; a restated namespace is reported
+  as `powers.namespace.restated.<guid>` with both forms.
+
 ## What a table has to have to be a view
 
 Every view JCB builds keeps its records by an `id` of their own, so a table

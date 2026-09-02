@@ -59,9 +59,9 @@ final class Existing
 	protected Report $report;
 
 	/**
-	 * The catalogue, held under both the stored namespace and the class name.
+	 * The catalogue, held under the canonical namespace, the class name, and the guid.
 	 *
-	 * @var    array{namespace: array<string, array{guid: string, id: int, name: string}>, class: array<string, array{guid: string, id: int, name: string}>}|null
+	 * @var    array{namespace: array<string, array{guid: string, id: int, name: string, namespace: string}>, class: array<string, array{guid: string, id: int, name: string, namespace: string}>, guid: array<string, array{guid: string, id: int, name: string, namespace: string}>}|null
 	 * @since  6.1.7
 	 */
 	protected ?array $index = null;
@@ -117,14 +117,31 @@ final class Existing
 	 * Resolving both sides to concrete names instead would make every library
 	 * whose prefix differs from this run's look new.
 	 *
+	 * The namespace is matched in its canonical form, so a power a person
+	 * stored through a placeholder of their own is the same power as the
+	 * long form the placeholder stands for.
+	 *
 	 * @param   string  $namespace  The stored, placeholder-carrying namespace.
 	 *
-	 * @return  array{guid: string, id: int, name: string}|null  The power, or null when none matches.
+	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none matches.
 	 * @since   6.1.8
 	 */
 	public function match(string $namespace): ?array
 	{
-		return $this->index()['namespace'][$this->namespacer->key($namespace)] ?? null;
+		return $this->index()['namespace'][$this->identity($namespace)] ?? null;
+	}
+
+	/**
+	 * The existing power one identity names.
+	 *
+	 * @param   string  $guid  The power identity.
+	 *
+	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none stands.
+	 * @since   6.1.9
+	 */
+	public function power(string $guid): ?array
+	{
+		return $this->index()['guid'][strtolower(trim($guid))] ?? null;
 	}
 
 	/**
@@ -132,13 +149,15 @@ final class Existing
 	 *
 	 * An import or a parent written under another component's prefix or
 	 * casing is still the same power: the reference is folded to its stored
-	 * form by the convention every power JCB ships follows -- two head
-	 * segments, then dots -- and matched by that identity. Nothing is
-	 * witnessed on the way: a reference merely refers.
+	 * form and matched by that identity. The convention every power JCB
+	 * ships follows -- two head segments, then dots -- is tried first, and
+	 * then every other seam the written name allows, because a power that
+	 * lives in a component's own source folder keeps a longer head. Nothing
+	 * is witnessed on the way: a reference merely refers.
 	 *
 	 * @param   string  $fqn  The fully qualified class name as written.
 	 *
-	 * @return  array{guid: string, id: int, name: string}|null  The power, or null when none matches.
+	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none matches.
 	 * @since   6.1.9
 	 */
 	public function fold(string $fqn): ?array
@@ -154,9 +173,39 @@ final class Existing
 		}
 
 		$class = (string) array_pop($segments);
-		$stored = $this->namespacer->conventional(implode('\\', $segments), $class);
+		$namespace = implode('\\', $segments);
+		$stored = [$this->namespacer->conventional($namespace, $class)];
 
-		return $this->match($this->namespacer->placeholderize($stored, false));
+		for ($keep = 3; $keep <= count($segments); $keep++)
+		{
+			$stored[] = implode('\\', array_slice($segments, 0, $keep)) . '\\'
+				. implode('.', array_merge(array_slice($segments, $keep), [$class]));
+		}
+
+		foreach (array_unique($stored) as $form)
+		{
+			$power = $this->match($this->namespacer->placeholderize($form, false));
+
+			if ($power !== null)
+			{
+				return $power;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The key one stored namespace is held under: its canonical form, case folded.
+	 *
+	 * @param   string  $namespace  The stored namespace.
+	 *
+	 * @return  string  The identity key.
+	 * @since   6.1.9
+	 */
+	public function identity(string $namespace): string
+	{
+		return $this->namespacer->key($this->namespacer->canonical($namespace));
 	}
 
 	/**
@@ -211,7 +260,7 @@ final class Existing
 		}
 
 		$this->under = $under;
-		$this->index = ['namespace' => [], 'class' => []];
+		$this->index = ['namespace' => [], 'class' => [], 'guid' => []];
 		$rows = $this->load->items(
 			[
 				'a.id' => 'id',
@@ -236,9 +285,10 @@ final class Existing
 			$power = [
 				'guid' => $guid,
 				'id' => (int) ($row['id'] ?? 0),
-				'name' => trim((string) ($row['name'] ?? ''))
+				'name' => trim((string) ($row['name'] ?? '')),
+				'namespace' => $namespace
 			];
-			$identity = $this->namespacer->key($namespace);
+			$identity = $this->identity($namespace);
 
 			if (isset($this->index['namespace'][$identity]))
 			{
@@ -251,6 +301,7 @@ final class Existing
 			}
 
 			$this->index['namespace'][$identity] = $power;
+			$this->index['guid'][strtolower($guid)] = $power;
 
 			$fqn = $this->namespacer->resolve($namespace);
 

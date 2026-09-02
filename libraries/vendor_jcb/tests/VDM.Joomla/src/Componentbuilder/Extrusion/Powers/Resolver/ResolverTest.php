@@ -643,6 +643,263 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * The seam is read from the file's real ancestry, wherever the run was aimed.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheSeamIsReadFromTheFilesRealAncestry(): void
+	{
+		$namespacer = $this->namespacer();
+		$site = ['var', 'www', 'html', 'administrator', 'components', 'com_venue', 'src'];
+
+		$this->assertSame(
+			'VDM\Component\Venue\Administrator\Engine.Team',
+			$namespacer->stored(
+				'VDM\Component\Venue\Administrator\Engine', 'Team', [], 'Engine',
+				array_merge($site, ['Engine'])
+			),
+			'Aimed at the Engine folder itself, the folder above the root still '
+			. 'mirrors the last segment: Engine is a folder under src, so it is '
+			. 'a dot part, never part of the head.'
+		);
+		$this->assertSame(
+			'VDM\Component\Venue\Administrator\Engine.Team',
+			$namespacer->stored(
+				'VDM\Component\Venue\Administrator\Engine', 'Team', ['Engine'], 'src', $site
+			),
+			'Aimed at src, the folder below the root says the same thing.'
+		);
+		$this->assertSame(
+			'VDM\Component\Venue\Administrator\Team',
+			$namespacer->stored('VDM\Component\Venue\Administrator', 'Team', [], 'src', $site),
+			'A class directly below the area\'s src has no dot part: the head is '
+			. 'the area, exactly as the compiler places it.'
+		);
+		$this->assertSame(
+			'VDM\Joomla\Data.Action.Load',
+			$namespacer->stored(
+				'VDM\Joomla\Data\Action', 'Load', ['Data', 'Action'], 'VDM.Joomla',
+				['var', 'www', 'html', 'libraries', 'vendor_vdm', 'VDM.Joomla', 'src']
+			),
+			'A vendor folder in the libraries layout folds exactly as before.'
+		);
+		$this->assertSame(
+			'VDM\Plugin\System\Venue\Extension.Venue',
+			$namespacer->stored(
+				'VDM\Plugin\System\Venue\Extension', 'Venue', [], 'Extension',
+				['var', 'www', 'html', 'plugins', 'system', 'venue', 'src', 'Extension']
+			),
+			'The mirroring stops at src, so a plugin keeps its whole head.'
+		);
+		$this->assertNull(
+			$namespacer->stored(
+				'VDM\Component\Venue\Administrator\Engine', 'Team', ['Other'], 'src', $site
+			),
+			'A folder below the root that the namespace does not mirror is still '
+			. 'a contradiction.'
+		);
+	}
+
+	/**
+	 * A person's own placeholders resolve in the compiler's order.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testThePersonsPlaceholdersResolveInTheCompilersOrder(): void
+	{
+		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load
+			->placeholder(
+				1, '[[[ComponentEngineNamespace]]]',
+				'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine'
+			)
+			->placeholder(2, '[[[COMPANY]]]', 'VDM')
+			->placeholder(3, '[[[ComponentNamespace]]]', 'Remembered');
+		$this->load->overrides('comp-guid', [
+			[
+				'target' => '[[[ComponentMotorNamespace]]]',
+				'value' => base64_encode('[[[ComponentEngineNamespace]]]\Motor')
+			]
+		]);
+		$this->config->set('component', 3);
+		$placeholders = $this->placeholders();
+		$namespacer = new Namespacer($placeholders);
+
+		$this->assertSame(
+			[
+				'[[[ComponentEngineNamespace]]]' => '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine',
+				'[[[COMPANY]]]' => 'VDM',
+				'[[[ComponentNamespace]]]' => 'Venuedecisionmatrix',
+				'[[[NamespacePrefix]]]' => 'VDM',
+				'[[[ComponentMotorNamespace]]]' => '[[[ComponentEngineNamespace]]]\Motor'
+			],
+			$placeholders->map(),
+			'The system-wide table first, the core values over it in place -- '
+			. 'the paired component outranks a remembered global segment -- '
+			. 'and the component\'s own overrides last, keeping the core '
+			. 'placeholders they lean on.'
+		);
+		$this->assertSame(
+			'VDM\Component\Venuedecisionmatrix\Administrator\Engine\Team',
+			$namespacer->resolve('[[[ComponentEngineNamespace]]].Team'),
+			'A namespace stored through the person\'s placeholder resolves to '
+			. 'the very class the compiler writes.'
+		);
+		$this->assertSame(
+			'VDM\Component\Venuedecisionmatrix\Administrator\Engine\Motor\Belt',
+			$namespacer->resolve('[[[ComponentMotorNamespace]]].Belt'),
+			'A value that names another placeholder is reached however the '
+			. 'definitions are ordered.'
+		);
+		$this->assertSame(
+			[
+				'[[[ComponentEngineNamespace]]]' => '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine',
+				'[[[COMPANY]]]' => 'VDM',
+				'[[[ComponentMotorNamespace]]]' => '[[[ComponentEngineNamespace]]]\Motor'
+			],
+			$placeholders->custom(),
+			'Only the person\'s own targets are custom; the core ones never are.'
+		);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine.Team',
+			$namespacer->canonical('###ComponentEngineNamespace###.Team'),
+			'The canonical form unfolds the person\'s placeholder, keeps the '
+			. 'core ones standing, and speaks one wrapper form.'
+		);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine\Motor.Belt',
+			$namespacer->canonical('[[[ComponentMotorNamespace]]].Belt')
+		);
+
+		$this->config->set('component', 0);
+
+		$this->assertSame(
+			'Remembered',
+			$placeholders->map()['[[[ComponentNamespace]]]'] ?? null,
+			'With nothing paired or named, the remembered global row answers.'
+		);
+	}
+
+	/**
+	 * A namespace is expressed through the longest placeholder that stands for its head.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testExpressWritesThroughTheLongestKnownPlaceholder(): void
+	{
+		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load
+			->placeholder(
+				1, '[[[ComponentAdminNamespace]]]',
+				'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator'
+			)
+			->placeholder(2, '[[[ComponentEngineNamespace]]]', '[[[ComponentAdminNamespace]]]\Engine')
+			->placeholder(3, '[[[COMPANY]]]', 'VDM')
+			->placeholder(4, '[[[gitea_url]]]', 'git.vdm.dev')
+			->placeholder(
+				5, '[[[ComponentSiteNamespace]]]',
+				'VDM\Component\Venuedecisionmatrix\Site'
+			);
+		$this->config->set('component', 3);
+		$namespacer = $this->namespacer();
+		$admin = '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator';
+
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Team',
+			$namespacer->express($admin . '\Engine.Team'),
+			'The longest covering placeholder wins, and a value leaning on '
+			. 'another placeholder unfolds first.'
+		);
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Sub.Team',
+			$namespacer->express($admin . '\Engine.Sub.Team'),
+			'The joiner after the covered run is kept: a dot where a folder follows.'
+		);
+		$this->assertSame(
+			'[[[ComponentAdminNamespace]]]\Helper.Tool',
+			$namespacer->express($admin . '\Helper.Tool'),
+			'A backslash where the head continues.'
+		);
+		$this->assertSame(
+			'[[[ComponentAdminNamespace]]]\Team',
+			$namespacer->express($admin . '\Team'),
+			'A placeholder never swallows the class itself.'
+		);
+		$this->assertSame(
+			'[[[ComponentSiteNamespace]]]\Helper.Tool',
+			$namespacer->express(
+				'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Site\Helper.Tool'
+			),
+			'A concrete value stands for the head when it resolves to the same words.'
+		);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\Joomla\Data.Load',
+			$namespacer->express('[[[NamespacePrefix]]]\Joomla\Data.Load'),
+			'A value that is no namespace fragment never stands for one, '
+			. 'whatever word it happens to share.'
+		);
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Team',
+			$namespacer->express('[[[ComponentEngineNamespace]]].Team'),
+			'What is already expressed stays as it is.'
+		);
+	}
+
+	/**
+	 * The catalogue matches a power stored through a person's placeholder.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheCatalogueMatchesAPowerStoredThroughAPersonsPlaceholder(): void
+	{
+		$guid = 'aaaaaaaa-1111-4111-8111-111111111111';
+		$this->load->component(3, 'comp-guid', 'venuedecisionmatrix', 1, 'VDM');
+		$this->load->placeholder(
+			1, '[[[ComponentEngineNamespace]]]',
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine'
+		);
+		$this->load->power(1, $guid, 'Team', '[[[ComponentEngineNamespace]]].Team');
+		$this->config->set('component', 3);
+		$existing = $this->existing();
+		$long = '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine.Team';
+
+		$this->assertSame(
+			$guid,
+			$existing->match($long)['guid'] ?? null,
+			'Identity is the canonical form, so the long form the placeholder '
+			. 'stands for is the same power.'
+		);
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Team',
+			$existing->match($long)['namespace'] ?? null,
+			'The form the person stored travels with the match.'
+		);
+		$this->assertSame(
+			$guid,
+			$existing->find('VDM\Component\Venuedecisionmatrix\Administrator\Engine\Team')['guid'] ?? null,
+			'The class it compiles to resolves through the person\'s placeholder.'
+		);
+		$this->assertSame(
+			$guid,
+			$existing->power(strtoupper($guid))['guid'] ?? null
+		);
+		$this->assertSame(
+			$guid,
+			$existing->fold('Other\Component\VenueDecisionMatrix\Administrator\Engine\Team')['guid'] ?? null,
+			'A reference under another prefix folds at the seam the power '
+			. 'keeps, not only at the conventional one.'
+		);
+		$this->assertNull(
+			$this->report->get('powers.unresolved.namespace.aaaaaaaa_1111_4111_8111_111111111111'),
+			'Nothing is unresolved: the person\'s placeholder has a value.'
+		);
+	}
+
+	/**
 	 * The placeholders resolver under test.
 	 *
 	 * @return  Placeholders  The resolver.

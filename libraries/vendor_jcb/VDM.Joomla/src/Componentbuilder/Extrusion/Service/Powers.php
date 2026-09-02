@@ -197,7 +197,8 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Powers.Resolver.Existing'),
 			$container->get('Extrusion.Resolver.Pairing'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Resolver.Constants')
+			$container->get('Extrusion.Resolver.Constants'),
+			$container->get('Extrusion.Powers.Resolver.Namespacer')
 		);
 	}
 

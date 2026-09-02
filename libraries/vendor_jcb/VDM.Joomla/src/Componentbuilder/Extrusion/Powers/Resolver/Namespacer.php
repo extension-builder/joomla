@@ -64,18 +64,27 @@ final class Namespacer
 	 * the rest stays the head. A file whose path contradicts its namespace has
 	 * no seam to read, so null says the convention must decide instead.
 	 *
+	 * The folders below the source root are only the part of the path the
+	 * run was aimed at. A person may aim it at a folder deeper than the real
+	 * source root -- a component's own Engine folder, say -- and the folders
+	 * above that root then mirror more of the namespace than the folders
+	 * below it. The seam is where the mirroring stops, wherever the run was
+	 * aimed, because that is where the compiler put the class.
+	 *
 	 * @param   string         $namespace  The declared namespace, without the class.
 	 * @param   string         $class      The class name.
 	 * @param   array<string>  $folders    The folder names below the source root.
 	 * @param   string         $library    The library's own folder name, when it has one.
+	 * @param   array<string>  $above      The folder names of the source root itself, outermost first.
 	 *
 	 * @return  string|null  The stored form, or null when path and namespace disagree.
 	 * @since   6.1.7
 	 */
-	public function stored(string $namespace, string $class, array $folders, string $library = ''): ?string
+	public function stored(string $namespace, string $class, array $folders, string $library = '', array $above = []): ?string
 	{
 		$segments = $this->segments($namespace);
 		$folders = array_values(array_filter(array_map('strval', $folders), 'strlen'));
+		$above = array_values(array_filter(array_map('strval', $above), 'strlen'));
 		$count = count($folders);
 
 		if ($segments === [] || $count > count($segments))
@@ -88,11 +97,44 @@ final class Namespacer
 			return null;
 		}
 
-		$keep = $this->head($library, $segments, count($segments) - $count);
+		$mirrored = $count + $this->mirrored(
+			array_slice($segments, 0, count($segments) - $count),
+			$above
+		);
+
+		$keep = $this->head($library, $segments, count($segments) - $mirrored);
 		$head = array_slice($segments, 0, $keep);
 		$tail = implode('.', array_merge(array_slice($segments, $keep), [$class]));
 
 		return implode('\\', $head) . '\\' . $tail;
+	}
+
+	/**
+	 * How many trailing namespace segments the trailing folders mirror.
+	 *
+	 * Counted from the innermost folder outward, segment for segment and
+	 * name for name, until the first folder that is not the segment above it
+	 * -- the source root itself, in every layout the compiler writes.
+	 *
+	 * @param   array<string>  $segments  The namespace segments still unaccounted for.
+	 * @param   array<string>  $folders   The folder names, outermost first.
+	 *
+	 * @return  int  The number of mirrored segments.
+	 * @since   6.1.9
+	 */
+	protected function mirrored(array $segments, array $folders): int
+	{
+		$found = 0;
+		$stop = min(count($segments), count($folders));
+
+		while ($found < $stop
+			&& $segments[count($segments) - 1 - $found]
+				=== $folders[count($folders) - 1 - $found])
+		{
+			$found++;
+		}
+
+		return $found;
 	}
 
 	/**
@@ -256,6 +298,181 @@ final class Namespacer
 	}
 
 	/**
+	 * The one form a stored namespace has, whatever placeholders it was written through.
+	 *
+	 * A person may store a namespace through a placeholder of their own --
+	 * [[[ComponentEngineNamespace]]].Team, where the placeholder stands for
+	 * the whole head -- and the compiler resolves it to the very class the
+	 * long form names. Identity is the same on both forms, so both fold to
+	 * this one: every placeholder the person defined is substituted in the
+	 * compiler's own order, the core placeholders stay standing, and the two
+	 * wrapper forms become one.
+	 *
+	 * @param   string  $stored  The stored form, placeholders included.
+	 *
+	 * @return  string  The canonical stored form.
+	 * @since   6.1.9
+	 */
+	public function canonical(string $stored): string
+	{
+		$stored = $this->placeholders->expand(trim($stored, '\\'));
+
+		return (string) preg_replace('/###([A-Za-z0-9_]+)###/', '[[[$1]]]', $stored);
+	}
+
+	/**
+	 * Express a stored namespace through the placeholders the system holds.
+	 *
+	 * The inverse of canonical: where a person has defined a placeholder
+	 * that stands for a namespace head -- the whole of it or a leading run
+	 * of it -- a class that sits under that head is stored the way the person
+	 * stores everything else under it. The placeholder covering the longest
+	 * leading run of segments wins, its value read as the compiler would
+	 * resolve it, and the joiner that stood after the covered run is kept:
+	 * a dot where a folder follows, a backslash where the head continues.
+	 * Only a value that is itself a namespace fragment can stand for one.
+	 *
+	 * @param   string  $stored  The canonical stored form.
+	 *
+	 * @return  string  The stored form as the person would write it.
+	 * @since   6.1.9
+	 */
+	public function express(string $stored): string
+	{
+		$stored = $this->canonical($stored);
+		[$segments, $joiners] = $this->split($stored);
+		$total = count($segments);
+		$map = $this->placeholders->map();
+		$best = null;
+		$covered = 0;
+
+		foreach ($this->placeholders->custom() as $placeholder => $value)
+		{
+			if (!str_contains($value, '\\'))
+			{
+				continue;
+			}
+
+			[$parts, $joins] = $this->split($this->canonical($value));
+			$length = count($parts);
+
+			if ($length < 2 || $length >= $total || $length <= $covered
+				|| !$this->opens($segments, $joiners, $parts, $joins, $map))
+			{
+				continue;
+			}
+
+			$best = $placeholder;
+			$covered = $length;
+		}
+
+		if ($best === null)
+		{
+			return $stored;
+		}
+
+		return $best . $this->join(
+			array_slice($segments, $covered),
+			array_slice($joiners, $covered - 1)
+		);
+	}
+
+	/**
+	 * Whether one namespace opens with the given segments, joined the same way.
+	 *
+	 * Two segments are the same when they resolve to the same word under the
+	 * run's placeholder values -- a concrete VDM and [[[NamespacePrefix]]]
+	 * agree when that is what the prefix resolves to -- and case aside, as
+	 * PHP reads namespaces.
+	 *
+	 * @param   array<string>          $segments  The namespace segments.
+	 * @param   array<string>          $joiners   The joiner after each segment but the last.
+	 * @param   array<string>          $parts     The leading segments to test for.
+	 * @param   array<string>          $joins     The joiner after each part but the last.
+	 * @param   array<string, string>  $map       Placeholder keyed to its value.
+	 *
+	 * @return  bool  True when the namespace opens with the parts.
+	 * @since   6.1.9
+	 */
+	protected function opens(array $segments, array $joiners, array $parts, array $joins, array $map): bool
+	{
+		$search = array_keys($map);
+		$replace = array_values($map);
+
+		foreach ($parts as $index => $part)
+		{
+			$part = str_replace($search, $replace, $part);
+			$segment = str_replace($search, $replace, (string) ($segments[$index] ?? ''));
+
+			if ($part === '' || strcasecmp($part, $segment) !== 0)
+			{
+				return false;
+			}
+
+			if ($index < count($parts) - 1
+				&& ($joins[$index] ?? '') !== ($joiners[$index] ?? ''))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Split a stored namespace into its segments and the joiners between them.
+	 *
+	 * @param   string  $stored  The stored form.
+	 *
+	 * @return  array{0: array<string>, 1: array<string>}  The segments, and the joiner after each but the last.
+	 * @since   6.1.9
+	 */
+	protected function split(string $stored): array
+	{
+		$segments = [''];
+		$joiners = [];
+		$length = strlen($stored);
+
+		for ($i = 0; $i < $length; $i++)
+		{
+			$char = $stored[$i];
+
+			if ($char === '\\' || $char === '.')
+			{
+				$joiners[] = $char;
+				$segments[] = '';
+
+				continue;
+			}
+
+			$segments[count($segments) - 1] .= $char;
+		}
+
+		return [$segments, $joiners];
+	}
+
+	/**
+	 * Join segments back, each preceded by the joiner that stood before it.
+	 *
+	 * @param   array<string>  $segments  The segments.
+	 * @param   array<string>  $joiners   The joiner before each segment.
+	 *
+	 * @return  string  The joined text.
+	 * @since   6.1.9
+	 */
+	protected function join(array $segments, array $joiners): string
+	{
+		$joined = '';
+
+		foreach (array_values($segments) as $index => $segment)
+		{
+			$joined .= ($joiners[$index] ?? '\\') . $segment;
+		}
+
+		return $joined;
+	}
+
+	/**
 	 * Drop everything the conversions witnessed, so a fresh run reads fresh.
 	 *
 	 * @return  self  For method chaining.
@@ -279,14 +496,7 @@ final class Namespacer
 	 */
 	public function resolve(string $stored): string
 	{
-		foreach ($this->placeholders->map() as $placeholder => $value)
-		{
-			$stored = str_replace(
-				[$placeholder, '###' . substr($placeholder, 3, -3) . '###'],
-				$value,
-				$stored
-			);
-		}
+		$stored = $this->placeholders->substitute($stored, $this->placeholders->map());
 
 		if (str_contains($stored, '[[[') || str_contains($stored, '###'))
 		{
