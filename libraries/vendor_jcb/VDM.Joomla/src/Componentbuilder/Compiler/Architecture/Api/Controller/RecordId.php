@@ -119,7 +119,7 @@ final class RecordId
 	 * @return  array  The key column names.
 	 * @since   6.1.7
 	 */
-	private function keys(string $nameSingleCode): array
+	public function keys(string $nameSingleCode): array
 	{
 		$keys = [];
 		$unique = $this->databaseuniquekeys->get($nameSingleCode);

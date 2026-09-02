@@ -24,6 +24,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\FieldPermissions 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\PrepareItem as ViewPrepareItem;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships as ViewRelationships;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Serializer\Relations as SerializerRelations;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes as PluginRoutes;
 
 
 /**
@@ -75,6 +76,9 @@ class ArchitectureApi implements ServiceProviderInterface
 
 		$container->alias(SerializerRelations::class, 'Architecture.Api.Serializer.Relations')
 			->share('Architecture.Api.Serializer.Relations', [$this, 'getSerializerRelations'], true);
+
+		$container->alias(PluginRoutes::class, 'Architecture.Api.Plugin.Routes')
+			->share('Architecture.Api.Plugin.Routes', [$this, 'getPluginRoutes'], true);
 	}
 
 	/**
@@ -248,6 +252,23 @@ class ArchitectureApi implements ServiceProviderInterface
 	{
 		return new SerializerRelations(
 			$container->get('Architecture.Api.View.Relationships')
+		);
+	}
+
+	/**
+	 * Get The Api Plugin Routes Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  PluginRoutes
+	 * @since 6.1.7
+	 */
+	public function getPluginRoutes(Container $container): PluginRoutes
+	{
+		return new PluginRoutes(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Architecture.Api.Controller.RecordId')
 		);
 	}
 }

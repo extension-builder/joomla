@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Model;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Abstraction\Registry;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAlias as BuilderCustomAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Name as FieldName;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\ModuleDataInterface;
@@ -106,13 +107,97 @@ final class AssociationModelTest extends TestCase
 			], JSON_THROW_ON_ERROR)
 		];
 
-		(new Joomlaplugins($plugin))->set($item);
+		(new Joomlaplugins($plugin, $this->createStub(Routes::class)))->set($item);
 
 		$this->assertCount(2, $calls);
 		$this->assertSame('alpha', $calls[0][0]);
 		$this->assertSame($item, $calls[0][1]);
 		$this->assertSame('beta', $calls[1][0]);
 		$this->assertSame($item, $calls[1][1]);
+		$this->assertObjectNotHasProperty('addjoomla_plugins', $item);
+	}
+
+	/**
+	 * Register the API routes of the admin views before any plugin loads.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlapluginsRegistersTheApiRoutesBeforeLoadingThePlugins(): void
+	{
+		$order = [];
+		$views = [['add_api' => 2, 'settings' => (object) ['name_list_code' => 'articles']]];
+
+		$routes = $this->createMock(Routes::class);
+		$routes->expects($this->once())
+			->method('set')
+			->with($views)
+			->willReturnCallback(
+				static function () use (&$order): void
+				{
+					$order[] = 'routes';
+				}
+			);
+
+		$plugin = $this->createStub(PluginDataInterface::class);
+		$plugin->method('set')->willReturnCallback(
+			static function () use (&$order): bool
+			{
+				$order[] = 'plugin';
+				return true;
+			}
+		);
+
+		$item = (object) [
+			'admin_views' => $views,
+			'addjoomla_plugins' => json_encode([['plugin' => 'alpha']], JSON_THROW_ON_ERROR)
+		];
+
+		(new Joomlaplugins($plugin, $routes))->set($item);
+
+		$this->assertSame(['routes', 'plugin'], $order);
+		$this->assertSame($views, $item->admin_views);
+	}
+
+	/**
+	 * A component without admin views still offers the plugins the empty route set.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlapluginsOffersTheEmptyRouteSetWithoutAdminViews(): void
+	{
+		$routes = $this->createMock(Routes::class);
+		$routes->expects($this->once())->method('set')->with([]);
+
+		$plugin = $this->createStub(PluginDataInterface::class);
+		$plugin->method('set')->willReturn(true);
+
+		$item = (object) [
+			'addjoomla_plugins' => json_encode([['plugin' => 'alpha']], JSON_THROW_ON_ERROR)
+		];
+
+		(new Joomlaplugins($plugin, $routes))->set($item);
+	}
+
+	/**
+	 * A component without plugins registers no route placeholders.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlapluginsRegistersNoRoutesWithoutPlugins(): void
+	{
+		$routes = $this->createMock(Routes::class);
+		$routes->expects($this->never())->method('set');
+
+		$plugin = $this->createMock(PluginDataInterface::class);
+		$plugin->expects($this->never())->method('set');
+
+		$item = (object) ['admin_views' => [], 'addjoomla_plugins' => '[]'];
+
+		(new Joomlaplugins($plugin, $routes))->set($item);
+
 		$this->assertObjectNotHasProperty('addjoomla_plugins', $item);
 	}
 
@@ -132,7 +217,7 @@ final class AssociationModelTest extends TestCase
 		$pluginItem = (object) ['addjoomla_plugins' => '{invalid'];
 
 		(new Joomlamodules($module))->set($moduleItem);
-		(new Joomlaplugins($plugin))->set($pluginItem);
+		(new Joomlaplugins($plugin, $this->createStub(Routes::class)))->set($pluginItem);
 
 		$this->assertObjectNotHasProperty('addjoomla_modules', $moduleItem);
 		$this->assertObjectNotHasProperty('addjoomla_plugins', $pluginItem);

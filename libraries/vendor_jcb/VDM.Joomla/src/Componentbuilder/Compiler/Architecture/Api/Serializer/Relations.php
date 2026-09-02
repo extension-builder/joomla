@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Serializer;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\View\Relationships;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 
 /**
@@ -80,6 +81,8 @@ final class Relations
 			$code .= PHP_EOL . Indent::_(1) . ' */';
 			$code .= PHP_EOL . Indent::_(1) . 'public function ' . $this->method($relation['name']) . '($item)';
 			$code .= PHP_EOL . Indent::_(1) . '{';
+			$code .= PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
+				. " Relate the " . $relation['name'] . " to the " . $relation['type'] . " resource.";
 			$code .= PHP_EOL . Indent::_(2) . "return \$this->related(\$item->" . $relation['column']
 				. " ?? null, '" . $relation['type'] . "');";
 			$code .= PHP_EOL . Indent::_(1) . '}';
