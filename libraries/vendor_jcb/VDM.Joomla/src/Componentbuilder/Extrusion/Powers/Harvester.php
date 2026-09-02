@@ -402,7 +402,12 @@ final class Harvester
 			$this->report->set('powers.mismatch.filename.' . md5($file), $file);
 		}
 
-		$stored = $this->namespacer->stored($parts['namespace'], $parts['class'], $folders, $folder);
+		// the source root's own folders may mirror more of the namespace than
+		// the folders below it, when the run was aimed below the real root
+		$stored = $this->namespacer->stored(
+			$parts['namespace'], $parts['class'], $folders, $folder,
+			explode('/', trim($source, '/'))
+		);
 
 		if ($stored === null)
 		{
@@ -413,8 +418,20 @@ final class Harvester
 		$placeholder = $this->namespacer->placeholderize($stored);
 
 		// a power is the same power when it folds to the same stored
-		// namespace, whatever prefix the library it came out of was built with
-		$existing = $this->existing->match($placeholder) ?? $this->existing->find($fqn);
+		// namespace, whatever prefix the library it came out of was built
+		// with -- and failing that, when it compiles to the very class name
+		$matched = '';
+		$existing = $this->existing->match($placeholder);
+
+		if ($existing !== null)
+		{
+			$matched = 'identity';
+		}
+		elseif (($existing = $this->existing->find($fqn)) !== null)
+		{
+			$matched = 'class';
+		}
+
 		$guid = $existing['guid'] ?? $this->guid->derive(['power', $placeholder]);
 
 		if ($this->harvest->exists('classes.' . $guid))
@@ -438,6 +455,8 @@ final class Harvester
 			'placeholder' => $placeholder,
 			'exists' => $existing !== null,
 			'id' => $existing['id'] ?? 0,
+			'matched' => $matched,
+			'standing' => (string) ($existing['namespace'] ?? ''),
 			'action' => $existing === null ? 'create'
 				: ($this->config->get('onExisting', 'update') === 'skip' ? 'skip' : 'update'),
 			'docblock' => $parts['docblock'],

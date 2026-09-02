@@ -52,6 +52,26 @@ final class Placeholders
 	public const COMPONENT = '[[[ComponentNamespace]]]';
 
 	/**
+	 * The placeholder targets the compiler sets from the component itself.
+	 *
+	 * These are exactly what Compiler\Component\Placeholder::addCorePlaceholders
+	 * sets; every other target in the placeholder tables is a person's own.
+	 *
+	 * @var    array<string>
+	 * @since  6.1.9
+	 */
+	public const CORE = [
+		'component',
+		'Component',
+		'COMPONENT',
+		'LANG_PREFIX',
+		'ComponentNamespace',
+		'NamespacePrefix',
+		'NAMESPACEPREFIX',
+		'POWERLOADERPATH'
+	];
+
+	/**
 	 * The Config Class.
 	 *
 	 * @var    Config
@@ -94,7 +114,7 @@ final class Placeholders
 	/**
 	 * The resolved values, cached per component the run speaks for.
 	 *
-	 * @var    array<string, array{prefix: string, component: string, recognise: array<string>}>
+	 * @var    array<string, array{prefix: string, component: string, recognise: array<string>, overrides: array<string, string>}>
 	 * @since  6.1.7
 	 */
 	protected array $resolved = [];
@@ -106,6 +126,14 @@ final class Placeholders
 	 * @since  6.1.9
 	 */
 	protected array $witnessed = [];
+
+	/**
+	 * The system-wide placeholder rows, decoded, in the order the table holds them.
+	 *
+	 * @var    array<string, string>|null
+	 * @since  6.1.9
+	 */
+	protected ?array $globals = null;
 
 	/**
 	 * Constructor.
@@ -237,10 +265,18 @@ final class Placeholders
 	{
 		$this->witnessed = [];
 		$this->resolved = [];
+		$this->globals = null;
 	}
 
 	/**
-	 * Every placeholder and the value it resolves to.
+	 * Every placeholder and the value it resolves to, in the compiler's order.
+	 *
+	 * The compiler loads the system-wide placeholder table first, sets the
+	 * core values over it, and applies the component's own overrides last --
+	 * and it substitutes them in that one order, so a person's value may lean
+	 * on a core placeholder that is only substituted after it. The same map in
+	 * the same order is what lets a namespace stored through a person's own
+	 * placeholder resolve to the very class the compiler would write.
 	 *
 	 * @return  array<string, string>  Placeholder keyed to its value.
 	 * @since   6.1.7
@@ -248,20 +284,170 @@ final class Placeholders
 	public function map(): array
 	{
 		$values = $this->values();
-		$map = [self::PREFIX => $values['prefix']];
+		$map = [];
+
+		foreach ($this->globals() as $target => $value)
+		{
+			$map[$this->wrap($target)] = $value;
+		}
+
+		// a core value the run holds outranks a remembered global one, in
+		// place -- exactly as reassigning the key leaves the compiler's order
+		$map[self::PREFIX] = $values['prefix'];
 
 		if ($values['component'] !== '')
 		{
 			$map[self::COMPONENT] = $values['component'];
 		}
 
+		foreach ($values['overrides'] as $target => $value)
+		{
+			$map[$this->wrap($target)] = $value;
+		}
+
 		return $map;
+	}
+
+	/**
+	 * The placeholders a person defined, and what each one stands for.
+	 *
+	 * Everything in the map that is not a core target: the system-wide rows
+	 * and the paired component's own overrides, in the compiler's order.
+	 *
+	 * @return  array<string, string>  Placeholder keyed to its value.
+	 * @since   6.1.9
+	 */
+	public function custom(): array
+	{
+		$custom = [];
+
+		foreach ($this->map() as $placeholder => $value)
+		{
+			if (!in_array(substr($placeholder, 3, -3), self::CORE, true))
+			{
+				$custom[$placeholder] = $value;
+			}
+		}
+
+		return $custom;
+	}
+
+	/**
+	 * Substitute every placeholder a person defined, leaving the core ones standing.
+	 *
+	 * One ordered pass, as the compiler substitutes: a value that names a
+	 * placeholder defined after it is reached by the same pass, exactly as
+	 * far as the compiler would reach it.
+	 *
+	 * @param   string  $text  The text carrying placeholders.
+	 *
+	 * @return  string  The text with the person's placeholders substituted.
+	 * @since   6.1.9
+	 */
+	public function expand(string $text): string
+	{
+		return $this->substitute($text, $this->custom());
+	}
+
+	/**
+	 * Substitute placeholders until nothing is left to substitute.
+	 *
+	 * A value may itself name a placeholder; the compiler reaches it in one
+	 * ordered pass only when the definition order allows, so here the pass
+	 * runs again while it still changes something, bounded so two values
+	 * naming each other can never spin.
+	 *
+	 * @param   string                 $text  The text carrying placeholders.
+	 * @param   array<string, string>  $map   Placeholder keyed to its value.
+	 *
+	 * @return  string  The substituted text.
+	 * @since   6.1.9
+	 */
+	public function substitute(string $text, array $map): string
+	{
+		$search = [];
+		$replace = [];
+
+		foreach ($map as $placeholder => $value)
+		{
+			$search[] = $placeholder;
+			$search[] = '###' . substr($placeholder, 3, -3) . '###';
+			$replace[] = $value;
+			$replace[] = $value;
+		}
+
+		if ($search === [])
+		{
+			return $text;
+		}
+
+		for ($pass = 0; $pass < 5; $pass++)
+		{
+			$next = str_replace($search, $replace, $text);
+
+			if ($next === $text)
+			{
+				break;
+			}
+
+			$text = $next;
+		}
+
+		return $text;
+	}
+
+	/**
+	 * The system-wide placeholder rows, decoded exactly as the compiler decodes them.
+	 *
+	 * @return  array<string, string>  Bare target keyed to its value, in table order.
+	 * @since   6.1.9
+	 */
+	protected function globals(): array
+	{
+		if ($this->globals !== null)
+		{
+			return $this->globals;
+		}
+
+		$this->globals = [];
+		$rows = $this->load->items(
+			['a.target' => 'target', 'a.value' => 'value'],
+			['a' => 'placeholder']
+		);
+
+		foreach ((array) $rows as $row)
+		{
+			$row = (array) $row;
+			$target = $this->target((string) ($row['target'] ?? ''));
+
+			if ($target === '')
+			{
+				continue;
+			}
+
+			$this->globals[$target] = base64_decode((string) ($row['value'] ?? ''));
+		}
+
+		return $this->globals;
+	}
+
+	/**
+	 * One bare target in the bracketed form a namespace carries it.
+	 *
+	 * @param   string  $target  The bare target.
+	 *
+	 * @return  string  The bracketed placeholder.
+	 * @since   6.1.9
+	 */
+	protected function wrap(string $target): string
+	{
+		return '[[[' . $target . ']]]';
 	}
 
 	/**
 	 * Resolve the values for the configured component, once.
 	 *
-	 * @return  array{prefix: string, component: string}  The resolved values.
+	 * @return  array{prefix: string, component: string, recognise: array<string>, overrides: array<string, string>}  The resolved values.
 	 * @since   6.1.7
 	 */
 	protected function values(): array
@@ -345,7 +531,7 @@ final class Placeholders
 		}
 
 		$derived = $component;
-		[$prefix, $component] = $this->override($guid, $prefix, $component, $code);
+		[$prefix, $component, $overrides] = $this->override($guid, $prefix, $component, $code);
 
 		// a built class only ever carries the namespace-safe form of these
 		// values, so that form is the one every comparison runs against
@@ -377,13 +563,15 @@ final class Placeholders
 		$this->report->set('powers.placeholders', [
 			'prefix' => $prefix,
 			'component' => $component,
-			'recognise' => $recognise
+			'recognise' => $recognise,
+			'overrides' => $overrides
 		]);
 
 		return $this->resolved[$key] = [
 			'prefix' => $prefix,
 			'component' => $component,
-			'recognise' => $recognise
+			'recognise' => $recognise,
+			'overrides' => $overrides
 		];
 	}
 
@@ -452,26 +640,11 @@ final class Placeholders
 			}
 		}
 
-		$globals = $this->load->items(
-			['a.target' => 'target', 'a.value' => 'value'],
-			['a' => 'placeholder']
-		);
+		$value = trim($this->globals()['ComponentNamespace'] ?? '');
 
-		foreach ((array) $globals as $row)
+		if ($value !== '')
 		{
-			$row = (array) $row;
-
-			if ($this->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
-			{
-				continue;
-			}
-
-			$value = trim(base64_decode((string) ($row['value'] ?? '')));
-
-			if ($value !== '')
-			{
-				$known[] = NamespaceHelper::safeSegment($value);
-			}
+			$known[] = NamespaceHelper::safeSegment($value);
 		}
 
 		return array_values(array_filter($known, 'strlen'));
@@ -489,14 +662,14 @@ final class Placeholders
 	 * @param   string  $component  The resolved component segment so far.
 	 * @param   string  $code       The component's safe code name.
 	 *
-	 * @return  array{0: string, 1: string}  The prefix and component after overrides.
+	 * @return  array{0: string, 1: string, 2: array<string, string>}  The prefix and component after overrides, and every override by bare target.
 	 * @since   6.1.7
 	 */
 	protected function override(string $guid, string $prefix, string $component, string $code): array
 	{
 		if ($guid === '')
 		{
-			return [$prefix, $component];
+			return [$prefix, $component, []];
 		}
 
 		$stored = $this->load->value(
@@ -507,17 +680,18 @@ final class Placeholders
 
 		if (!is_string($stored) || trim($stored) === '')
 		{
-			return [$prefix, $component];
+			return [$prefix, $component, []];
 		}
 
 		$rows = json_decode($stored, true);
 
 		if (!is_array($rows))
 		{
-			return [$prefix, $component];
+			return [$prefix, $component, []];
 		}
 
 		$known = $this->known($code, $prefix, $component);
+		$overrides = [];
 
 		foreach ($rows as $row)
 		{
@@ -525,16 +699,21 @@ final class Placeholders
 			$target = $this->target((string) ($row['target'] ?? ''));
 			// an override value travels base64 encoded, exactly as the
 			// compiler's applyComponentOverrides decodes it before use
+			$raw = trim(base64_decode((string) ($row['value'] ?? '')));
 			$value = trim(str_replace(
 				array_keys($known),
 				array_values($known),
-				base64_decode((string) ($row['value'] ?? ''))
+				$raw
 			));
 
-			if ($value === '')
+			if ($target === '' || $value === '')
 			{
 				continue;
 			}
+
+			// a person's own target keeps the core placeholders it leans on,
+			// so the form it stands for stays comparable with every other
+			$overrides[$target] = in_array($target, self::CORE, true) ? $value : $raw;
 
 			if ($target === 'NamespacePrefix')
 			{
@@ -546,7 +725,7 @@ final class Placeholders
 			}
 		}
 
-		return [$prefix, $component];
+		return [$prefix, $component, $overrides];
 	}
 
 	/**

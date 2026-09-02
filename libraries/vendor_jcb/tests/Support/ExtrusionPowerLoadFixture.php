@@ -61,6 +61,38 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	private ?string $params = null;
 
 	/**
+	 * The system-wide placeholder rows, as the table stores them.
+	 *
+	 * @var    array<int, object>
+	 * @since  6.1.9
+	 */
+	private array $placeholders = [];
+
+	/**
+	 * Declare one system-wide placeholder row.
+	 *
+	 * The value is given raw and stored base64 encoded, exactly as the
+	 * placeholder table holds it and the compiler decodes it.
+	 *
+	 * @param   int     $id      The row id.
+	 * @param   string  $target  The placeholder target, brackets included.
+	 * @param   string  $value   The raw value.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.9
+	 */
+	public function placeholder(int $id, string $target, string $value): self
+	{
+		$this->placeholders[] = (object) [
+			'id' => $id,
+			'target' => $target,
+			'value' => base64_encode($value)
+		];
+
+		return $this;
+	}
+
+	/**
 	 * Declare one power row the catalogue holds.
 	 *
 	 * @param   int     $id         The row id.
@@ -179,6 +211,11 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 		if (($tables['a'] ?? '') === 'joomla_component')
 		{
 			return $this->components === [] ? null : array_values($this->components);
+		}
+
+		if (($tables['a'] ?? '') === 'placeholder')
+		{
+			return $this->placeholders === [] ? null : $this->placeholders;
 		}
 
 		return null;

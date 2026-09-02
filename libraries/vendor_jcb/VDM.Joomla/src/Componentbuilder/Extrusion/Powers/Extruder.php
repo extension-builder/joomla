@@ -527,7 +527,10 @@ final class Extruder implements PowersExtruderInterface
 				. 'mirror their namespace, so their source layout was derived by '
 				. 'convention',
 			'powers.mismatch.filename' => 'file(s) are named differently than the '
-				. 'class they declare'
+				. 'class they declare',
+			'powers.namespace.restated' => 'existing power(s) were recognised by '
+				. 'the class they compile to, and had their stored namespace '
+				. 'restated from where the class really sits'
 		];
 
 		foreach ($counts as $key => $tail)

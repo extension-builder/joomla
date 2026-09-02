@@ -70,6 +70,30 @@ final class ExtruderTest extends FilesystemTestCase
 	private const EXISTING_GUID = 'aaaaaaaa-1111-4111-8111-111111111111';
 
 	/**
+	 * The identity of a power stored through a person's own placeholder.
+	 *
+	 * @var    string
+	 * @since  6.1.9
+	 */
+	private const TEAM_GUID = 'bbbbbbbb-2222-4222-8222-222222222222';
+
+	/**
+	 * The identity of a second power stored through the same placeholder.
+	 *
+	 * @var    string
+	 * @since  6.1.9
+	 */
+	private const REFEREE_GUID = 'cccccccc-3333-4333-8333-333333333333';
+
+	/**
+	 * The value a person gave their own namespace placeholder.
+	 *
+	 * @var    string
+	 * @since  6.1.9
+	 */
+	private const ENGINE = '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine';
+
+	/**
 	 * The recorded JCB data pipeline boundary.
 	 *
 	 * @var    ExtrusionItemFixture
@@ -681,6 +705,153 @@ final class ExtruderTest extends FilesystemTestCase
 			. 'own storage encoding is the pipeline\'s to apply.'
 		);
 		$this->assertSame('DeMo', $report->get('powers.vendor.global_component_namespace'));
+	}
+
+	/**
+	 * A power in a component's own folder is recognised through the person's placeholder.
+	 *
+	 * The powers live outside the libraries folder, in the component's own
+	 * administrator src, and the person stores their namespaces through a
+	 * placeholder of their own that stands for that whole head. Aimed at the
+	 * Engine folder itself, the run must still recognise the standing power,
+	 * leave its namespace exactly as the person stored it, link a reference
+	 * to a sibling power by identity, and store a new class under the same
+	 * head the way the person stores everything there.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAPowerInAComponentsOwnFolderIsRecognisedAndKeptInThePersonsForm(): void
+	{
+		$this->load->placeholder(1, '[[[ComponentEngineNamespace]]]', self::ENGINE);
+		$this->load
+			->power(9, self::TEAM_GUID, 'Team', '[[[ComponentEngineNamespace]]].Team')
+			->power(10, self::REFEREE_GUID, 'Referee', '[[[ComponentEngineNamespace]]].Referee');
+		$this->item->identity('power', self::TEAM_GUID, 9);
+		$engine = 'site/administrator/components/com_demo/src/Engine';
+		$this->writeTemporaryFile(
+			$engine . '/Team.php',
+			"<?php\nnamespace Demo\\Component\\Demo\\Administrator\\Engine;\n\nuse Demo\\Component\\Demo\\Administrator\\Engine\\Referee;\n\n/**\n * The team engine.\n *\n * @since 1.0.0\n */\nfinal class Team\n{\n\tpublic function judge(Referee \$referee): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+		);
+		$this->writeTemporaryFile(
+			$engine . '/Season.php',
+			"<?php\nnamespace Demo\\Component\\Demo\\Administrator\\Engine;\n\n/**\n * The season engine.\n *\n * @since 1.0.0\n */\nfinal class Season\n{\n\tpublic function play(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+		);
+
+		$extruder = $this->extruder();
+		$report = $extruder->reset()
+			->library($this->temporaryPath($engine))
+			->component(3)
+			->extrude();
+
+		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertSame(2, $report->get('counts.powers.classes'));
+		$this->assertSame(1, $report->get('counts.powers.existing'));
+
+		$team = $extruder->harvested()['classes'][self::TEAM_GUID] ?? null;
+
+		$this->assertNotNull(
+			$team,
+			'The standing power is recognised by identity, aimed at the Engine '
+			. 'folder itself.'
+		);
+		$this->assertSame('identity', $team['matched']);
+		$this->assertSame(
+			self::ENGINE . '.Team',
+			$team['placeholder'],
+			'Engine is a folder under src, so it is a dot part, never a head segment.'
+		);
+		$this->assertSame('[[[ComponentEngineNamespace]]].Team', $team['standing']);
+
+		$written = $this->item->definition('power', self::TEAM_GUID);
+
+		$this->assertNotNull($written);
+		$this->assertFalse(
+			property_exists($written, 'namespace'),
+			'The form the person stored stands; nothing is restated.'
+		);
+		$this->assertSame("The team engine.\n\n@since 1.0.0", $written->description);
+		$this->assertSame(
+			[['use' => self::REFEREE_GUID, 'as' => 'default']],
+			array_values(array_map(
+				static fn ($row): array => (array) $row,
+				(array) $written->use_selection
+			)),
+			'A reference to a sibling power resolves through the person\'s '
+			. 'placeholder and links by identity.'
+		);
+		$this->assertSame('', $written->head);
+		$this->assertNull($report->get('powers.namespace.restated'));
+
+		$season = $this->item->definition(
+			'power',
+			(new Guid())->derive(['power', self::ENGINE . '.Season'])
+		);
+
+		$this->assertNotNull($season);
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Season',
+			$season->namespace,
+			'A new class under the same head is stored the way the person '
+			. 'stores everything there.'
+		);
+		$this->assertSame('Demo.Engine.Season', $season->system_name);
+	}
+
+	/**
+	 * A power recognised only by the class it compiles to follows the file's placement.
+	 *
+	 * An earlier run stored the class glued onto the head with a backslash,
+	 * which the compiler would write one folder too high. The class still
+	 * compiles to the same name, so it is the same power -- and the file is
+	 * the evidence of where it really sits, so the placement is restated
+	 * through the person's placeholder and the restatement is named.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAPowerRecognisedByItsClassNameFollowsTheFilesPlacement(): void
+	{
+		$this->load->placeholder(1, '[[[ComponentEngineNamespace]]]', self::ENGINE);
+		$this->load->power(9, self::TEAM_GUID, 'Team', self::ENGINE . '\Team');
+		$this->item->identity('power', self::TEAM_GUID, 9);
+		$source = 'site/administrator/components/com_demo/src';
+		$this->writeTemporaryFile(
+			$source . '/Engine/Team.php',
+			"<?php\nnamespace Demo\\Component\\Demo\\Administrator\\Engine;\n\n/**\n * The team engine.\n *\n * @since 1.0.0\n */\nfinal class Team\n{\n\tpublic function play(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
+		);
+
+		$extruder = $this->extruder();
+		$report = $extruder->reset()
+			->library($this->temporaryPath($source))
+			->component(3)
+			->extrude();
+
+		$this->assertTrue((bool) $report->get('powers.completed'));
+
+		$team = $extruder->harvested()['classes'][self::TEAM_GUID] ?? null;
+
+		$this->assertNotNull($team, 'The class it compiles to is the standing power.');
+		$this->assertSame('class', $team['matched']);
+
+		$written = $this->item->definition('power', self::TEAM_GUID);
+
+		$this->assertNotNull($written);
+		$this->assertSame(
+			'[[[ComponentEngineNamespace]]].Team',
+			$written->namespace,
+			'The placement follows the file, expressed through the person\'s placeholder.'
+		);
+		$this->assertSame(
+			['from' => self::ENGINE . '\Team', 'to' => '[[[ComponentEngineNamespace]]].Team'],
+			$report->get('powers.namespace.restated.bbbbbbbb_2222_4222_8222_222222222222')
+		);
+		$this->assertContains(
+			'1 existing power(s) were recognised by the class they compile to, '
+			. 'and had their stored namespace restated from where the class '
+			. 'really sits.',
+			$this->extruderMessages('notice')
+		);
 	}
 
 	/**
