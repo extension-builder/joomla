@@ -100,6 +100,14 @@ final class Standing
 	protected array $views = [];
 
 	/**
+	 * The full rows of the standing fields read so far, keyed by guid.
+	 *
+	 * @var    array<string, array<string, mixed>|null>
+	 * @since  6.1.9
+	 */
+	protected array $loaded = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config      $config      The extrusion configuration.
@@ -266,6 +274,8 @@ final class Standing
 		$hash = null;
 		$similar = null;
 
+		$wired = strtolower(trim($column));
+
 		foreach ($this->fields as $row)
 		{
 			$row = (array) $row;
@@ -274,8 +284,7 @@ final class Standing
 				(array) ($row['views'] ?? [$row['view'] ?? ''])
 			);
 
-			if (!in_array($viewGuid, $homes, true)
-				|| !in_array(strtolower(trim((string) ($row['name'] ?? ''))), $wanted, true))
+			if (!in_array($viewGuid, $homes, true))
 			{
 				continue;
 			}
@@ -287,10 +296,27 @@ final class Standing
 				continue;
 			}
 
-			// the hash of what this run would write, taken once and only when
-			// a lookalike actually stands in the paired view's own wiring
+			// the paired view's own wiring is the strongest statement there is:
+			// the field the person linked into this very view whose XML names
+			// this very column IS the column's field, whatever else about it
+			// they have since changed -- its record name, its properties. A
+			// hash cannot outrank the person's own wiring, it can only find
+			// duplicates elsewhere
+			$standing = $this->loaded($found);
+
+			if ($standing !== null && $wired !== '' && $this->xmlName($standing) === $wired)
+			{
+				return [$found, null];
+			}
+
+			if (!in_array(strtolower(trim((string) ($row['name'] ?? ''))), $wanted, true))
+			{
+				continue;
+			}
+
+			// a lookalike by record name is identity only when its stored
+			// properties hash to exactly what this run would write
 			$hash ??= $this->record->hash($column, $properties);
-			$standing = $this->candidates->field($found);
 			$proof = $standing === null ? null : $this->record->standing($standing);
 
 			if ($hash !== null && $proof !== null && $hash === $proof)
@@ -305,6 +331,46 @@ final class Standing
 	}
 
 	/**
+	 * One standing field's full row, read once.
+	 *
+	 * @param   string  $guid  The field identity.
+	 *
+	 * @return  array<string, mixed>|null  The row, or null when none stands.
+	 * @since   6.1.9
+	 */
+	protected function loaded(string $guid): ?array
+	{
+		if (!array_key_exists($guid, $this->loaded))
+		{
+			$this->loaded[$guid] = $this->candidates->field($guid);
+		}
+
+		return $this->loaded[$guid];
+	}
+
+	/**
+	 * The column one standing field's XML names.
+	 *
+	 * @param   array<string, mixed>  $standing  The field row.
+	 *
+	 * @return  string  The lower-cased name attribute, or an empty string.
+	 * @since   6.1.9
+	 */
+	protected function xmlName(array $standing): string
+	{
+		$xml = $standing['xml'] ?? '';
+		$decoded = is_string($xml) ? json_decode($xml, true) : null;
+		$xml = is_string($decoded) ? $decoded : (string) $xml;
+
+		if (preg_match('/\bname="([^"]*)"/', $xml, $match) !== 1)
+		{
+			return '';
+		}
+
+		return strtolower(trim($match[1]));
+	}
+
+	/**
 	 * The standing identity of one resolved view inside the paired component.
 	 *
 	 * @param   string  $view  The raw view name.
@@ -316,13 +382,15 @@ final class Standing
 	{
 		$path = 'view.' . $this->key($view);
 		$single = (string) $this->resolved->get($path . '.name_single', $view);
+		$code = (string) $this->resolved->get($path . '.name_single_code', $view);
 		$system = (string) $this->resolved->get($path . '.system_name', $single);
 		$derived = strtolower(trim((string) $this->resolved->get(
 			$path . '.guid',
-			$this->guid->derive([$this->option(), 'admin_view', $single])
+			$this->guid->derive([$this->option(), 'admin_view', $code])
 		)));
 		$names = array_values(array_filter([
 			strtolower(trim($single)),
+			strtolower(trim($code)),
 			strtolower(trim($system))
 		], 'strlen'));
 

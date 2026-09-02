@@ -666,8 +666,9 @@ PHP;
 		$this->assertSame(6, $this->schema->get('table.___example_item.column.counter.ordinal'));
 		$this->assertCount(9, (array) $this->schema->get('table.___example_item.column'));
 
+		// the statement is stored terminated, as the install file must carry it
 		$this->assertSame(
-			"INSERT INTO `#__example_category` (`id`, `title`) VALUES (1, 'First; not a split')",
+			"--\r\n-- Dumping data for table `#__example_category`\r\n--\r\n\r\nINSERT INTO `#__example_category` (`id`, `title`) VALUES (1, 'First; not a split');",
 			$this->schema->get('seed.___example_category.sql')
 		);
 		$this->assertSame(
@@ -728,8 +729,9 @@ SQL);
 
 		$this->assertTrue($reader->read($path, 'install'));
 		$this->assertSame(
-			"INSERT INTO `#__seeded` (`id`) VALUES (1)\nINSERT INTO `#__seeded` (`id`) VALUES (2)",
-			$this->schema->get('seed.___seeded.sql')
+			"--\r\n-- Dumping data for table `#__seeded`\r\n--\r\n\r\nINSERT INTO `#__seeded` (`id`) VALUES (1);\n\nINSERT INTO `#__seeded` (`id`) VALUES (2);",
+			$this->schema->get('seed.___seeded.sql'),
+			'Every statement keeps its terminator and stands apart under the heading JCB\'s own dump writes.'
 		);
 		$this->assertSame(2, $this->report->get('schema.___seeded.seed'));
 

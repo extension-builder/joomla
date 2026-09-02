@@ -501,7 +501,7 @@ final class AdminFields extends Writer
 		$view = strtolower(trim($view));
 		$path = 'view.' . $this->key($view);
 		$names = [
-			(string) $this->resolved->get($path . '.name_list', ''),
+			(string) $this->resolved->get($path . '.name_list_code', ''),
 			$view . 's'
 		];
 

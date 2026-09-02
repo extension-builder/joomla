@@ -410,7 +410,8 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Condition'),
 			$container->get('Extrusion.Resolver.Relation'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Language')
 		);
 	}
 

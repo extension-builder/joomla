@@ -154,7 +154,9 @@ final class Reuse
 
 			foreach (['name', 'list'] as $field)
 			{
-				$name = strtolower(trim((string) ($row[$field] ?? '')));
+				// a view's stored name is the English a person reads; the
+				// folders and forms the compiler writes speak its code
+				$name = Text::code((string) ($row[$field] ?? ''));
 
 				if ($name !== '')
 				{

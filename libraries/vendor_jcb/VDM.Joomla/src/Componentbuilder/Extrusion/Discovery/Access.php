@@ -130,6 +130,7 @@ final class Access
 			}
 
 			$actions = [];
+			$titles = [];
 
 			foreach ($section->action as $action)
 			{
@@ -138,6 +139,7 @@ final class Access
 				if ($named !== '')
 				{
 					$actions[] = $named;
+					$titles[$named] = trim((string) $action['title']);
 				}
 			}
 
@@ -172,14 +174,17 @@ final class Access
 
 				// the tail may itself carry dots (edit.created_by), which a
 				// registry path would read as further keys
-				$this->source->set(
-					'access_screens_actions.' . $screen . '.' . str_replace(
-						'.',
-						'_',
-						strtolower(substr($action, $position + 1))
-					),
-					true
-				);
+				$tail = str_replace('.', '_', strtolower(substr($action, $position + 1)));
+
+				$this->source->set('access_screens_actions.' . $screen . '.' . $tail, true);
+
+				// the title names the constant the rule is worded under, and
+				// JCB words a screen's rules under its list name: the title
+				// is the one place the source states which list a screen has
+				if (($titles[$action] ?? '') !== '')
+				{
+					$this->source->set('access_titles.' . $screen . '.' . $tail, $titles[$action]);
+				}
 			}
 		}
 

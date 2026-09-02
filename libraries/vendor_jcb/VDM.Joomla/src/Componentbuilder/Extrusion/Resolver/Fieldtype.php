@@ -384,7 +384,10 @@ final class Fieldtype
 			$declared[] = [
 				'name' => $name,
 				'example' => (string) ($property['example'] ?? ''),
-				'description' => (string) ($property['description'] ?? '')
+				'description' => (string) ($property['description'] ?? ''),
+				// the catalogue marks the properties a field cannot do
+				// without; everything else is a choice the source makes
+				'mandatory' => (string) ($property['mandatory'] ?? '') === '1'
 			];
 		}
 

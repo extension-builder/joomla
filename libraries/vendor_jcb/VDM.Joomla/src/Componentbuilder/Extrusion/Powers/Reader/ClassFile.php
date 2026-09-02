@@ -109,15 +109,42 @@ final class ClassFile
 
 		// a body that does not follow the located declaration was sliced off
 		// something else in the file, such as an anonymous class above it
-		if (is_string($body) && $body !== ''
-			&& strpos($code, $body, $offset) === false)
+		if (is_string($body) && $body !== '')
 		{
-			$body = null;
+			$at = strpos($code, $body, $offset);
+
+			$body = $at === false
+				? null
+				: $this->indented($code, $body, $at);
 		}
 
 		$declaration['body'] = $body;
 
 		return $declaration;
+	}
+
+	/**
+	 * Give the body back the indentation its first line carried in the file.
+	 *
+	 * The parser trims the body it slices, which takes the tab off the first
+	 * line alone: every other line keeps its indentation, so the stored body
+	 * would open one tab to the left of the rest. JCB stores a body with its
+	 * first line indented like the others, and a person editing it expects
+	 * exactly that.
+	 *
+	 * @param   string  $code  The complete file source.
+	 * @param   string  $body  The sliced body.
+	 * @param   int     $at    The byte offset the body starts at in the source.
+	 *
+	 * @return  string  The body, its first line indented as it was.
+	 * @since   6.1.9
+	 */
+	protected function indented(string $code, string $body, int $at): string
+	{
+		$line = strrpos(substr($code, 0, $at), "\n");
+		$indent = substr($code, $line === false ? 0 : $line + 1, $at - ($line === false ? 0 : $line + 1));
+
+		return (trim($indent, " \t") === '' ? $indent : '') . $body;
 	}
 
 	/**
@@ -372,7 +399,9 @@ final class ClassFile
 	{
 		if (preg_match('/\A(?:\xEF\xBB\xBF)?<\?php\s+(\/\*.*?\*\/)/s', $code, $matches) === 1)
 		{
-			return $matches[1];
+			// JCB keeps the block with the line break that closes it, which is
+			// what puts the blank line between the licence and the namespace
+			return $matches[1] . "\n";
 		}
 
 		return '';
@@ -628,9 +657,12 @@ final class ClassFile
 		$comment = str_replace(["\r\n", "\r"], "\n", $comment);
 		$comment = preg_replace('/^\/\*\*[\r\n\s]*|[\r\n\s]*\*\/$/m', '', $comment);
 		$comment = preg_replace('/^[ \t]*\*[ \t]?/m', '', (string) $comment);
-		$lines = array_map('trim', explode("\n", (string) $comment));
+		// only the comment's own margin comes off: a line indented further
+		// than its neighbours is indented on purpose, and the description
+		// keeps it -- JCB writes the description back exactly as stored
+		$lines = array_map('rtrim', explode("\n", (string) $comment));
 
 		// a description keeps its blank lines, exactly as a power stores it
-		return trim(implode("\n", $lines));
+		return trim(implode("\n", $lines), "\n");
 	}
 }

@@ -309,6 +309,52 @@ final class Placeholders
 	}
 
 	/**
+	 * The compiler's own component placeholders, valued as it values them.
+	 *
+	 * Compiler\Component\Placeholder::addCorePlaceholders names the
+	 * component's code three ways and its language prefix once. A record a
+	 * person wrote through them -- a seed statement naming
+	 * `#__[[[component]]]_item` -- reads as the compiled source only once
+	 * these are resolved the compiler's way.
+	 *
+	 * @return  array<string, string>  Placeholder keyed to its value.
+	 * @since   6.1.9
+	 */
+	public function core(): array
+	{
+		$code = $this->values()['code'];
+
+		if ($code === '')
+		{
+			return [];
+		}
+
+		// the code is already safe -- lower case letters and underscores --
+		// so the compiler's safe('F') and safe('U') reduce to these exactly
+		$upper = strtoupper($code);
+
+		return [
+			$this->wrap('component') => $code,
+			$this->wrap('Component') => ucfirst($code),
+			$this->wrap('COMPONENT') => $upper,
+			$this->wrap('LANG_PREFIX') => 'COM_' . $upper
+		];
+	}
+
+	/**
+	 * One placeholder target as the compiler writes it.
+	 *
+	 * @param   string  $target  The placeholder target.
+	 *
+	 * @return  string  The wrapped placeholder.
+	 * @since   6.1.9
+	 */
+	public function placeholder(string $target): string
+	{
+		return $this->wrap($target);
+	}
+
+	/**
 	 * The placeholders a person defined, and what each one stands for.
 	 *
 	 * Everything in the map that is not a core target: the system-wide rows
@@ -487,7 +533,7 @@ final class Placeholders
 	/**
 	 * Resolve the values for the configured component, once.
 	 *
-	 * @return  array{prefix: string, component: string, recognise: array<string>, overrides: array<string, string>}  The resolved values.
+	 * @return  array{prefix: string, component: string, code: string, recognise: array<string>, overrides: array<string, string>}  The resolved values.
 	 * @since   6.1.7
 	 */
 	protected function values(): array
@@ -617,6 +663,7 @@ final class Placeholders
 		return $this->resolved[$key] = [
 			'prefix' => $prefix,
 			'component' => $component,
+			'code' => $code,
 			'recognise' => $recognise,
 			'overrides' => $overrides
 		];

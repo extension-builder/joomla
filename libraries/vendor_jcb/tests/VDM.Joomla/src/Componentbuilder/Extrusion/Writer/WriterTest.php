@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -390,6 +391,44 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * An update lays the source over the XML the standing field keeps.
+	 *
+	 * The compiled form never shows a subform's own field list or a custom
+	 * field's PHP, and it is derived from the record it echoes -- so the
+	 * record stays the base, and the source adds only what the record lacks.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAnUpdateLaysTheSourceOverTheStandingXml(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'name', [
+			'xml_type' => 'text',
+			'label' => 'New Label',
+			'hint' => 'Type here'
+		]);
+		$guid = $this->guid->derive([self::OPTION, 'field', 'item', 'name']);
+		$this->item
+			->identity('field', $guid, 5)
+			->serve('field', $guid, (object) [
+				'guid' => $guid,
+				'xml' => json_encode('<field' . PHP_EOL . "\t" . 'name="name"' . PHP_EOL
+					. "\t" . 'label="Old Label"' . PHP_EOL . "\t" . 'fields="aaaa,bbbb"' . PHP_EOL . '/>')
+			]);
+
+		$this->assertSame(1, $this->field()->write());
+
+		$definition = $this->item->definitions('field')[0];
+
+		$this->assertStringContainsString('label="Old Label"', $definition->xml, 'The record is the truth; the form is its echo.');
+		$this->assertStringNotContainsString('New Label', $definition->xml);
+		$this->assertStringContainsString('fields="aaaa,bbbb"', $definition->xml, 'What the compiled form never shows survives.');
+		$this->assertStringContainsString('hint="Type here"', $definition->xml, 'What the record lacks and the source states is added.');
+		$this->assertStringNotContainsString('description=', $definition->xml, 'No default is added back to a standing field.');
+	}
+
+	/**
 	 * A dry run reports every identity it would write and writes nothing.
 	 *
 	 * @return  void
@@ -405,7 +444,11 @@ final class WriterTest extends TestCase
 		$this->assertSame(1, $this->field()->write());
 		$this->assertSame(1, $this->adminView()->write());
 		$this->assertSame([], $this->item->records());
-		$this->assertSame([], $this->item->lookups());
+		$this->assertSame(
+			['field:guid:' . $fieldGuid . ':id'],
+			$this->item->lookups(),
+			'A dry run still asks whether the field stands, because what it would write depends on that; it writes nothing.'
+		);
 		$this->assertTrue($this->report->get('dryrun.field.' . $fieldGuid));
 		$this->assertTrue($this->report->get('dryrun.admin_view.' . self::VIEW_GUID));
 		$this->assertNull($this->report->get('written'));
@@ -436,6 +479,7 @@ final class WriterTest extends TestCase
 
 		$this->restate();
 		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', true);
 		$this->item->identity('admin_view', self::VIEW_GUID, 42);
 		$this->config->set('onExisting', 'update');
 
@@ -2090,7 +2134,8 @@ final class WriterTest extends TestCase
 			$this->guid,
 			$this->source,
 			$this->pairing(),
-			new Actions($this->report, $this->actionsForm())
+			new Actions($this->report, $this->actionsForm()),
+			new Placeholders($this->config, new ExtrusionDatabaseFixture(), $this->report, $this->source)
 		);
 	}
 
@@ -2645,12 +2690,42 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A name the run only derived never overwrites the name a person gave a standing view.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testADerivedNameNeverOverwritesACuratedViewsName(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', false);
+		$this->item->identity('admin_view', self::VIEW_GUID, 47);
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		// with nothing stated beyond the names it derived, the view is left
+		// exactly as the person has it: no write carries a guess over a name
+		$this->assertSame([], $this->item->records('admin_view'));
+		$this->assertTrue($this->report->get('untouched.admin_view.' . self::VIEW_GUID));
+
+		foreach (['name_single', 'name_list', 'system_name'] as $name)
+		{
+			$this->assertContains(
+				$name,
+				$this->report->get('kept.admin_view.' . self::VIEW_GUID),
+				'A humanised table name is a guess, and a guess never overwrites the ' . $name . ' someone chose.'
+			);
+		}
+	}
+
+	/**
 	 * Updating a view someone has curated refreshes evidence and nothing else.
 	 *
 	 * A re-run against a system that already holds the view must carry over
-	 * what the source says -- its names, its seed data -- while the tabs,
-	 * permissions and description that person arranged stay untouched. The
-	 * scaffolding a new view needs is offered only when the view is new.
+	 * what the source says -- its names, when its own language states them,
+	 * and its seed data -- while the tabs, permissions and description that
+	 * person arranged stay untouched. The scaffolding a new view needs is
+	 * offered only when the view is new.
 	 *
 	 * @return  void
 	 * @since   6.1.8
@@ -2658,6 +2733,7 @@ final class WriterTest extends TestCase
 	public function testAnExistingViewKeepsWhatWasCuratedAndTakesTheSourcesEvidence(): void
 	{
 		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', true);
 		$this->resolved->set('view.item.seed', self::SEED);
 		$this->item->identity('admin_view', self::VIEW_GUID, 47);
 
@@ -2700,6 +2776,83 @@ final class WriterTest extends TestCase
 			'A view that does not yet exist still arrives with its scaffolding.'
 		);
 		$this->assertObjectHasProperty('addtabs', $created);
+	}
+
+	/**
+	 * A standing view that already states the same seed rows keeps its own text.
+	 *
+	 * The source's seed data was compiled from the record's own, so the two
+	 * can differ only in the whitespace a dump lays out -- and restating it
+	 * would rewrite the person's text, line endings and all, for nothing.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAStandingViewKeepsItsOwnSeedText(): void
+	{
+		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', true);
+		$this->resolved->set('view.item.seed', self::SEED);
+		$this->item->identity('admin_view', self::VIEW_GUID, 47);
+		// the person names the table through the compiler's own placeholder
+		// and lays the rows out with their own line endings: the compiled
+		// source is that very text with the placeholder resolved
+		$worded = str_replace('#__demo_', '#__[[[component]]]_', self::SEED);
+		$this->item->serve('admin_view', self::VIEW_GUID, (object) [
+			'guid' => self::VIEW_GUID,
+			'sql' => str_replace("\n", "\r\n", $worded) . "\n\n\n"
+		]);
+
+		$this->assertSame(1, $this->adminView()->write());
+
+		$definition = $this->item->definitions('admin_view')[0];
+
+		foreach (['sql', 'add_sql', 'source'] as $seed)
+		{
+			$this->assertObjectNotHasProperty(
+				$seed,
+				$definition,
+				'The same rows already stand, so the ' . $seed . ' is not restated.'
+			);
+		}
+
+		$this->assertTrue($this->report->get('kept.seed.' . self::VIEW_GUID));
+
+		// rows that changed are restated, naming the table as the person does
+		$this->restate();
+		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', true);
+		$this->resolved->set('view.item.seed', self::SEED);
+		$this->item->identity('admin_view', self::VIEW_GUID, 47);
+		$this->item->serve('admin_view', self::VIEW_GUID, (object) [
+			'guid' => self::VIEW_GUID,
+			'sql' => 'INSERT INTO `#__[[[component]]]_item` (`id`, `name`) VALUES (1, \'Older\');'
+		]);
+
+		$this->assertSame(1, $this->adminView()->write());
+		$this->assertSame(
+			$worded,
+			$this->item->definitions('admin_view')[0]->sql,
+			'Changed rows are restated through the placeholder the person writes tables with.'
+		);
+		$this->assertSame('[[[component]]]', $this->report->get('expressed.seed.' . self::VIEW_GUID));
+
+		$this->restate();
+		$this->seedItemView();
+		$this->resolved->set('view.item.names_stated', true);
+		$this->resolved->set('view.item.seed', self::SEED);
+		$this->item->identity('admin_view', self::VIEW_GUID, 47);
+		$this->item->serve('admin_view', self::VIEW_GUID, (object) [
+			'guid' => self::VIEW_GUID,
+			'sql' => 'INSERT INTO `#__example_item` (`id`) VALUES (99);'
+		]);
+
+		$this->assertSame(1, $this->adminView()->write());
+		$this->assertSame(
+			self::SEED,
+			$this->item->definitions('admin_view')[0]->sql,
+			'Rows the record does not state are the source\'s to state.'
+		);
 	}
 
 	/**

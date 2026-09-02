@@ -932,6 +932,10 @@ final class ResolverTest extends TestCase
 				"\t" . 'label="The &quot;big&quot; name"',
 				"\t" . 'class="form-control"',
 				"\t" . 'required="1"',
+				// what the source states is written whether or not the type
+				// declares it: a showon rule is the form's own statement
+				"\t" . 'hint="Type here"',
+				"\t" . 'showon="kind:1"',
 				'/>'
 			]),
 			$xml->build('name', $properties)
@@ -940,17 +944,17 @@ final class ResolverTest extends TestCase
 		$attributes = $xml->attributes('name', $properties);
 
 		$this->assertSame(
-			['name', 'label', 'class', 'required'],
+			['name', 'label', 'class', 'required', 'hint', 'showon'],
 			array_keys($attributes),
 			'The name is written first, then JCB attribute order.'
 		);
 		$this->assertSame('The "big" name', $attributes['label'], 'Escaping happens on output only.');
 		$this->assertArrayNotHasKey('type', $attributes, 'The type is implied by the field type.');
-		$this->assertArrayNotHasKey('showon', $attributes, 'A showon becomes a JCB condition.');
-		$this->assertArrayNotHasKey(
-			'hint',
-			$attributes,
-			'An attribute the field type does not declare is dropped.'
+		$this->assertSame('kind:1', $attributes['showon'], 'A showon rule the form states stays in the field XML, exactly as JCB stores it.');
+		$this->assertSame(
+			'Type here',
+			$attributes['hint'],
+			'An attribute the source states is written whether or not the type declares it.'
 		);
 	}
 
@@ -1030,6 +1034,182 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * A type JCB knows is the field's type, link or no link.
+	 *
+	 * A ModalSelect states its own relationship in its own attributes; a
+	 * table class stating a link for the same column adds nothing a custom
+	 * type would have to express, and the type the source states is never
+	 * changed.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAKnownTypeWithALinkKeepsItsTypeAndItsOwnAttributes(): void
+	{
+		$xml = $this->fieldXml();
+		$properties = [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'label' => ['value' => 'Club', 'origin' => 'xml'],
+			'attributes' => ['value' => [
+				'type' => 'text',
+				'sql_title_table' => '#__x_club',
+				'urlSelect' => 'index.php?option=com_x&view=clubs'
+			], 'origin' => 'xml'],
+			'link' => ['value' => [
+				'table' => '#__x_club', 'entity' => 'club', 'value' => 'name', 'key' => 'guid'
+			], 'origin' => 'table']
+		];
+
+		$this->assertSame([], $xml->link($properties, 'text'));
+
+		$attributes = $xml->attributes('club', $properties);
+
+		$this->assertArrayNotHasKey('type', $attributes, 'The type stays the type the source states.');
+		$this->assertArrayNotHasKey('table', $attributes, 'No custom type is generated for a known type.');
+		$this->assertArrayNotHasKey('extends', $attributes);
+		$this->assertSame('#__x_club', $attributes['sql_title_table'], 'The field keeps its own way of stating the relationship.');
+		$this->assertSame('index.php?option=com_x&view=clubs', $attributes['urlSelect']);
+	}
+
+	/**
+	 * A linked field with no known type takes the link's values, never the type's examples.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testALinkedFieldWithNoKnownTypeTakesTheLinksValuesNotTheExamples(): void
+	{
+		$xml = $this->fieldXml([
+			['name' => 'type', 'example' => 'custom', 'mandatory' => '1'],
+			['name' => 'name', 'example' => 'subject', 'mandatory' => '1'],
+			['name' => 'label', 'example' => 'Select a Subject', 'mandatory' => '1'],
+			['name' => 'extends', 'example' => 'list', 'mandatory' => '1'],
+			['name' => 'table', 'example' => '#__###component###_subject', 'mandatory' => '1'],
+			['name' => 'component', 'example' => 'com_###component###', 'mandatory' => '1'],
+			['name' => 'view', 'example' => 'subject', 'mandatory' => '1'],
+			['name' => 'views', 'example' => 'subjects', 'mandatory' => '1'],
+			['name' => 'value_field', 'example' => 'name', 'mandatory' => '1'],
+			['name' => 'key_field', 'example' => 'id', 'mandatory' => '1']
+		]);
+		$properties = [
+			'xml_type' => ['value' => '', 'origin' => 'derived'],
+			'label' => ['value' => 'Club', 'origin' => 'xml'],
+			'link' => ['value' => [
+				'table' => '#__x_club', 'component' => 'com_x', 'entity' => 'club',
+				'value' => 'name', 'key' => 'guid'
+			], 'origin' => 'table']
+		];
+
+		$attributes = $xml->attributes('club', $properties);
+
+		$this->assertSame('clubs', $attributes['type'], 'A field with no declared type is named after what it selects from.');
+		$this->assertSame('#__x_club', $attributes['table'], 'The link names the real table; the example names none.');
+		$this->assertSame('guid', $attributes['key_field']);
+		$this->assertSame('name', $attributes['value_field']);
+		$this->assertSame('club', $attributes['view']);
+		$this->assertSame('clubs', $attributes['views']);
+		$this->assertSame('list', $attributes['extends']);
+	}
+
+	/**
+	 * An update fills the mandatory gaps alone; a fresh field is filled out in full.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAnUpdateFillsOnlyTheMandatoryGaps(): void
+	{
+		$xml = $this->fieldXml([
+			['name' => 'type', 'example' => 'text', 'mandatory' => '1'],
+			['name' => 'name', 'example' => 'name', 'mandatory' => '1'],
+			['name' => 'label', 'example' => 'Label', 'mandatory' => '1'],
+			['name' => 'description', 'example' => ''],
+			['name' => 'hint', 'example' => ''],
+			['name' => 'default', 'example' => 'Some text'],
+			['name' => 'autocomplete', 'example' => 'on']
+		]);
+		$properties = [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'label' => ['value' => 'Name', 'origin' => 'xml']
+		];
+
+		$this->assertSame(
+			['name', 'label', 'description', 'hint', 'default', 'autocomplete'],
+			array_keys($xml->attributes('name', $properties, true)),
+			'A fresh field is laid out the way JCB lays one out: every declared property.'
+		);
+		$this->assertSame(
+			['name', 'label'],
+			array_keys($xml->attributes('name', $properties, false)),
+			'A standing field gains nothing the person left out of it.'
+		);
+	}
+
+	/**
+	 * On an update the standing XML is the base, and the source only fills what it lacks.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheStandingXmlIsTheBaseOnAnUpdate(): void
+	{
+		$xml = $this->fieldXml();
+		$properties = [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'label' => ['value' => 'New Label', 'origin' => 'xml'],
+			'attributes' => ['value' => ['type' => 'text', 'hint' => 'Type here'], 'origin' => 'xml']
+		];
+		$standing = [
+			'name' => 'name',
+			'label' => 'Old Label',
+			'fields' => 'aaaa,bbbb',
+			'type_php_1_1' => '$this->code();'
+		];
+
+		$attributes = $xml->attributes('name', $properties, false, $standing);
+
+		$this->assertSame(
+			['name', 'label', 'fields', 'type_php_1_1', 'hint'],
+			array_keys($attributes),
+			'What stands comes first, in its own order; what the source adds follows.'
+		);
+		$this->assertSame('Old Label', $attributes['label'], 'The record is the truth; the compiled form is its echo.');
+		$this->assertSame('aaaa,bbbb', $attributes['fields'], 'A property the compiled form never shows survives.');
+		$this->assertSame('$this->code();', $attributes['type_php_1_1']);
+		$this->assertSame('Type here', $attributes['hint'], 'What the record lacks and the source states is added.');
+	}
+
+	/**
+	 * The XML default is the form's own statement; the column's default is another thing.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheXmlDefaultIsTheFormsOwnNotTheColumns(): void
+	{
+		$xml = $this->fieldXml();
+
+		$stated = $xml->attributes('group_by', [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'default' => ['value' => '0', 'origin' => 'table'],
+			'attributes' => ['value' => ['type' => 'text', 'default' => 'division'], 'origin' => 'xml']
+		]);
+		$this->assertSame('division', $stated['default'], 'The form states the default the person sees.');
+
+		$column = $xml->attributes('group_by', [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'default' => ['value' => '0', 'origin' => 'table']
+		]);
+		$this->assertArrayNotHasKey('default', $column, 'A database default never becomes a form default.');
+
+		$form = $xml->attributes('group_by', [
+			'xml_type' => ['value' => 'text', 'origin' => 'xml'],
+			'default' => ['value' => 'club', 'origin' => 'xml']
+		]);
+		$this->assertSame('club', $form['default']);
+	}
+
+	/**
 	 * An unresolvable field type declares nothing, so nothing is filtered out.
 	 *
 	 * @return  void
@@ -1048,14 +1228,22 @@ final class ResolverTest extends TestCase
 			], 'origin' => 'xml']
 		]);
 
-		$this->assertSame(['name', 'label', 'hint'], array_keys($attributes));
+		$this->assertSame(['type', 'name', 'label', 'hint', 'showon'], array_keys($attributes));
+		$this->assertSame(
+			'nosuchtype',
+			$attributes['type'],
+			'A type JCB does not know is the source\'s own, and its XML names it.'
+		);
 		$this->assertSame(
 			'Type here',
 			$attributes['hint'],
-			'With no declared property set, filtering must let everything through.'
+			'Everything the source states is written, declared or not.'
 		);
-		$this->assertArrayNotHasKey('type', $attributes, 'The type is dropped regardless.');
-		$this->assertArrayNotHasKey('showon', $attributes);
+		$this->assertSame(
+			'kind:1',
+			$attributes['showon'],
+			'A showon rule is the form\'s own statement, and the stored XML carries it.'
+		);
 	}
 
 	/**

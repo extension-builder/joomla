@@ -16,6 +16,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
@@ -84,6 +85,14 @@ final class AdminView extends Writer
 	protected Pairing $pairing;
 
 	/**
+	 * The Placeholders Resolver.
+	 *
+	 * @var    Placeholders
+	 * @since  6.1.9
+	 */
+	protected Placeholders $placeholders;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -105,13 +114,15 @@ final class AdminView extends Writer
 		Guid $guid,
 		Source $source,
 		Pairing $pairing,
-		Actions $actions
+		Actions $actions,
+		Placeholders $placeholders
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report);
 
 		$this->guid = $guid;
 		$this->source = $source;
+		$this->placeholders = $placeholders;
 		$this->pairing = $pairing;
 		$this->actions = $actions;
 	}
@@ -163,9 +174,14 @@ final class AdminView extends Writer
 		$path = $this->path($view);
 		$single = (string) $this->resolved->get($path . '.name_single', $view);
 		$system = (string) $this->resolved->get($path . '.system_name', $single);
+		// the identity derives from the view's code, which is what the table
+		// states and what every earlier run derived from
 		$guid = (string) $this->resolved->get(
 			$path . '.guid',
-			$this->guid->derive([$this->option(), 'admin_view', $single])
+			$this->guid->derive([
+				$this->option(), 'admin_view',
+				(string) $this->resolved->get($path . '.name_single_code', $view)
+			])
 		);
 
 		// the caller's pairing verdict outranks the derived identity
@@ -220,19 +236,33 @@ final class AdminView extends Writer
 
 		if (is_string($seed) && $seed !== '')
 		{
+			$seed = $this->seed($guid, $seed);
+		}
+
+		if (is_string($seed) && $seed !== '')
+		{
 			$definition->add_sql = 1;
 			$definition->source = 2;
 			$definition->sql = $seed;
 		}
 
-		// the source states the view's names and its seed data; the rest is
-		// scaffolding a new view needs. Someone who has since curated their
-		// tabs, permissions or description keeps them: a re-run refreshes
-		// what the source says and undoes none of their work
-		if (!$this->store($definition, [
+		// the source states the view's seed data, and its names when its own
+		// language states them; the rest is scaffolding a new view needs.
+		// Someone who has since curated their tabs, permissions, description
+		// or names keeps them: a re-run refreshes what the source says and
+		// undoes none of their work -- a name the run merely derived from a
+		// table name is a guess, and a guess never overwrites a person's name
+		$kept = [
 			'short_description', 'description', 'type', 'add_fadein',
 			'addpermissions', 'addtabs', 'published'
-		]))
+		];
+
+		if (!(bool) $this->resolved->get($path . '.names_stated', false))
+		{
+			$kept = array_merge($kept, ['system_name', 'name_single', 'name_list']);
+		}
+
+		if (!$this->store($definition, $kept))
 		{
 			return false;
 		}
@@ -240,6 +270,59 @@ final class AdminView extends Writer
 		$this->resolved->set($path . '.written.view.guid', $guid);
 
 		return true;
+	}
+
+	/**
+	 * The seed data to write for a view, or null when the standing view states it already.
+	 *
+	 * The source's seed data was compiled from the record's own, so the two
+	 * differ only in what the compiler did to it: the whitespace a dump lays
+	 * out, and the placeholders it resolved. A record that already states
+	 * the same rows keeps its own text, line endings and placeholders and
+	 * all; rows that changed are restated, naming the tables the way the
+	 * person names them.
+	 *
+	 * @param   string  $guid  The view's identity.
+	 * @param   string  $seed  The seed data the source states.
+	 *
+	 * @return  string|null  The seed data to write, or null to keep what stands.
+	 * @since   6.1.9
+	 */
+	protected function seed(string $guid, string $seed): ?string
+	{
+		$standing = $this->item->table($this->table())->get($guid, 'guid');
+		$held = is_object($standing) ? (string) ($standing->sql ?? '') : '';
+
+		if (trim($held) === '')
+		{
+			return $seed;
+		}
+
+		$core = $this->placeholders->core();
+		$resolved = $this->placeholders->substitute($held, $core + $this->placeholders->map());
+
+		if (preg_replace('/\s+/', ' ', trim($resolved)) === preg_replace('/\s+/', ' ', trim($seed)))
+		{
+			$this->report->set('kept.seed.' . $guid, true);
+
+			return null;
+		}
+
+		$placeholder = $this->placeholders->placeholder('component');
+		$code = (string) ($core[$placeholder] ?? '');
+
+		foreach ([$placeholder, '###' . substr($placeholder, 3, -3) . '###'] as $worded)
+		{
+			if ($code !== '' && str_contains($held, '#__' . $worded . '_'))
+			{
+				$seed = str_replace('#__' . $code . '_', '#__' . $worded . '_', $seed);
+				$this->report->set('expressed.seed.' . $guid, $worded);
+
+				break;
+			}
+		}
+
+		return $seed;
 	}
 
 	/**

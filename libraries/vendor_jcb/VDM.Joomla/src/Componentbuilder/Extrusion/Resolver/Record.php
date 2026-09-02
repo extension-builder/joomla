@@ -163,7 +163,7 @@ final class Record
 	 * @return  array{fieldtype: array|null, link: array, columns: array|null, notes: array<string, mixed>}  The composition.
 	 * @since   6.1.9
 	 */
-	public function compose(string $column, array $properties): array
+	public function compose(string $column, array $properties, bool $fresh = true, array $standing = []): array
 	{
 		$notes = [];
 		$type = (string) $this->value($properties, 'xml_type', 'text');
@@ -222,7 +222,7 @@ final class Record
 				(string) $this->value($properties, 'store', ''),
 				$notes
 			),
-			'xml' => $this->fieldxml->build($column, $properties),
+			'xml' => $this->fieldxml->build($column, $properties, $fresh, $standing),
 			'datalenght' => in_array($size, self::SIZES, true) || $size === ''
 				? $size
 				: 'Other'

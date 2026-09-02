@@ -122,6 +122,11 @@ final class AccessTest extends FilesystemTestCase
 		$this->assertTrue(
 			(bool) $this->source->get('access_screens_actions.item.batch')
 		);
+		$this->assertSame(
+			'ITEM_ACCESS',
+			$this->source->get('access_titles.item.access'),
+			'The title names the constant a rule is worded under, which is the source\'s own statement of the screen\'s list.'
+		);
 	}
 
 	/**

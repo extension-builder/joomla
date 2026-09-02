@@ -441,9 +441,56 @@ final class Precedence implements PrecedenceInterface
 				'view.' . $alias . '.field.' . $this->key($column)
 			);
 
-			if ($field !== null)
+			if ($field === null)
+			{
+				continue;
+			}
+
+			if (trim((string) (((array) $field)['subform'] ?? '')) === '')
 			{
 				return $field;
+			}
+
+			// a subform's inner field that happens to share the column's name
+			// is the subform's own, and read before the view's field it holds
+			// the bare key: the column's field is the one no subform holds
+			$own = $this->ownField($alias, $column);
+
+			if ($own !== null)
+			{
+				return $own;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The form field of one view that names a column and belongs to no subform.
+	 *
+	 * @param   string  $alias   The view alias the form was read under.
+	 * @param   string  $column  The column name.
+	 *
+	 * @return  mixed  The field entry, or null when the form states none.
+	 * @since   6.1.9
+	 */
+	protected function ownField(string $alias, string $column)
+	{
+		$fields = $this->form->get('view.' . $alias . '.field');
+
+		if (!is_array($fields) && !is_object($fields))
+		{
+			return null;
+		}
+
+		foreach ((array) $fields as $entry)
+		{
+			$entry = (array) $entry;
+
+			if ((string) ($entry['name'] ?? '') === $column
+				&& trim((string) ($entry['subform'] ?? '')) === '')
+			{
+				return $entry;
 			}
 		}
 

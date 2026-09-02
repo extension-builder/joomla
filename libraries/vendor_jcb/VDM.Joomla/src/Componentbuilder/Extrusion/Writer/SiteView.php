@@ -193,10 +193,16 @@ final class SiteView extends Writer
 		);
 		$definition->published = 1;
 
-		// the source states the view's names and its body; its description
-		// and its data source are scaffolding, so a view someone has since
-		// pointed at a dynamic get of their own keeps it
-		if (!$this->store($definition, ['description', 'main_get', 'published']))
+		// a view that already stands is a person's own work -- its names, its
+		// context, its body, its PHP, its description and its data source --
+		// and a re-run touches none of it: the compiled template is derived
+		// from that very record, and nothing a source states about a custom
+		// screen outranks what the person keeps in JCB. Only a new view is
+		// scaffolded
+		if (!$this->store($definition, [
+			'name', 'codename', 'context', 'system_name', 'description', 'default',
+			'php_view', 'add_php_view', 'main_get', 'published'
+		]))
 		{
 			return false;
 		}

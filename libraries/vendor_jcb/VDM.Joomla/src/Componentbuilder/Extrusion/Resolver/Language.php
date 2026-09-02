@@ -100,6 +100,35 @@ final class Language
 	}
 
 	/**
+	 * The English one constant states, or null when nothing states it.
+	 *
+	 * Unlike resolve, an unanswered constant is not a shortfall to report:
+	 * the caller is asking whether the component states something, and
+	 * silence is an ordinary answer.
+	 *
+	 * @param   string  $constant  The language constant.
+	 *
+	 * @return  string|null  The stated English, or null.
+	 * @since   6.1.9
+	 */
+	public function stated(string $constant): ?string
+	{
+		if (!$this->isConstant($constant))
+		{
+			return null;
+		}
+
+		$resolved = $this->catalogue->get('constant.' . $constant);
+
+		if (is_string($resolved) && $resolved !== '')
+		{
+			return $resolved;
+		}
+
+		return $this->fetch($constant);
+	}
+
+	/**
 	 * Resolve one value through the catalogue.
 	 *
 	 * @param   mixed   $value     The candidate value.

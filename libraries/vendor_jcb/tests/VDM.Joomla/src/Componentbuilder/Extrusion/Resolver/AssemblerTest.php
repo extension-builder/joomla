@@ -374,7 +374,71 @@ PHP;
 			new Condition($this->report),
 			new Relation($this->config, $viewname, $this->report),
 			new Guid(),
-			$this->report
+			$this->report,
+			$language
+		);
+	}
+
+	/**
+	 * The component's own language states a view's names, and the run takes them as stated.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheLanguageStatesTheViewsNames(): void
+	{
+		$this->catalogue->set('constant.COM_EXAMPLE_ITEM', 'Stock Item');
+		$this->catalogue->set('constant.COM_EXAMPLE_ITEMS', 'Stock Items');
+		$this->assembler->assemble();
+
+		$this->assertSame('Stock Item', $this->resolved->get('view.item.name_single'));
+		$this->assertSame('Stock Items', $this->resolved->get('view.item.name_list'));
+		$this->assertTrue(
+			$this->resolved->get('view.item.names_stated'),
+			'A name the language states is the component\'s own, and may refresh a standing view.'
+		);
+		$this->assertSame('item', $this->resolved->get('view.item.name_single_code'));
+		$this->assertSame('items', $this->resolved->get('view.item.name_list_code'));
+		$this->assertSame(
+			'Category',
+			$this->resolved->get('view.category.name_single'),
+			'A view the language says nothing about is humanised from its table name.'
+		);
+		$this->assertFalse($this->resolved->get('view.category.names_stated'));
+	}
+
+	/**
+	 * The access rules word a screen's rules under its list name, and that names the list.
+	 *
+	 * A list screen named nothing like the plural of its table -- a queue, a
+	 * log -- is named by the component's own access rules, whose titles JCB
+	 * words under the list name. Without that, a re-run would rename the
+	 * person's list screen to a plural it never had.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheAccessRulesWordTheListName(): void
+	{
+		$this->source->set('access_titles.category.access', 'COM_EXAMPLE_CATEGORY_TREE_ACCESS');
+		$this->catalogue->set('constant.COM_EXAMPLE_CATEGORY_TREE', 'Category Tree');
+		$this->assembler->assemble();
+
+		$this->assertSame('category_tree', $this->resolved->get('view.category.name_list_code'));
+		$this->assertSame('Category Tree', $this->resolved->get('view.category.name_list'));
+		$this->assertSame(
+			'category_tree | categories',
+			$this->report->get('origin.name_list.category'),
+			'The run says where the list name came from and what the plural rule would have guessed.'
+		);
+		$this->assertNull(
+			$this->report->get('unconfirmed.name_list.category'),
+			'A list the rules name is stated, not guessed.'
+		);
+		$this->assertSame(
+			'items',
+			$this->resolved->get('view.item.name_list_code'),
+			'A table class that states the list name is the stronger statement, and keeps it.'
 		);
 	}
 
@@ -616,9 +680,15 @@ PHP;
 	{
 		$this->assembler->assemble();
 
-		$this->assertSame('item', $this->resolved->get('view.item.name_single'));
-		$this->assertSame('items', $this->resolved->get('view.item.name_list'));
+		// JCB keeps a view's names as the English a person reads, and derives
+		// every code from them -- the run offers the same
+		$this->assertSame('Item', $this->resolved->get('view.item.name_single'));
+		$this->assertSame('Items', $this->resolved->get('view.item.name_list'));
 		$this->assertSame('Item', $this->resolved->get('view.item.system_name'));
+		$this->assertFalse(
+			$this->resolved->get('view.item.names_stated'),
+			'A name the run humanised from a table name is derived, not stated.'
+		);
 		$this->assertSame('#__example_item', $this->resolved->get('view.item.table'));
 		$this->assertSame('example_item', $this->resolved->get('view.item.key'));
 		$this->assertSame(
@@ -660,10 +730,10 @@ PHP;
 
 		$this->assertFalse($this->resolved->exists('view.item.seed'));
 		$this->assertSame(
-			"INSERT INTO `#__example_category` (`id`, `title`) VALUES (1, 'First; not a split')",
+			"--\r\n-- Dumping data for table `#__example_category`\r\n--\r\n\r\nINSERT INTO `#__example_category` (`id`, `title`) VALUES (1, 'First; not a split');",
 			$this->resolved->get('view.category.seed')
 		);
-		$this->assertSame('categories', $this->resolved->get('view.category.name_list'));
+		$this->assertSame('Categories', $this->resolved->get('view.category.name_list'));
 		$this->assertSame([], (array) $this->resolved->get('view.category.relations'));
 
 		$this->assertSame('example_tag', $this->resolved->get('view.tag.table'));
@@ -851,7 +921,7 @@ PHP;
 		$this->assembler->assemble();
 
 		$this->assertSame(
-			'people',
+			'People',
 			$this->resolved->get('view.item.name_list'),
 			'A list name the table class states must be used as it stands.'
 		);
@@ -861,7 +931,7 @@ PHP;
 			'A stated name that disagrees with the guess must be named in the report.'
 		);
 		$this->assertSame(
-			'categories',
+			'Categories',
 			$this->resolved->get('view.category.name_list'),
 			'A table no definition class describes still falls back to the plural.'
 		);
@@ -875,7 +945,7 @@ PHP;
 		$this->assembler->assemble();
 
 		$this->assertSame(
-			'items',
+			'Items',
 			$this->resolved->get('view.item.name_list'),
 			'An empty stated name is no answer, so the plural has to cover for it.'
 		);

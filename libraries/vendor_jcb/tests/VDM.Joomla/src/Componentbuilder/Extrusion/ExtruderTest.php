@@ -25,6 +25,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Table;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Discovery;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Extrusion;
+use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry as RegistryProvider;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
@@ -111,6 +112,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->registerServiceProvider(new Reader())
 			->registerServiceProvider(new Resolver())
 			->registerServiceProvider(new WriterProvider())
+			->registerServiceProvider(new Powers())
 			->registerServiceProvider(new Extrusion());
 	}
 
@@ -458,7 +460,7 @@ final class ExtruderTest extends FilesystemTestCase
 
 		foreach ($this->item->definitions('admin_view') as $definition)
 		{
-			if ($definition->name_single === 'item')
+			if ($definition->name_single === 'Item')
 			{
 				$plainItem = $definition->guid;
 			}
@@ -503,10 +505,10 @@ final class ExtruderTest extends FilesystemTestCase
 			'An ignored view is mentioned in the report, never written.'
 		);
 		$this->assertTrue((bool) $report->get('skipped.decision.admin_view.category'));
-		$this->assertArrayHasKey('item', $views);
+		$this->assertArrayHasKey('Item', $views);
 		$this->assertNotSame(
 			$plainItem,
-			$views['item'],
+			$views['Item'],
 			'A create verdict forces a fresh identity, even where a match existed.'
 		);
 		$this->assertContains(
@@ -586,7 +588,11 @@ final class ExtruderTest extends FilesystemTestCase
 			$view,
 			'The view the component itself links is the record the run updates.'
 		);
-		$this->assertSame('item', $view->name_single);
+		$this->assertObjectNotHasProperty(
+			'name_single',
+			$view,
+			'A name the run only derived never overwrites the name a person gave a standing view.'
+		);
 		$this->assertObjectNotHasProperty(
 			'addtabs',
 			$view,

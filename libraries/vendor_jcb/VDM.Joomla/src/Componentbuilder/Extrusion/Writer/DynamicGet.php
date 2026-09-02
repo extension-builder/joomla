@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 /**
@@ -133,7 +134,7 @@ final class DynamicGet extends Writer
 						|| $this->dashboard($name)
 						|| !$this->named($name)
 						|| in_array(
-							strtolower(trim($name)),
+							Text::code($name),
 							(array) $this->resolved->get('existing.admin_view_names', []),
 							true
 						)))
@@ -171,6 +172,19 @@ final class DynamicGet extends Writer
 	{
 		$guid = $this->guid->derive([$this->option(), 'dynamic_get', $name]);
 		$readable = ucwords(str_replace(['_', '-'], ' ', $name));
+
+		// a get that already stands is a person's own source, arranged and
+		// pointed the way their screen needs it: a re-run only records where
+		// it is, so the view keeps linking it, and rewrites none of it
+		$id = $this->item->table($this->table())->value($guid, 'guid', 'id');
+
+		if ($id !== null && (int) $id > 0)
+		{
+			$this->report->set('kept.dynamic_get.' . $guid, true);
+			$this->resolved->set('dynamic_get.' . $kind . '.' . $this->key($key) . '.guid', $guid);
+
+			return false;
+		}
 
 		$definition = new \stdClass();
 		$definition->guid = $guid;
@@ -297,13 +311,13 @@ final class DynamicGet extends Writer
 	 */
 	protected function answered(string $name): ?array
 	{
-		$name = strtolower(trim($name));
+		$name = Text::code($name);
 
 		foreach ($this->views() as $view)
 		{
 			$path = $this->path($view);
-			$single = strtolower((string) $this->resolved->get($path . '.name_single', $view));
-			$list = strtolower((string) $this->resolved->get($path . '.name_list', $single . 's'));
+			$single = Text::code((string) $this->resolved->get($path . '.name_single_code', $view));
+			$list = Text::code((string) $this->resolved->get($path . '.name_list_code', $single . 's'));
 			$written = (string) $this->resolved->get($path . '.written.view.guid', '');
 
 			if ($written === '')

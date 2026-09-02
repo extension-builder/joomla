@@ -90,6 +90,14 @@ final class Assembler
 	protected ViewName $viewname;
 
 	/**
+	 * The Language Resolver.
+	 *
+	 * @var    Language
+	 * @since  6.1.9
+	 */
+	protected Language $language;
+
+	/**
 	 * The Role Resolver.
 	 *
 	 * @var    Role
@@ -169,7 +177,8 @@ final class Assembler
 		Condition $condition,
 		Relation $relation,
 		Guid $guid,
-		Report $report
+		Report $report,
+		Language $language
 	)
 	{
 		$this->config = $config;
@@ -185,6 +194,7 @@ final class Assembler
 		$this->relation = $relation;
 		$this->guid = $guid;
 		$this->report = $report;
+		$this->language = $language;
 	}
 
 	/**
@@ -293,6 +303,55 @@ final class Assembler
 	}
 
 	/**
+	 * The single and list names a view is written with, and whether the source stated them.
+	 *
+	 * JCB keeps a view's names as the English a person reads -- "Address
+	 * Type", "Address Types" -- and derives every code from them. A compiled
+	 * component states those very names in its own language file, under the
+	 * constants JCB itself writes them to, so where the language answers the
+	 * names are the component's own. Where it does not, the table name is
+	 * humanised the way a person would read it; that is a derivation, and
+	 * the run says so, because a derived name must never overwrite the name
+	 * a person gave a standing view.
+	 *
+	 * @param   array{name: string, schema: string, table: string}  $entry  The table's registry keys.
+	 * @param   string                                             $view   The single view name.
+	 *
+	 * @return  array{0: string, 1: string, 2: bool}  The single name, the list name, and whether the language stated the single name.
+	 * @since   6.1.9
+	 */
+	protected function names(array $entry, string $view): array
+	{
+		$listed = $this->listName($entry, $view);
+		$prefix = $this->prefix();
+		$single = $prefix === '' ? null : $this->language->stated($prefix . strtoupper($view));
+		$list = $prefix === '' ? null : $this->language->stated($prefix . strtoupper($listed));
+
+		return [
+			$single ?? $this->viewname->title($view),
+			$list ?? $this->viewname->title($listed),
+			$single !== null
+		];
+	}
+
+	/**
+	 * The constant prefix the component's own language speaks.
+	 *
+	 * @return  string  The prefix, such as COM_EXAMPLE_, or an empty string when no component is named.
+	 * @since   6.1.9
+	 */
+	protected function prefix(): string
+	{
+		$code = strtoupper(trim((string) preg_replace(
+			'/^com_/i',
+			'',
+			trim((string) $this->source->get('code_name', ''))
+		)));
+
+		return $code === '' ? '' : 'COM_' . $code . '_';
+	}
+
+	/**
 	 * The list view name for one table.
 	 *
 	 * The single name always comes from the table name with the component prefix
@@ -331,6 +390,24 @@ final class Assembler
 			return $stated;
 		}
 
+		// the access rules word every rule of a screen under the constant of
+		// its list name, exactly as JCB writes them: a component compiled by
+		// JCB states its list names there, table class or not
+		$worded = $this->wordedList($view);
+
+		if ($worded !== null)
+		{
+			if ($worded !== $derived)
+			{
+				$this->report->set(
+					'origin.name_list.' . $this->precedence->key($view),
+					$worded . ' | ' . $derived
+				);
+			}
+
+			return $worded;
+		}
+
 		// nothing else states the plural, so the rule derives it -- but the
 		// component's own administrator menu names the screens it offers, and a
 		// list screen is one of them. A derived plural the menu never names is
@@ -349,6 +426,39 @@ final class Assembler
 		}
 
 		return $derived;
+	}
+
+	/**
+	 * The list name the access rules word a screen's rules under, when they do.
+	 *
+	 * JCB titles a screen's access rule `COM_<CODE>_<LIST>_ACCESS`, with the
+	 * list name in the screen's own upper case: the rule is data the source
+	 * states, and it names the list the screen has whatever a plural rule
+	 * would have guessed.
+	 *
+	 * @param   string  $view  The screen's code name.
+	 *
+	 * @return  string|null  The list code the rules word, or null.
+	 * @since   6.1.9
+	 */
+	protected function wordedList(string $view): ?string
+	{
+		$title = strtoupper(trim((string) $this->source->get(
+			'access_titles.' . $this->precedence->key($view) . '.access',
+			''
+		)));
+		$prefix = $this->prefix();
+
+		if ($prefix === '' || $title === ''
+			|| !str_starts_with($title, $prefix)
+			|| !str_ends_with($title, '_ACCESS'))
+		{
+			return null;
+		}
+
+		$list = Text::code(substr($title, strlen($prefix), -strlen('_ACCESS')));
+
+		return $list === '' ? null : $list;
 	}
 
 	/**
@@ -477,8 +587,14 @@ final class Assembler
 			);
 		}
 
-		$this->resolved->set($path . '.name_single', $view);
-		$this->resolved->set($path . '.name_list', $this->listName($entry, $view));
+		[$single, $list, $stated] = $this->names($entry, $view);
+		$this->resolved->set($path . '.name_single', $single);
+		$this->resolved->set($path . '.name_list', $list);
+		$this->resolved->set($path . '.names_stated', $stated);
+		// the codes every folder, form and constant speak, which the names
+		// derive from -- kept beside the names so nothing has to guess them
+		$this->resolved->set($path . '.name_single_code', $view);
+		$this->resolved->set($path . '.name_list_code', $this->listName($entry, $view));
 		$this->resolved->set($path . '.system_name', $this->viewname->title($view));
 		$this->resolved->set($path . '.table', $name);
 		$this->resolved->set($path . '.key', $canonical);

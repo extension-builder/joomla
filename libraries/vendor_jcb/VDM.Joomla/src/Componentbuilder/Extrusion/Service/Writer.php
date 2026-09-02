@@ -123,7 +123,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Pairing'),
-			$container->get('Extrusion.Resolver.Actions')
+			$container->get('Extrusion.Resolver.Actions'),
+			$container->get('Extrusion.Powers.Resolver.Placeholders')
 		);
 	}
 

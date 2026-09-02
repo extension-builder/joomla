@@ -286,8 +286,12 @@ final class Schema implements ReaderInterface
 	/**
 	 * Store one seed statement verbatim.
 	 *
-	 * A table seeded by several statements keeps them all, joined by newlines,
-	 * so a batched dump is not reduced to its last batch.
+	 * A table seeded by several statements keeps them all, so a batched dump
+	 * is not reduced to its last batch. Every statement is stored terminated
+	 * and separated the way JCB's own dump writes them: the splitter cut the
+	 * terminators off to find the statements, and the compiler places what is
+	 * stored into the install file verbatim, where the installer cuts on
+	 * those very terminators again.
 	 *
 	 * @param   array  $seed  The seeded table and its statement.
 	 *
@@ -298,9 +302,13 @@ final class Schema implements ReaderInterface
 	{
 		$key = $this->key($seed['table']);
 		$stored = $this->schema->get('seed.' . $key . '.sql');
+		$statement = rtrim((string) $seed['sql'], "; \t\r\n") . ';';
+		// the first statement opens with the heading JCB's own dump writes --
+		// line breaks and all -- so an extruded install file reads exactly
+		// like a compiled one
 		$sql = is_string($stored) && $stored !== ''
-			? $stored . "\n" . $seed['sql']
-			: $seed['sql'];
+			? $stored . "\n\n" . $statement
+			: "--\r\n-- Dumping data for table `" . $seed['table'] . "`\r\n--\r\n\r\n" . $statement;
 
 		$this->schema->set('seed.' . $key . '.name', $seed['table']);
 		$this->schema->set('seed.' . $key . '.sql', $sql);
