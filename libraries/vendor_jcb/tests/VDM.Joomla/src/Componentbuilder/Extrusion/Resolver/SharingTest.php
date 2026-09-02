@@ -572,7 +572,119 @@ final class SharingTest extends TestCase
 	}
 
 	/**
-	 * A lookalike whose stored properties hash differently is kept, not claimed.
+	 * The field the paired view wires under this column is the column's field, hash or not.
+	 *
+	 * A person linked this field into this very view and its XML names this
+	 * very column: that wiring is the strongest statement there is, and no
+	 * hash of what the run would write can outrank it. Recognising it is
+	 * what keeps an update from creating a second field beside a curated one.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheFieldThePairedViewWiresUnderTheColumnIsTheIdentityHashOrNot(): void
+	{
+		$wired = 'dddddddd-4444-4444-8444-444444444444';
+
+		// the standing row states another shape entirely, so its hash cannot
+		// align -- yet it is the field the event view links under this name
+		$this->aimAt(['club', 'event'], ['event' => $wired], [
+			$wired => [
+				'guid' => $wired,
+				'name' => 'Name (event-modal)',
+				'fieldtype' => 'eeeeeeee-5555-4555-8555-555555555555',
+				'datatype' => 'TEXT',
+				'datalenght' => '',
+				'datalenght_other' => '',
+				'datadefault' => '',
+				'datadefault_other' => '',
+				'indexes' => 0,
+				'null_switch' => 'NULL',
+				'store' => 0,
+				'xml' => json_encode('<field name="name" label="Name" />')
+			]
+		]);
+
+		foreach (['club', 'event'] as $view)
+		{
+			$this->seed($view, 'name', [
+				'label' => 'Name', 'xml_type' => 'text',
+				'datatype' => 'VARCHAR', 'size' => '255'
+			]);
+		}
+
+		$this->assertSame(1, $this->sharing()->settle());
+		$this->assertSame(
+			$wired,
+			$this->resolved->get('view.event.field.name.share.guid'),
+			'The person\'s own wiring is the identity the group settles onto.'
+		);
+		$this->assertSame(
+			$wired,
+			$this->report->get('adopted.field.club.name'),
+			'The group\'s own column adopts that field as its identity.'
+		);
+		$this->assertNull(
+			$this->resolved->get('view.event.superseded.' . $wired),
+			'The link already points at the field; nothing is turned.'
+		);
+		$this->assertNull(
+			$this->report->get('kept.similar.field.event.name'),
+			'Wiring is identity, not resemblance.'
+		);
+	}
+
+	/**
+	 * A column only one view states still adopts the field its view wires under that name.
+	 *
+	 * Most columns are stated by one view alone, so a group of one member is
+	 * the common case, not the exception: an update that only recognised
+	 * shared columns would create a second field beside every curated one.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testAColumnOnlyOneViewStatesAdoptsTheFieldItsViewWires(): void
+	{
+		$wired = 'dddddddd-4444-4444-8444-444444444444';
+
+		$this->aimAt(['club', 'event'], ['event' => $wired], [
+			$wired => [
+				'guid' => $wired,
+				'name' => 'Line One (event)',
+				'fieldtype' => 'eeeeeeee-5555-4555-8555-555555555555',
+				'datatype' => 'TEXT',
+				'datalenght' => '',
+				'datalenght_other' => '',
+				'datadefault' => '',
+				'datadefault_other' => '',
+				'indexes' => 0,
+				'null_switch' => 'NULL',
+				'store' => 0,
+				'xml' => json_encode('<field name="line_one" label="Line One" />')
+			]
+		]);
+
+		$this->seed('event', 'line_one', [
+			'label' => 'Line One', 'xml_type' => 'text',
+			'datatype' => 'VARCHAR', 'size' => '255'
+		]);
+
+		$this->assertSame(0, $this->sharing()->settle(), 'One member shares with nobody.');
+		$this->assertSame(
+			$wired,
+			$this->report->get('adopted.field.event.line_one'),
+			'The column adopts the field its own view already wires under its name.'
+		);
+		$this->assertSame(
+			$wired,
+			$this->pairing->guid('field', 'event.line_one', 'derived-guid-would-be-here'),
+			'The writer is steered onto the standing field, not a fresh one.'
+		);
+	}
+
+	/**
+	 * A lookalike by record name whose XML names another column is kept, not claimed.
 	 *
 	 * @return  void
 	 * @since   6.1.9
@@ -581,8 +693,9 @@ final class SharingTest extends TestCase
 	{
 		$lookalike = 'dddddddd-4444-4444-8444-444444444444';
 
-		// the standing row states another shape entirely, so its hash cannot
-		// align -- it is somebody's own field that merely shares the name
+		// the standing row shares the record name and nothing else: its XML
+		// names another column, and its hash cannot align -- it is somebody's
+		// own field that merely shares the name
 		$this->aimAt(['club', 'event'], ['event' => $lookalike], [
 			$lookalike => [
 				'guid' => $lookalike,
@@ -596,7 +709,7 @@ final class SharingTest extends TestCase
 				'indexes' => 0,
 				'null_switch' => 'NULL',
 				'store' => 0,
-				'xml' => json_encode('<field name="name" label="Name" />')
+				'xml' => json_encode('<field name="title" label="Name" />')
 			]
 		]);
 

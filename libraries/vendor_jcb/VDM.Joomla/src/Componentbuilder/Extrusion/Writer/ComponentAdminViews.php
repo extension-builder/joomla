@@ -17,8 +17,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
-use VDM\Joomla\Interfaces\Database\LoadInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Interfaces\Database\LoadInterface;
 
 
 /**
@@ -198,12 +199,12 @@ final class ComponentAdminViews extends Writer
 			(array) $this->resolved->get($this->path($view) . '.columns', [])
 		);
 		$menu = (array) $this->source->get('menu', []);
-		$single = strtolower((string) $this->resolved->get(
-			$this->path($view) . '.name_single',
+		$single = Text::code((string) $this->resolved->get(
+			$this->path($view) . '.name_single_code',
 			$view
 		));
-		$list = strtolower((string) $this->resolved->get(
-			$this->path($view) . '.name_list',
+		$list = Text::code((string) $this->resolved->get(
+			$this->path($view) . '.name_list_code',
 			$single . 's'
 		));
 		$entry = $menu[$list] ?? ($menu[$single] ?? null);

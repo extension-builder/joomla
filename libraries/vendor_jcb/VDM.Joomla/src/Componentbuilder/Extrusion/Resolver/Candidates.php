@@ -288,9 +288,14 @@ final class Candidates
 			$path = 'view.' . $key;
 			$single = (string) $this->resolved->get($path . '.name_single', $view);
 			$system = (string) $this->resolved->get($path . '.system_name', $single);
+			// the identity derives from the view's code, which is what the
+			// table states and what every earlier run derived from
 			$derived = (string) $this->resolved->get(
 				$path . '.guid',
-				$this->guid->derive([$this->option(), 'admin_view', $single])
+				$this->guid->derive([
+					$this->option(), 'admin_view',
+					(string) $this->resolved->get($path . '.name_single_code', $view)
+				])
 			);
 			// the component's link table is its own declaration of which views
 			// belong to it, so a view answering to one of them by name is that
@@ -596,10 +601,10 @@ final class Candidates
 			}
 
 			$path = 'view.' . $this->key($view);
-			$single = strtolower((string) $this->resolved->get($path . '.name_single', $view));
-			$list = strtolower((string) $this->resolved->get($path . '.name_list', $single . 's'));
+			$single = Text::code((string) $this->resolved->get($path . '.name_single_code', $view));
+			$list = Text::code((string) $this->resolved->get($path . '.name_list_code', $single . 's'));
 
-			if ($name === $single || $name === $list || $name === strtolower($view))
+			if ($name === $single || $name === $list || $name === Text::code($view))
 			{
 				return true;
 			}

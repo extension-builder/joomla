@@ -230,10 +230,15 @@ final class CustomAdminView extends Writer
 		);
 		$definition->published = 1;
 
-		// the source states the view's names and its body; its description
-		// and its data source are scaffolding, so a view someone has since
-		// pointed at a dynamic get of their own keeps it
-		if (!$this->store($definition, ['description', 'main_get', 'published']))
+		// a view that already stands is a person's own work -- its names, its
+		// body, its PHP, its description and its data source -- and a re-run
+		// touches none of it: the compiled template is derived from that very
+		// record, and nothing a source states about a custom screen outranks
+		// what the person keeps in JCB. Only a new view is scaffolded
+		if (!$this->store($definition, [
+			'name', 'codename', 'system_name', 'description', 'default',
+			'php_view', 'add_php_view', 'main_get', 'published'
+		]))
 		{
 			return false;
 		}
@@ -297,7 +302,7 @@ final class CustomAdminView extends Writer
 	 */
 	protected function answered(string $name): bool
 	{
-		$name = strtolower(trim($name));
+		$name = Text::code($name);
 
 		// the database is the ground truth for what the component already
 		// has: a folder answering to any of its own admin views' real names
@@ -314,10 +319,10 @@ final class CustomAdminView extends Writer
 		foreach ($this->views() as $view)
 		{
 			$path = $this->path($view);
-			$single = strtolower((string) $this->resolved->get($path . '.name_single', $view));
-			$list = strtolower((string) $this->resolved->get($path . '.name_list', $single . 's'));
+			$single = Text::code((string) $this->resolved->get($path . '.name_single_code', $view));
+			$list = Text::code((string) $this->resolved->get($path . '.name_list_code', $single . 's'));
 
-			if ($name === $single || $name === $list || $name === strtolower($view))
+			if ($name === $single || $name === $list || $name === Text::code($view))
 			{
 				return true;
 			}

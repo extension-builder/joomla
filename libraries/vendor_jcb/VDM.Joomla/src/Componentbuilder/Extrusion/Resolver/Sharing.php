@@ -173,9 +173,13 @@ final class Sharing
 
 		foreach ($groups as $group)
 		{
-			// a group other verdicts shrank to one member still carries the
+			// a column only one view states still has to meet the paired
+			// component: the field its view already wires under that name is
+			// this field, standing, and a fresh one beside it is a duplicate.
+			// A group other verdicts shrank to one member likewise carries the
 			// person's group verdict, which must be honored, not dropped
 			if (count($group['members']) < 2
+				&& !$aimed
 				&& $this->pairing->verdict(
 					'field_group',
 					$group['members'][0]['view'] . '.' . $group['members'][0]['column']
@@ -184,11 +188,7 @@ final class Sharing
 				continue;
 			}
 
-			$shared += $this->one(
-				$group,
-				$aimed && count($group['members']) > 1,
-				$consolidated
-			);
+			$shared += $this->one($group, $aimed, $consolidated);
 		}
 
 		if ($shared > 0)

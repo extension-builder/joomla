@@ -102,4 +102,22 @@ final class Text
 			static fn (string $word): bool => $word !== ''
 		));
 	}
+
+	/**
+	 * The code name one human name answers to, as folders and constants spell it.
+	 *
+	 * "Address Type" and address_type are one screen: JCB derives the code
+	 * from the name a person reads, and every folder, form and constant the
+	 * compiler writes speaks the code. Comparing names to folders therefore
+	 * means comparing codes.
+	 *
+	 * @param   string  $name  The human or code name.
+	 *
+	 * @return  string  The lower-cased, underscored code.
+	 * @since   6.1.9
+	 */
+	public static function code(string $name): string
+	{
+		return trim(strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '_', trim($name))), '_');
+	}
 }

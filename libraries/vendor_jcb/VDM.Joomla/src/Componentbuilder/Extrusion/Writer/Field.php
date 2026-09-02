@@ -170,25 +170,6 @@ final class Field extends Writer
 	 */
 	protected function one(string $view, string $column, array $properties): bool
 	{
-		$record = $this->record->compose($column, $properties);
-		$fieldtype = $record['fieldtype'];
-		$link = $record['link'];
-
-		if ($fieldtype === null)
-		{
-			$this->notes($record['notes']);
-
-			return false;
-		}
-
-		if ($link !== [])
-		{
-			$this->report->set(
-				'relations.written.' . $this->key($view) . '.' . $this->key($column),
-				$link['type'] . ' selecting ' . $link['value_field'] . ' from ' . $link['table']
-			);
-		}
-
 		$guid = $this->guid->prefer(
 			$this->value($properties, 'guid'),
 			[$this->option(), 'field', $view, $column]
@@ -210,6 +191,29 @@ final class Field extends Writer
 		// a person who named the field this column belongs to has spoken, and
 		// nothing here may quietly relate the column to another field instead
 		$this->chosen = $guid !== $derived;
+
+		// a field that already stands is updated with what the source states
+		// laid over the XML the person keeps, and nothing more; only a fresh
+		// field is filled out in full
+		$standing = $this->standing($guid);
+		$record = $this->record->compose($column, $properties, $standing === null, $standing ?? []);
+		$fieldtype = $record['fieldtype'];
+		$link = $record['link'];
+
+		if ($fieldtype === null)
+		{
+			$this->notes($record['notes']);
+
+			return false;
+		}
+
+		if ($link !== [])
+		{
+			$this->report->set(
+				'relations.written.' . $this->key($view) . '.' . $this->key($column),
+				$link['type'] . ' selecting ' . $link['value_field'] . ' from ' . $link['table']
+			);
+		}
 
 		if ($record['columns'] === null)
 		{
@@ -248,21 +252,29 @@ final class Field extends Writer
 
 		$definition = new \stdClass();
 		$definition->guid = $guid;
-		$definition->name = $this->readable(
-			(string) $this->value($properties, 'label', $column),
-			$column
-		);
 
-		foreach ($record['columns'] as $property => $value)
+		if ($standing === null)
 		{
-			$definition->{$property} = $value;
+			$definition->name = $this->readable(
+				(string) $this->value($properties, 'label', $column),
+				$column
+			);
+
+			foreach ($record['columns'] as $property => $value)
+			{
+				$definition->{$property} = $value;
+			}
+
+			$definition->published = 1;
+		}
+		else
+		{
+			// a field that stands is a person's: its type, its name, its
+			// storage and its database shape stay exactly as they curated
+			// them, and only its XML takes what the source adds to it
+			$definition->xml = $record['columns']['xml'];
 		}
 
-		$definition->published = 1;
-
-		// a field's type, datatype and xml are what the source states, so a
-		// re-run refreshes them; only the record's own bookkeeping is
-		// scaffolding a new field needs
 		if (!$this->store($definition, ['published']))
 		{
 			return false;
@@ -271,6 +283,40 @@ final class Field extends Writer
 		$this->relate($view, $column, $guid, $fieldtype['name']);
 
 		return true;
+	}
+
+	/**
+	 * The XML attributes a field record already standing under this identity holds.
+	 *
+	 * @param   string  $guid  The field identity.
+	 *
+	 * @return  array<string, string>|null  The standing attributes, empty when unreadable, or null when no record stands.
+	 * @since   6.1.9
+	 */
+	protected function standing(string $guid): ?array
+	{
+		$id = $this->item->table($this->table())->value($guid, 'guid', 'id');
+
+		if ($id === null || (int) $id <= 0)
+		{
+			return null;
+		}
+
+		$row = $this->item->table($this->table())->get($guid);
+		$xml = $row->xml ?? '';
+		$decoded = is_string($xml) ? json_decode($xml, true) : null;
+		$xml = is_string($decoded) ? $decoded : (string) $xml;
+		$attributes = [];
+
+		if (preg_match_all('/\s([A-Za-z_][\w\-.:]*)="([^"]*)"/', $xml, $matches, PREG_SET_ORDER) > 0)
+		{
+			foreach ($matches as $match)
+			{
+				$attributes[$match[1]] = html_entity_decode($match[2], ENT_QUOTES | ENT_XML1, 'UTF-8');
+			}
+		}
+
+		return $attributes;
 	}
 
 	/**

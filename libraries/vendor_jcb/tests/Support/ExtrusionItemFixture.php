@@ -80,6 +80,14 @@ final class ExtrusionItemFixture implements ItemInterface
 	private array $lookups = [];
 
 	/**
+	 * The rows served back for identities that already stand, as table and guid.
+	 *
+	 * @var    array<string, object>
+	 * @since  6.1.9
+	 */
+	private array $served = [];
+
+	/**
 	 * The real JCB table definitions, the source of truth for every column.
 	 *
 	 * @var    Table|null
@@ -243,7 +251,24 @@ final class ExtrusionItemFixture implements ItemInterface
 	 */
 	public function get(string $value, string $key = 'guid'): ?object
 	{
-		return null;
+		return $this->served[$this->active . ':' . $value] ?? null;
+	}
+
+	/**
+	 * Declare the row one identity reads back as.
+	 *
+	 * @param   string  $table  The table name without its prefix.
+	 * @param   string  $guid   The identity.
+	 * @param   object  $row    The row the pipeline hands back.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.1.9
+	 */
+	public function serve(string $table, string $guid, object $row): self
+	{
+		$this->served[$table . ':' . $guid] = $row;
+
+		return $this;
 	}
 
 	/**

@@ -156,6 +156,46 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
+	 * The compiler's core placeholders are valued exactly as it values them.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheCorePlaceholdersAreValuedAsTheCompilerValuesThem(): void
+	{
+		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
+		$this->config->set('component', 3);
+		$placeholders = $this->placeholders();
+
+		$this->assertSame(
+			[
+				'[[[component]]]' => 'componentbuilder',
+				'[[[Component]]]' => 'Componentbuilder',
+				'[[[COMPONENT]]]' => 'COMPONENTBUILDER',
+				'[[[LANG_PREFIX]]]' => 'COM_COMPONENTBUILDER'
+			],
+			$placeholders->core()
+		);
+		$this->assertSame('[[[component]]]', $placeholders->placeholder('component'));
+		$this->assertSame(
+			'INSERT INTO `#__componentbuilder_item`',
+			$placeholders->substitute(
+				'INSERT INTO `#__[[[component]]]_item`',
+				$placeholders->core() + $placeholders->map()
+			),
+			'A statement the person wrote through the placeholder reads as the compiled one.'
+		);
+
+		$this->config->set('component', 0);
+
+		$this->assertSame(
+			[],
+			$this->placeholders()->core(),
+			'With no component named there is no code to value them from.'
+		);
+	}
+
+	/**
 	 * The component's own placeholder overrides outrank everything.
 	 *
 	 * @return  void

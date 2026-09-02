@@ -40,7 +40,7 @@ final class FieldXml
 	 * @var    array<string>
 	 * @since  6.1.6
 	 */
-	private const DROP = ['type', 'showon'];
+	private const DROP = ['type'];
 
 	/**
 	 * The attributes a linked field carries, in the order JCB writes them.
@@ -109,9 +109,9 @@ final class FieldXml
 	 * @return  string  The field element source.
 	 * @since   6.1.6
 	 */
-	public function build(string $column, array $properties): string
+	public function build(string $column, array $properties, bool $fresh = true, array $standing = []): string
 	{
-		$attributes = $this->attributes($column, $properties);
+		$attributes = $this->attributes($column, $properties, $fresh, $standing);
 		$xml = '<field';
 
 		foreach ($attributes as $name => $value)
@@ -174,12 +174,20 @@ final class FieldXml
 	 * @return  array<string, string>  The attributes to write.
 	 * @since   6.1.6
 	 */
-	public function attributes(string $column, array $properties): array
+	public function attributes(string $column, array $properties, bool $fresh = true, array $standing = []): array
 	{
 		$bag = $this->bag($column, $properties);
 		$type = (string) ($properties['xml_type']['value'] ?? '');
 		$link = $this->link($properties, $type);
-		$declared = $this->fieldtype->declared($link === [] ? $type : 'custom');
+		// a type JCB does not know is the source's own generated field type,
+		// stored as a Custom field whose XML names that type itself
+		$own = $link === [] && trim($type) !== ''
+			&& $this->fieldtype->resolve($type, false) === null;
+		// the Custom entry's declared properties describe a list-backed field
+		// JCB generates, and its examples name a table that does not exist;
+		// a type the source made itself is nothing of the kind, so nothing
+		// is filled in for it -- what the source states is all there is
+		$declared = $own ? [] : $this->fieldtype->declared($link === [] ? $type : 'custom');
 
 		$option = $this->optionAttribute($properties);
 
@@ -188,73 +196,107 @@ final class FieldXml
 			$bag['option'] = $option;
 		}
 
+		// on an update the XML the person keeps is the base, and the source
+		// only fills what it lacks. A compiled form is derived from that very
+		// record -- placeholders resolved, constants looked up -- so where the
+		// two differ the record is the truth and the form the echo; and a
+		// compiled form never shows every property a record holds -- a
+		// subform's own field list, a custom field's PHP -- so a re-run must
+		// never take those away or write an echo over them
+		$settings = $this->settings($column, $bag);
+		$attributes = $standing;
+		$kept = $standing !== [];
+
 		// the JCB alignment: every property the field type declares is
-		// written, in the type's own order -- the harvested value first, a
-		// derived setting second, the type's example value last. This is the
-		// same walk JCB's own field composition makes, so a field lands
-		// exactly as JCB itself would lay it out.
-		if ($declared !== [])
+		// written in the type's own order, the source's stated value first,
+		// the link's own value second. A gap the source leaves is filled the
+		// way JCB's own field composition fills it -- a derived setting, then
+		// the type's example -- on a fresh field for every property, and on a
+		// standing field for the properties the type marks mandatory alone:
+		// what the person left out of a field they curated stays out
+		foreach ($declared as $property)
 		{
-			$settings = $this->settings($column, $bag);
-			$attributes = [];
+			$name = (string) $property['name'];
 
-			foreach ($declared as $property)
+			if (in_array($name, self::DROP, true)
+				|| str_contains($name, 'type_php'))
 			{
-				$name = (string) $property['name'];
-
-				if (in_array($name, self::DROP, true)
-					|| str_contains($name, 'type_php'))
-				{
-					continue;
-				}
-
-				$attributes[$name] = (string) ($bag[$name]
-					?? $settings[$name]
-					?? $property['example']);
+				continue;
 			}
 
-			// harvested options are content, and losing them because a type
-			// forgot to declare the property would be data loss
-			if ($option !== '' && !isset($attributes['option']))
+			if (isset($bag[$name]))
 			{
-				$attributes['option'] = $option;
-			}
-		}
-		else
-		{
-			$allowed = $this->fieldtype->properties($link === [] ? $type : 'custom');
-			$attributes = [];
-
-			foreach (self::ORDER as $name)
-			{
-				if (isset($bag[$name]) && $this->allowed($name, $allowed))
+				if (!$kept || !isset($attributes[$name]))
 				{
 					$attributes[$name] = $bag[$name];
-					unset($bag[$name]);
 				}
+
+				continue;
 			}
 
-			foreach ($bag as $name => $value)
+			if (isset($link[$name]) && in_array($name, self::LINK, true))
 			{
-				if ($this->allowed($name, $allowed))
+				// a standing record already describes its own relationship
+				if (!$kept)
 				{
-					$attributes[$name] = $value;
+					$attributes[$name] ??= (string) $link[$name];
 				}
+
+				continue;
+			}
+
+			if (isset($attributes[$name]) || (!$fresh && empty($property['mandatory'])))
+			{
+				continue;
+			}
+
+			$attributes[$name] = (string) ($settings[$name] ?? $property['example']);
+		}
+
+		// every attribute the source states is the source's own statement,
+		// whether or not the catalogue entry declares it -- a form's showon,
+		// a modal's own keys -- and the stored XML is what the compiler
+		// writes back, so nothing stated is dropped
+		foreach (self::ORDER as $name)
+		{
+			if (isset($bag[$name]) && !in_array($name, self::DROP, true)
+				&& (!$kept || !isset($attributes[$name])))
+			{
+				$attributes[$name] = $bag[$name];
+			}
+		}
+
+		foreach ($bag as $name => $value)
+		{
+			if (!in_array($name, self::DROP, true)
+				&& (!$kept || !isset($attributes[$name])))
+			{
+				$attributes[$name] = $value;
 			}
 		}
 
 		if ($link === [])
 		{
-			return $attributes;
+			// a Custom field carries its own type in its XML, exactly as JCB
+			// stores one: the type attribute is how the compiler names it
+			return $own && !isset($attributes['type'])
+				? ['type' => trim($type)] + $attributes
+				: $attributes;
 		}
 
 		// A linked field is a generated custom field type, and these attributes are
 		// the only place its target is recorded, so they are written whether or not
-		// the catalogue entry happens to declare them.
-		return ['type' => $link['type']] + $attributes + array_intersect_key(
-			$link,
-			array_flip(self::LINK)
-		);
+		// the catalogue entry happens to declare them -- filling what the source
+		// and the standing record left unsaid, never overriding what they state
+		if (!$kept)
+		{
+			foreach (array_intersect_key($link, array_flip(self::LINK)) as $name => $value)
+			{
+				$attributes[$name] ??= (string) $value;
+			}
+		}
+
+		return ['type' => $attributes['type'] ?? $link['type']] + $attributes;
 	}
 
 	/**
@@ -356,13 +398,20 @@ final class FieldXml
 		$plural = trim((string) ($link['views'] ?? '')) ?: $single . 's';
 		$declared = strtolower(trim($declared));
 
-		// A declared type JCB already knows is a plain field type and cannot express
-		// a link, so the generated type is named after the target instead. A declared
-		// type JCB does not know is already the source component's own generated
-		// field type, and keeping its name keeps the component recognisable.
-		$type = $declared === '' || $this->fieldtype->id($declared) !== null
-			? $plural
-			: $declared;
+		// A declared type JCB already knows is the field's type, full stop: a
+		// ModalSelect, a list or a text field states its own relationship in
+		// its own attributes, and turning it into a generated custom type would
+		// change the type the source states -- which an extrusion never does.
+		// The link builds a custom type only where the source declares no type
+		// JCB knows: the source component's own generated field type keeps its
+		// name, and a field with no declared type at all is named after the
+		// target it selects from.
+		if ($declared !== '' && $this->fieldtype->resolve($declared, false) !== null)
+		{
+			return [];
+		}
+
+		$type = $declared === '' ? $plural : $declared;
 
 		return [
 			'type' => $type,
@@ -405,6 +454,14 @@ final class FieldXml
 		foreach (['label', 'description', 'hint', 'message', 'default', 'class', 'required', 'filter', 'validate', 'multiple', 'readonly', 'disabled'] as $name)
 		{
 			$value = $properties[$name]['value'] ?? null;
+
+			// the XML default is the form's own statement; a column's database
+			// default is a different thing, and feeds the data default alone
+			if ($name === 'default'
+				&& !in_array((string) ($properties[$name]['origin'] ?? ''), ['xml', 'notes'], true))
+			{
+				continue;
+			}
 
 			if (is_scalar($value) && (string) $value !== '')
 			{
@@ -493,6 +550,9 @@ final class FieldXml
 	 */
 	protected function escape(string $value): string
 	{
-		return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+		// an apostrophe stays an apostrophe: JCB stores one as typed inside a
+		// double-quoted attribute, and the compiler carries it into the
+		// language file as typed -- an entity there reads as an entity
+		return htmlspecialchars($value, ENT_COMPAT | ENT_XML1, 'UTF-8');
 	}
 }

@@ -179,6 +179,16 @@ abstract class Writer implements WriterInterface
 				'kept.' . $this->table() . '.' . $identity,
 				$boilerplate
 			);
+
+			// a record that keeps everything it has is left exactly as it
+			// stands: there is nothing to write, and an update carrying only
+			// the identity is not a write the pipeline can make
+			if (count(get_object_vars($definition)) <= 1)
+			{
+				$this->report->set('untouched.' . $this->table() . '.' . $identity, true);
+
+				return true;
+			}
 		}
 
 		if (!$this->item->table($this->table())->set($definition, $key))

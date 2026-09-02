@@ -55,6 +55,37 @@ final class ClassFileTest extends TestCase
 	}
 
 	/**
+	 * The body keeps the indentation its first line carried, and a docblock keeps its own.
+	 *
+	 * JCB stores a body with its first line indented like the rest, and a
+	 * description exactly as written -- a continuation line indented further
+	 * than its neighbours is indented on purpose.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testTheBodyAndTheDocblockKeepTheirIndentation(): void
+	{
+		$code = "<?php\n/**\n * @package    Demo.Library\n */\n\nnamespace Demo\\Joomla\\Data;\n\n/**\n * Demo Loader Class\n *\n * This class extends the behaviour of the original\n *    by supporting database-driven fields while\n *    preserving the interface.\n *\n * @since 1.0.0\n */\nfinal class Loader\n{\n\t/**\n\t * The value.\n\t */\n\tprotected string \$value = 'demo';\n}\n";
+
+		$parts = $this->reader->read($code);
+
+		$this->assertNotNull($parts);
+		$this->assertStringStartsWith(
+			"\t/**\n\t * The value.",
+			$parts['body'],
+			'The first line of the body is indented like every other line.'
+		);
+		$this->assertStringEndsWith("protected string \$value = 'demo';", $parts['body']);
+		$this->assertSame(
+			"Demo Loader Class\n\nThis class extends the behaviour of the original\n   by supporting database-driven fields while\n   preserving the interface.\n\n@since 1.0.0",
+			$parts['docblock'],
+			'Only the comment margin comes off; a deeper indentation is the author\'s own.'
+		);
+		$this->assertSame("/**\n * @package    Demo.Library\n */\n", $parts['license']);
+	}
+
+	/**
 	 * A complete file decomposes into every part a power row stores.
 	 *
 	 * @return  void
@@ -100,7 +131,7 @@ PHP;
 		$this->assertSame('final class', $parts['type']);
 		$this->assertSame("Demo Loader Class\n\n@since 1.0.0", $parts['docblock']);
 		$this->assertStringStartsWith('/**', $parts['license']);
-		$this->assertStringEndsWith('*/', $parts['license']);
+		$this->assertStringEndsWith("*/\n", $parts['license'], 'The block keeps the line break that closes it.');
 		$this->assertStringContainsString('@package    Demo.Library', $parts['license']);
 		$this->assertSame(['Foundation'], $parts['extends']);
 		$this->assertSame(['LoaderInterface'], $parts['implements']);

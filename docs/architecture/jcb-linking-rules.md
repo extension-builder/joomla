@@ -349,6 +349,79 @@ each rewrites the table:
   rules: they name an access action for every view whether or not the view
   has an access level.
 
+## An update never rewrites what a person curated
+
+An update run is aimed at a component that already stands in JCB, and the
+source it reads was compiled from those very records. What the source states
+is therefore an echo of the record with the compiler's transforms applied:
+placeholders resolved, constants looked up, defaults laid out. The record is
+the truth and the echo never overwrites it.
+
+- **A standing field keeps its type, its name, its storage and its database
+  shape.** Only its XML is written, and that XML is the standing XML with the
+  source laid over it: every attribute the record holds stays exactly as it
+  is, including what a compiled form never shows -- a subform's own field
+  list, a custom field's PHP -- and the source adds only the attributes the
+  record lacks. Nothing is restated, nothing is removed.
+- **The type the source states is the type.** A form's `type="ModalSelect"`
+  is a ModalSelect, whatever a table class says about the column's
+  relationship: a type JCB knows states its own relationship in its own
+  attributes. The table class's `link` builds a generated custom field only
+  where the source declares no type JCB knows, and then the link's values
+  name the real table, key and value, never the Custom type's examples. A
+  type the source made itself is stored as a Custom field whose XML names
+  that type, and nothing is filled in for it.
+- **Defaults are filled on create, and mandatory gaps alone on update.** A
+  fresh field is laid out the way JCB lays one out, every declared property
+  filled from the source, a derived setting, or the type's example. A field
+  that stands gains only the properties the field type marks mandatory and
+  the source omits; what the person left out stays out.
+- **The XML default is the form's own statement.** A column's database
+  default feeds the data default alone, never the `default` attribute.
+- **Everything the source states is written**, declared by the field type or
+  not: a `showon` rule, a modal's own keys, a `validated` attribute. An
+  apostrophe stays an apostrophe.
+- **The paired view's own wiring is identity.** A field the paired view
+  links whose XML names this very column IS the column's field, whatever its
+  record name and whatever its properties hash to. The hash finds duplicates
+  elsewhere; it never outranks a person's own wiring, which is what keeps an
+  update from creating a second field beside a curated one. This holds for
+  a column only one view states just as it does for a shared one: a group
+  of one member is the common case, and it meets the paired component too.
+- **A record with nothing to restate is left untouched.** When an update
+  keeps everything a standing record holds, no write is made at all; the
+  report names it under `untouched` rather than pretending a write. Seed
+  data the standing view already states is kept as the person wrote it
+  (`kept.seed`): the comparison resolves the compiler's own placeholders
+  (`#__[[[component]]]_item` reads as `#__demo_item`) and ignores the
+  whitespace a dump lays out. Rows that did change are restated naming the
+  tables the way the person names them (`expressed.seed`).
+- **A subform's inner field never speaks for a column.** A subform's own
+  field list may name a field after one of the view's columns (`guid` is
+  the usual one); read before the view's field, it would hold the bare
+  key. The column's field is the one no subform holds, whatever the order.
+- **A screen's list name is what the access rules word it as.** JCB titles
+  every rule of a screen under its list name (`COM_X_ITEMS_IMPORT_QUEUE_ACCESS`
+  for the `item_import` screen), and that title is the source's own
+  statement of the list, table class or not. A table class that states a
+  list view is the stronger statement; the plural rule is the last resort,
+  and a plural the menu never names is reported as unconfirmed.
+- **A view's names are the English JCB keeps** (`Address Type`,
+  `Address Types`), stated by the component's own language under the
+  constants JCB writes them to (`COM_X_ADDRESS_TYPE`, `COM_X_ADDRESS_TYPES`)
+  and humanised from the table name only where the language says nothing.
+  A humanised name is a derivation and never overwrites the name a person
+  gave a standing view. The codes every folder, form and constant speak
+  travel beside the names (`name_single_code`, `name_list_code`), and every
+  comparison with a folder is a comparison of codes.
+- **A standing custom admin view, site view or component row keeps its
+  own work.** Names, templates, PHP, descriptions and data sources are the
+  person's; the manifest fills only the component columns the record leaves
+  empty.
+- **Seed data is stored the way JCB's own dump writes it**: every statement
+  terminated, separated, and headed by the `Dumping data for table` comment,
+  so an extruded install file installs and reads exactly like a compiled one.
+
 ## Fields are shared, not repeated
 
 A field is a record of its own in JCB, and every view that needs it links

@@ -354,7 +354,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame('Demo.Data.Action.Fetch', $fetch->system_name);
 		$this->assertSame('1.0.0', $fetch->power_version);
 		$this->assertSame(1, $fetch->published);
-		$this->assertSame(ExtrusionLibraryFixture::LICENSE, $fetch->licensing_template);
+		// the block keeps the line break that closes it, exactly as JCB
+		// stores its own licence templates
+		$this->assertSame(ExtrusionLibraryFixture::LICENSE . "\n", $fetch->licensing_template);
 		$this->assertSame(2, $fetch->add_licensing_template);
 		$this->assertStringContainsString('abstract public function fetch();', $fetch->main_class_code);
 		$this->assertStringNotContainsString('class Fetch', $fetch->main_class_code);

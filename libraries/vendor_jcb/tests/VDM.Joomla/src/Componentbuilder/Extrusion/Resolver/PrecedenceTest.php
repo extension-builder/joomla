@@ -426,6 +426,51 @@ PHP;
 	}
 
 	/**
+	 * A subform's inner field sharing a column's name never speaks for the column.
+	 *
+	 * A subform's own field list may name a field after one of the view's
+	 * columns, and read before the view's field it holds the bare key. The
+	 * column's field is the one no subform holds, whatever the reading
+	 * order -- or a re-run would lay the inner field's default over a
+	 * curated column.
+	 *
+	 * @return  void
+	 * @since   6.1.9
+	 */
+	public function testASubformsInnerFieldNeverSpeaksForTheColumn(): void
+	{
+		// the inner field was read first and holds the bare key; the view's
+		// own field, read after it, was keyed beside it
+		$own = $this->form->get('view.probe.field.tinted');
+		$this->form->set('view.probe.field.tinted', [
+			'name' => 'tinted',
+			'type' => 'text',
+			'fieldset' => 'details',
+			'order' => 0,
+			'subform' => 'palette',
+			'attribute' => ['name' => 'tinted', 'default' => '0', 'filter' => 'STRING']
+		]);
+		$this->form->set('view.probe.field.tinted_2', $own);
+
+		$tinted = $this->probe('tinted');
+
+		$this->assertSame('blue', $tinted['default']['value'], 'The view\'s own field states the default.');
+		$this->assertSame('xml', $tinted['default']['origin']);
+
+		// with no field of the view's own, the inner field still says nothing
+		$this->form->set('view.probe.field.tinted_2', null);
+
+		$tinted = $this->probe('tinted');
+
+		$this->assertSame(
+			'#ffffff',
+			$tinted['default']['value'],
+			'A column no form field of the view states falls to the table\'s own default.'
+		);
+		$this->assertNotSame('xml', $tinted['default']['origin']);
+	}
+
+	/**
 	 * Reordering the tier option moves the win to the promoted tier.
 	 *
 	 * @return  void

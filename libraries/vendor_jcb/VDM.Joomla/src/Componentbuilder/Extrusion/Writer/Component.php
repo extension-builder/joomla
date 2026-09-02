@@ -151,6 +151,38 @@ final class Component extends Writer
 			return 0;
 		}
 
+		// a component that stands is a person's own: what its record already
+		// says stays exactly as they wrote it -- a compiled manifest is derived
+		// from that very record, and its echo never overwrites the original.
+		// The manifest fills only what the record leaves empty
+		$standing = $this->item->table($this->table())->get((string) $component, 'id');
+
+		if ($standing !== null)
+		{
+			$kept = [];
+
+			foreach (array_keys($definition) as $column)
+			{
+				if (trim((string) ($standing->{$column} ?? '')) !== '')
+				{
+					$kept[] = $column;
+					unset($definition[$column]);
+				}
+			}
+
+			if ($kept !== [])
+			{
+				$this->report->set('kept.joomla_component.' . $component, $kept);
+			}
+
+			if ($definition === [])
+			{
+				$this->report->set('component.details', 'the record already states everything the manifest does');
+
+				return 0;
+			}
+		}
+
 		$this->report->set('component.details', array_keys($definition));
 
 		if ($this->config->get('dryRun', false))
