@@ -59,6 +59,7 @@ final class RelationsTest extends ArchitectureTestCase
 	 */
 	public function author($item)
 	{
+		// Relate the author to the authors resource.
 		return $this->related($item->author ?? null, 'authors');
 	}
 GEN;
@@ -135,6 +136,7 @@ GEN;
 
 		$this->assertStringContainsString('public function mainAuthor($item)', $code);
 		$this->assertStringContainsString("return \$this->related(\$item->main_author ?? null, 'users');", $code);
+		$this->assertStringContainsString('// Relate the main_author to the users resource.', $code);
 		$this->assertStringContainsString('public function createdBy($item)', $code);
 		$this->assertStringContainsString('public function modifiedBy($item)', $code);
 		$this->assertStringNotContainsString('TagApiSerializerTrait', $code);

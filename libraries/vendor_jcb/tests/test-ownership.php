@@ -752,6 +752,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/RecordIdTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Plugin/Routes.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Plugin/RoutesTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/Relations.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Serializer/RelationsTest.php'
