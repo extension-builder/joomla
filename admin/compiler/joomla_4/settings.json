@@ -632,6 +632,30 @@
 					"rename": "new",
 					"newName": "[[[Name]]]Serializer.php",
 					"type": "serializer"
+				},
+				"API_DYNAMIC_VIEW_CONTROLLER.php": {
+					"path": "c0mp0n3nt/api/src/Controller",
+					"rename": "new",
+					"newName": "[[[Name]]]Controller.php",
+					"type": "dynamic_single"
+				},
+				"API_DYNAMIC_VIEW_JSON.php": {
+					"path": "c0mp0n3nt/api/src/View/[[[Name]]]",
+					"rename": "new",
+					"newName": "JsonapiView.php",
+					"type": "dynamic_single"
+				},
+				"API_DYNAMIC_VIEWS_CONTROLLER.php": {
+					"path": "c0mp0n3nt/api/src/Controller",
+					"rename": "new",
+					"newName": "[[[Name]]]Controller.php",
+					"type": "dynamic_list"
+				},
+				"API_DYNAMIC_VIEWS_JSON.php": {
+					"path": "c0mp0n3nt/api/src/View/[[[Name]]]",
+					"rename": "new",
+					"newName": "JsonapiView.php",
+					"type": "dynamic_list"
 				}
 			},
 			"site": {

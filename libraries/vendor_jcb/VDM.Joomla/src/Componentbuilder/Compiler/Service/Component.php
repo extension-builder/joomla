@@ -320,7 +320,8 @@ class Component implements ServiceProviderInterface
 			$container->get('Component'),
 			$container->get('Model.Createdate'),
 			$container->get('Model.Modifieddate'),
-			$container->get('Utilities.Structure')
+			$container->get('Utilities.Structure'),
+			$container->get('Architecture.Api.Resources')
 		);
 	}
 

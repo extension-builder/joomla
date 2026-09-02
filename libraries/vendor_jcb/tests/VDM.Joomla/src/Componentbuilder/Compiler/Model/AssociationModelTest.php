@@ -127,11 +127,13 @@ final class AssociationModelTest extends TestCase
 	{
 		$order = [];
 		$views = [['add_api' => 2, 'settings' => (object) ['name_list_code' => 'articles']]];
+		$custom = [['settings' => (object) ['code' => 'report']]];
+		$site = [['settings' => (object) ['code' => 'page']]];
 
 		$routes = $this->createMock(Routes::class);
 		$routes->expects($this->once())
 			->method('set')
-			->with($views)
+			->with($views, $custom, $site)
 			->willReturnCallback(
 				static function () use (&$order): void
 				{
@@ -150,6 +152,8 @@ final class AssociationModelTest extends TestCase
 
 		$item = (object) [
 			'admin_views' => $views,
+			'custom_admin_views' => $custom,
+			'site_views' => $site,
 			'addjoomla_plugins' => json_encode([['plugin' => 'alpha']], JSON_THROW_ON_ERROR)
 		];
 
@@ -157,6 +161,8 @@ final class AssociationModelTest extends TestCase
 
 		$this->assertSame(['routes', 'plugin'], $order);
 		$this->assertSame($views, $item->admin_views);
+		$this->assertSame($custom, $item->custom_admin_views);
+		$this->assertSame($site, $item->site_views);
 	}
 
 	/**
@@ -168,7 +174,7 @@ final class AssociationModelTest extends TestCase
 	public function testJoomlapluginsOffersTheEmptyRouteSetWithoutAdminViews(): void
 	{
 		$routes = $this->createMock(Routes::class);
-		$routes->expects($this->once())->method('set')->with([]);
+		$routes->expects($this->once())->method('set')->with([], [], []);
 
 		$plugin = $this->createStub(PluginDataInterface::class);
 		$plugin->method('set')->willReturn(true);

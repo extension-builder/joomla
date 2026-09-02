@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin;
 
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\RecordId;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
@@ -24,8 +25,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  *
  * The compiler does not generate a plugin. A plugin of the webservices
  * group that the JCB user creates and links to the component carries one
- * of these placeholders, which the compiler fills for every admin view
- * that has an API:
+ * of these placeholders, which the compiler fills for every resource of
+ * the component (the admin views with an API, and the custom admin views
+ * and site views the resources map names):
  *
  *   [[[API_ROUTES]]]         the body of the route method, indented two
  *                            tabs after its first line, and
@@ -56,6 +58,14 @@ class Routes
 	protected Placeholder $placeholder;
 
 	/**
+	 * The Api Resources Class.
+	 *
+	 * @var   Resources
+	 * @since 6.1.7
+	 */
+	protected Resources $resources;
+
+	/**
 	 * The Api Controller RecordId Class.
 	 *
 	 * @var   RecordId
@@ -68,31 +78,35 @@ class Routes
 	 *
 	 * @param Config       $config       The Config Class.
 	 * @param Placeholder  $placeholder  The Placeholder Class.
+	 * @param Resources    $resources    The Api Resources Class.
 	 * @param RecordId     $recordid     The Api Controller RecordId Class.
 	 *
 	 * @since 6.1.7
 	 */
 	public function __construct(Config $config, Placeholder $placeholder,
-		RecordId $recordid)
+		Resources $resources, RecordId $recordid)
 	{
 		$this->config = $config;
 		$this->placeholder = $placeholder;
+		$this->resources = $resources;
 		$this->recordid = $recordid;
 	}
 
 	/**
 	 * Register the route placeholders the linked plugins may carry.
 	 *
-	 * @param   array  $views  The admin views of the component, each an array
-	 *                         with its link settings and the add_api option.
+	 * @param   array  $views             The admin view links of the component, each an
+	 *                                    array with its settings and the add_api option.
+	 * @param   array  $customAdminViews  The custom admin view links of the component.
+	 * @param   array  $siteViews         The site view links of the component.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function set(array $views): void
+	public function set(array $views, array $customAdminViews = [], array $siteViews = []): void
 	{
-		$this->placeholder->set('API_ROUTES', $this->get($views));
-		$this->placeholder->set('API_ROUTES_METHOD', $this->getMethod($views));
+		$this->placeholder->set('API_ROUTES', $this->get($views, $customAdminViews, $siteViews));
+		$this->placeholder->set('API_ROUTES_METHOD', $this->getMethod($views, $customAdminViews, $siteViews));
 	}
 
 	/**
@@ -101,14 +115,16 @@ class Routes
 	 * The first line carries no indentation, so the placeholder sits where
 	 * the body starts; every following line is indented as a method body.
 	 *
-	 * @param   array  $views  The admin views of the component.
+	 * @param   array  $views             The admin view links of the component.
+	 * @param   array  $customAdminViews  The custom admin view links of the component.
+	 * @param   array  $siteViews         The site view links of the component.
 	 *
 	 * @return  string  The route registration code.
 	 * @since   6.1.7
 	 */
-	public function get(array $views): string
+	public function get(array $views, array $customAdminViews = [], array $siteViews = []): string
 	{
-		return $this->render($this->body($views), 2);
+		return $this->render($this->body($views, $customAdminViews, $siteViews), 2);
 	}
 
 	/**
@@ -118,12 +134,14 @@ class Routes
 	 * the method starts; every following line is indented as a class member.
 	 * Joomla 4 gets the legacy router argument, Joomla 5 and up the event.
 	 *
-	 * @param   array  $views  The admin views of the component.
+	 * @param   array  $views             The admin view links of the component.
+	 * @param   array  $customAdminViews  The custom admin view links of the component.
+	 * @param   array  $siteViews         The site view links of the component.
 	 *
 	 * @return  string  The route method code.
 	 * @since   6.1.7
 	 */
-	public function getMethod(array $views): string
+	public function getMethod(array $views, array $customAdminViews = [], array $siteViews = []): string
 	{
 		$component = 'com_' . $this->config->component_code_name;
 		$legacy = $this->config->get('joomla_version', 3) < 5;
@@ -163,7 +181,7 @@ class Routes
 			$rows[] = null;
 		}
 
-		foreach ($this->body($views) as $row)
+		foreach ($this->body($views, $customAdminViews, $siteViews) as $row)
 		{
 			$rows[] = ($row === null) ? null : [$row[0] + 1, $row[1]];
 		}
@@ -176,31 +194,35 @@ class Routes
 	/**
 	 * The rows of the route method body.
 	 *
-	 * @param   array  $views  The admin views of the component.
+	 * @param   array  $views             The admin view links of the component.
+	 * @param   array  $customAdminViews  The custom admin view links of the component.
+	 * @param   array  $siteViews         The site view links of the component.
 	 *
 	 * @return  array  The rows, each an indentation level and a line, a
 	 *                 blank line being null.
 	 * @since   6.1.7
 	 */
-	private function body(array $views): array
+	private function body(array $views, array $customAdminViews, array $siteViews): array
 	{
 		$component = 'com_' . $this->config->component_code_name;
 		$resources = [];
+		$public = false;
 
-		foreach ($views as $view)
+		foreach ($this->resources->map($views, $customAdminViews, $siteViews) as $resource)
 		{
-			$resource = $this->resource(is_array($view) ? $view : []);
+			$rows = $this->resource($resource);
 
-			if ($resource !== [])
+			if ($rows !== [])
 			{
-				$resources[] = $resource;
+				$resources[] = $rows;
+				$public = $public || $resource['public'];
 			}
 		}
 
 		if ($resources === [])
 		{
 			return [[0, "//" . Line::_(__LINE__, __CLASS__)
-				. " No admin view of {$component} has an API."]];
+				. " No view of {$component} has an API."]];
 		}
 
 		$rows = [];
@@ -208,6 +230,11 @@ class Routes
 			. " Register the JSON:API routes of {$component}."];
 		$rows[] = [0, "\$defaults = ['component' => '{$component}'];"];
 		$rows[] = [0, "\$getDefaults = ['public' => false, 'component' => '{$component}'];"];
+
+		if ($public)
+		{
+			$rows[] = [0, "\$publicDefaults = ['public' => true, 'component' => '{$component}'];"];
+		}
 
 		foreach ($resources as $resource)
 		{
@@ -223,85 +250,86 @@ class Routes
 	}
 
 	/**
-	 * The rows registering the routes of one admin view.
+	 * The rows registering the routes of one resource.
 	 *
-	 * The list resource answers on the list code, the item resource on the
-	 * single code, and both share the list code as the resource path, which
-	 * is the JSON:API type the generated controllers declare.
+	 * An admin view answers on its list code, the list resource on the list
+	 * controller and the item resource on the single controller by id and by
+	 * every unique key. A custom admin view or site view answers on its API
+	 * name, with the item resource by id and without one.
 	 *
-	 * @param   array  $view  The admin view link with its settings.
+	 * @param   array  $resource  The resource, as the resources map names it.
 	 *
-	 * @return  array  The rows, none when the view has no API.
+	 * @return  array  The rows, none when the resource has no route.
 	 * @since   6.1.7
 	 */
-	private function resource(array $view): array
+	private function resource(array $resource): array
 	{
-		$api = $this->api($view);
-
-		if ($api === 0 || !isset($view['settings']) || !is_object($view['settings']))
-		{
-			return [];
-		}
-
-		$settings = $view['settings'];
-		$single = (string) ($settings->name_single_code ?? '');
-		$list = (string) ($settings->name_list_code ?? '');
-
-		if ($list === '')
-		{
-			return [];
-		}
-
-		$path = 'v1/' . $this->config->component_code_name . '/' . $list;
-		$hasList = $api !== 3 && ($settings->name_list ?? 'null') != 'null';
-		$hasItem = $api !== 1 && ($settings->name_single ?? 'null') != 'null'
-			&& $single !== '';
-
-		if (!$hasList && !$hasItem)
-		{
-			return [];
-		}
-
+		$name = $resource['name'];
+		$path = 'v1/' . $this->config->component_code_name . '/' . $name;
+		$reads = $resource['public'] ? '$publicDefaults' : '$getDefaults';
 		$routes = [];
 
-		if ($hasList)
+		if ($resource['area'] === Resources::AREA_ADMIN)
 		{
-			$routes[] = $this->route('GET', $path, $list . '.displayList', null, true);
+			$single = (string) $resource['single'];
+
+			if ($resource['list'])
+			{
+				$routes[] = $this->route('GET', $path, $name . '.displayList', null, $reads);
+			}
+
+			if ($resource['item'] && $single !== '')
+			{
+				$keys = $this->recordid->keys($single);
+
+				$routes[] = $this->route('GET', $path . '/:id', $single . '.displayItem', 'id', $reads);
+
+				foreach ($keys as $key)
+				{
+					$routes[] = $this->route('GET', $path . '/' . $key . '/:' . $key,
+						$single . '.displayItem', $key, $reads);
+				}
+
+				$routes[] = $this->route('POST', $path, $single . '.add', null, '$defaults');
+				$routes[] = $this->route('PATCH', $path . '/:id', $single . '.edit', 'id', '$defaults');
+
+				foreach ($keys as $key)
+				{
+					$routes[] = $this->route('PATCH', $path . '/' . $key . '/:' . $key,
+						$single . '.edit', $key, '$defaults');
+				}
+
+				$routes[] = $this->route('DELETE', $path . '/:id', $single . '.delete', 'id', '$defaults');
+
+				foreach ($keys as $key)
+				{
+					$routes[] = $this->route('DELETE', $path . '/' . $key . '/:' . $key,
+						$single . '.delete', $key, '$defaults');
+				}
+			}
+		}
+		else
+		{
+			if ($resource['list'])
+			{
+				$routes[] = $this->route('GET', $path, $name . '.displayList', null, $reads);
+			}
+
+			if ($resource['item'])
+			{
+				$routes[] = $this->route('GET', $path, $name . '.displayItem', null, $reads);
+				$routes[] = $this->route('GET', $path . '/:id', $name . '.displayItem', 'id', $reads);
+			}
 		}
 
-		if ($hasItem)
+		if ($routes === [])
 		{
-			$keys = $this->recordid->keys($single);
-
-			$routes[] = $this->route('GET', $path . '/:id', $single . '.displayItem', 'id', true);
-
-			foreach ($keys as $key)
-			{
-				$routes[] = $this->route('GET', $path . '/' . $key . '/:' . $key,
-					$single . '.displayItem', $key, true);
-			}
-
-			$routes[] = $this->route('POST', $path, $single . '.add', null, false);
-			$routes[] = $this->route('PATCH', $path . '/:id', $single . '.edit', 'id', false);
-
-			foreach ($keys as $key)
-			{
-				$routes[] = $this->route('PATCH', $path . '/' . $key . '/:' . $key,
-					$single . '.edit', $key, false);
-			}
-
-			$routes[] = $this->route('DELETE', $path . '/:id', $single . '.delete', 'id', false);
-
-			foreach ($keys as $key)
-			{
-				$routes[] = $this->route('DELETE', $path . '/' . $key . '/:' . $key,
-					$single . '.delete', $key, false);
-			}
+			return [];
 		}
 
 		$rows = [];
 		$rows[] = [0, "//" . Line::_(__LINE__, __CLASS__)
-			. " The routes of the {$list} resource."];
+			. " The routes of the {$name} resource."];
 		$rows[] = [0, "\$router->addRoutes(["];
 
 		foreach ($routes as $route)
@@ -317,17 +345,17 @@ class Routes
 	/**
 	 * One route construction.
 	 *
-	 * @param   string       $method  The HTTP method.
-	 * @param   string       $path    The route pattern.
-	 * @param   string       $task    The controller and task.
-	 * @param   string|null  $key     The route variable, when the pattern has one.
-	 * @param   bool         $read    Whether the route reads, and so takes the GET defaults.
+	 * @param   string       $method    The HTTP method.
+	 * @param   string       $path      The route pattern.
+	 * @param   string       $task      The controller and task.
+	 * @param   string|null  $key       The route variable, when the pattern has one.
+	 * @param   string       $defaults  The variable carrying the route defaults.
 	 *
 	 * @return  string  The route construction code.
 	 * @since   6.1.7
 	 */
 	private function route(string $method, string $path, string $task,
-		?string $key, bool $read): string
+		?string $key, string $defaults): string
 	{
 		$rules = '[]';
 
@@ -337,7 +365,7 @@ class Routes
 		}
 
 		return "new \\Joomla\\Router\\Route(['{$method}'], '{$path}', '{$task}', "
-			. $rules . ", " . ($read ? '$getDefaults' : '$defaults') . "),";
+			. $rules . ", " . $defaults . "),";
 	}
 
 	/**
@@ -364,26 +392,6 @@ class Routes
 		}
 
 		return '([^/]+)';
-	}
-
-	/**
-	 * The API option of an admin view link.
-	 *
-	 * @param   array  $view  The admin view link.
-	 *
-	 * @return  int  0 none, 1 list, 2 both, 3 item; 0 below Joomla 4.
-	 * @since   6.1.7
-	 */
-	private function api(array $view): int
-	{
-		if ($this->config->get('joomla_version', 3) < 4 || !isset($view['add_api']))
-		{
-			return 0;
-		}
-
-		$api = (int) $view['add_api'];
-
-		return in_array($api, [1, 2, 3], true) ? $api : 0;
 	}
 
 	/**
