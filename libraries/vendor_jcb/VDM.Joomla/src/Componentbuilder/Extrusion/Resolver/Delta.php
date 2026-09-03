@@ -184,7 +184,11 @@ final class Delta
 	 */
 	protected function stored(string $table, string $column, $value): string
 	{
-		if ($value === null)
+		// a column that was never set, one set to nothing, and one holding an
+		// empty list are the same nothing. They read back differently -- null,
+		// an empty string, an empty list, an empty object -- and a write that
+		// puts one where another stands changes nothing a person would see
+		if ($this->nothing($value))
 		{
 			return '';
 		}
@@ -206,6 +210,31 @@ final class Delta
 		}
 
 		return is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+	}
+
+	/**
+	 * Whether a value says nothing at all.
+	 *
+	 * @param   mixed  $value  The value.
+	 *
+	 * @return  bool  True when the value holds nothing.
+	 * @since   6.2.0
+	 */
+	protected function nothing($value): bool
+	{
+		if ($value === null || $value === '' || $value === [])
+		{
+			return true;
+		}
+
+		if (is_object($value))
+		{
+			return get_object_vars($value) === [];
+		}
+
+		// the stored forms of an empty list, read back out of the column as
+		// the text they were written as
+		return is_string($value) && in_array(trim($value), ['[]', '{}'], true);
 	}
 
 	/**
@@ -242,7 +271,7 @@ final class Delta
 	 */
 	protected function readable($value): string
 	{
-		if ($value === null)
+		if ($this->nothing($value))
 		{
 			return '';
 		}

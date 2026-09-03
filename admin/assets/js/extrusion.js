@@ -189,7 +189,6 @@
 		enableTab('pairing');
 		fillComponentSelect(payload);
 		await loadCatalogue(payload.component || 0);
-		standDownUnchanged();
 		renderBoard();
 		showPane('pairing');
 	}
@@ -389,25 +388,6 @@
 	}
 
 	/**
-	 * A row with nothing to change stands itself down.
-	 *
-	 * The record already says what the source says. Leaving such a row set to
-	 * update would ask the import to write it for no reason, so the board
-	 * settles it on ignore and says plainly that nothing changed. A person can
-	 * still overrule it like any other row.
-	 */
-	function standDownUnchanged() {
-		allCandidates().forEach((candidate) => {
-			const owed = weight(candidate);
-			if (!owed || owed.changed || (candidate.shared && !candidate.detached)) {
-				return;
-			}
-			state.decisions[candidate.kind] = state.decisions[candidate.kind] || {};
-			state.decisions[candidate.kind][candidate.key] = { action: 'ignore' };
-		});
-	}
-
-	/**
 	 * The badge that says what a row would change, and opens the diff.
 	 */
 	function changeBadge(candidate) {
@@ -421,6 +401,10 @@
 				+ 'data-extrusion-act="diff" title="' + esc(T.diffStaleHint) + '">'
 				+ esc(T.diffStale) + '</button>';
 		}
+		// a record that would change nothing is not written -- the engine
+		// settles that itself. The row is never set to ignore for it: ignoring
+		// takes the row out of the run altogether, and the view would lose the
+		// links and conditions that still have to be written for it
 		if (!owed.changed) {
 			return '<span class="extrusion-change extrusion-change-none" title="'
 				+ esc(T.noChangeHint) + '">' + esc(T.noChange) + '</span>';

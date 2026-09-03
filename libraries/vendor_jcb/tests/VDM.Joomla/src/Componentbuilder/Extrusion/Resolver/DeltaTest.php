@@ -262,6 +262,66 @@ final class DeltaTest extends TestCase
 	}
 
 	/**
+	 * A column that was never set and one holding an empty list say the same nothing.
+	 *
+	 * A record read back out of the database carries nothing in several
+	 * shapes -- null, an empty string, an empty list, an empty object -- and a
+	 * write that puts one of those where another stands changes nothing a
+	 * person would ever see. Reporting it would put "[]" on the board as
+	 * though it were work.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testEveryShapeOfNothingIsTheSameNothing(): void
+	{
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'implements' => '',
+			'extendsinterfaces' => null,
+			'use_selection' => (object) [],
+			'description' => 'A power that stands'
+		]);
+		$this->item->identity('power', self::GUID, 5);
+
+		$delta = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'implements' => [],
+			'extendsinterfaces' => [],
+			'use_selection' => [],
+			'description' => 'A power that stands'
+		], true);
+
+		$this->assertFalse(
+			$delta['changed'],
+			'Writing nothing where nothing stands is not a change, whatever shape the nothing takes.'
+		);
+		$this->assertSame([], $delta['columns']);
+	}
+
+	/**
+	 * Filling something in where nothing stood is still a change.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFillingNothingInIsStillAChange(): void
+	{
+		$this->item->serve('power', self::GUID, (object) ['guid' => self::GUID, 'implements' => '']);
+		$this->item->identity('power', self::GUID, 5);
+
+		$delta = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'implements' => ['0' => 'some-interface-guid']
+		], true);
+
+		$this->assertTrue($delta['changed']);
+		$this->assertSame(['implements'], array_keys($delta['columns']));
+		$this->assertSame('', $delta['columns']['implements']['before']);
+		$this->assertStringContainsString('some-interface-guid', $delta['columns']['implements']['after']);
+	}
+
+	/**
 	 * Every record weighed is proposed, and each proposal names its board row.
 	 *
 	 * @return  void

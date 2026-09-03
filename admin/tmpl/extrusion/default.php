@@ -252,7 +252,7 @@ window.JCBExtrusion = {
 		reused: '<?php echo Text::_('Reused', true); ?>',
 		kept: '<?php echo Text::_('Kept', true); ?>',
 		noChange: '<?php echo Text::_('no change', true); ?>',
-		noChangeHint: '<?php echo Text::_('This record already says what the source says, so the import will leave it alone.', true); ?>',
+		noChangeHint: '<?php echo Text::_('This record already says what the source says, so the import leaves it alone. Its view is still wired up as it should be.', true); ?>',
 		diffHint: '<?php echo Text::_('See exactly what this import would change here', true); ?>',
 		diffLoading: '<?php echo Text::_('Reading what would change...', true); ?>',
 		diffStale: '<?php echo Text::_('pairing changed', true); ?>',
