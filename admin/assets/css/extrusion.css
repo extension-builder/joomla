@@ -50,6 +50,7 @@
 .extrusion-row {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 0.5rem;
 	padding: 0.15rem 0.6rem;
 	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -174,4 +175,113 @@
 }
 .extrusion-folder-select {
 	margin-top: 0.25rem;
+}
+
+/* what a row would change, and the diff it opens */
+.extrusion-change {
+	display: inline-flex;
+	gap: 0.3rem;
+	align-items: center;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 0.2rem;
+	background: none;
+	padding: 0 0.35rem;
+	font-family: monospace;
+	font-size: 0.8rem;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+button.extrusion-change:hover,
+button.extrusion-change.open {
+	background: rgba(13, 110, 253, 0.1);
+	border-color: rgba(13, 110, 253, 0.4);
+}
+.extrusion-change-none {
+	color: #6c757d;
+	border-style: dashed;
+}
+.extrusion-change-stale {
+	color: #856404;
+	border-color: rgba(255, 193, 7, 0.6);
+	background: rgba(255, 193, 7, 0.08);
+}
+.extrusion-add {
+	color: #1a7f37;
+}
+.extrusion-del {
+	color: #b42318;
+}
+.extrusion-diff {
+	flex: 1 0 100%;
+	margin: 0.35rem 0 0.5rem;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 0.25rem;
+	background: #fff;
+	max-height: 32rem;
+	overflow: auto;
+}
+.extrusion-diff-note {
+	margin: 0;
+	padding: 0.6rem 0.8rem;
+	color: #6c757d;
+}
+.extrusion-diff-record {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.extrusion-diff-record:last-child {
+	border-bottom: 0;
+}
+.extrusion-diff-record h4 {
+	margin: 0;
+	padding: 0.4rem 0.8rem;
+	font-size: 0.85rem;
+	background: rgba(0, 0, 0, 0.03);
+}
+.extrusion-diff-record h4 small {
+	color: #6c757d;
+	font-weight: normal;
+}
+.extrusion-diff-column h5 {
+	margin: 0;
+	padding: 0.35rem 0.8rem;
+	font-size: 0.8rem;
+	font-family: monospace;
+	border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.extrusion-diff-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-family: monospace;
+	font-size: 0.78rem;
+	table-layout: fixed;
+}
+.extrusion-diff-table td {
+	vertical-align: top;
+	padding: 0 0.4rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.extrusion-diff-num {
+	width: 3rem;
+	text-align: right;
+	color: #adb5bd;
+	background: rgba(0, 0, 0, 0.02);
+	user-select: none;
+}
+.extrusion-diff-line {
+	width: calc(50% - 3rem);
+}
+.extrusion-diff-line.add {
+	background: rgba(26, 127, 55, 0.12);
+}
+.extrusion-diff-line.remove {
+	background: rgba(180, 35, 24, 0.1);
+}
+.extrusion-diff-line.empty {
+	background: rgba(0, 0, 0, 0.03);
+}
+.extrusion-diff-gap td {
+	text-align: center;
+	color: #adb5bd;
+	background: rgba(0, 0, 0, 0.02);
 }
