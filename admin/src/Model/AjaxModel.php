@@ -7091,7 +7091,7 @@ class AjaxModel extends ListModel
 				$component = (int) $detected->id;
 			}
 
-			return [
+			$harvested = [
 				'success' => Text::_('The source was harvested. Review the pairings below, then import.'),
 				'component' => $component,
 				'detected' => $detected,
@@ -7101,6 +7101,13 @@ class AjaxModel extends ListModel
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
 				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
 			];
+
+			// what every row of the board would change, weighed before the
+			// person has decided anything -- the account of the harvest is
+			// taken first, so nothing the weighing reports lands in it
+			$harvested['changes'] = $this->extrusionWeigh($extruder, $powers);
+
+			return $harvested;
 		}
 		catch (\Exception $error)
 		{
@@ -7374,6 +7381,147 @@ class AjaxModel extends ListModel
 		}
 
 		return [$aimed ? $extruder : null, $libraries !== [] ? $powers : null];
+	}
+
+	/**
+	 * The whole change one row of the pairing board would make.
+	 *
+	 * Nothing is stored between the harvest and this call: the source is read
+	 * and composed again, under the same verdicts, and only the row asked for
+	 * is answered. A whole run costs a fraction of a second, so a person opens
+	 * a diff and reads what stands at that very moment, never a cached picture
+	 * of what stood earlier.
+	 *
+	 * Only the changed lines and the few around them travel, so the answer is
+	 * the size of the change rather than the size of the record.
+	 *
+	 * Language note: user-facing strings here are natural strings inside
+	 * Text::_() by design, never language constants -- JCB manages these
+	 * strings itself when this code is imported.
+	 *
+	 * @param string $config     The run configuration as a JSON object.
+	 * @param string $decisions  The pairing verdicts as a JSON object.
+	 * @param string $row        The board row, as kind and key.
+	 *
+	 * @return array
+	 * @since  6.2.0
+	 */
+	public function extrusionDiff(string $config, string $decisions, string $row): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+		}
+
+		$options = json_decode($config, true);
+		$verdicts = json_decode($decisions, true);
+		$row = trim($row);
+
+		if (!is_array($options) || $row === '')
+		{
+			return ['error' => Text::_('The extrusion configuration could not be read.')];
+		}
+
+		try
+		{
+			// a weighing writes nothing, whatever the run itself is set to
+			[$extruder, $powers] = $this->extrusionEngines(['dry_run' => true] + $options);
+
+			if ($extruder === null && $powers === null)
+			{
+				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+			}
+
+			if (is_array($verdicts) && $verdicts !== [])
+			{
+				ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
+			}
+
+			$extruder?->extrude();
+			$powers?->extrude();
+
+			return [
+				'row' => $row,
+				'records' => $this->extrusionRecords($row)
+			];
+		}
+		catch (\Exception $error)
+		{
+			return ['error' => $error->getMessage()];
+		}
+	}
+
+	/**
+	 * Weigh what a harvested run would write, without writing any of it.
+	 *
+	 * @param mixed $extruder  The component engine, when the run has one.
+	 * @param mixed $powers    The powers engine, when the run has one.
+	 *
+	 * @return array
+	 * @since  6.2.0
+	 */
+	protected function extrusionWeigh($extruder, $powers): array
+	{
+		$extruder?->dryRun(true);
+		$powers?->dryRun(true);
+
+		$extruder?->extrude();
+		$powers?->extrude();
+
+		return ExtrusionFactory::_('Extrusion.Registry.Proposal')->summary();
+	}
+
+	/**
+	 * Every changed record of one board row, line by line.
+	 *
+	 * @param string $row  The board row, as kind and key.
+	 *
+	 * @return array
+	 * @since  6.2.0
+	 */
+	protected function extrusionRecords(string $row): array
+	{
+		$diff = ExtrusionFactory::_('Extrusion.Resolver.Diff');
+		$records = [];
+
+		foreach (ExtrusionFactory::_('Extrusion.Registry.Proposal')->records() as $record)
+		{
+			if ((string) ($record['origin'] ?? '') !== $row || empty($record['changed']))
+			{
+				continue;
+			}
+
+			$columns = [];
+
+			foreach ((array) ($record['columns'] ?? []) as $column => $change)
+			{
+				$columns[] = [
+					'name' => $column,
+					'shape' => (string) ($change['shape'] ?? 'value'),
+					'additions' => (int) ($change['additions'] ?? 0),
+					'deletions' => (int) ($change['deletions'] ?? 0),
+					'hunks' => $diff->compare(
+						(string) ($change['before'] ?? ''),
+						(string) ($change['after'] ?? '')
+					)['hunks']
+				];
+			}
+
+			$records[] = [
+				'table' => (string) ($record['table'] ?? ''),
+				'identity' => (string) ($record['identity'] ?? ''),
+				'action' => (string) ($record['action'] ?? 'update'),
+				'additions' => (int) ($record['additions'] ?? 0),
+				'deletions' => (int) ($record['deletions'] ?? 0),
+				'columns' => $columns
+			];
+		}
+
+		return $records;
 	}
 
 	/**

@@ -99,6 +99,7 @@ class AjaxController extends BaseController
 		$this->registerTask('displayTranslationColumns', 'ajax');
 		$this->registerTask('extrusionHarvest', 'ajax');
 		$this->registerTask('extrusionImport', 'ajax');
+		$this->registerTask('extrusionDiff', 'ajax');
 		$this->registerTask('extrusionCatalogue', 'ajax');
 		$this->registerTask('extrusionFolders', 'ajax');
 	}
@@ -2602,6 +2603,57 @@ class AjaxController extends BaseController
 							if ($ajaxModule)
 							{
 								$result = $ajaxModule->extrusionImport($configValue, (string) $decisionsValue);
+							}
+							else
+							{
+								$result = ['error' => 'There was an error! [149]'];
+							}
+						}
+						else
+						{
+							$result = ['error' => 'There was an error! [149]'];
+						}
+						if($callback)
+						{
+							echo $callback . "(".json_encode($result).");";
+						}
+						elseif($returnRaw)
+						{
+							echo json_encode($result);
+						}
+						else
+						{
+							echo "(".json_encode($result).");";
+						}
+					}
+					catch(\Exception $e)
+					{
+						if($callback)
+						{
+							echo $callback."(".json_encode($e).");";
+						}
+						elseif($returnRaw)
+						{
+							echo json_encode($e);
+						}
+						else
+						{
+							echo "(".json_encode($e).");";
+						}
+					}
+				break;
+				case 'extrusionDiff':
+					try
+					{
+						$configValue = $jinput->get('config', NULL, 'RAW');
+						$decisionsValue = $jinput->get('decisions', NULL, 'RAW');
+						$rowValue = $jinput->get('row', NULL, 'RAW');
+						if($configValue && $rowValue && $user->id != 0)
+						{
+							$ajaxModule = $this->getModel('ajax', 'Administrator');
+							if ($ajaxModule)
+							{
+								$result = $ajaxModule->extrusionDiff($configValue, (string) $decisionsValue, (string) $rowValue);
 							}
 							else
 							{
