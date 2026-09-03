@@ -591,7 +591,7 @@ final class Extruder implements ExtruderInterface
 
 			return $this->finish(false);
 		}
-		$this->achieved($views, $written);
+		$this->achieved($views);
 
 		return $this->finish(true);
 	}
@@ -705,7 +705,7 @@ final class Extruder implements ExtruderInterface
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	protected function achieved(int $views, int $written): void
+	protected function achieved(int $views): void
 	{
 		// sharing and consolidation are the run understanding identity, and a
 		// person must be able to see that on the page rather than deduce it
@@ -731,20 +731,53 @@ final class Extruder implements ExtruderInterface
 			);
 		}
 
+		// what the run announces is read from the report, where every writer
+		// set down what it did: a record already saying what the source says
+		// is accounted for, but it was not written, and the number must not
+		// say it was
+		$unchanged = $this->records('unchanged');
+
 		if ($this->config->get('dryRun', false))
 		{
 			$this->message->success(
-				'Reviewed ' . $views . ' view(s) and prepared ' . $written
-				. ' definition(s). Nothing was written, because this was a dry run.'
+				'Reviewed ' . $views . ' view(s) and prepared ' . $this->records('dryrun')
+				. ' definition(s)' . ($unchanged > 0
+					? ', leaving ' . $unchanged . ' as they stand because they already say what the source says'
+					: '')
+				. '. Nothing was written, because this was a dry run.'
 			);
 
 			return;
 		}
 
 		$this->message->success(
-			'Extruded ' . $views . ' view(s) into ' . $written . ' JCB definition(s).'
+			'Extruded ' . $views . ' view(s) into ' . $this->records('written') . ' JCB definition(s)'
+			. ($unchanged > 0
+				? ' (' . $unchanged . ' left as they stand, already saying what the source says)'
+				: '')
+			. '.'
 		);
 		$this->shortfalls();
+	}
+
+	/**
+	 * How many records one branch of the report names, across every table.
+	 *
+	 * @param   string  $branch  The report branch: written, unchanged, dryrun.
+	 *
+	 * @return  int  The number of records named under it.
+	 * @since   6.2.0
+	 */
+	protected function records(string $branch): int
+	{
+		$total = 0;
+
+		foreach ((array) $this->report->get($branch, []) as $table)
+		{
+			$total += count((array) $table);
+		}
+
+		return $total;
 	}
 
 	/**

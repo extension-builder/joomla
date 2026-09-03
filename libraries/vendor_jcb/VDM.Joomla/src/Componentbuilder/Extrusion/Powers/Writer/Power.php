@@ -96,9 +96,12 @@ final class Power extends Writer
 				$definition = (object) $definition;
 			}
 
-			// a power's board row is keyed by the very guid it is written under,
-			// so the identity is the row and nothing is derived from a name
-			if ($this->store($definition, [], null, 'power|' . (string) ($definition->guid ?? '')))
+			// a power's board row is the identity the harvest gave the class,
+			// which a verdict may have replaced with the one it is written under
+			$guid = (string) ($definition->guid ?? '');
+			$row = 'power|' . (string) $this->harvest->get('rows.' . $guid, $guid);
+
+			if ($this->store($definition, [], null, $row))
 			{
 				$written++;
 			}

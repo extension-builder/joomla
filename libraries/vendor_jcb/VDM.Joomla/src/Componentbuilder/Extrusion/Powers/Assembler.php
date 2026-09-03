@@ -180,6 +180,10 @@ final class Assembler
 			$verdict = $this->pairing->verdict('power', $guid);
 			$action = (string) ($candidate['action'] ?? 'create');
 
+			// the board knows this class by the identity the harvest gave it,
+			// whatever identity the verdict writes it under
+			$this->harvest->set('rows.' . $decided, $guid);
+
 			if ($verdict !== null)
 			{
 				$candidate['guid'] = $decided;

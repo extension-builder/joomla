@@ -298,6 +298,27 @@ abstract class Writer implements WriterInterface
 	}
 
 	/**
+	 * The pairing board row every component-level record belongs to.
+	 *
+	 * The component itself, and the tables that link its views to it, are not
+	 * candidates a person pairs -- they follow from the run. They still name a
+	 * row, so what they would change is never lost from the account, and the
+	 * row is spelt as the component's own identity is: the code name without
+	 * its prefix.
+	 *
+	 * @param   string  $code  The source's code name, with or without com_.
+	 *
+	 * @return  string  The board row.
+	 * @since   6.2.0
+	 */
+	protected function componentRow(string $code): string
+	{
+		$code = trim(str_replace('com_', '', strtolower(trim($code))), '_');
+
+		return $this->row('component', $code === '' ? 'component' : $code);
+	}
+
+	/**
 	 * Sanitise one registry path segment.
 	 *
 	 * @param   string  $segment  The raw segment.

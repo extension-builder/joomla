@@ -370,6 +370,10 @@ final class Diff
 	/**
 	 * Gather the operations into hunks of changed lines with their context.
 	 *
+	 * Two changes close enough that the unchanged lines between them would all
+	 * be shown as context anyway are read together, in one hunk; only a gap
+	 * wider than that is left out and marked as left out.
+	 *
 	 * @param   array<int, array{op: string, old: int|null, new: int|null, text: string}>  $operations  The operations in order.
 	 *
 	 * @return  array<int, array<string, mixed>>  The hunks.
@@ -377,50 +381,41 @@ final class Diff
 	 */
 	protected function hunks(array $operations): array
 	{
-		$hunks = [];
-		$lines = [];
-		$last = null;
-		$taken = 0;
+		$groups = [];
+		$group = [];
+		$previous = null;
 
 		foreach ($operations as $index => $operation)
 		{
-			if ($operation['op'] !== 'keep')
+			if ($operation['op'] === 'keep')
 			{
-				// the context before this change joins the hunk, skipping any
-				// line an earlier change in the same hunk already took
-				for ($fill = max($taken, $index - self::CONTEXT); $fill < $index; $fill++)
-				{
-					$lines[] = $operations[$fill];
-				}
-
-				$lines[] = $operation;
-				$taken = $index + 1;
-				$last = $index;
-
 				continue;
 			}
 
-			// a kept line close behind a change is that change's context, and
-			// a change close behind it reads on in the same hunk
-			if ($last !== null && $index - $last <= self::CONTEXT)
+			if ($previous !== null && $index - $previous - 1 > 2 * self::CONTEXT)
 			{
-				$lines[] = $operation;
-				$taken = $index + 1;
-
-				continue;
+				$groups[] = $group;
+				$group = [];
 			}
 
-			if ($lines !== [])
-			{
-				$hunks[] = $this->hunk($lines);
-				$lines = [];
-				$last = null;
-			}
+			$group[] = $index;
+			$previous = $index;
 		}
 
-		if ($lines !== [])
+		if ($group !== [])
 		{
-			$hunks[] = $this->hunk($lines);
+			$groups[] = $group;
+		}
+
+		$hunks = [];
+		$last = count($operations) - 1;
+
+		foreach ($groups as $changes)
+		{
+			$first = max(0, $changes[0] - self::CONTEXT);
+			$final = min($last, end($changes) + self::CONTEXT);
+
+			$hunks[] = $this->hunk(array_slice($operations, $first, $final - $first + 1));
 		}
 
 		return $hunks;

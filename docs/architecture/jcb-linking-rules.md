@@ -395,11 +395,15 @@ the truth and the echo never overwrites it.
   than pretending a write -- so a re-run leaves modified dates and version
   history alone. A column that was never set, one set to nothing, and one
   holding an empty list all say the same nothing, so writing one where
-  another stands is not a change either. What that weighing produces is also
-  what the pairing board shows before an import: the same composition,
-  weighed and set down, so what a person is shown and what the import does
-  cannot come apart -- which holds only because the weighing is a run of its
-  own, from the source up, exactly as the import runs. Seed
+  another stands is not a change either; nor is a text whose lines end the
+  other way, nor a subform whose rows were saved in another key order or
+  with a number posted as text, because nobody could read the difference.
+  What that weighing produces is also what the pairing board shows before
+  an import: the same composition, weighed and set down, so what a person
+  is shown and what the import does cannot come apart -- which holds only
+  because the weighing is a run of its own, from the source up, aimed at
+  the component the board pairs against and under the decisions as they
+  stand, exactly as the import runs. Seed
   data the standing view already states is kept as the person wrote it
   (`kept.seed`): the comparison resolves the compiler's own placeholders
   (`#__[[[component]]]_item` reads as `#__demo_item`) and ignores the

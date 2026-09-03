@@ -78,21 +78,6 @@ final class ComponentSiteViews extends Writer
 	}
 
 	/**
-	 * The pairing board row every component-level record belongs to.
-	 *
-	 * The component itself, and the tables that link its views to it, are not
-	 * candidates a person pairs -- they follow from the run. They still name a
-	 * row, so what they would change is never lost from the account.
-	 *
-	 * @return  string  The board row.
-	 * @since   6.2.0
-	 */
-	protected function component(): string
-	{
-		return $this->row('component', (string) $this->source->get('code_name', 'component'));
-	}
-
-	/**
 	 * The JCB table this writer persists into.
 	 *
 	 * @return  string  The table name without its prefix.
@@ -200,7 +185,9 @@ final class ComponentSiteViews extends Writer
 		$definition->addsite_views = $this->merge($componentGuid, $subform);
 		$definition->published = 1;
 
-		if (!$this->store($definition, [], null, $this->component()))
+		$row = $this->componentRow((string) $this->source->get('code_name', ''));
+
+		if (!$this->store($definition, [], null, $row))
 		{
 			return 0;
 		}

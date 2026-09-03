@@ -30,7 +30,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry as RegistryProvider;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Writer as WriterProvider;
-use VDM\Joomla\Componentbuilder\Table as JcbTable;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
 use VDM\Tests\Support\ExtrusionComponentFixture;
 use VDM\Tests\Support\ExtrusionItemFixture;
@@ -107,9 +106,6 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->container = new Container();
 		$this->container->share('Data.Item', fn (): ExtrusionItemFixture => $this->item);
 		$this->container->share('Load', fn (): ExtrusionCatalogueFixture => $this->catalogue);
-		// the table definitions say how every column is stored, which is what
-		// weighing a write against what stands has to speak in
-		$this->container->share('Table', fn (): JcbTable => new JcbTable());
 		$this->container->share('Table', static fn (): Table => new Table(), true);
 		$this->container->registerServiceProvider(new RegistryProvider())
 			->registerServiceProvider(new Discovery())
@@ -1068,8 +1064,11 @@ SQL)->extrude();
 	{
 		$this->extruder()->path($this->modern())->component(7)->extrude();
 
+		// fifteen records were written: the number is read from the report,
+		// so a linking record counts once however many views it links, and a
+		// record left as it stands is not counted as written at all
 		$this->assertSame(
-			[['message' => 'Extruded 2 view(s) into 16 JCB definition(s).']],
+			[['message' => 'Extruded 2 view(s) into 15 JCB definition(s).']],
 			$this->messages()->level('success')
 		);
 		$this->assertSame(
