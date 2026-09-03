@@ -138,9 +138,9 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => 'f9d09367b448e9c69b0ca50aafa24edfe20b68d70a4b085d23f9c3900d9e2f42'
 		]];
 		yield 'reader' => [Reader::class, [
-			'aliases' => 9,
-			'services' => 9,
-			'hash' => 'c3099dbda11915b6480d87f41c9ca82ad92d0cc24a3825d072435c81ec711633'
+			'aliases' => 10,
+			'services' => 10,
+			'hash' => '6624049f6acb2ebbed7f51a2af717f009c9c2fe76b95b3473bc22bf894b8f716'
 		]];
 		yield 'resolver' => [Resolver::class, [
 			'aliases' => 23,
@@ -232,7 +232,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			}
 		}
 
-		$this->assertSame(87, $namespaced);
+		$this->assertSame(88, $namespaced);
 	}
 
 	/**

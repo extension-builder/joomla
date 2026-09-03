@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Form as FormReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Language as LanguageReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Literal;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Template;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\CreateTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
@@ -51,6 +52,9 @@ class Reader implements ServiceProviderInterface
 
 		$container->alias(Insert::class, 'Extrusion.Sql.Insert')
 			->share('Extrusion.Sql.Insert', [$this, 'getInsert'], true);
+
+		$container->alias(Template::class, 'Extrusion.Php.Template')
+			->share('Extrusion.Php.Template', [$this, 'getTemplate'], true);
 
 		$container->alias(Literal::class, 'Extrusion.Php.Literal')
 			->share('Extrusion.Php.Literal', [$this, 'getLiteral'], true);
@@ -209,7 +213,21 @@ class Reader implements ServiceProviderInterface
 			$container->get('Extrusion.Reader.Table'),
 			$container->get('Extrusion.Reader.Schema'),
 			$container->get('Extrusion.Reader.Form'),
-			$container->get('Extrusion.Registry.View')
+			$container->get('Extrusion.Registry.View'),
+			$container->get('Extrusion.Php.Template')
 		);
+	}
+
+	/**
+	 * Get the view template reader.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Template
+	 * @since   6.2.0
+	 */
+	public function getTemplate(Container $container): Template
+	{
+		return new Template();
 	}
 }

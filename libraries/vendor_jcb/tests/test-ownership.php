@@ -4156,6 +4156,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/DeltaTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/Template.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Reader/Php/TemplateTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Report.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'

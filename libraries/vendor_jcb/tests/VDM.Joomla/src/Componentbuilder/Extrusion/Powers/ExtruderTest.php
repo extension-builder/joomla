@@ -723,6 +723,167 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Stand one power in JCB, curated as the given columns say.
+	 *
+	 * @param   array<string, mixed>  $columns  What the record holds.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	private function stand(array $columns): void
+	{
+		$this->load->placeholder(1, '[[[ComponentEngineNamespace]]]', self::ENGINE);
+		$this->load->power(9, self::TEAM_GUID, 'Team', '[[[ComponentEngineNamespace]]].Team');
+		$this->item->identity('power', self::TEAM_GUID, 9);
+		$this->item->serve('power', self::TEAM_GUID, (object) ([
+			'guid' => self::TEAM_GUID,
+			'name' => 'Team',
+			'namespace' => '[[[ComponentEngineNamespace]]].Team'
+		] + $columns));
+	}
+
+	/**
+	 * Extrude the standing power's own file and hand back what would be written.
+	 *
+	 * @param   string|null  $class  The class declaration, when the test needs its own.
+	 *
+	 * @return  object  The definition.
+	 * @since   6.2.0
+	 */
+	private function written(?string $class = null): object
+	{
+		$engine = 'site/administrator/components/com_demo/src/Engine';
+
+		$this->writeTemporaryFile(
+			$engine . '/Team.php',
+			"<?php\n" . ExtrusionLibraryFixture::LICENSE . "\n\n"
+			. "namespace Demo\\Component\\Demo\\Administrator\\Engine;\n\n"
+			. "/**\n * The team engine.\n *\n * @since 1.0.0\n */\n"
+			. ($class ?? "final class Team\n{\n\tpublic function play(): bool\n\t{\n\t\treturn true;\n\t}\n}\n")
+		);
+
+		$this->extruder()->reset()
+			->library($this->temporaryPath($engine))
+			->component(3)
+			->extrude();
+
+		$written = $this->item->definition('power', self::TEAM_GUID);
+
+		$this->assertNotNull($written, 'The standing power is recognised and written.');
+
+		return $written;
+	}
+
+	/**
+	 * A run never lowers a resolved parent to a written-out name.
+	 *
+	 * JCB compiles the two differently: a link carries the parent's import with
+	 * it, a written-out name is emitted exactly as it reads with nothing to
+	 * resolve it. A run that failed to work out what the parent is has learnt
+	 * nothing about the record, so it may not act on that failure.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAResolvedParentIsNeverLoweredToAName(): void
+	{
+		$this->stand([
+			'extends' => self::REFEREE_GUID,
+			'extends_custom' => 'Abstraction\\Model',
+			'add_licensing_template' => 1
+		]);
+
+		$written = $this->written("final class Team extends \\Some\\Unresolvable\\Model\n{\n}\n");
+
+		$this->assertFalse(
+			property_exists($written, 'extends'),
+			'The record names a power and this run does not, so the record stands.'
+		);
+		$this->assertFalse(
+			property_exists($written, 'extends_custom'),
+			'And the written-out name that would have replaced it is not left behind.'
+		);
+	}
+
+	/**
+	 * A power that takes the global licence keeps taking it.
+	 *
+	 * Every compiled file carries a licence block, because the compiler wrote
+	 * the global one into it. Reading that back as this power's own licence
+	 * would take the power out of the global's reach and leave a private copy
+	 * of it behind -- on every power, on every run. Only the person can decide
+	 * that, by saying so on the record.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAPowerOnTheGlobalLicenceKeepsIt(): void
+	{
+		$this->stand(['add_licensing_template' => 1, 'licensing_template' => '']);
+
+		$written = $this->written();
+
+		$this->assertFalse(
+			property_exists($written, 'add_licensing_template'),
+			'The setting is the person\'s, so the run does not touch it.'
+		);
+		$this->assertFalse(
+			property_exists($written, 'licensing_template'),
+			'And it does not leave a copy of the global licence behind either.'
+		);
+	}
+
+	/**
+	 * A power carrying its own licence takes what the file now says.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAPowerCarryingItsOwnLicenceTakesTheFilesOne(): void
+	{
+		$this->stand([
+			'add_licensing_template' => 2,
+			'licensing_template' => 'what it used to say'
+		]);
+
+		$written = $this->written();
+
+		$this->assertSame(
+			ExtrusionLibraryFixture::LICENSE . "\n",
+			$written->licensing_template,
+			'The person asked this power to carry its own, so the file states it.'
+		);
+		$this->assertFalse(
+			property_exists($written, 'add_licensing_template'),
+			'Which licence it carries is settled; the setting itself is not restated.'
+		);
+	}
+
+	/**
+	 * A run that worked out less than the last one never unsays a link.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testSilenceNeverClearsWhatStands(): void
+	{
+		$this->stand([
+			'add_licensing_template' => 2,
+			'licensing_template' => 'kept',
+			'extends_custom' => 'Abstraction\\Model',
+			'implements_custom' => 'Some\\Contract'
+		]);
+
+		$written = $this->written();
+
+		$this->assertFalse(
+			property_exists($written, 'extends_custom'),
+			'The run has nothing to put there, and the record does.'
+		);
+		$this->assertFalse(property_exists($written, 'implements_custom'));
+	}
+
+	/**
 	 * A power in a component's own folder is recognised through the person's placeholder.
 	 *
 	 * The powers live outside the libraries folder, in the component's own
