@@ -200,10 +200,10 @@ button.extrusion-change.open {
 	color: #6c757d;
 	border-style: dashed;
 }
-.extrusion-change-stale {
-	color: #856404;
-	border-color: rgba(255, 193, 7, 0.6);
-	background: rgba(255, 193, 7, 0.08);
+.extrusion-change-weighing {
+	color: #6c757d;
+	border-style: dotted;
+	font-style: italic;
 }
 .extrusion-add {
 	color: #1a7f37;

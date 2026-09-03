@@ -255,8 +255,9 @@ window.JCBExtrusion = {
 		noChangeHint: '<?php echo Text::_('This record already says what the source says, so the import leaves it alone. Its view is still wired up as it should be.', true); ?>',
 		diffHint: '<?php echo Text::_('See exactly what this import would change here', true); ?>',
 		diffLoading: '<?php echo Text::_('Reading what would change...', true); ?>',
-		diffStale: '<?php echo Text::_('pairing changed', true); ?>',
-		diffStaleHint: '<?php echo Text::_('This row was weighed under the pairing it had before. Open it to see what it would change now.', true); ?>',
+		weighing: '<?php echo Text::_('weighing...', true); ?>',
+		weighingHint: '<?php echo Text::_('This row was decided a moment ago, so what it would change is being read again under the pairing it has now.', true); ?>',
+		weighingFailed: '<?php echo Text::_('The board could not be weighed again under its decisions. Open a row to read what it would change now.', true); ?>',
 		diffCreates: '<?php echo Text::_('would be created', true); ?>',
 		diffUpdates: '<?php echo Text::_('would be updated', true); ?>'
 	}
