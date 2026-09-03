@@ -21,11 +21,13 @@
   `admin/src/Model/AjaxModel.php`, `admin/src/Controller/AjaxController.php`
 - **Authorized outcome:** The pairing step shows, per row, how many lines an
   import would add and remove, opens that change read-only side by side on
-  demand, and marks a row with nothing to change as "no change" and sets it
-  to ignore.
+  demand, and marks a row with nothing to change as "no change".
 - **Permission summary:** The owner asked for the change to be visible in the
   pairing step before any import, loaded one row at a time rather than all at
-  once, read-only, with no server-side store of the diffs.
+  once, read-only, with no server-side store of the diffs. The owner also
+  asked that a row with nothing to change be set to ignore; that part is
+  implemented as the "no change" badge alone, and the reason is recorded
+  under Known limitations.
 
 ## Purpose and rationale
 
@@ -74,7 +76,10 @@ board row.
   `AjaxModel::extrusionRecords()`
 - **What changed:** The harvest response gained a `changes` key holding what
   every board row would change, taken after the harvest's own report and
-  messages are captured so the account of the harvest is unchanged. A new
+  messages are captured so the account of the harvest is unchanged. The
+  weighing is a run of its own, from the source up: resolving a second time
+  over a harvest that has already resolved settles the shared fields
+  differently, and the board would answer for a run the import never makes. A new
   `extrusionDiff` endpoint reads the source and composes it again under the
   supplied verdicts and answers one row: its changed records, their changed
   columns, and the hunks of each. Both weigh with writing suppressed.
@@ -98,13 +103,13 @@ board row.
 ### `admin/assets/js/extrusion.js`
 
 - **Change type:** Modified
-- **Stable location(s):** `state`, `harvest()`, `standDownUnchanged()`,
+- **Stable location(s):** `state`, `harvest()`,
   `weight()`, `changeBadge()`, `toggleDiff()`, `closeDiff()`, `renderDiff()`,
   `diffRows()`, `diffRow()`, `row()`, `renderBoard()`, `decide()`,
   `kindSection()`, the board click handler and the component-select handler
 - **What changed:** The board keeps the harvest's weights, puts a `+N −M`
   badge on every row that would change and a "no change" badge on every row
-  that would not, and sets the unchanged rows to ignore. Clicking a badge
+  that would not. Clicking a badge
   fetches that one row's diff, renders it read-only side by side under the
   row, and clicking again drops it from memory. A decision marks its own row's
   badge stale rather than showing a number read under a pairing that has since
@@ -139,9 +144,9 @@ board row.
 ## Impact
 
 - **Behavioral impact:** After a harvest the pairing board shows what every row
-  would change. A row with nothing to change is set to ignore, so the import
-  skips it. A badge opens one row's diff on demand; closing it discards it.
-  Nothing about the import itself changed.
+  would change. A row with nothing to change says so; the engine writes
+  nothing for it either way. A badge opens one row's diff on demand; closing
+  it discards it. Nothing about the import itself changed.
 - **Visual impact:** A badge at the right of every row, before the decision
   buttons, and an inline read-only diff panel under a row while it is open.
 - **Accessibility impact:** The badge is a real `button` for a row that would
@@ -173,7 +178,10 @@ board row.
 
 | Scenario | Environment | Result |
 | --- | --- | --- |
-| Harvest the Demo component in update mode against its own compiled source, through `AjaxModel::extrusionHarvest()`, then open one row through `AjaxModel::extrusionDiff()` | Joomla 6 + JCB, MariaDB, PHP 8.4.19 | Pass — 84 rows weighed, 25 changed, harvest 0.50s, one row's diff 0.30s and 603 bytes; the harvest report carries no weighing entries |
+| Harvest the Demo component in update mode against its own compiled source, through `AjaxModel::extrusionHarvest()`, then open one row through `AjaxModel::extrusionDiff()` | Joomla 6 + JCB, MariaDB, PHP 8.4.19 | Pass — 84 rows weighed, 23 changed, harvest 0.50s, one row's diff 0.30s and 603 bytes; the harvest report carries no weighing entries |
+| Open every changed row's diff and compare its totals with the badge the harvest gave that row | Joomla 6 + JCB, MariaDB | Pass — 23 of 23 rows match exactly, and none opens to an empty diff |
+| Compare the board's rows with the rows the weighing accounts for | Joomla 6 + JCB, MariaDB | Pass — every row is accounted for except the shared members, whose field is written and weighed on the row of the view that owns it, and `address.state` (see Known limitations) |
+| Weigh a proposed empty list against a standing power that never set those columns | Joomla 6 + JCB, MariaDB | Pass — no change reported, where before it reported three columns each gaining `[]` |
 | Drive the real `extrusion.js` and `extrusion.css` in Chromium against a stubbed gateway: harvest, read the badges, open a diff, close it | Chromium 141, Playwright | Pass — `+4 −1` on the view, `+1 −0` on a changed field, `no change` on an unchanged field with Ignore set and resettable, `+2 −2` on a power; the diff opened side by side with the added line marked, and closing it left no panel on the page |
 | Import the same source twice and compare what was written | Joomla 6 + JCB, MariaDB | Pass — the first run wrote 24 records and left 83 unchanged; the identical second run wrote nothing |
 
@@ -200,9 +208,22 @@ board row.
   is now, not as it was harvested. That is the honest answer, and the same one
   the import would act on.
 - **Known limitations:** A field shared by several views shows its change on
-  the row of the view that owns it, not on every view that links it. Rows the
-  board does not show -- the component record and its link tables -- are
-  weighed and named under a `component` row that no board row displays yet.
+  the row of the view that owns it, not on every view that links it; the
+  member rows already say who owns the field. One field on the Demo component
+  (`address.state`) resolves to a record another row writes without being
+  marked shared, so it carries no badge -- a pre-existing gap in how that
+  case is labelled, not in the weighing. Rows the board does not show -- the
+  component record and its link tables -- are weighed and named under a
+  `component` row that no board row displays yet.
+
+  A row with nothing to change is **not** set to an ignore verdict, though
+  the owner asked for that. Ignoring a row takes it out of the run
+  altogether, and measurement showed that doing so cancels work the import
+  should still do: on the Demo component, ignoring the unchanged fields of
+  the `file_type` view removed an entire `admin_fields_conditions` record
+  (+44 lines) that the import would otherwise write. The engine already
+  writes nothing for a record that would change nothing, so the badge alone
+  delivers what the ignore was for, without that cost.
 - **Rollback:** Revert the three commits of this branch. Reverting only the
   GUI commit leaves the endpoints in place and unused, which is harmless.
 

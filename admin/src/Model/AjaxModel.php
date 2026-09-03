@@ -7102,10 +7102,11 @@ class AjaxModel extends ListModel
 				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
 			];
 
-			// what every row of the board would change, weighed before the
-			// person has decided anything -- the account of the harvest is
-			// taken first, so nothing the weighing reports lands in it
-			$harvested['changes'] = $this->extrusionWeigh($extruder, $powers);
+			// what every row of the board would change. The account of the
+			// harvest is taken first, above, because weighing starts the run
+			// over: it has to be the very run an import makes, or the board
+			// would answer for a run nobody is going to make
+			$harvested['changes'] = $this->extrusionWeigh($options);
 
 			return $harvested;
 		}
@@ -7456,18 +7457,30 @@ class AjaxModel extends ListModel
 	}
 
 	/**
-	 * Weigh what a harvested run would write, without writing any of it.
+	 * Weigh what a run would write, without writing any of it.
 	 *
-	 * @param mixed $extruder  The component engine, when the run has one.
-	 * @param mixed $powers    The powers engine, when the run has one.
+	 * The weighing is a run of its own, from the source up, because that is
+	 * the only run whose answer is worth anything: resolving a second time
+	 * over a harvest that has already resolved settles the shared fields
+	 * differently, and the board would then show weights for a run the import
+	 * is never going to make.
+	 *
+	 * @param array       $options    The run configuration.
+	 * @param string|null $decisions  The pairing verdicts, when the caller has any.
 	 *
 	 * @return array
 	 * @since  6.2.0
 	 */
-	protected function extrusionWeigh($extruder, $powers): array
+	protected function extrusionWeigh(array $options, ?string $decisions = null): array
 	{
-		$extruder?->dryRun(true);
-		$powers?->dryRun(true);
+		[$extruder, $powers] = $this->extrusionEngines(['dry_run' => true] + $options);
+
+		$verdicts = $decisions === null ? null : json_decode($decisions, true);
+
+		if (is_array($verdicts) && $verdicts !== [])
+		{
+			ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
+		}
 
 		$extruder?->extrude();
 		$powers?->extrude();
