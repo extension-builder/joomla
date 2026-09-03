@@ -388,9 +388,14 @@ the truth and the echo never overwrites it.
   update from creating a second field beside a curated one. This holds for
   a column only one view states just as it does for a shared one: a group
   of one member is the common case, and it meets the paired component too.
-- **A record with nothing to restate is left untouched.** When an update
-  keeps everything a standing record holds, no write is made at all; the
-  report names it under `untouched` rather than pretending a write. Seed
+- **A write that would change nothing is not made.** Every composed record
+  is weighed against the record that stands before any of it is written, at
+  the one boundary every writer passes. When nothing about it would move,
+  no write happens at all and the report names it under `unchanged` rather
+  than pretending a write -- so a re-run leaves modified dates and version
+  history alone. What that weighing produces is also what the pairing board
+  shows before an import: the same composition, weighed and set down, so
+  what a person is shown and what the import does cannot come apart. Seed
   data the standing view already states is kept as the person wrote it
   (`kept.seed`): the comparison resolves the compiler's own placeholders
   (`#__[[[component]]]_item` reads as `#__demo_item`) and ignores the

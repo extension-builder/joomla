@@ -4144,6 +4144,18 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Diff.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/DiffTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Delta.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/DeltaTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Proposal.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/DeltaTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Report.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/ExtrusionStateContractTest.php'

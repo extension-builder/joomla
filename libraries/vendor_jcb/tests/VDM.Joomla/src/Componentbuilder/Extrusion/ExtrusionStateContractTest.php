@@ -26,6 +26,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -534,23 +535,24 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * The scope must expose exactly the twelve state registries, keyed by name.
+	 * The scope must expose exactly the thirteen state registries, keyed by name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheTwelveStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheThirteenStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(12, $exposed);
+		$this->assertCount(13, $exposed);
 		$this->assertSame(
 			[
 				'source', 'inventory', 'table', 'schema', 'form',
-				'language', 'view', 'resolved', 'harvest', 'decision', 'report', 'message'
+				'language', 'view', 'resolved', 'harvest', 'decision', 'report',
+				'message', 'proposal'
 			],
 			array_keys($exposed)
 		);
@@ -709,7 +711,7 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * A fresh set of the twelve state registries, in constructor order.
+	 * A fresh set of the thirteen state registries, in constructor order.
 	 *
 	 * @return  array<string, Registry>  The registries keyed by scope name.
 	 * @since   6.1.6
@@ -728,7 +730,8 @@ final class ExtrusionStateContractTest extends TestCase
 			'harvest' => new Harvest(),
 			'decision' => new Decision(),
 			'report' => new Report(),
-			'message' => new Message()
+			'message' => new Message(),
+			'proposal' => new Proposal()
 		];
 	}
 

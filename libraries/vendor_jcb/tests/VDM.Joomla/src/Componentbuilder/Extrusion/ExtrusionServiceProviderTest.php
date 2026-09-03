@@ -128,9 +128,9 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => '3a198de224a88564b42e2a4deedf2ee460b0902849b7d4127592a0b253af0185'
 		]];
 		yield 'registry' => [Registry::class, [
-			'aliases' => 14,
-			'services' => 14,
-			'hash' => '93c35746b96bf44197ea43f98434700f0e50ca87375ed34448407a734e7b935f'
+			'aliases' => 15,
+			'services' => 15,
+			'hash' => '9202d8e9802545b6e893b751ff753ca8ecc897001015f79dbb7fb96824ccf4e7'
 		]];
 		yield 'discovery' => [Discovery::class, [
 			'aliases' => 15,
@@ -143,9 +143,9 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			'hash' => 'c3099dbda11915b6480d87f41c9ca82ad92d0cc24a3825d072435c81ec711633'
 		]];
 		yield 'resolver' => [Resolver::class, [
-			'aliases' => 21,
-			'services' => 21,
-			'hash' => 'd26a341281b421679dc17b17c547aa1412c9ae769780af0f7a310634b2440252'
+			'aliases' => 23,
+			'services' => 23,
+			'hash' => 'e61e42645309527869654e3500376c72a72d1af836d0530aa22bcadb953d5300'
 		]];
 		yield 'writer' => [Writer::class, [
 			'aliases' => 12,
@@ -232,7 +232,7 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 			}
 		}
 
-		$this->assertSame(84, $namespaced);
+		$this->assertSame(87, $namespaced);
 	}
 
 	/**

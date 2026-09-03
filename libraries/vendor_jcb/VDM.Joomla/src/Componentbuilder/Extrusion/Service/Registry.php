@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -80,6 +81,9 @@ class Registry implements ServiceProviderInterface
 		$container->alias(Resolved::class, 'Extrusion.Registry.Resolved')
 			->share('Extrusion.Registry.Resolved', [$this, 'getResolved'], true);
 
+		$container->alias(Proposal::class, 'Extrusion.Registry.Proposal')
+			->share('Extrusion.Registry.Proposal', [$this, 'getProposal'], true);
+
 		$container->alias(Harvest::class, 'Extrusion.Registry.Harvest')
 			->share('Extrusion.Registry.Harvest', [$this, 'getHarvest'], true);
 
@@ -129,7 +133,8 @@ class Registry implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Harvest'),
 			$container->get('Extrusion.Registry.Decision'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Registry.Message')
+			$container->get('Extrusion.Registry.Message'),
+			$container->get('Extrusion.Registry.Proposal')
 		);
 	}
 
@@ -287,5 +292,18 @@ class Registry implements ServiceProviderInterface
 	public function getReport(Container $container): Report
 	{
 		return new Report();
+	}
+
+	/**
+	 * Get the Proposal Registry.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Proposal
+	 * @since   6.2.0
+	 */
+	public function getProposal(Container $container): Proposal
+	{
+		return new Proposal();
 	}
 }

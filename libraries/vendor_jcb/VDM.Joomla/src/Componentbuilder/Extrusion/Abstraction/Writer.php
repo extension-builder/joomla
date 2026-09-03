@@ -16,6 +16,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -68,12 +69,21 @@ abstract class Writer implements WriterInterface
 	protected Report $report;
 
 	/**
+	 * The Delta Resolver.
+	 *
+	 * @var    Delta
+	 * @since  6.2.0
+	 */
+	protected Delta $delta;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 *
 	 * @since   6.1.6
 	 */
@@ -81,13 +91,15 @@ abstract class Writer implements WriterInterface
 		Config $config,
 		Resolved $resolved,
 		ItemInterface $item,
-		Report $report
+		Report $report,
+		Delta $delta
 	)
 	{
 		$this->config = $config;
 		$this->resolved = $resolved;
 		$this->item = $item;
 		$this->report = $report;
+		$this->delta = $delta;
 	}
 
 	/**
@@ -133,13 +145,30 @@ abstract class Writer implements WriterInterface
 	 * definition someone has since curated must refresh what the source
 	 * says and touch nothing else, or every re-run would undo their work.
 	 *
+	 * What survives that is weighed against the record that stands before any
+	 * of it is written, and the weighing is what a person is shown on the
+	 * pairing board. Because it happens here, at the one boundary every writer
+	 * passes, what the board shows and what the import does cannot come apart:
+	 * they are the same composition, weighed and then written.
+	 *
+	 * A write that would change nothing is not made. The record already says
+	 * what the source says, and touching it would only move its modified date
+	 * and add a version of itself that reads identically.
+	 *
 	 * @param   object          $definition   The definition, carrying its guid.
 	 * @param   array<string>   $boilerplate  Properties to offer only on creation.
+	 * @param   string|null     $key          The column the table is keyed by.
+	 * @param   string|null     $origin       The pairing board row this record belongs to.
 	 *
-	 * @return  bool  True when the definition was written, or a dry run skipped it.
+	 * @return  bool  True when the definition was written, or nothing needed writing.
 	 * @since   6.1.6
 	 */
-	protected function store(object $definition, array $boilerplate = [], ?string $key = null): bool
+	protected function store(
+		object $definition,
+		array $boilerplate = [],
+		?string $key = null,
+		?string $origin = null
+	): bool
 	{
 		$key = $key ?? $this->linkKey();
 		$identity = (string) ($definition->{$key} ?? '');
@@ -151,24 +180,18 @@ abstract class Writer implements WriterInterface
 			return false;
 		}
 
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('dryrun.' . $this->table() . '.' . $identity, true);
-
-			return true;
-		}
-
 		$existing = $this->item->table($this->table())->value($identity, $key, 'id');
+		$stands = $existing !== null && $existing > 0;
 		$policy = (string) $this->config->get('onExisting', 'update');
 
-		if ($existing !== null && $existing > 0 && $policy === 'skip')
+		if ($stands && $policy === 'skip')
 		{
 			$this->report->set('skipped.existing.' . $this->table() . '.' . $identity, true);
 
 			return true;
 		}
 
-		if ($existing !== null && $existing > 0 && $boilerplate !== [])
+		if ($stands && $boilerplate !== [])
 		{
 			foreach ($boilerplate as $property)
 			{
@@ -179,16 +202,24 @@ abstract class Writer implements WriterInterface
 				'kept.' . $this->table() . '.' . $identity,
 				$boilerplate
 			);
+		}
 
-			// a record that keeps everything it has is left exactly as it
-			// stands: there is nothing to write, and an update carrying only
-			// the identity is not a write the pipeline can make
-			if (count(get_object_vars($definition)) <= 1)
-			{
-				$this->report->set('untouched.' . $this->table() . '.' . $identity, true);
+		$delta = $this->delta->weigh(
+			$this->table(), $key, $identity, $definition, $stands, $origin
+		);
 
-				return true;
-			}
+		if (empty($delta['changed']))
+		{
+			$this->report->set('unchanged.' . $this->table() . '.' . $identity, true);
+
+			return true;
+		}
+
+		if ($this->config->get('dryRun', false))
+		{
+			$this->report->set('dryrun.' . $this->table() . '.' . $identity, true);
+
+			return true;
 		}
 
 		if (!$this->item->table($this->table())->set($definition, $key))
@@ -244,6 +275,26 @@ abstract class Writer implements WriterInterface
 		$value = $entry['value'] ?? null;
 
 		return $value === null || $value === '' ? $default : $value;
+	}
+
+	/**
+	 * The pairing board row one record belongs to.
+	 *
+	 * The board is keyed by the candidate a person sees -- a view, one of its
+	 * fields, a screen -- while records are keyed by table and identity. A
+	 * record has to name its row or there is nowhere to show what it would
+	 * change, and the parts are sanitised exactly as the candidates are so the
+	 * two names meet.
+	 *
+	 * @param   string  $kind      The candidate kind.
+	 * @param   string  ...$parts  The candidate key, in parts.
+	 *
+	 * @return  string  The board row.
+	 * @since   6.2.0
+	 */
+	protected function row(string $kind, string ...$parts): string
+	{
+		return $kind . '|' . implode('.', array_map([$this, 'key'], $parts));
 	}
 
 	/**

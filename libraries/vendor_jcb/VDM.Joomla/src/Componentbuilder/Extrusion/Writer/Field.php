@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Record;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -85,6 +86,7 @@ final class Field extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Record         $record    The record resolver.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
@@ -97,13 +99,14 @@ final class Field extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Record $record,
 		Guid $guid,
 		Source $source,
 		Pairing $pairing
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->record = $record;
 		$this->guid = $guid;
@@ -275,7 +278,7 @@ final class Field extends Writer
 			$definition->xml = $record['columns']['xml'];
 		}
 
-		if (!$this->store($definition, ['published']))
+		if (!$this->store($definition, ['published'], null, $this->row('field', $view, $column)))
 		{
 			return false;
 		}

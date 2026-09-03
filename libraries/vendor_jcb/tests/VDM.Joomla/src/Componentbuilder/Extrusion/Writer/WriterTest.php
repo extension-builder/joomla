@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -32,6 +33,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Diff;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
@@ -50,6 +53,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 use VDM\Joomla\Componentbuilder\Table;
+use VDM\Joomla\Componentbuilder\Table as JcbTable;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
 use VDM\Tests\Support\ExtrusionDatabaseFixture;
 use VDM\Tests\Support\ExtrusionItemFixture;
@@ -162,6 +166,14 @@ final class WriterTest extends TestCase
 	 * @since  6.1.6
 	 */
 	private Report $report;
+
+	/**
+	 * The proposal registry under test.
+	 *
+	 * @var    Proposal
+	 * @since  6.2.0
+	 */
+	private Proposal $proposal;
 
 	/**
 	 * The source identity registry.
@@ -429,6 +441,78 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * A write that would change nothing is not made at all.
+	 *
+	 * The record already says what the source says. Writing it again would
+	 * only move its modified date and leave a version of itself that reads
+	 * exactly like the one before it.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAWriteThatWouldChangeNothingIsNotMade(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
+		$fieldGuid = $this->guid->derive([self::OPTION, 'field', 'item', 'name']);
+
+		$this->assertSame(1, $this->field()->write());
+
+		$written = $this->item->definitions('field')[0];
+
+		// the record now stands exactly as the run just wrote it
+		$this->restate();
+		$this->seedItemView();
+		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
+		$this->item->identity('field', $fieldGuid, 21);
+		// the record stands exactly as the run wrote it, read back the way the
+		// storage pipeline hands it out
+		$this->item->serve('field', $fieldGuid, (object) get_object_vars($written));
+
+		$this->assertSame(1, $this->field()->write(), 'The field is accounted for.');
+		$this->assertSame([], $this->item->records(), 'Nothing was written a second time.');
+		$this->assertTrue($this->report->get('unchanged.field.' . $fieldGuid));
+		$this->assertNull($this->report->get('written'));
+		$this->assertFalse(
+			$this->proposal->record('field', $fieldGuid)['changed'],
+			'The proposal says plainly that nothing would move.'
+		);
+	}
+
+	/**
+	 * Every record names the row of the pairing board it belongs to.
+	 *
+	 * A view owns its own record and the fields it links, so what those would
+	 * change has to gather on that view's row -- there is nowhere else on the
+	 * board to show it.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testEveryRecordNamesTheBoardRowItBelongsTo(): void
+	{
+		$this->seedItemView();
+		$this->seedField('item', 'name', ['xml_type' => 'text', 'label' => 'Name']);
+
+		$this->field()->write();
+		$this->adminView()->write();
+		$this->adminFields()->write();
+
+		$summary = $this->proposal->summary();
+
+		$this->assertArrayHasKey('field|item.name', $summary);
+		$this->assertArrayHasKey('admin_view|item', $summary);
+		$this->assertSame(
+			2,
+			$summary['admin_view|item']['records'],
+			'The view record and the links it carries both belong to the view\'s row.'
+		);
+		$this->assertSame('create', $summary['field|item.name']['action']);
+		$this->assertGreaterThan(0, $summary['field|item.name']['additions']);
+		$this->assertSame(0, $summary['field|item.name']['deletions'], 'Nothing stood, so nothing is lost.');
+	}
+
+	/**
 	 * A dry run reports every identity it would write and writes nothing.
 	 *
 	 * @return  void
@@ -445,9 +529,13 @@ final class WriterTest extends TestCase
 		$this->assertSame(1, $this->adminView()->write());
 		$this->assertSame([], $this->item->records());
 		$this->assertSame(
-			['field:guid:' . $fieldGuid . ':id'],
+			[
+				'field:guid:' . $fieldGuid . ':id',
+				'field:guid:' . $fieldGuid . ':id',
+				'admin_view:guid:' . self::VIEW_GUID . ':id'
+			],
 			$this->item->lookups(),
-			'A dry run still asks whether the field stands, because what it would write depends on that; it writes nothing.'
+			'A dry run reads what stands, because what it would write -- and what it would change -- depends on it; it writes nothing.'
 		);
 		$this->assertTrue($this->report->get('dryrun.field.' . $fieldGuid));
 		$this->assertTrue($this->report->get('dryrun.admin_view.' . self::VIEW_GUID));
@@ -802,6 +890,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			new Language($catalogue, $this->report, $this->source),
 			$this->guid
@@ -1810,6 +1899,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			new Language($catalogue, $this->report, $this->source),
 			$this->guid
@@ -1894,6 +1984,7 @@ final class WriterTest extends TestCase
 		$this->item = new ExtrusionItemFixture();
 		$this->catalogue = new ExtrusionCatalogueFixture();
 		$this->guid = new Guid();
+		$this->proposal = new Proposal();
 
 		$this->source->set('code_name', self::OPTION);
 	}
@@ -2082,6 +2173,17 @@ final class WriterTest extends TestCase
 	}
 
 	/**
+	 * The change weigher every writer passes its records through.
+	 *
+	 * @return  Delta  The weigher.
+	 * @since   6.2.0
+	 */
+	private function delta(): Delta
+	{
+		return new Delta($this->item, new JcbTable(), new Diff(), $this->proposal);
+	}
+
+	/**
 	 * The field writer over the current boundary.
 	 *
 	 * @return  Field  The writer.
@@ -2096,6 +2198,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			new Record(
 				$fieldtype,
 				new FieldXml($fieldtype, $this->report),
@@ -2131,6 +2234,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->guid,
 			$this->source,
 			$this->pairing(),
@@ -2152,6 +2256,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$this->componentLoad(),
 			$this->form
@@ -2171,6 +2276,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source
 		);
 	}
@@ -2188,6 +2294,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$this->componentLoad()
 		);
@@ -2231,6 +2338,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->view,
 			$this->guid,
 			$this->source,
@@ -2254,6 +2362,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->view,
 			$this->guid,
 			$this->source,
@@ -2275,6 +2384,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$this->componentLoad()
 		);
@@ -2293,6 +2403,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->view,
 			$this->guid,
 			$this->source,
@@ -2313,6 +2424,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$this->componentLoad()
 		);
@@ -2331,6 +2443,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			new Language(new LanguageRegistry(), $this->report, $this->source),
 			$this->guid
@@ -2666,6 +2779,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$load,
 			$this->form
@@ -2706,7 +2820,7 @@ final class WriterTest extends TestCase
 		// with nothing stated beyond the names it derived, the view is left
 		// exactly as the person has it: no write carries a guess over a name
 		$this->assertSame([], $this->item->records('admin_view'));
-		$this->assertTrue($this->report->get('untouched.admin_view.' . self::VIEW_GUID));
+		$this->assertTrue($this->report->get('unchanged.admin_view.' . self::VIEW_GUID));
 
 		foreach (['name_single', 'name_list', 'system_name'] as $name)
 		{
@@ -2900,6 +3014,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$load,
 			$this->form
@@ -2976,6 +3091,7 @@ final class WriterTest extends TestCase
 			$this->resolved,
 			$this->item,
 			$this->report,
+			$this->delta(),
 			$this->source,
 			$load,
 			$this->form

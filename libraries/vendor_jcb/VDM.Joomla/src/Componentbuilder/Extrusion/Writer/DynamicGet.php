@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 /**
@@ -67,6 +68,7 @@ final class DynamicGet extends Writer
 	 * @param   Resolved       $resolved   The resolved definition registry.
 	 * @param   ItemInterface  $item       The JCB data item writer.
 	 * @param   Report         $report     The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   View           $view       The classified view registry.
 	 * @param   Guid           $guid       The identity resolver.
 	 * @param   Source         $source     The source identity registry.
@@ -78,12 +80,13 @@ final class DynamicGet extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		View $view,
 		Guid $guid,
 		Source $source
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->view = $view;
 		$this->guid = $guid;
@@ -248,7 +251,8 @@ final class DynamicGet extends Writer
 			);
 		}
 
-		if (!$this->store($definition))
+		// the get feeds one screen, so what it would change belongs on that screen's row
+		if (!$this->store($definition, [], null, $this->row($kind, $name)))
 		{
 			return false;
 		}

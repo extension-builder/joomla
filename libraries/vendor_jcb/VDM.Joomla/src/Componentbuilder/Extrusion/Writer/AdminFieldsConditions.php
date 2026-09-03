@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -47,6 +48,7 @@ final class AdminFieldsConditions extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Source         $source    The source identity registry.
 	 *
 	 * @since   6.1.6
@@ -56,10 +58,11 @@ final class AdminFieldsConditions extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Source $source
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->source = $source;
 	}
@@ -201,7 +204,7 @@ final class AdminFieldsConditions extends Writer
 		$definition->addconditions = $subform;
 		$definition->published = 1;
 
-		return $this->store($definition);
+		return $this->store($definition, [], null, $this->row('admin_view', $view));
 	}
 
 	/**

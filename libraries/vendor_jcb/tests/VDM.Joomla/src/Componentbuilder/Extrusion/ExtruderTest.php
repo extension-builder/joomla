@@ -30,6 +30,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry as RegistryProvider;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Writer as WriterProvider;
+use VDM\Joomla\Componentbuilder\Table as JcbTable;
 use VDM\Tests\Support\ExtrusionCatalogueFixture;
 use VDM\Tests\Support\ExtrusionComponentFixture;
 use VDM\Tests\Support\ExtrusionItemFixture;
@@ -106,6 +107,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->container = new Container();
 		$this->container->share('Data.Item', fn (): ExtrusionItemFixture => $this->item);
 		$this->container->share('Load', fn (): ExtrusionCatalogueFixture => $this->catalogue);
+		// the table definitions say how every column is stored, which is what
+		// weighing a write against what stands has to speak in
+		$this->container->share('Table', fn (): JcbTable => new JcbTable());
 		$this->container->share('Table', static fn (): Table => new Table(), true);
 		$this->container->registerServiceProvider(new RegistryProvider())
 			->registerServiceProvider(new Discovery())

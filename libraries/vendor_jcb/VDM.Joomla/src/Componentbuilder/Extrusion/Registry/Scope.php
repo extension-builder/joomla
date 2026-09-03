@@ -132,6 +132,14 @@ final class Scope
 	protected Message $message;
 
 	/**
+	 * The Proposal Registry.
+	 *
+	 * @var    Proposal
+	 * @since  6.2.0
+	 */
+	protected Proposal $proposal;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config     $config     The extrusion configuration.
@@ -147,6 +155,7 @@ final class Scope
 	 * @param   Decision   $decision   The pairing decision registry.
 	 * @param   Report     $report     The run report registry.
 	 * @param   Message    $message    The message bus.
+	 * @param   Proposal   $proposal   The proposal registry.
 	 *
 	 * @since   6.1.6
 	 */
@@ -163,7 +172,8 @@ final class Scope
 		Harvest $harvest,
 		Decision $decision,
 		Report $report,
-		Message $message
+		Message $message,
+		Proposal $proposal
 	)
 	{
 		$this->config = $config;
@@ -179,6 +189,7 @@ final class Scope
 		$this->decision = $decision;
 		$this->report = $report;
 		$this->message = $message;
+		$this->proposal = $proposal;
 	}
 
 	/**
@@ -220,7 +231,8 @@ final class Scope
 			'harvest' => $this->harvest,
 			'decision' => $this->decision,
 			'report' => $this->report,
-			'message' => $this->message
+			'message' => $this->message,
+			'proposal' => $this->proposal
 		];
 	}
 }
