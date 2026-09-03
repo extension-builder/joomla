@@ -146,7 +146,9 @@ test.describe('the extrusion view', () => {
 
 		// every row offers the three decisions, create-new first
 		const first = rows.first();
-		const actions = first.locator('[data-extrusion-act]');
+		// the decisions are the buttons carrying the decision class; the
+		// weight badge beside them acts through the same board handler
+		const actions = first.locator('.extrusion-act');
 		await expect(actions.nth(0)).toHaveText('Create new');
 		await expect(actions.nth(2)).toHaveText('Ignore');
 
