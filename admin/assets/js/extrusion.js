@@ -39,7 +39,15 @@
 		decisions: {},
 		selected: new Set(),
 		modal: null,
-		picker: null
+		picker: null,
+		// what each row would change, weighed by the harvest; the diffs of the
+		// rows a person has open, and nothing else -- a closed diff is dropped
+		changes: {},
+		diffs: {},
+		stale: new Set(),
+		// which disclosures a person has open, so a re-draw leaves the board
+		// exactly where they were reading it
+		opened: new Set()
 	};
 
 	const $ = (id) => document.getElementById(id);
@@ -174,10 +182,14 @@
 		state.data = payload;
 		state.decisions = {};
 		state.selected.clear();
+		state.changes = payload.changes || {};
+		state.diffs = {};
+		state.stale.clear();
 		enableTab('setup');
 		enableTab('pairing');
 		fillComponentSelect(payload);
 		await loadCatalogue(payload.component || 0);
+		standDownUnchanged();
 		renderBoard();
 		showPane('pairing');
 	}
@@ -352,6 +364,10 @@
 	}
 
 	function decide(candidate, verdict) {
+		// the weight on this row was read under the pairing it had a moment
+		// ago; the badge says so rather than showing a number that has moved
+		state.stale.add(candidate.kind + '|' + candidate.key);
+		closeDiff(candidate.kind + '|' + candidate.key);
 		state.decisions[candidate.kind] = state.decisions[candidate.kind] || {};
 		if (verdict === null) {
 			delete state.decisions[candidate.kind][candidate.key];
@@ -363,6 +379,182 @@
 	function explicit(candidate) {
 		const kind = state.decisions[candidate.kind] || {};
 		return Object.prototype.hasOwnProperty.call(kind, candidate.key);
+	}
+
+	/**
+	 * What one row of the board would change, as the harvest weighed it.
+	 */
+	function weight(candidate) {
+		return state.changes[candidate.kind + '|' + candidate.key] || null;
+	}
+
+	/**
+	 * A row with nothing to change stands itself down.
+	 *
+	 * The record already says what the source says. Leaving such a row set to
+	 * update would ask the import to write it for no reason, so the board
+	 * settles it on ignore and says plainly that nothing changed. A person can
+	 * still overrule it like any other row.
+	 */
+	function standDownUnchanged() {
+		allCandidates().forEach((candidate) => {
+			const owed = weight(candidate);
+			if (!owed || owed.changed || (candidate.shared && !candidate.detached)) {
+				return;
+			}
+			state.decisions[candidate.kind] = state.decisions[candidate.kind] || {};
+			state.decisions[candidate.kind][candidate.key] = { action: 'ignore' };
+		});
+	}
+
+	/**
+	 * The badge that says what a row would change, and opens the diff.
+	 */
+	function changeBadge(candidate) {
+		const id = candidate.kind + '|' + candidate.key;
+		const owed = weight(candidate);
+		if (!owed) {
+			return '';
+		}
+		if (state.stale.has(id)) {
+			return '<button type="button" class="extrusion-change extrusion-change-stale" '
+				+ 'data-extrusion-act="diff" title="' + esc(T.diffStaleHint) + '">'
+				+ esc(T.diffStale) + '</button>';
+		}
+		if (!owed.changed) {
+			return '<span class="extrusion-change extrusion-change-none" title="'
+				+ esc(T.noChangeHint) + '">' + esc(T.noChange) + '</span>';
+		}
+		const open = Object.prototype.hasOwnProperty.call(state.diffs, id);
+		return '<button type="button" class="extrusion-change' + (open ? ' open' : '')
+			+ '" data-extrusion-act="diff" title="' + esc(T.diffHint) + '">'
+			+ '<span class="extrusion-add">+' + owed.additions + '</span>'
+			+ '<span class="extrusion-del">&minus;' + owed.deletions + '</span></button>';
+	}
+
+	/**
+	 * Open or close one row's diff. Only what is open is held.
+	 */
+	async function toggleDiff(candidate) {
+		const id = candidate.kind + '|' + candidate.key;
+		if (Object.prototype.hasOwnProperty.call(state.diffs, id)) {
+			closeDiff(id);
+			renderBoard();
+			return;
+		}
+		state.diffs[id] = { loading: true };
+		if (candidate.kind === 'field') {
+			state.opened.add('fields:admin_view|' + candidate.key.split('.')[0]);
+		}
+		renderBoard();
+		let payload;
+		try {
+			payload = await post('extrusionDiff', {
+				config: JSON.stringify(readConfig()),
+				decisions: JSON.stringify(state.decisions),
+				row: id
+			});
+		} catch (error) {
+			payload = { error: error.message || T.requestFailed };
+		}
+		// the person may have closed it while it was on its way
+		if (Object.prototype.hasOwnProperty.call(state.diffs, id)) {
+			state.diffs[id] = payload && payload.error
+				? { error: payload.error }
+				: { records: (payload && payload.records) || [] };
+			state.stale.delete(id);
+		}
+		renderBoard();
+	}
+
+	function closeDiff(id) {
+		delete state.diffs[id];
+	}
+
+	/**
+	 * One row's diff, read only, side by side.
+	 */
+	function renderDiff(id) {
+		const held = state.diffs[id];
+		if (!held) {
+			return '';
+		}
+		if (held.loading) {
+			return '<div class="extrusion-diff"><p class="extrusion-diff-note">'
+				+ esc(T.diffLoading) + '</p></div>';
+		}
+		if (held.error) {
+			return '<div class="extrusion-diff"><p class="extrusion-diff-note">'
+				+ esc(held.error) + '</p></div>';
+		}
+		if (!held.records.length) {
+			return '<div class="extrusion-diff"><p class="extrusion-diff-note">'
+				+ esc(T.noChange) + '</p></div>';
+		}
+		let html = '<div class="extrusion-diff">';
+		held.records.forEach((record) => {
+			html += '<div class="extrusion-diff-record"><h4>' + esc(record.table)
+				+ ' <small>' + esc(record.action === 'create' ? T.diffCreates : T.diffUpdates)
+				+ '</small></h4>';
+			record.columns.forEach((column) => {
+				html += '<div class="extrusion-diff-column"><h5>' + esc(column.name)
+					+ ' <span class="extrusion-add">+' + column.additions + '</span>'
+					+ ' <span class="extrusion-del">&minus;' + column.deletions + '</span></h5>'
+					+ '<table class="extrusion-diff-table">';
+				column.hunks.forEach((hunk, index) => {
+					if (index > 0) {
+						html += '<tr class="extrusion-diff-gap"><td colspan="4">&hellip;</td></tr>';
+					}
+					html += diffRows(hunk.lines);
+				});
+				html += '</table></div>';
+			});
+			html += '</div>';
+		});
+		return html + '</div>';
+	}
+
+	/**
+	 * The lines of one hunk, the removals beside the additions that replace
+	 * them -- which is how a person reads a change, one side against the other.
+	 */
+	function diffRows(lines) {
+		let html = '';
+		let removed = [];
+		let added = [];
+		const flush = () => {
+			const rows = Math.max(removed.length, added.length);
+			for (let index = 0; index < rows; index++) {
+				html += diffRow(removed[index] || null, added[index] || null);
+			}
+			removed = [];
+			added = [];
+		};
+		lines.forEach((line) => {
+			if (line.op === 'remove') {
+				removed.push(line);
+			} else if (line.op === 'add') {
+				added.push(line);
+			} else {
+				flush();
+				html += diffRow(line, line);
+			}
+		});
+		flush();
+		return html;
+	}
+
+	function diffRow(left, right) {
+		const side = (line, kind) => {
+			if (!line) {
+				return '<td class="extrusion-diff-num"></td><td class="extrusion-diff-line empty"></td>';
+			}
+			const number = kind === 'old' ? line.old : line.new;
+			return '<td class="extrusion-diff-num">' + (number === null ? '' : number)
+				+ '</td><td class="extrusion-diff-line ' + esc(line.op) + '">'
+				+ esc(line.text) + '</td>';
+		};
+		return '<tr>' + side(left, 'old') + side(right, 'new') + '</tr>';
 	}
 
 	/**
@@ -417,6 +609,16 @@
 		board.innerHTML = html;
 		refreshBulkBar();
 		applyFilter($('extrusion-filter').value);
+		$$('#extrusion-board [data-extrusion-open]').forEach((node) => {
+			node.addEventListener('toggle', () => {
+				const key = node.dataset.extrusionOpen;
+				if (node.open) {
+					state.opened.add(key);
+				} else {
+					state.opened.delete(key);
+				}
+			});
+		});
 	}
 
 	function counts(list) {
@@ -447,7 +649,10 @@
 		list.forEach((candidate) => {
 			html += row(candidate);
 			if (withFields && (candidate.fields || []).length) {
-				html += '<details class="extrusion-fields"><summary>'
+				const fieldsKey = 'fields:' + candidate.kind + '|' + candidate.key;
+				html += '<details class="extrusion-fields" data-extrusion-open="'
+					+ esc(fieldsKey) + '"' + (state.opened.has(fieldsKey) ? ' open' : '')
+					+ '><summary>'
 					+ esc(T.fields) + counts(candidate.fields) + '</summary>'
 					+ '<div class="extrusion-rows">';
 				candidate.fields.forEach((field) => {
@@ -537,6 +742,7 @@
 				: '')
 			+ '</span>'
 			+ '<span class="extrusion-actions">'
+			+ changeBadge(candidate)
 			+ '<button type="button" class="btn btn-sm extrusion-act' + active('create')
 			+ '" data-extrusion-act="create">' + esc(T.createNew) + '</button>'
 			+ '<button type="button" class="btn btn-sm extrusion-act extrusion-act-update' + active('update')
@@ -548,7 +754,7 @@
 				? '<button type="button" class="btn btn-sm extrusion-act extrusion-act-reset" '
 					+ 'data-extrusion-act="reset" title="' + esc(T.proposed) + '">&#8634;</button>'
 				: '')
-			+ '</span></div>';
+			+ '</span>' + renderDiff(id) + '</div>';
 	}
 
 	function findCandidate(id) {
@@ -568,6 +774,10 @@
 					return;
 				}
 				const action = button.dataset.extrusionAct;
+				if (action === 'diff') {
+					toggleDiff(candidate);
+					return;
+				}
 				if (action === 'create') {
 					decide(candidate, { action: 'create' });
 				} else if (action === 'ignore') {
@@ -992,6 +1202,11 @@
 		});
 		$('extrusion-component-select').addEventListener('change', async (event) => {
 			await loadCatalogue(parseInt(event.target.value, 10) || 0);
+			// the weights were read against the component paired at the
+			// harvest, so every badge says it is stale rather than showing a
+			// number that has moved. Opening one still reads the truth
+			Object.keys(state.changes).forEach((row) => state.stale.add(row));
+			state.diffs = {};
 			renderBoard();
 		});
 		$$('#extrusion-bulk-bar [data-extrusion-bulk]').forEach((button) => {

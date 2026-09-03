@@ -250,7 +250,15 @@ window.JCBExtrusion = {
 		adopted: '<?php echo Text::_('Adopted', true); ?>',
 		consolidated: '<?php echo Text::_('Consolidated', true); ?>',
 		reused: '<?php echo Text::_('Reused', true); ?>',
-		kept: '<?php echo Text::_('Kept', true); ?>'
+		kept: '<?php echo Text::_('Kept', true); ?>',
+		noChange: '<?php echo Text::_('no change', true); ?>',
+		noChangeHint: '<?php echo Text::_('This record already says what the source says, so the import will leave it alone.', true); ?>',
+		diffHint: '<?php echo Text::_('See exactly what this import would change here', true); ?>',
+		diffLoading: '<?php echo Text::_('Reading what would change...', true); ?>',
+		diffStale: '<?php echo Text::_('pairing changed', true); ?>',
+		diffStaleHint: '<?php echo Text::_('This row was weighed under the pairing it had before. Open it to see what it would change now.', true); ?>',
+		diffCreates: '<?php echo Text::_('would be created', true); ?>',
+		diffUpdates: '<?php echo Text::_('would be updated', true); ?>'
 	}
 };
 </script>

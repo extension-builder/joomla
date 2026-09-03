@@ -207,6 +207,46 @@ test.describe('the extrusion view', () => {
 		await expect(page.locator('#extrusion-pane-setup')).toBeVisible();
 	});
 
+	test('says what every row would change, and shows it line by line', async ({ page }) => {
+		await page.locator('[name="libraries"]').fill(LIBRARY);
+		await page.getByRole('button', { name: 'Harvest the source' }).click();
+
+		const pairing = page.locator('#extrusion-pane-pairing');
+		await expect(pairing).toBeVisible({ timeout: 120_000 });
+
+		// the board arrives already saying what it would change: nothing has
+		// been imported, and nobody has had to ask
+		const powers = page.locator('details[data-extrusion-kind="power"]');
+		const badges = powers.locator('.extrusion-change');
+		expect(await badges.count(),
+			'every power row carries what it would change').toBeGreaterThan(5);
+
+		// these powers do not stand in this component yet, so every one of
+		// them is an addition and none of them takes anything away
+		const first = badges.first();
+		await expect(first).toContainText('+');
+		await expect(first.locator('.extrusion-add')).not.toHaveText('+0');
+		await expect(first.locator('.extrusion-del')).toHaveText('\u22120');
+
+		// nothing of the diff is on the page until a person asks for it
+		await expect(page.locator('.extrusion-diff')).toHaveCount(0);
+
+		await first.click();
+		const diff = page.locator('.extrusion-diff').first();
+		await expect(diff).toBeVisible({ timeout: 120_000 });
+		await expect(diff.locator('.extrusion-diff-table').first()).toBeVisible();
+		expect(await diff.locator('.extrusion-diff-line.add').count(),
+			'a record that would be created is all additions').toBeGreaterThan(0);
+
+		// it is a reading, not an editing: nothing in it can be typed into
+		await expect(diff.locator('input, textarea, select, [contenteditable="true"]'))
+			.toHaveCount(0);
+
+		// closing it takes it off the page entirely
+		await first.click();
+		await expect(page.locator('.extrusion-diff')).toHaveCount(0);
+	});
+
 	test('harvests the installed component against the real schema', async ({ page }) => {
 		// the heaviest journey on the board: a real component, both folders,
 		// resolved and paired against the live database -- the run that a
