@@ -155,6 +155,38 @@ final class DiffTest extends TestCase
 	}
 
 	/**
+	 * Two changes whose whole gap would be shown as context anyway are one hunk.
+	 *
+	 * A unified diff joins two hunks when the unchanged lines between them are
+	 * no more than twice the context, so no line is ever shown twice and no
+	 * gap is marked where nothing was left out.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testChangesWithinReachOfEachOtherAreOneHunk(): void
+	{
+		$before = implode("\n", array_map(static fn (int $line): string => 'line ' . $line, range(1, 40)));
+
+		foreach ([4, 5, 6] as $gap)
+		{
+			$after = str_replace(['line 10', 'line ' . (11 + $gap)], ['ten', 'later'], $before);
+			$hunks = $this->diff->compare($before, $after)['hunks'];
+
+			$this->assertCount(1, $hunks, 'Changes ' . $gap . ' lines apart are read together.');
+			$this->assertSame(7, $hunks[0]['old']);
+			$this->assertSame('line ' . (14 + $gap), $hunks[0]['lines'][count($hunks[0]['lines']) - 1]['text']);
+		}
+
+		$after = str_replace(['line 10', 'line 18'], ['ten', 'later'], $before);
+		$hunks = $this->diff->compare($before, $after)['hunks'];
+
+		$this->assertCount(2, $hunks, 'Changes seven lines apart leave a line out between them.');
+		$this->assertSame('line 13', $hunks[0]['lines'][count($hunks[0]['lines']) - 1]['text']);
+		$this->assertSame('line 15', $hunks[1]['lines'][0]['text'], 'The line left out is shown in neither hunk.');
+	}
+
+	/**
 	 * Lines added at the end of a text are added, not read as a rewrite.
 	 *
 	 * @return  void

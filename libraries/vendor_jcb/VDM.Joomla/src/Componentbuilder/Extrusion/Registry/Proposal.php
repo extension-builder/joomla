@@ -35,6 +35,10 @@ final class Proposal extends Registry implements Registryinterface
 	/**
 	 * Set down what one record would change.
 	 *
+	 * A record two rows both compose is proposed once for each row, because
+	 * each row must answer for its own write: what one row would put there is
+	 * not what the other would, and neither is allowed to hide the other.
+	 *
 	 * @param   string                $table     The table the record belongs to.
 	 * @param   string                $identity  The record's identity.
 	 * @param   array<string, mixed>  $delta     What the write would change.
@@ -44,11 +48,21 @@ final class Proposal extends Registry implements Registryinterface
 	 */
 	public function propose(string $table, string $identity, array $delta): void
 	{
-		$this->set('records.' . $table . '.' . $this->key($identity), $delta);
+		$origin = trim((string) ($delta['origin'] ?? ''));
+
+		$this->set(
+			'records.' . $table . '.' . $this->key($identity) . '.'
+			. ($origin === '' ? 'run' : $this->key($origin)),
+			$delta
+		);
 	}
 
 	/**
 	 * One record's proposal, when the run made one.
+	 *
+	 * When more than one row composed the record, the proposal of the row
+	 * that composed it last is the one answered, because that is the write
+	 * that would stand.
 	 *
 	 * @param   string  $table     The table the record belongs to.
 	 * @param   string  $identity  The record's identity.
@@ -58,7 +72,14 @@ final class Proposal extends Registry implements Registryinterface
 	 */
 	public function record(string $table, string $identity): ?array
 	{
-		$record = $this->get('records.' . $table . '.' . $this->key($identity));
+		$proposals = $this->get('records.' . $table . '.' . $this->key($identity));
+
+		if (!is_array($proposals) || $proposals === [])
+		{
+			return null;
+		}
+
+		$record = end($proposals);
 
 		return is_array($record) ? $record : null;
 	}
@@ -75,11 +96,14 @@ final class Proposal extends Registry implements Registryinterface
 
 		foreach ((array) $this->get('records', []) as $table)
 		{
-			foreach ((array) $table as $record)
+			foreach ((array) $table as $proposals)
 			{
-				if (is_array($record))
+				foreach ((array) $proposals as $record)
 				{
-					$records[] = $record;
+					if (is_array($record))
+					{
+						$records[] = $record;
+					}
 				}
 			}
 		}

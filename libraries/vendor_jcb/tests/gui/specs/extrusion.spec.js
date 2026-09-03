@@ -247,6 +247,20 @@ test.describe('the extrusion view', () => {
 		// closing it takes it off the page entirely
 		await first.click();
 		await expect(page.locator('.extrusion-diff')).toHaveCount(0);
+
+		// a decision moves what the row would write, so its weight is read
+		// again under the pairing it has now: ignoring a row takes it out of
+		// the run, and out of the run there is nothing to weigh
+		const row = powers.locator('.extrusion-row').first();
+		await row.getByRole('button', { name: 'Ignore' }).click();
+		await expect(row.locator('.extrusion-change'),
+			'a row taken out of the run carries no weight').toHaveCount(0, { timeout: 120_000 });
+
+		// and putting it back weighs it again, as an addition once more
+		await row.locator('[data-extrusion-act="reset"]').click();
+		await expect(row.locator('.extrusion-change .extrusion-del'),
+			'a row put back into the run is weighed again').toHaveText('\u22120', { timeout: 120_000 });
+		await expect(row.locator('.extrusion-change .extrusion-add')).not.toHaveText('+0');
 	});
 
 	test('harvests the installed component against the real schema', async ({ page }) => {

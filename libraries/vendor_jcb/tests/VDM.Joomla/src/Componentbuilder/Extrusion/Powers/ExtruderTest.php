@@ -448,6 +448,15 @@ final class ExtruderTest extends FilesystemTestCase
 			'A retargeted class updates the power the person pointed at.'
 		);
 		$this->assertNotContains($fetch, $guids);
+
+		// the board knows the class by the identity the harvest gave it, so
+		// that is the row its weight answers on, whatever it is written under
+		$summary = $this->container->get('Extrusion.Registry.Proposal')->summary();
+
+		$this->assertArrayHasKey('power|' . $fetch, $summary, 'The retargeted class weighs on its own board row.');
+		$this->assertArrayNotHasKey('power|' . $other, $summary);
+		$this->assertArrayNotHasKey('power|' . $loader, $summary, 'An ignored class is out of the run, so it has no weight.');
+		$this->assertSame(1, $summary['power|' . $fetch]['records']);
 	}
 
 	/**

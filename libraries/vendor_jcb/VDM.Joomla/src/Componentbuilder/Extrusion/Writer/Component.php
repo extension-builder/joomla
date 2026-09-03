@@ -112,21 +112,6 @@ final class Component extends Writer
 	}
 
 	/**
-	 * The pairing board row every component-level record belongs to.
-	 *
-	 * The component itself, and the tables that link its views to it, are not
-	 * candidates a person pairs -- they follow from the run. They still name a
-	 * row, so what they would change is never lost from the account.
-	 *
-	 * @return  string  The board row.
-	 * @since   6.2.0
-	 */
-	protected function component(): string
-	{
-		return $this->row('component', (string) $this->source->get('code_name', 'component'));
-	}
-
-	/**
 	 * The JCB table this writer persists into.
 	 *
 	 * @return  string  The table name without its prefix.
@@ -199,12 +184,17 @@ final class Component extends Writer
 			}
 		}
 
-		$this->report->set('component.details', array_keys($definition));
+		if ($definition !== [])
+		{
+			$this->report->set('component.details', array_keys($definition));
+		}
 
 		// the same gate every other record passes: the run's policy on what
 		// already stands is read in exactly one place, and a component row is
 		// no more exempt from it than a field is
-		if (!$this->store((object) (['id' => $component] + $definition), [], 'id', $this->component()))
+		$row = $this->componentRow((string) $this->source->get('code_name', ''));
+
+		if (!$this->store((object) (['id' => $component] + $definition), [], 'id', $row))
 		{
 			return 0;
 		}
@@ -257,10 +247,12 @@ final class Component extends Writer
 
 		// the naming and the version are scaffolding for a component that does
 		// not exist yet; a person who has since named their own must keep it
+		$row = $this->componentRow((string) $this->source->get('code_name', ''));
+
 		if (!$this->store($definition, [
 			'system_name', 'published', 'short_description', 'description',
 			'component_version'
-		], null, $this->component()))
+		], null, $row))
 		{
 			return 0;
 		}

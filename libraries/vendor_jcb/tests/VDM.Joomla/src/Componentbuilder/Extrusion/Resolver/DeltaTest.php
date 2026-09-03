@@ -377,6 +377,209 @@ final class DeltaTest extends TestCase
 	}
 
 	/**
+	 * A line ends the same whichever way it was broken.
+	 *
+	 * The readers fold every line ending of a source file to one, and what a
+	 * person saved through a form may carry the other. Nobody can see the
+	 * difference, so a text that differs only there is not written again --
+	 * and when it does change, the lines counted are the lines shown.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testALineEndsTheSameWhicheverWayItWasBroken(): void
+	{
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\tpublic function run(): void\r\n\t{\r\n\t}"
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$same = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\tpublic function run(): void\n\t{\n\t}"
+		], true);
+
+		$this->assertFalse($same['changed'], 'The body reads the same, whichever way its lines were broken.');
+
+		$moved = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\tpublic function run(): void\n\t{\n\t\t\$this->go();\n\t}"
+		], true);
+
+		$this->assertTrue($moved['changed']);
+		$this->assertSame(1, $moved['additions'], 'One line was added, and that is the one line counted.');
+		$this->assertSame(0, $moved['deletions']);
+		$this->assertStringNotContainsString("\r", $moved['columns']['main_class_code']['before']);
+	}
+
+	/**
+	 * A subform says the same thing whichever way it was saved.
+	 *
+	 * A form saves its keys in the form's order and every value as text; a
+	 * writer composes the same rows in its own order and with numbers where
+	 * the form had text. A person reads both as the same subform, so neither
+	 * the order nor the spelling of a number is a change -- and when a value
+	 * does move, only that value is shown as moved.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testASubformSaysTheSameThingWhicheverWayItWasSaved(): void
+	{
+		$this->item->serve('admin_fields_conditions', self::GUID, (object) [
+			'admin_view' => self::GUID,
+			'addconditions' => (object) ['addconditions0' => (object) [
+				'target_field' => 'field-a',
+				'target_behavior' => '1',
+				'target_relation' => '0',
+				'match_field' => 'field-b',
+				'match_behavior' => '1',
+				'match_options' => 'yes'
+			]]
+		]);
+		$this->item->identity('admin_fields_conditions', self::GUID, 9);
+
+		$same = $this->delta->weigh('admin_fields_conditions', 'admin_view', self::GUID, (object) [
+			'admin_view' => self::GUID,
+			'addconditions' => ['addconditions0' => [
+				'target_field' => 'field-a',
+				'match_field' => 'field-b',
+				'target_behavior' => 1,
+				'target_relation' => 0,
+				'match_behavior' => 1,
+				'match_options' => 'yes'
+			]]
+		], true);
+
+		$this->assertFalse(
+			$same['changed'],
+			'The rows say the same thing in another order and with numbers spelt as numbers.'
+		);
+
+		$moved = $this->delta->weigh('admin_fields_conditions', 'admin_view', self::GUID, (object) [
+			'admin_view' => self::GUID,
+			'addconditions' => ['addconditions0' => [
+				'target_field' => 'field-a',
+				'match_field' => 'field-b',
+				'target_behavior' => 2,
+				'target_relation' => 0,
+				'match_behavior' => 1,
+				'match_options' => 'yes'
+			]]
+		], true);
+
+		$this->assertTrue($moved['changed']);
+		$this->assertSame(1, $moved['additions'], 'One value moved, and that is the one line counted.');
+		$this->assertSame(1, $moved['deletions']);
+	}
+
+	/**
+	 * A list keeps its order, because there the position is the meaning.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAListInAnotherOrderIsAnotherList(): void
+	{
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'implements' => ['first-guid', 'second-guid']
+		]);
+		$this->item->identity('power', self::GUID, 5);
+
+		$delta = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'implements' => ['second-guid', 'first-guid']
+		], true);
+
+		$this->assertTrue($delta['changed']);
+	}
+
+	/**
+	 * A record coming into being shows only what it fills in.
+	 *
+	 * A column the creation leaves empty adds nothing a person could read, so
+	 * nothing is shown for it; but the record still comes into being, which
+	 * is a change even when everything it carries is empty.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testACreationShowsOnlyWhatItFillsIn(): void
+	{
+		$delta = $this->weigh((object) [
+			'guid' => self::GUID,
+			'name' => 'Line One',
+			'description' => '',
+			'datadefault' => null,
+			'implements' => []
+		], false);
+
+		$this->assertTrue($delta['changed']);
+		$this->assertSame(['name'], array_keys($delta['columns']), 'The empty columns are not shown as changes.');
+		$this->assertSame(1, $delta['additions']);
+
+		$empty = $this->weigh((object) ['guid' => self::GUID, 'description' => ''], false);
+
+		$this->assertTrue($empty['changed'], 'A record that does not stand comes into being, and that is a change.');
+		$this->assertSame([], $empty['columns']);
+		$this->assertSame('create', $empty['action']);
+	}
+
+	/**
+	 * The action follows whether the record stands, not what the read brought back.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testTheActionFollowsWhetherTheRecordStands(): void
+	{
+		// the record stands, but nothing of it can be read back
+		$this->item->identity('field', self::GUID, 11);
+
+		$delta = $this->weigh((object) ['guid' => self::GUID, 'name' => 'Line One', 'description' => '']);
+
+		$this->assertSame('update', $delta['action'], 'A record the writer found standing is updated, never created.');
+		$this->assertTrue($delta['changed']);
+		$this->assertSame(['name'], array_keys($delta['columns']), 'What cannot be read back is weighed against nothing.');
+	}
+
+	/**
+	 * A record two rows both compose answers on both rows.
+	 *
+	 * Each row must answer for its own write; the write that would stand is
+	 * the last one made, and that is the record's own answer.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testARecordTwoRowsComposeAnswersOnBothRows(): void
+	{
+		$this->delta->weigh('field', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'name' => 'Line One'
+		], false, 'field|address.line_one');
+		$this->delta->weigh('field', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'name' => 'Line One',
+			'description' => 'Stated by the other view'
+		], false, 'field|contact.line_one');
+
+		$summary = $this->proposal->summary();
+
+		$this->assertSame(['field|address.line_one', 'field|contact.line_one'], array_keys($summary));
+		$this->assertSame(1, $summary['field|address.line_one']['additions']);
+		$this->assertSame(2, $summary['field|contact.line_one']['additions']);
+		$this->assertCount(2, $this->proposal->records());
+		$this->assertSame(
+			'field|contact.line_one',
+			$this->proposal->record('field', self::GUID)['origin'],
+			'The write that would stand is the last one made.'
+		);
+	}
+
+	/**
 	 * Weigh one field definition under the standard row.
 	 *
 	 * @param   object  $definition  The definition a write would carry.

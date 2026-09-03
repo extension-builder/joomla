@@ -239,6 +239,7 @@ domain gets several small ones, each shared and each with one subject:
 | `Extrusion.Registry.View` | classified templates and layouts, split into PHP and HTML | Reader |
 | `Extrusion.Registry.Resolved` | final per-field values, each with its origin | Resolver |
 | `Extrusion.Registry.Report` | matched, unmatched, guessed, skipped, unresolved | all |
+| `Extrusion.Registry.Proposal` | what every write would change against what stands, by pairing-board row | Writer, through `Resolver\Delta` |
 
 Indicative paths:
 
