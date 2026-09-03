@@ -7105,8 +7105,20 @@ class AjaxModel extends ListModel
 			// what every row of the board would change. The account of the
 			// harvest is taken first, above, because weighing starts the run
 			// over: it has to be the very run an import makes, or the board
-			// would answer for a run nobody is going to make
-			$harvested['changes'] = $this->extrusionWeigh($options);
+			// would answer for a run nobody is going to make -- so it is aimed
+			// at the component the board pairs against, detected or chosen
+			try
+			{
+				$harvested['changes'] = $this->extrusionProposals(
+					['component' => $component, 'detect' => false] + $options
+				) ?? [];
+			}
+			catch (\Exception $error)
+			{
+				// the harvest stood; only the weighing fell, and the board says so
+				$harvested['changes'] = [];
+				$harvested['weighing'] = $error->getMessage();
+			}
 
 			return $harvested;
 		}
@@ -7385,6 +7397,61 @@ class AjaxModel extends ListModel
 	}
 
 	/**
+	 * What every row of the pairing board would change, under its decisions.
+	 *
+	 * The board asks this after every decision, because a decision on one row
+	 * moves what other rows would write: pairing a view elsewhere re-pairs
+	 * the fields under it, and ignoring a field changes the links its view
+	 * carries. Only the weight of each row travels, so the answer stays the
+	 * size of the board rather than the size of the change.
+	 *
+	 * Language note: user-facing strings here are natural strings inside
+	 * Text::_() by design, never language constants -- JCB manages these
+	 * strings itself when this code is imported.
+	 *
+	 * @param string $config     The run configuration as a JSON object.
+	 * @param string $decisions  The pairing verdicts as a JSON object.
+	 *
+	 * @return array
+	 * @since  6.2.0
+	 */
+	public function extrusionWeigh(string $config, string $decisions): array
+	{
+		$user = method_exists($this, 'getCurrentUser')
+			? $this->getCurrentUser()
+			: Factory::getUser();
+
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
+		{
+			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+		}
+
+		$options = json_decode($config, true);
+		$verdicts = json_decode($decisions, true);
+
+		if (!is_array($options))
+		{
+			return ['error' => Text::_('The extrusion configuration could not be read.')];
+		}
+
+		try
+		{
+			$changes = $this->extrusionProposals($options, is_array($verdicts) ? $verdicts : []);
+
+			if ($changes === null)
+			{
+				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+			}
+
+			return ['changes' => $changes];
+		}
+		catch (\Exception $error)
+		{
+			return ['error' => $error->getMessage()];
+		}
+	}
+
+	/**
 	 * The whole change one row of the pairing board would make.
 	 *
 	 * Nothing is stored between the harvest and this call: the source is read
@@ -7429,21 +7496,10 @@ class AjaxModel extends ListModel
 
 		try
 		{
-			// a weighing writes nothing, whatever the run itself is set to
-			[$extruder, $powers] = $this->extrusionEngines(['dry_run' => true] + $options);
-
-			if ($extruder === null && $powers === null)
+			if ($this->extrusionProposals($options, is_array($verdicts) ? $verdicts : []) === null)
 			{
 				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
 			}
-
-			if (is_array($verdicts) && $verdicts !== [])
-			{
-				ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
-			}
-
-			$extruder?->extrude();
-			$powers?->extrude();
 
 			return [
 				'row' => $row,
@@ -7463,21 +7519,26 @@ class AjaxModel extends ListModel
 	 * the only run whose answer is worth anything: resolving a second time
 	 * over a harvest that has already resolved settles the shared fields
 	 * differently, and the board would then show weights for a run the import
-	 * is never going to make.
+	 * is never going to make. Writing is suppressed whatever the run itself
+	 * is set to.
 	 *
-	 * @param array       $options    The run configuration.
-	 * @param string|null $decisions  The pairing verdicts, when the caller has any.
+	 * @param array $options   The run configuration.
+	 * @param array $verdicts  The pairing verdicts, when the caller has any.
 	 *
-	 * @return array
+	 * @return array|null  The weight of every board row, or null when nothing was aimed at.
 	 * @since  6.2.0
 	 */
-	protected function extrusionWeigh(array $options, ?string $decisions = null): array
+	protected function extrusionProposals(array $options, array $verdicts = []): ?array
 	{
 		[$extruder, $powers] = $this->extrusionEngines(['dry_run' => true] + $options);
 
-		$verdicts = $decisions === null ? null : json_decode($decisions, true);
+		if ($extruder === null && $powers === null)
+		{
+			return null;
+		}
 
-		if (is_array($verdicts) && $verdicts !== [])
+		// the verdicts load after the engines reset, because reset is the run boundary
+		if ($verdicts !== [])
 		{
 			ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
 		}

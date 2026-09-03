@@ -40,15 +40,23 @@
 		selected: new Set(),
 		modal: null,
 		picker: null,
-		// what each row would change, weighed by the harvest; the diffs of the
-		// rows a person has open, and nothing else -- a closed diff is dropped
+		// what each row would change, weighed under the decisions as they
+		// stand; the diffs of the rows a person has open, and nothing else --
+		// a closed diff is dropped; and the rows whose weight is being read
+		// again because a decision just moved it
 		changes: {},
 		diffs: {},
-		stale: new Set(),
+		weighing: new Set(),
+		weighingFailed: '',
 		// which disclosures a person has open, so a re-draw leaves the board
 		// exactly where they were reading it
 		opened: new Set()
 	};
+
+	// the weighing that is on its way, if any: decisions made in a burst are
+	// weighed once, and only the latest answer is allowed to land
+	let weighingTimer = null;
+	let weighingRun = 0;
 
 	const $ = (id) => document.getElementById(id);
 	const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
@@ -184,7 +192,10 @@
 		state.selected.clear();
 		state.changes = payload.changes || {};
 		state.diffs = {};
-		state.stale.clear();
+		state.weighing.clear();
+		state.weighingFailed = payload.weighing || '';
+		window.clearTimeout(weighingTimer);
+		weighingRun++;
 		enableTab('setup');
 		enableTab('pairing');
 		fillComponentSelect(payload);
@@ -363,10 +374,10 @@
 	}
 
 	function decide(candidate, verdict) {
-		// the weight on this row was read under the pairing it had a moment
-		// ago; the badge says so rather than showing a number that has moved
-		state.stale.add(candidate.kind + '|' + candidate.key);
-		closeDiff(candidate.kind + '|' + candidate.key);
+		// a decision moves what this row would write, and what the rows tied
+		// to it would write: the weights are read again under the pairing
+		// they have now, rather than left showing a number that has moved
+		unweigh(candidate);
 		state.decisions[candidate.kind] = state.decisions[candidate.kind] || {};
 		if (verdict === null) {
 			delete state.decisions[candidate.kind][candidate.key];
@@ -381,10 +392,95 @@
 	}
 
 	/**
-	 * What one row of the board would change, as the harvest weighed it.
+	 * The configuration a run on the board uses: the setup as harvested,
+	 * aimed at the component the board pairs against -- detected or chosen --
+	 * so a weighing, a diff and the import are all the same run.
+	 */
+	function runConfig() {
+		const config = Object.assign({}, state.config);
+		const select = $('extrusion-component-select');
+		config.component = parseInt(select.value, 10) || 0;
+		config.detect = false;
+		return config;
+	}
+
+	/**
+	 * What one row of the board would change, as it was last weighed.
 	 */
 	function weight(candidate) {
 		return state.changes[candidate.kind + '|' + candidate.key] || null;
+	}
+
+	/**
+	 * Mark a row, and the rows tied to it, as owed a fresh weighing.
+	 *
+	 * A view's fields are written under the view's pairing, and a field's
+	 * links are written on its view's row, so a decision on either moves the
+	 * other. The whole board is weighed again; these are the rows that say
+	 * so while the answer is on its way.
+	 */
+	function unweigh(candidate) {
+		state.weighing.add(candidate.kind + '|' + candidate.key);
+		if (candidate.kind === 'admin_view') {
+			(candidate.fields || []).forEach((field) => {
+				state.weighing.add('field|' + field.key);
+			});
+		} else if (candidate.kind === 'field') {
+			state.weighing.add('admin_view|' + candidate.key.split('.')[0]);
+		}
+		scheduleWeighing();
+	}
+
+	function scheduleWeighing() {
+		window.clearTimeout(weighingTimer);
+		weighingTimer = window.setTimeout(reweigh, 400);
+	}
+
+	/**
+	 * Read every row's weight again under the decisions as they stand.
+	 *
+	 * Only the latest answer counts: a decision made while one is on its way
+	 * starts another, and the earlier answer is dropped when it lands. A diff
+	 * left open on a row whose weight moved is read again too, so nothing on
+	 * the board answers for a pairing that is gone.
+	 */
+	async function reweigh() {
+		const run = ++weighingRun;
+		let payload;
+		try {
+			payload = await post('extrusionWeigh', {
+				config: JSON.stringify(runConfig()),
+				decisions: JSON.stringify(buildDecisions())
+			});
+		} catch (error) {
+			payload = { error: error.message || T.requestFailed };
+		}
+		if (run !== weighingRun) {
+			return;
+		}
+		const owed = new Set(state.weighing);
+		state.weighing.clear();
+		if (!payload || payload.error || !payload.changes) {
+			state.weighingFailed = (payload && payload.error) || T.weighingFailed;
+			renderBoard();
+			return;
+		}
+		const before = state.changes;
+		state.changes = payload.changes;
+		state.weighingFailed = '';
+		Object.keys(state.diffs).forEach((id) => {
+			if (!state.changes[id]) {
+				closeDiff(id);
+			} else if (owed.has(id) || moved(before[id], state.changes[id])) {
+				fetchDiff(id);
+			}
+		});
+		renderBoard();
+	}
+
+	function moved(was, now) {
+		return !was || was.changed !== now.changed
+			|| was.additions !== now.additions || was.deletions !== now.deletions;
 	}
 
 	/**
@@ -392,14 +488,13 @@
 	 */
 	function changeBadge(candidate) {
 		const id = candidate.kind + '|' + candidate.key;
+		if (state.weighing.has(id)) {
+			return '<span class="extrusion-change extrusion-change-weighing" title="'
+				+ esc(T.weighingHint) + '">' + esc(T.weighing) + '</span>';
+		}
 		const owed = weight(candidate);
 		if (!owed) {
 			return '';
-		}
-		if (state.stale.has(id)) {
-			return '<button type="button" class="extrusion-change extrusion-change-stale" '
-				+ 'data-extrusion-act="diff" title="' + esc(T.diffStaleHint) + '">'
-				+ esc(T.diffStale) + '</button>';
 		}
 		// a record that would change nothing is not written -- the engine
 		// settles that itself. The row is never set to ignore for it: ignoring
@@ -411,7 +506,8 @@
 		}
 		const open = Object.prototype.hasOwnProperty.call(state.diffs, id);
 		return '<button type="button" class="extrusion-change' + (open ? ' open' : '')
-			+ '" data-extrusion-act="diff" title="' + esc(T.diffHint) + '">'
+			+ '" data-extrusion-act="diff" aria-expanded="' + (open ? 'true' : 'false')
+			+ '" title="' + esc(T.diffHint) + '">'
 			+ '<span class="extrusion-add">+' + owed.additions + '</span>'
 			+ '<span class="extrusion-del">&minus;' + owed.deletions + '</span></button>';
 	}
@@ -426,16 +522,23 @@
 			renderBoard();
 			return;
 		}
-		state.diffs[id] = { loading: true };
 		if (candidate.kind === 'field') {
 			state.opened.add('fields:admin_view|' + candidate.key.split('.')[0]);
 		}
+		await fetchDiff(id);
+	}
+
+	/**
+	 * Read one row's diff under the decisions as they stand, and hold it.
+	 */
+	async function fetchDiff(id) {
+		state.diffs[id] = { loading: true };
 		renderBoard();
 		let payload;
 		try {
 			payload = await post('extrusionDiff', {
-				config: JSON.stringify(readConfig()),
-				decisions: JSON.stringify(state.decisions),
+				config: JSON.stringify(runConfig()),
+				decisions: JSON.stringify(buildDecisions()),
 				row: id
 			});
 		} catch (error) {
@@ -446,7 +549,6 @@
 			state.diffs[id] = payload && payload.error
 				? { error: payload.error }
 				: { records: (payload && payload.records) || [] };
-			state.stale.delete(id);
 		}
 		renderBoard();
 	}
@@ -572,6 +674,10 @@
 		if (state.catalogueFailed) {
 			html += '<div class="alert alert-warning" data-extrusion-warning="catalogue">'
 				+ esc(T.catalogueFailed) + '</div>';
+		}
+		if (state.weighingFailed) {
+			html += '<div class="alert alert-warning" data-extrusion-warning="weighing">'
+				+ esc(state.weighingFailed) + '</div>';
 		}
 		if ((candidates.admin_view || []).length) {
 			html += kindSection('admin_view', T.adminViews, candidates.admin_view, true);
@@ -949,10 +1055,7 @@
 	 * Run the import under the decisions of the board.
 	 */
 	async function runImport() {
-		const config = Object.assign({}, state.config);
-		const select = $('extrusion-component-select');
-		config.component = parseInt(select.value, 10) || 0;
-		config.detect = false;
+		const config = runConfig();
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.importing;
 		showPane('running');
@@ -1186,11 +1289,13 @@
 		});
 		$('extrusion-component-select').addEventListener('change', async (event) => {
 			await loadCatalogue(parseInt(event.target.value, 10) || 0);
-			// the weights were read against the component paired at the
-			// harvest, so every badge says it is stale rather than showing a
-			// number that has moved. Opening one still reads the truth
-			Object.keys(state.changes).forEach((row) => state.stale.add(row));
+			// the weights were read against the component paired before, so
+			// every row is weighed again against the one chosen now
+			allCandidates().forEach((candidate) => {
+				state.weighing.add(candidate.kind + '|' + candidate.key);
+			});
 			state.diffs = {};
+			scheduleWeighing();
 			renderBoard();
 		});
 		$$('#extrusion-bulk-bar [data-extrusion-bulk]').forEach((button) => {
