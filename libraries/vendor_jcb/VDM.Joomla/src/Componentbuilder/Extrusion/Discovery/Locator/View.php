@@ -85,7 +85,7 @@ final class View extends Locator
 		{
 			foreach ($this->mapped($root, $kind) as $directory)
 			{
-				foreach ($this->templates($root, $directory) as $path => $role)
+				foreach ($this->templates($root, $directory) as $path => $says)
 				{
 					if (isset($found[$path]))
 					{
@@ -93,9 +93,30 @@ final class View extends Locator
 					}
 
 					$found[$path] = $this->entry($path, 'map', $this->name($path));
-					$found[$path]['role'] = $role;
+					$found[$path]['role'] = $says['role'];
 					$found[$path]['scope'] = $scope;
-					$found[$path]['view'] = $this->view($path);
+					$found[$path]['view'] = $says['view'];
+				}
+			}
+		}
+
+		// a screen its component states with a class of its own is a screen,
+		// whether or not a template was laid out for it
+		foreach ($this->kinds('view_dir', 'site_view_dir', $only) as $kind => $scope)
+		{
+			foreach ($this->mapped($root, $kind) as $directory)
+			{
+				foreach ($this->classes($root, $directory) as $path => $says)
+				{
+					if (isset($found[$path]))
+					{
+						continue;
+					}
+
+					$found[$path] = $this->entry($path, 'map', $this->name($path));
+					$found[$path]['role'] = $says['role'];
+					$found[$path]['scope'] = $scope;
+					$found[$path]['view'] = $says['view'];
 				}
 			}
 		}
@@ -159,6 +180,69 @@ final class View extends Locator
 		}
 
 		return [$admin => 'admin', $site => 'site'];
+	}
+
+	/**
+	 * What one template file is to the screen it belongs to.
+	 *
+	 * @param   string  $file  The file name.
+	 *
+	 * @return  string  The role.
+	 * @since   6.2.0
+	 */
+	protected function role(string $file): string
+	{
+		$base = strtolower($file);
+
+		if ($base === 'edit.php')
+		{
+			return 'edit';
+		}
+
+		if ($base === 'default.php')
+		{
+			return 'main';
+		}
+
+		return str_starts_with($base, 'default_') ? 'template' : 'view';
+	}
+
+	/**
+	 * Every screen a folder of view classes names.
+	 *
+	 * A screen is not made by its template. A component states a screen in
+	 * several places at once -- a view class, a model, a controller, a
+	 * template -- and any one of them names it. Reading only the templates is
+	 * what loses a screen whose template is laid out some other way, or which
+	 * has none yet, and it is why a component that follows the ordinary layout
+	 * but does not keep a template folder for every screen came back short.
+	 *
+	 * @param   string  $root       The resolved source root.
+	 * @param   string  $directory  The folder of view classes.
+	 *
+	 * @return  array<string, array{role: string, view: string}>  Path keyed to what it says.
+	 * @since   6.2.0
+	 */
+	protected function classes(string $root, string $directory): array
+	{
+		$found = [];
+
+		foreach ((array) @glob($directory . '/*', GLOB_ONLYDIR) as $viewDirectory)
+		{
+			if (!is_string($viewDirectory))
+			{
+				continue;
+			}
+
+			$named = strtolower(basename($viewDirectory));
+
+			foreach ($this->php($root, $viewDirectory) as $path)
+			{
+				$found[$path] = ['role' => 'class', 'view' => $named];
+			}
+		}
+
+		return $found;
 	}
 
 	/**
@@ -227,12 +311,32 @@ final class View extends Locator
 	 * @param   string  $root       The resolved source root.
 	 * @param   string  $directory  The templates root.
 	 *
-	 * @return  array<string, string>  Absolute path keyed to its role.
+	 * @return  array<string, array{role: string, view: string}>  Path keyed to what it says.
 	 * @since   6.1.6
 	 */
 	protected function templates(string $root, string $directory): array
 	{
 		$found = [];
+
+		// a screen whose whole template is one file beside its neighbours is
+		// as much a screen as one with a folder of its own, and the file names it
+		foreach ((array) @glob($directory . '/*.php') as $flat)
+		{
+			$contained = is_string($flat) ? $this->scanner->contain($root, $flat) : null;
+			$named = $contained === null
+				? ''
+				: strtolower(pathinfo($contained, PATHINFO_FILENAME));
+
+			if ($named === '' || $named === 'index')
+			{
+				continue;
+			}
+
+			$found[$contained] = [
+				'role' => str_starts_with($named, 'default_') ? 'template' : 'main',
+				'view' => $named
+			];
+		}
 
 		foreach ((array) @glob($directory . '/*', GLOB_ONLYDIR) as $viewDirectory)
 		{
@@ -241,32 +345,11 @@ final class View extends Locator
 				continue;
 			}
 
+			$named = strtolower(basename($viewDirectory));
+
 			foreach ($this->php($root, $viewDirectory) as $path)
 			{
-				$base = strtolower(basename($path));
-
-				if ($base === 'edit.php')
-				{
-					$found[$path] = 'edit';
-
-					continue;
-				}
-
-				if ($base === 'default.php')
-				{
-					$found[$path] = 'main';
-
-					continue;
-				}
-
-				if (str_starts_with($base, 'default_'))
-				{
-					$found[$path] = 'template';
-
-					continue;
-				}
-
-				$found[$path] = 'view';
+				$found[$path] = ['role' => $this->role(basename($path)), 'view' => $named];
 			}
 
 			foreach ((array) @glob($viewDirectory . '/tmpl/*.php') as $nested)
@@ -278,18 +361,10 @@ final class View extends Locator
 					continue;
 				}
 
-				$base = strtolower(basename($contained));
-
-				if ($base === 'edit.php')
-				{
-					$found[$contained] = 'edit';
-
-					continue;
-				}
-
-				$found[$contained] = $base === 'default.php'
-					? 'main'
-					: (str_starts_with($base, 'default_') ? 'template' : 'view');
+				$found[$contained] = [
+					'role' => $this->role(basename($contained)),
+					'view' => $named
+				];
 			}
 		}
 

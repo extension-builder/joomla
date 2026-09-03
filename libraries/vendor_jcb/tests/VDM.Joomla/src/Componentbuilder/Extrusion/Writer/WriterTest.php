@@ -2468,6 +2468,8 @@ final class WriterTest extends TestCase
 		$this->view->set('site_view.app.add_php_view', 1);
 		$this->view->set('site_view.tag.name', 'tag');
 		$this->view->set('site_view.tag.default', '<p>Tag</p>');
+		// the reader took this out of the screen's own template file
+		$this->view->set('site_view.tag.body', '<p>Read from the component</p>');
 
 		$this->assertSame(2, $this->siteView()->write());
 
@@ -2480,13 +2482,29 @@ final class WriterTest extends TestCase
 		$this->assertStringContainsString(
 			'<h1>App</h1>',
 			$app->default,
-			'A recovered screen is given a body of its own, named for the view.'
+			'A screen whose component laid out no template for it is given '
+			. 'somewhere to start, named for the view.'
 		);
-		$this->assertStringContainsString(
-			'JGLOBAL_NO_MATCHING_RESULTS',
+		$this->assertStringNotContainsString(
+			'Text::_',
 			$app->default,
-			'The body renders whatever the view\'s get returns and says plainly '
-			. 'when it returns nothing; none of it is lifted from the source.'
+			'JCB makes the language constants itself when it compiles, so a '
+			. 'constant written into a stored body is one it never made and '
+			. 'cannot translate.'
+		);
+		$this->assertDoesNotMatchRegularExpression(
+			'/\bJ?[A-Z][A-Z0-9_]{6,}\b/',
+			$app->default,
+			'Plain words are what JCB can turn into a language string.'
+		);
+		// the screen its component laid a template out for shows what that
+		// template shows, never something made up in its place
+		$tag = $this->item->definitions('site_view')[1];
+
+		$this->assertSame(
+			'<p>Read from the component</p>',
+			$tag->default,
+			'What a screen shows is in that screen\'s own template.'
 		);
 		$this->assertSame('$a = 1;', $app->php_view);
 		$this->assertSame(1, $app->add_php_view);

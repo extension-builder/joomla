@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Template;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
@@ -94,6 +95,14 @@ final class Dispatcher
 	protected View $view;
 
 	/**
+	 * The Template Reader.
+	 *
+	 * @var    Template
+	 * @since  6.2.0
+	 */
+	protected Template $template;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config           $config     The extrusion configuration.
@@ -115,7 +124,8 @@ final class Dispatcher
 		ReaderInterface $table,
 		ReaderInterface $schema,
 		ReaderInterface $form,
-		View $view
+		View $view,
+		Template $template
 	)
 	{
 		$this->config = $config;
@@ -126,6 +136,7 @@ final class Dispatcher
 		$this->schema = $schema;
 		$this->form = $form;
 		$this->view = $view;
+		$this->template = $template;
 	}
 
 	/**
@@ -221,12 +232,16 @@ final class Dispatcher
 	{
 		$noted = 0;
 
+		// a screen's own template names it first, because it is also the body
+		// the screen shows; a class names one the template never got to
+		foreach (['main', 'class'] as $says)
+		{
 		foreach ($this->located('view') as $entry)
 		{
-			if (($entry['role'] ?? '') !== 'main')
+			if (($entry['role'] ?? '') !== $says)
 			{
-				// only a view's default template names the view itself; an
-				// editor, a layout or a sub-template belongs to one that does
+				// an editor, a layout or a sub-template belongs to a screen
+				// something else names
 				continue;
 			}
 
@@ -248,12 +263,21 @@ final class Dispatcher
 				continue;
 			}
 
+			// what the screen shows is in the screen's own template, so it is
+			// read from there rather than invented for it
+			$body = $says === 'main'
+				? $this->template->read((string) $entry['path'])
+				: null;
+
 			$this->view->set($kind . '.' . $name, [
 				'name' => $name,
 				'path' => $entry['path'],
+				'template' => $says === 'main' ? (string) $entry['path'] : '',
+				'body' => $body ?? '',
 				'scope' => (string) ($entry['scope'] ?? '')
 			]);
 			$noted++;
+		}
 		}
 
 		$this->report->set('counts.noted_views', $noted);

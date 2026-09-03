@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Form as FormReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Language as LanguageReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Literal;
+use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Template;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\CreateTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
@@ -1252,7 +1253,8 @@ SQL);
 			$this->tableReader(),
 			$this->schemaReader(),
 			$this->formReader(),
-			$this->view
+			$this->view,
+			new Template()
 		);
 
 		$this->assertSame(1, $dispatcher->dispatch());
@@ -1294,7 +1296,8 @@ SQL);
 			$this->tableReader(),
 			$this->schemaReader(),
 			$this->formReader(),
-			$this->view
+			$this->view,
+			new Template()
 		);
 
 		$this->assertSame([
@@ -1414,7 +1417,8 @@ SQL);
 			$this->recorder($order, 'table_class'),
 			$this->recorder($order, 'schema'),
 			$this->recorder($order, 'form'),
-			$this->view
+			$this->view,
+			new Template()
 		);
 	}
 

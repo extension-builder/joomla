@@ -224,7 +224,9 @@ final class CustomAdminView extends Writer
 		$definition->codename = $name;
 		$definition->system_name = $readable;
 		$definition->description = (string) ($entry['description'] ?? $readable);
-		$definition->default = $this->scaffold($readable);
+		// what the screen shows is what its own template shows; only a screen
+		// whose template could not be read is given something to start from
+		$definition->default = $this->body($entry, $readable);
 		$definition->php_view = (string) ($entry['php_view'] ?? '');
 		$definition->add_php_view = (int) ($entry['add_php_view'] ?? 0);
 		$definition->main_get = (string) $this->resolved->get(
@@ -335,55 +337,41 @@ final class CustomAdminView extends Writer
 	}
 
 	/**
-	 * The body a recovered screen starts from.
+	 * What the screen shows, taken from the screen's own template.
 	 *
-	 * A screen's own markup is its author's and is never lifted out of the
-	 * files a component builds it with, so a recovered screen needs a body of
-	 * its own to be a screen at all. This is that body: it renders whatever the
-	 * view's get returns, naming each value by the key it arrives under, and
-	 * says plainly when the get returns nothing yet.
+	 * A component states what a screen looks like in that screen's template,
+	 * and the reader has already separated that markup from the PHP which
+	 * prepares it. The markup is what JCB holds for the screen, so it is what
+	 * is stored -- never something invented in its place.
 	 *
-	 * Nothing here is particular to the component it came from, or to how that
-	 * component happened to be built -- which is the point. A person replaces
-	 * it with the screen they want; until then the screen compiles, opens, and
-	 * shows what it has.
+	 * A screen whose template could not be read -- one its component states
+	 * with a class before any template was laid out for it -- is given
+	 * somewhere to start instead. That starting point carries plain words on
+	 * purpose: JCB makes the language constants itself when it compiles, and a
+	 * constant written in here would be one it never made and cannot
+	 * translate.
 	 *
-	 * @param   string  $readable  The view's human readable name.
+	 * @param   array<string, mixed>  $entry     The screen as the reader noted it.
+	 * @param   string                $readable  The screen's name, in words.
 	 *
 	 * @return  string  The body to store.
 	 * @since   6.1.8
 	 */
-	protected function scaffold(string $readable): string
+	protected function body(array $entry, string $readable): string
 	{
+		$body = trim((string) ($entry['body'] ?? ''));
+
+		if ($body !== '')
+		{
+			return $body;
+		}
+
 		$title = htmlspecialchars($readable, ENT_QUOTES, 'UTF-8');
 
 		return <<<HTML
 <div class="j-container">
 	<h1>{$title}</h1>
-	<?php if (!empty(\$this->items)) : ?>
-		<table class="table table-striped">
-			<tbody>
-			<?php foreach (\$this->items as \$item) : ?>
-				<tr>
-					<?php foreach ((array) \$item as \$value) : ?>
-						<td><?php echo \$this->escape((string) \$value); ?></td>
-					<?php endforeach; ?>
-				</tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
-	<?php elseif (!empty(\$this->item)) : ?>
-		<dl class="dl-horizontal">
-			<?php foreach ((array) \$this->item as \$key => \$value) : ?>
-				<dt><?php echo \$this->escape((string) \$key); ?></dt>
-				<dd><?php echo \$this->escape((string) \$value); ?></dd>
-			<?php endforeach; ?>
-		</dl>
-	<?php else : ?>
-		<div class="alert alert-info">
-			<?php echo Text::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
-		</div>
-	<?php endif; ?>
+	<p>Nothing has been laid out for this screen yet.</p>
 </div>
 HTML;
 	}

@@ -388,6 +388,33 @@ the truth and the echo never overwrites it.
   update from creating a second field beside a curated one. This holds for
   a column only one view states just as it does for a shared one: a group
   of one member is the common case, and it meets the paired component too.
+- **A class file states what a class is, and nothing more.** Its name, where
+  it lives, what kind of thing it is, the code in it and the docblock on it
+  are the file's own, and a re-run refreshes them. How somebody wired that
+  power to the others, which licence they put on it, what they called it in
+  their own list: a file cannot state any of that, so a run never writes it
+  over. Two rules follow. A run that resolved less than the last one has
+  learnt nothing -- its silence never clears what a record holds. And a run
+  may raise a written-out parent to the power it resolved, never lower a
+  resolved parent back to a name: JCB compiles a link with the parent's
+  import behind it and a name exactly as it reads, so lowering one leaves a
+  class that cannot find its parent. A power set to the global licence keeps
+  it, because taking the licence out of a compiled file and setting it as
+  this power's own would quietly take the power out of the global's reach --
+  which only a person can decide.
+- **A screen is named by whatever its component states it with.** A view
+  class, a model, a template folder, a template file: any of them names a
+  screen, and a component that lays its files out in the ordinary way but
+  keeps no template folder for every screen is not a component with fewer
+  screens. Reading only the templates is what loses them.
+- **What a screen shows is in that screen's own template**, on whichever side
+  of the tree it lives, found through the layout the component follows.
+  Everything after the file's first closing PHP tag is the body, the same way
+  a power's body is taken out of its class file. Only a screen whose template
+  cannot be read is given somewhere to start, and that starting point carries
+  plain words: JCB makes the language constants itself when it compiles, so a
+  constant written into a stored value is one it never made and cannot
+  translate.
 - **A write that would change nothing is not made.** Every composed record
   is weighed against the record that stands before any of it is written, at
   the one boundary every writer passes. When nothing about it would move,
