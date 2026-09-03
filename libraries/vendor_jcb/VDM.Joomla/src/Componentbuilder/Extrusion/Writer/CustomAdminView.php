@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -86,6 +87,7 @@ final class CustomAdminView extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   View           $view      The classified view registry.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
@@ -99,6 +101,7 @@ final class CustomAdminView extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		View $view,
 		Guid $guid,
 		Source $source,
@@ -106,7 +109,7 @@ final class CustomAdminView extends Writer
 		Text $text
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->view = $view;
 		$this->guid = $guid;
@@ -238,7 +241,7 @@ final class CustomAdminView extends Writer
 		if (!$this->store($definition, [
 			'name', 'codename', 'system_name', 'description', 'default',
 			'php_view', 'add_php_view', 'main_get', 'published'
-		]))
+		], null, $this->row('custom_admin_view', $name)))
 		{
 			return false;
 		}

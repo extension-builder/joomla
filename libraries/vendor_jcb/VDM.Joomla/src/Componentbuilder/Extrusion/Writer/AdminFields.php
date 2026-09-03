@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -77,6 +78,7 @@ final class AdminFields extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Source         $source    The source identity registry.
 	 * @param   LoadInterface  $load      The database load boundary.
 	 *
@@ -87,12 +89,13 @@ final class AdminFields extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Source $source,
 		LoadInterface $load,
 		Form $form
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->source = $source;
 		$this->load = $load;
@@ -332,7 +335,7 @@ final class AdminFields extends Writer
 		$definition->addfields = $this->merge($view, $viewGuid, $subform);
 		$definition->published = 1;
 
-		return $this->store($definition);
+		return $this->store($definition, [], null, $this->row('admin_view', $view));
 	}
 
 	/**

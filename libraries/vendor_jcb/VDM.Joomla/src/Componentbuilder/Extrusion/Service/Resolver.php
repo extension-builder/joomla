@@ -16,6 +16,8 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Diff;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
@@ -89,6 +91,12 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Sharing::class, 'Extrusion.Resolver.Sharing')
 			->share('Extrusion.Resolver.Sharing', [$this, 'getSharing'], true);
+
+		$container->alias(Diff::class, 'Extrusion.Resolver.Diff')
+			->share('Extrusion.Resolver.Diff', [$this, 'getDiff'], true);
+
+		$container->alias(Delta::class, 'Extrusion.Resolver.Delta')
+			->share('Extrusion.Resolver.Delta', [$this, 'getDelta'], true);
 
 		$container->alias(Tab::class, 'Extrusion.Resolver.Tab')
 			->share('Extrusion.Resolver.Tab', [$this, 'getTab'], true);
@@ -485,6 +493,37 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Load'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Report')
+		);
+	}
+
+	/**
+	 * Get the diff resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Diff
+	 * @since   6.2.0
+	 */
+	public function getDiff(Container $container): Diff
+	{
+		return new Diff();
+	}
+
+	/**
+	 * Get the delta resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Delta
+	 * @since   6.2.0
+	 */
+	public function getDelta(Container $container): Delta
+	{
+		return new Delta(
+			$container->get('Data.Item'),
+			$container->get('Table'),
+			$container->get('Extrusion.Resolver.Diff'),
+			$container->get('Extrusion.Registry.Proposal')
 		);
 	}
 }

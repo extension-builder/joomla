@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -99,6 +100,7 @@ final class AdminView extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Source         $source    The source identity registry.
 	 * @param   Pairing        $pairing   The pairing resolver.
@@ -111,6 +113,7 @@ final class AdminView extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Guid $guid,
 		Source $source,
 		Pairing $pairing,
@@ -118,7 +121,7 @@ final class AdminView extends Writer
 		Placeholders $placeholders
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->guid = $guid;
 		$this->source = $source;
@@ -262,7 +265,7 @@ final class AdminView extends Writer
 			$kept = array_merge($kept, ['system_name', 'name_single', 'name_list']);
 		}
 
-		if (!$this->store($definition, $kept))
+		if (!$this->store($definition, $kept, null, $this->row('admin_view', $view)))
 		{
 			return false;
 		}

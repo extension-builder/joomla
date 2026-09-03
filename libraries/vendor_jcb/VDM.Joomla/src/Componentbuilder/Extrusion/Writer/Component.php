@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -86,6 +87,7 @@ final class Component extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Source         $source    The source identity registry.
 	 * @param   Language       $language  The language constant resolver.
 	 *
@@ -96,16 +98,32 @@ final class Component extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Source $source,
 		Language $language,
 		Guid $guid
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->source = $source;
 		$this->language = $language;
 		$this->guid = $guid;
+	}
+
+	/**
+	 * The pairing board row every component-level record belongs to.
+	 *
+	 * The component itself, and the tables that link its views to it, are not
+	 * candidates a person pairs -- they follow from the run. They still name a
+	 * row, so what they would change is never lost from the account.
+	 *
+	 * @return  string  The board row.
+	 * @since   6.2.0
+	 */
+	protected function component(): string
+	{
+		return $this->row('component', (string) $this->source->get('code_name', 'component'));
 	}
 
 	/**
@@ -178,25 +196,15 @@ final class Component extends Writer
 			if ($definition === [])
 			{
 				$this->report->set('component.details', 'the record already states everything the manifest does');
-
-				return 0;
 			}
 		}
 
 		$this->report->set('component.details', array_keys($definition));
 
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('dryrun.joomla_component.' . $component, true);
-			$this->report->set('counts.joomla_component', 1);
-
-			return 1;
-		}
-
 		// the same gate every other record passes: the run's policy on what
 		// already stands is read in exactly one place, and a component row is
 		// no more exempt from it than a field is
-		if (!$this->store((object) (['id' => $component] + $definition), [], 'id'))
+		if (!$this->store((object) (['id' => $component] + $definition), [], 'id', $this->component()))
 		{
 			return 0;
 		}
@@ -247,21 +255,12 @@ final class Component extends Writer
 			'component_version' => '1.0.0'
 		]);
 
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('dryrun.joomla_component.' . $guid, true);
-			$this->report->set('counts.joomla_component', 1);
-			$this->resolved->set('component.guid', $guid);
-
-			return 1;
-		}
-
 		// the naming and the version are scaffolding for a component that does
 		// not exist yet; a person who has since named their own must keep it
 		if (!$this->store($definition, [
 			'system_name', 'published', 'short_description', 'description',
 			'component_version'
-		]))
+		], null, $this->component()))
 		{
 			return 0;
 		}

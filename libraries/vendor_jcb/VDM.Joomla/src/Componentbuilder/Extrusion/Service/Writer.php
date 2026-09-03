@@ -98,6 +98,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Resolver.Record'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
@@ -120,6 +121,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Pairing'),
@@ -143,6 +145,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Load'),
 			$container->get('Extrusion.Registry.Form')
@@ -164,6 +167,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source')
 		);
 	}
@@ -183,6 +187,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
@@ -205,6 +210,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source')
@@ -226,6 +232,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
@@ -249,6 +256,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Load')
 		);
@@ -269,6 +277,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Load')
 		);
@@ -289,6 +298,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Language'),
 			$container->get('Extrusion.Resolver.Guid')
@@ -310,6 +320,7 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Resolved'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Resolver.Delta'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Load')
 		);

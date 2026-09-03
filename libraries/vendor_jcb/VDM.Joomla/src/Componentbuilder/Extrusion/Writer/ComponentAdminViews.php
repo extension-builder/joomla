@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 
@@ -56,6 +57,7 @@ final class ComponentAdminViews extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Source         $source    The source identity registry.
 	 *
 	 * @since   6.1.6
@@ -65,14 +67,30 @@ final class ComponentAdminViews extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Source $source,
 		LoadInterface $load
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->source = $source;
 		$this->load = $load;
+	}
+
+	/**
+	 * The pairing board row every component-level record belongs to.
+	 *
+	 * The component itself, and the tables that link its views to it, are not
+	 * candidates a person pairs -- they follow from the run. They still name a
+	 * row, so what they would change is never lost from the account.
+	 *
+	 * @return  string  The board row.
+	 * @since   6.2.0
+	 */
+	protected function component(): string
+	{
+		return $this->row('component', (string) $this->source->get('code_name', 'component'));
 	}
 
 	/**
@@ -162,7 +180,7 @@ final class ComponentAdminViews extends Writer
 		$definition->addadmin_views = $this->merge($componentGuid, $subform);
 		$definition->published = 1;
 
-		if (!$this->store($definition))
+		if (!$this->store($definition, [], null, $this->component()))
 		{
 			return 0;
 		}

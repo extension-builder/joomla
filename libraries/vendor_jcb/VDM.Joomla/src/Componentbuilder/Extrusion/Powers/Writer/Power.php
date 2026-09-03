@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -48,6 +49,7 @@ final class Power extends Writer
 	 * @param   Resolved       $resolved  The resolved definition registry.
 	 * @param   ItemInterface  $item      The JCB data item writer.
 	 * @param   Report         $report    The run report registry.
+	 * @param   Delta          $delta     The change weigher.
 	 * @param   Harvest        $harvest   The harvest registry.
 	 *
 	 * @since   6.1.7
@@ -57,10 +59,11 @@ final class Power extends Writer
 		Resolved $resolved,
 		ItemInterface $item,
 		Report $report,
+		Delta $delta,
 		Harvest $harvest
 	)
 	{
-		parent::__construct($config, $resolved, $item, $report);
+		parent::__construct($config, $resolved, $item, $report, $delta);
 
 		$this->harvest = $harvest;
 	}
@@ -93,7 +96,9 @@ final class Power extends Writer
 				$definition = (object) $definition;
 			}
 
-			if ($this->store($definition))
+			// a power's board row is keyed by the very guid it is written under,
+			// so the identity is the row and nothing is derived from a name
+			if ($this->store($definition, [], null, 'power|' . (string) ($definition->guid ?? '')))
 			{
 				$written++;
 			}
