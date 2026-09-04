@@ -36,10 +36,11 @@ use VDM\Joomla\Utilities\StringHelper;
 /**
  * Model Item Save Class.
  *
- * Builds the save method of an admin edit view model: the custom code that
- * runs before and after modelling, the JSON fields that are folded back into
- * strings, the permission guards on each guarded item, and the encryption
- * each configured cryption type applies.
+ * Builds the save method of an admin edit view model: the record keys the
+ * whole method relies on, the custom code that runs before and after
+ * modelling, the JSON fields that are folded back into strings, the
+ * permission guards on each guarded item, and the encryption each
+ * configured cryption type applies.
  *
  * Only how the current user is reached for a permission check differs
  * between Joomla targets, so that is the extension point the target
@@ -154,6 +155,14 @@ class ItemSave implements ItemSaveInterface
 	protected ModelExpertFieldInitiator $modelexpertfieldinitiator;
 
 	/**
+	 * The Record Key Fix Class.
+	 *
+	 * @var   RecordKeyFix
+	 * @since 6.1.7
+	 */
+	protected RecordKeyFix $recordkeyfix;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config                     $config                     The Config Class.
@@ -169,6 +178,7 @@ class ItemSave implements ItemSaveInterface
 	 * @param ModelWhmcsField            $modelwhmcsfield            The Model Whmcs Field Class.
 	 * @param ModelExpertField           $modelexpertfield           The Model Expert Field Class.
 	 * @param ModelExpertFieldInitiator  $modelexpertfieldinitiator  The Model Expert Field Initiator Class.
+	 * @param RecordKeyFix               $recordkeyfix               The Record Key Fix Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -184,7 +194,8 @@ class ItemSave implements ItemSaveInterface
 		ModelMediumField $modelmediumfield,
 		ModelWhmcsField $modelwhmcsfield,
 		ModelExpertField $modelexpertfield,
-		ModelExpertFieldInitiator $modelexpertfieldinitiator)
+		ModelExpertFieldInitiator $modelexpertfieldinitiator,
+		RecordKeyFix $recordkeyfix)
 	{
 		$this->config = $config;
 		$this->placeholder = $placeholder;
@@ -199,6 +210,7 @@ class ItemSave implements ItemSaveInterface
 		$this->modelwhmcsfield = $modelwhmcsfield;
 		$this->modelexpertfield = $modelexpertfield;
 		$this->modelexpertfieldinitiator = $modelexpertfieldinitiator;
+		$this->recordkeyfix = $recordkeyfix;
 	}
 
 	/**
@@ -212,7 +224,9 @@ class ItemSave implements ItemSaveInterface
 	 */
 	public function get(&$view)
 	{
-		$script = '';
+		// the record keys come first, so every custom code, field script
+		// and generated line after them reads the shape it expects
+		$script = $this->recordkeyfix->get((string) $view);
 		// get component name
 		$Component = $this->contentone->get('Component');
 		$component = $this->config->component_code_name;
