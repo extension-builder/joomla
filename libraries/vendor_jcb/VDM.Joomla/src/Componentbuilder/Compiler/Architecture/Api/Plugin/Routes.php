@@ -280,7 +280,9 @@ class Routes
 
 			if ($resource['item'] && $single !== '')
 			{
-				$keys = $this->recordid->keys($single);
+				// the field builders have not run yet, so the keys come from the view's fields
+				$fields = $resource['settings']->fields ?? null;
+				$keys = $this->recordid->keysOfFields(is_array($fields) ? $fields : []);
 
 				$routes[] = $this->route('GET', $path . '/:id', $single . '.displayItem', 'id', $reads);
 
