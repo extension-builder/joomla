@@ -47,6 +47,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Valuation;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Utilities\String\FieldHelper;
+use VDM\Joomla\Utilities\String\TypeHelper;
 use VDM\Tests\Support\FilesystemTestCase;
 
 
@@ -119,6 +121,10 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 		$this->replaceStaticProperty(Indent::class, 'bucket', []);
 		$this->replaceStaticProperty(Line::class, 'add', false);
 		$this->replaceStaticProperty(StringHelper::class, 'langTag', 'en-GB');
+		// the naming helpers read component parameters on first use; pin their defaults
+		$this->replaceStaticProperty(FieldHelper::class, 'builder', 1);
+		$this->replaceStaticProperty(TypeHelper::class, 'builder', 2);
+		$this->replaceStaticProperty(TypeHelper::class, 'cache', []);
 
 		$this->architectureConfig = new Config(
 			new Input([]),

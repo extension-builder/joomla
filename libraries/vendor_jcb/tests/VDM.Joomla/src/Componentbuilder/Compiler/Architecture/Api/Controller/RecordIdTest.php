@@ -32,6 +32,77 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 final class RecordIdTest extends ArchitectureTestCase
 {
 	/**
+	 * The keys read from a view's field definitions follow the field builders'
+	 * rules: a stored guid column first, then every unique-indexed column of a
+	 * type that carries an index, named as the field name resolver names it.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testTheKeysOfAViewsFieldsFollowTheBuildersRules(): void
+	{
+		$subject = $this->renderer(RecordId::class);
+
+		$fields = [
+			$this->field('Code', 'code', 'VARCHAR', 1),
+			$this->field('GUID', 'guid', 'VARCHAR', 2),
+			$this->field('Notes', 'notes', 'TEXT', 1),
+			$this->field('Category', 'category', 'INT', 1, 'category'),
+			$this->field('Draft', 'draft', 'VARCHAR', 1, 'text', 2),
+			$this->field('Code', 'code', 'VARCHAR', 1),
+			['not a field'],
+		];
+
+		$this->assertSame(['guid', 'code', 'catid'], $subject->keysOfFields($fields));
+		$this->assertSame([], $subject->keysOfFields([]));
+		$this->assertSame(['code'], $subject->keysOfFields([$this->field('Code', 'code', 'VARCHAR', 1)]));
+	}
+
+	/**
+	 * A guid declared with a unique index is still the guid, and comes first.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAUniqueIndexedGuidFieldIsTheGuidFirst(): void
+	{
+		$subject = $this->renderer(RecordId::class);
+
+		$this->assertSame(['guid', 'code'], $subject->keysOfFields([
+			$this->field('Code', 'code', 'VARCHAR', 1),
+			$this->field('GUID', 'guid', 'VARCHAR', 1),
+		]));
+	}
+
+	/**
+	 * A field of a loaded view.
+	 *
+	 * @param   string  $label    The field's own name.
+	 * @param   string  $name     The name attribute of its xml.
+	 * @param   string  $type     The database type.
+	 * @param   int     $indexes  The index option: 1 unique, 2 key.
+	 * @param   string  $typeName The field type.
+	 * @param   int     $list     The list option, 2 keeps the field out of the table.
+	 *
+	 * @return  array
+	 * @since   6.1.7
+	 */
+	private function field(string $label, string $name, string $type, int $indexes, string $typeName = 'text', int $list = 1): array
+	{
+		return [
+			'field' => 'field-' . $name,
+			'list' => $list,
+			'settings' => (object) [
+				'name' => $label,
+				'type_name' => $typeName,
+				'xml' => '<field type="' . $typeName . '" name="' . $name . '" label="' . $label . '" />',
+				'datatype' => $type,
+				'indexes' => $indexes,
+			],
+		];
+	}
+
+	/**
 	 * The record resolution of a table with no unique key.
 	 *
 	 * @var    string

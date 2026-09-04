@@ -51,6 +51,14 @@ final class GetModel
 		$code[] = Indent::_(2) . "{";
 		$code[] = Indent::_(3) . "\$name = '" . $nameSingleCode . "';";
 		$code[] = Indent::_(2) . "}";
+		$code[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
+			. " The API carries no request state for the model, as the form controller does not:";
+		$code[] = Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
+			. " the id a save sets must never be replaced by a later read of the request.";
+		$code[] = Indent::_(2) . "if (!array_key_exists('ignore_request', \$config))";
+		$code[] = Indent::_(2) . "{";
+		$code[] = Indent::_(3) . "\$config['ignore_request'] = true;";
+		$code[] = Indent::_(2) . "}";
 		$code[] = PHP_EOL . Indent::_(2)
 			. "return parent::getModel(\$name, \$prefix, \$config);";
 

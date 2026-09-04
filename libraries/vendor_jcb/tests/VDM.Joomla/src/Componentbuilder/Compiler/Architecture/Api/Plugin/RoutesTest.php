@@ -390,7 +390,7 @@ GEN;
 	 */
 	private function view(string $single, string $list, int $api): array
 	{
-		return [
+		$view = [
 			'adminview' => 1,
 			'add_api' => $api,
 			'settings' => (object) [
@@ -398,6 +398,43 @@ GEN;
 				'name_list' => ucfirst($list),
 				'name_single_code' => $single,
 				'name_list_code' => $list,
+			],
+		];
+
+		// the routes render before the field builders run, so the keys come from the fields
+		if ($single === 'article')
+		{
+			$view['settings']->fields = [
+				$this->field('guid', 'VARCHAR', 2),
+				$this->field('alias', 'CHAR', 1),
+				$this->field('description', 'TEXT', 1),
+			];
+		}
+
+		return $view;
+	}
+
+	/**
+	 * A stored field of a loaded view.
+	 *
+	 * @param   string  $name     The column name.
+	 * @param   string  $type     The database type.
+	 * @param   int     $indexes  The index option: 1 unique, 2 key.
+	 *
+	 * @return  array
+	 * @since   6.1.7
+	 */
+	private function field(string $name, string $type, int $indexes): array
+	{
+		return [
+			'field' => 'field-' . $name,
+			'list' => 1,
+			'settings' => (object) [
+				'name' => ucfirst($name),
+				'type_name' => 'text',
+				'xml' => '<field type="text" name="' . $name . '" label="' . ucfirst($name) . '" />',
+				'datatype' => $type,
+				'indexes' => $indexes,
 			],
 		];
 	}
