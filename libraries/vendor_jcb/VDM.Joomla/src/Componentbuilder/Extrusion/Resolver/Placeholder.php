@@ -13,66 +13,31 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
-use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 
 /**
  * Says a component's own name through the placeholder that stands for it.
  *
- * The compiler holds one map of placeholders and their values -- the system
- * wide rows, the values it derives from the component itself, and the
- * component's own overrides -- and substitutes it into everything it writes
- * with a bare string replacement. So a class, a screen or a form that a
- * component ships carries the component's name where the record it was built
- * from carried a placeholder, and reading that name back unchanged binds the
- * record to one component: a power lifted out of com_demo would say Demo
- * forever, wherever it is used next.
+ * The compiler holds the values it derives from the component -- its code
+ * name in three shapes and its namespace segment -- and substitutes them into
+ * everything it writes with a bare string replacement. So a class, a screen or
+ * a seed that a component ships carries the component's name where the record
+ * it was built from carried a placeholder, and reading that name back binds
+ * the record to the one component it was lifted out of: a power lifted out of
+ * com_demo would say Demo forever, wherever it is used next.
  *
- * The substitution is a plain replacement, so turning a value back into its
- * placeholder always compiles to the very same text. What it cannot tell on
- * its own is whether a run of characters is the component's name or a
- * coincidence, and that is the whole of what is decided here.
+ * Nothing is guessed. The name is only written back where the compiler itself
+ * puts it -- the extension element, the table prefix, the language prefix, the
+ * component helper, a namespace segment -- so a component named demo keeps its
+ * demonstrations, its demoted rows and its demo@example.com. A value a person
+ * defined for themselves is never touched: the compiler substitutes it too,
+ * but only the person knows where they meant it, and a run that acted on that
+ * would be guessing.
  *
  * @since 6.2.0
  */
 final class Placeholder
 {
-	/**
-	 * The placeholder targets the compiler derives from the component itself.
-	 *
-	 * These are the component's own name in the three shapes the compiler
-	 * writes it, and its namespace segment. LANG_PREFIX is deliberately not
-	 * among them: the compiler reassigns it while it builds a module or a
-	 * plugin, so a power that carried it would say MOD_ or PLG_ there, while
-	 * COM_ followed by the upper-case name says the same thing everywhere.
-	 * That is also the pair the compiler's own custom code extractor writes.
-	 *
-	 * @var    array<string>
-	 * @since  6.2.0
-	 */
-	private const IDENTITY = ['component', 'Component', 'COMPONENT', 'ComponentNamespace'];
-
-	/**
-	 * The shortest component name that can be told from a coincidence.
-	 *
-	 * @var    int
-	 * @since  6.2.0
-	 */
-	private const NAME = 3;
-
-	/**
-	 * The shortest value of a person's own placeholder that can be told apart.
-	 *
-	 * A person's target stands for whatever they typed, so it carries no
-	 * evidence of its own. Two characters of it are worth nothing: JCB ships
-	 * placeholders standing for 60 and for VDM, and a run that trusted them
-	 * would rewrite every namespace and every small number in the component.
-	 *
-	 * @var    int
-	 * @since  6.2.0
-	 */
-	private const VALUE = 4;
-
 	/**
 	 * The Placeholders Resolver.
 	 *
@@ -82,45 +47,31 @@ final class Placeholder
 	protected Placeholders $placeholders;
 
 	/**
-	 * The Report Registry.
+	 * The idioms this run may say, held against the values they were read from.
 	 *
-	 * @var    Report
+	 * @var    array<string, array{pattern: string, writes: array<int, string>}>
 	 * @since  6.2.0
 	 */
-	protected Report $report;
-
-	/**
-	 * The value of each placeholder that may be said, longest value first.
-	 *
-	 * Held against a signature of the map it was read from, so a run that has
-	 * changed what the placeholders resolve to reads the new values without
-	 * anything having to remember to say so.
-	 *
-	 * @var    array<string, array<int, array{target: string, value: string}>>
-	 * @since  6.2.0
-	 */
-	protected array $spoken = [];
+	protected array $idioms = [];
 
 	/**
 	 * Constructor.
 	 *
 	 * @param   Placeholders  $placeholders  The placeholder value resolver.
-	 * @param   Report        $report        The run report registry.
 	 *
 	 * @since   6.2.0
 	 */
-	public function __construct(Placeholders $placeholders, Report $report)
+	public function __construct(Placeholders $placeholders)
 	{
 		$this->placeholders = $placeholders;
-		$this->report = $report;
 	}
 
 	/**
-	 * One piece of harvested text, saying names through their placeholders.
+	 * One piece of harvested text, saying the component through its placeholder.
 	 *
 	 * @param   string  $text  The text as the source stated it.
 	 *
-	 * @return  string  The text, deferring to placeholders where it named values.
+	 * @return  string  The text, deferring to placeholders where the compiler filled them in.
 	 * @since   6.2.0
 	 */
 	public function reverse(string $text): string
@@ -130,22 +81,22 @@ final class Placeholder
 			return $text;
 		}
 
-		$spoken = $this->spoken();
+		$idioms = $this->idioms();
 
-		if ($spoken === [])
+		if ($idioms === [])
 		{
 			return $text;
 		}
 
 		$replaced = preg_replace_callback(
-			$this->pattern($spoken),
-			function (array $found) use ($spoken): string
+			$idioms['pattern'],
+			static function (array $found) use ($idioms): string
 			{
-				foreach ($spoken as $index => $entry)
+				foreach ($idioms['writes'] as $index => $writes)
 				{
-					if (($found[$index + 1] ?? '') !== '')
+					if (($found[$index] ?? '') !== '')
 					{
-						return '[[[' . $entry['target'] . ']]]';
+						return $writes;
 					}
 				}
 
@@ -158,278 +109,80 @@ final class Placeholder
 	}
 
 	/**
-	 * Every placeholder whose value this run may say, longest value first.
+	 * Every place the compiler writes the component's own name.
 	 *
-	 * Longest first is what lets a value that contains another settle before
-	 * it, so the more particular of two overlapping names is the one written.
+	 * Each of these is somewhere the compiler puts the name itself, so each is
+	 * somewhere the name can be given back to the placeholder it came from.
+	 * Three of them are the very pairs JCB's own custom code extractor keeps
+	 * (Customcode\Extractor), and the other two are how the compiler names a
+	 * component's tables and composes its namespace.
 	 *
-	 * @return  array<int, array{target: string, value: string}>  The placeholders.
+	 * The language prefix is deliberately said as COM_ and the upper case name
+	 * rather than as a placeholder of its own: the compiler reassigns
+	 * lang_prefix while it builds a module or a plugin, so a power carrying
+	 * that placeholder would say MOD_ or PLG_ there, while this pair says the
+	 * same thing in every one of those places.
+	 *
+	 * @return  array{pattern: string, writes: array<int, string>}  The idioms, or an empty array when the run has no component to name.
 	 * @since   6.2.0
 	 */
-	protected function spoken(): array
-	{
-		$signature = md5((string) json_encode([
-			$this->placeholders->core(),
-			$this->placeholders->custom(),
-			$this->placeholders->component()
-		]));
-
-		if (isset($this->spoken[$signature]))
-		{
-			return $this->spoken[$signature];
-		}
-
-		$identity = $this->identity();
-		$spoken = $identity + $this->owned($identity);
-
-		uasort(
-			$spoken,
-			static fn (string $one, string $two): int => strlen($two) <=> strlen($one)
-		);
-
-		$this->spoken[$signature] = [];
-
-		foreach ($spoken as $target => $value)
-		{
-			$this->spoken[$signature][] = ['target' => $target, 'value' => $value];
-		}
-
-		$this->announce($this->spoken[$signature]);
-
-		return $this->spoken[$signature];
-	}
-
-	/**
-	 * The component's own name, in every shape the compiler writes it.
-	 *
-	 * A name too short to tell from a coincidence is left unsaid, because a
-	 * two letter name would claim every pair of those letters in the source.
-	 *
-	 * @return  array<string, string>  Bare target keyed to its value.
-	 * @since   6.2.0
-	 */
-	protected function identity(): array
+	protected function idioms(): array
 	{
 		$core = $this->placeholders->core();
-		$identity = [];
+		$code = (string) ($core[$this->placeholders->placeholder('component')] ?? '');
+		$namespace = $this->placeholders->component();
+		$signature = md5($code . '|' . $namespace);
 
-		foreach (self::IDENTITY as $target)
+		if (isset($this->idioms[$signature]))
 		{
-			$value = $target === 'ComponentNamespace'
-				? $this->placeholders->component()
-				: (string) ($core[$this->placeholders->placeholder($target)] ?? '');
-
-			if ($value === '' || in_array($value, $identity, true))
-			{
-				// the namespace segment is routinely the very same word as the
-				// component's own name, and one word cannot be two placeholders
-				continue;
-			}
-
-			if (strlen($value) < self::NAME)
-			{
-				$this->report->set(
-					'unsaid.placeholder.' . $this->key($target),
-					'the component is named too briefly to be told from a '
-					. 'coincidence, so the source keeps it as it stated it'
-				);
-
-				continue;
-			}
-
-			$identity[$target] = $value;
+			return $this->idioms[$signature];
 		}
 
-		return $identity;
-	}
-
-	/**
-	 * The placeholders a person defined, where this run can tell them apart.
-	 *
-	 * The compiler replaces these as unconditionally as it replaces the
-	 * component's own name, but it knows which is which and a reading of the
-	 * finished source does not. A value two targets share names neither of
-	 * them; a value of two or three characters, or one that is only a number,
-	 * names nothing at all. Each one left unsaid is named in the report.
-	 *
-	 * @param   array<string, string>  $identity  What the component's own name is said as.
-	 *
-	 * @return  array<string, string>  Bare target keyed to its value.
-	 * @since   6.2.0
-	 */
-	protected function owned(array $identity): array
-	{
-		$claims = [];
-
-		foreach ($this->placeholders->custom() as $placeholder => $value)
+		if ($code === '')
 		{
-			$claims[$value][] = $this->placeholders->target($placeholder);
+			return $this->idioms[$signature] = [];
 		}
 
-		$owned = [];
+		$said = [
+			// the extension element, which every option and every folder of a
+			// component is named by
+			'com_' . preg_quote($code, '/') . '(?![A-Za-z0-9])'
+				=> 'com_' . $this->placeholders->placeholder('component'),
+			// the prefix of every table the component keeps its records in
+			'#__' . preg_quote($code, '/') . '_'
+				=> '#__' . $this->placeholders->placeholder('component') . '_',
+			// the language prefix, which Compiler\Config builds as COM_ and
+			// the upper case code name
+			'COM_' . preg_quote(strtoupper($code), '/') . '(?![A-Za-z0-9])'
+				=> 'COM_' . $this->placeholders->placeholder('COMPONENT'),
+			// the component's own helper class
+			preg_quote(ucfirst($code), '/') . 'Helper'
+				=> $this->placeholders->placeholder('Component') . 'Helper'
+		];
 
-		foreach ($claims as $value => $targets)
+		if ($namespace !== '')
 		{
-			$value = (string) $value;
-			$target = (string) $targets[0];
-			$reason = $this->unsayable(
-				$value, count($targets) + count(array_keys($identity, $value, true))
-			);
-
-			if ($reason !== null)
-			{
-				$this->report->set(
-					'unsaid.placeholder.' . $this->key($target), $reason
-				);
-
-				continue;
-			}
-
-			$owned[$target] = $value;
+			// a segment of the namespace the compiler composes for the
+			// component, between the separators that make it a segment
+			$said['\\\\' . preg_quote($namespace, '/') . '\\\\']
+				= '\\' . $this->placeholders->placeholder('ComponentNamespace') . '\\';
 		}
 
-		return $owned;
-	}
-
-	/**
-	 * Say in the report which placeholders this run may write.
-	 *
-	 * A person's own placeholder stands for whatever they typed, and what
-	 * they typed may be an ordinary turn of phrase the source says for its
-	 * own reasons. So every one this run is willing to write is named, and a
-	 * reading of the report says exactly what was deferred to what.
-	 *
-	 * @param   array<int, array{target: string, value: string}>  $spoken  The placeholders.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	protected function announce(array $spoken): void
-	{
-		foreach ($spoken as $entry)
-		{
-			$this->report->set(
-				'said.placeholder.' . $this->key($entry['target']), $entry['value']
-			);
-		}
-	}
-
-	/**
-	 * Why one of a person's placeholders cannot be said, when it cannot.
-	 *
-	 * @param   string  $value   The value the placeholder stands for.
-	 * @param   int     $claims  How many targets stand for that same value.
-	 *
-	 * @return  string|null  The reason, or null when the value may be said.
-	 * @since   6.2.0
-	 */
-	protected function unsayable(string $value, int $claims): ?string
-	{
-		if ($claims > 1)
-		{
-			return 'more than one placeholder stands for this same value, so '
-				. 'reading it back names none of them';
-		}
-
-
-		if (strlen($value) < self::VALUE)
-		{
-			return 'the value is too short to be told from a coincidence in '
-				. 'the source';
-		}
-
-		if (preg_match('/^[0-9]+$/', $value) === 1)
-		{
-			return 'the value is only a number, which the source says for its '
-				. 'own reasons far more often than for this one';
-		}
-
-		return null;
-	}
-
-	/**
-	 * Sanitise one registry path segment.
-	 *
-	 * @param   string  $segment  The raw segment.
-	 *
-	 * @return  string  A segment safe to use in a dotted registry path.
-	 * @since   6.2.0
-	 */
-	protected function key(string $segment): string
-	{
-		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
-	}
-
-	/**
-	 * One expression matching every value that may be said, and nothing else.
-	 *
-	 * Every value is matched in the one pass, so a placeholder just written
-	 * is never read again as if it were source. What bounds a match is not a
-	 * word boundary: a component is named in the middle of identifiers all
-	 * day -- com_demo, DemoHelper, #__demo_address, COM_DEMO_SAVED -- and a
-	 * word boundary finds none of them. What bounds it is the seam between
-	 * one part of a name and the next: the edges of the text, anything that
-	 * is not a letter or a digit, and the hump where a lower case run gives
-	 * way to an upper case one. So Demo is found in DemoHelper and demo in
-	 * com_demo, while demonstration, demoted and DEMOGRAPHIC are left alone.
-	 *
-	 * @param   array<int, array{target: string, value: string}>  $spoken  The placeholders.
-	 *
-	 * @return  string  The expression.
-	 * @since   6.2.0
-	 */
-	protected function pattern(array $spoken): string
-	{
 		$parts = [];
+		$writes = [];
+		$index = 1;
 
-		foreach ($spoken as $entry)
+		foreach ($said as $pattern => $write)
 		{
-			$value = $entry['value'];
-			$parts[] = $this->opening($value[0])
-				. '(' . preg_quote($value, '/') . ')'
-				. $this->closing($value[strlen($value) - 1]);
+			$parts[] = '(' . $pattern . ')';
+			$writes[$index++] = $write;
 		}
 
-		return '/' . implode('|', $parts) . '/';
-	}
-
-	/**
-	 * What has to stand before a value for it to begin a name.
-	 *
-	 * @param   string  $first  The value's first character.
-	 *
-	 * @return  string  The look behind, which may be empty.
-	 * @since   6.2.0
-	 */
-	protected function opening(string $first): string
-	{
-		if (ctype_upper($first))
-		{
-			// an upper case letter begins a name after anything but another
-			// one -- that is the hump, and it is also the start of a word
-			return '(?<![A-Z])';
-		}
-
-		return ctype_alnum($first) ? '(?<![A-Za-z0-9])' : '';
-	}
-
-	/**
-	 * What has to stand after a value for it to end a name.
-	 *
-	 * @param   string  $last  The value's last character.
-	 *
-	 * @return  string  The look ahead, which may be empty.
-	 * @since   6.2.0
-	 */
-	protected function closing(string $last): string
-	{
-		if (ctype_upper($last))
-		{
-			// an upper case run has no hump inside it, so only something that
-			// is not part of a name at all can end one
-			return '(?![A-Za-z0-9])';
-		}
-
-		return ctype_alnum($last) ? '(?![a-z0-9])' : '';
+		// one expression, matched in one pass, so an idiom just written is
+		// never read again as if it were the source
+		return $this->idioms[$signature] = [
+			'pattern' => '/' . implode('|', $parts) . '/',
+			'writes' => $writes
+		];
 	}
 }

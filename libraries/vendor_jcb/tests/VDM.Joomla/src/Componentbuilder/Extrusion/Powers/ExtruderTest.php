@@ -398,11 +398,11 @@ final class ExtruderTest extends FilesystemTestCase
 		// power that read it back would name that component wherever it was
 		// used next
 		$this->assertStringContainsString(
-			"return '[[[component]]]';",
+			"return 'com_[[[component]]]';",
 			$loader->main_class_code,
 			'A class body names the component through the placeholder that stands for it.'
 		);
-		$this->assertStringNotContainsString("return 'demo';", $loader->main_class_code);
+		$this->assertStringNotContainsString("'com_demo'", $loader->main_class_code);
 
 		$interface = $this->item->definition('power', self::EXISTING_GUID);
 
