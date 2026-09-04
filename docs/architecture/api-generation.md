@@ -409,6 +409,98 @@ The renderers are not version-dispatched (§4.3); the `use` statements come
 from the four target-selected `Header` classes, whose `api.*` cases gain the
 exception, filter and helper imports the generated bodies need.
 
+### 4.9 Record keys on save
+
+**Current contract.** Creating and updating through the API runs Joomla's
+`ApiController::save()` against the generated administrator model. Core hands
+that model a shape the administrator form never produces: on `POST` it sets
+the primary key to `null` and the form filter then drops the key altogether
+(`Registry::exists()` is false for a null value), so the model receives no
+`id` key and no `guid` key unless the client sent one; on `PATCH` it merges
+every column the body omits from the stored row. The model state is
+populated lazily from the application input, which in the API application
+is the decoded JSON body.
+
+Three generated pieces make that shape safe for every JCB component:
+
+- **`Architecture/Model/RecordKeyFix`** (service `Architecture.Model.RecordKeyFix`,
+  one root class, no `Joomla*` variant, no version branch) emits the opening
+  block of every generated `save()`. `Architecture/Model/ItemSave` composes
+  it before the `php_before_save` custom code, so it precedes every custom
+  code, field script and generated line that reads the keys, in the
+  administrator model and the site edit model alike, on Joomla 3 to 6:
+
+  ```php
+  $data['id'] = (int) ($data['id'] ?? 0);
+  ```
+
+  The primary key is never taken from the model state: under the API that
+  state is populated from the body, and a body `id` would otherwise turn a
+  create into an update of another record past `allowAdd()` alone. A create
+  binds `id = 0`, as the administrator form already does. Callers that save
+  a partial array under a model state must pass the key.
+
+  On a table with a `guid` column (registered by the field builders either
+  as the unique guid or, when the field carries a unique index, among the
+  unique keys) the guid is the server's:
+
+  ```php
+  if ($data['id'] > 0)
+  {
+      $data['guid'] = (string) GetHelper::var('<view>', $data['id'], 'id', 'guid', '=', '<component>');
+  }
+  elseif (Factory::getApplication()->isClient('api'))
+  {
+      $data['guid'] = '';
+  }
+  else
+  {
+      $data['guid'] = (string) ($data['guid'] ?? '');
+  }
+
+  while (!GuidHelper::valid($data['guid'], '<view>', $data['id'], '<component>'))
+  {
+      $data['guid'] = (string) GuidHelper::get();
+  }
+  ```
+
+  An existing record keeps the guid it was stored with, whatever the request
+  carries; the API never takes a guid from the request; the administrator
+  form keeps a valid unique guid it was seeded with; and a record without a
+  valid unique guid, new or stored that way, gets one. The component code is
+  passed explicitly, so the check does not depend on the request's `option`.
+  `Creator/Builders` force-loads the GuidHelper power
+  (`9c513baf-b279-43fd-ae29-a585c8cbc4f0`) the moment it registers a guid
+  column, as it does the encryption power for an encrypted field, so the
+  call resolves whether or not the component adds powers itself. The shipped
+  `saveGUIDPower` custom code keeps working unchanged after this block (it
+  finds a valid guid and passes); it is no longer needed for the guid.
+
+  On a view with an alias, a new record without the alias key gets it as an
+  empty string, so the generated table's `check()` builds the alias from the
+  title, as a form submit with an empty alias does; the model's own alias
+  generation is gated on administrator task names and never runs under the
+  API.
+
+- **`Api\Controller\GetModel`** builds the model with `ignore_request` unless
+  the caller set it, as Joomla's `FormController` does. Core's `save()`
+  builds the model without it and reads the state only after the save; the
+  lazy `populateState()` would then replace the new id with the request's,
+  and `add()` would answer "Check-in failed".
+
+- **`Api\Controller\RecordId::keysOfFields()`** derives the unique keys from
+  the view's field definitions for `Api\Plugin\Routes`, which renders while
+  the component data loads, before any field builder has filled the key
+  registries `keys()` reads. The generated controller and the plugin routes
+  therefore agree on the guid and unique-key routes of §4.7.
+
+The JSON body remains a body, not a form: a field the client omits stays
+absent, custom code that reads such a key unguarded logs a warning (printed
+into the response where errors are displayed), and a `NOT NULL` column
+without a default fails the insert under Joomla's strict SQL mode. Completing
+a create body with the form's defaults in `preprocessSaveData()` is a
+possible follow-up, recorded in §9.
+
 ## 5. Phases
 
 **Phase 1 — the four classes and the serializer (this change).** Touches:
@@ -447,6 +539,22 @@ a plugin on its own.
 - Golden proof: the Joomla 6 golden master with a component that sets
   `add_api` on at least one view; the diff must be limited to the four API
   files.
+- End-to-end proof: the API test harness (`.github/api-tests/run.sh`, run by
+  the `API tests` workflow) installs Joomla 6.1.2 and the released JCB
+  package on a local database, installs this working tree over it, links a
+  `webservices` plugin carrying `[[[API_ROUTES_METHOD]]]` to the shipped
+  demo component (`libraries/vendor_jcb/tests/api/seed-webservices-plugin.php`),
+  compiles and installs the demo, mints a token
+  (`libraries/vendor_jcb/tests/api/token.php`) and drives
+  `v1/demo/looks` through PHP's built-in server with
+  `libraries/vendor_jcb/tests/api/scenarios.php`: create without keys,
+  create with a body id and guid, read by id and by guid, update without
+  and with a client guid, list, a concurrent burst of creates that must
+  yield distinct guids, trash, delete and the final 404. Its `--reproduce`
+  mode asserts the failure the fix removed, so the harness is known to see
+  the defect. The built-in server's SAPI name contains `cli`, which Joomla's
+  `Uri::base()` treats as a console run, so the harness sets `live_site`
+  while serving and clears it for console commands.
 
 ## 7. Open decisions
 
@@ -643,3 +751,77 @@ orchestration test covers the API fail-safe; provider catalogue, ownership
 ledger and gates as before. The golden proof stays the Joomla 6 golden
 master with a component carrying an admin API, a site view and a custom
 admin view.
+
+## 9. Known defects and follow-ups
+
+Everything here was seen while driving the compiled demo through the harness
+of §6 and is recorded so the next change starts from the observed contract,
+not from the templates. None of it fails the scenarios the harness runs.
+
+### 9.1 In the generated component
+
+- **`getItem()` redirects under the API.** The generated administrator
+  model's `getItem()` (`admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php`, a
+  protected template) answers a record the user may not edit with an
+  enqueued message and `$app->redirect('index.php?option=com_<component>')`.
+  Under the API application that redirect is a `303` with an HTML location
+  where JSON:API expects a `403`, and core's `save()` on `PATCH` reads
+  through it. The site and custom admin models already throw a `404` when
+  the running client is the API (§8.9); the administrator model needs the
+  same branch, which touches the protected template and so waits for that
+  permission.
+- **`PATCH` re-encodes stored fields.** Core back-fills a `PATCH` body from
+  the table's raw columns (`ApiController::save()` copies every column the
+  body omits from the loaded table). The generated `save()` then encodes
+  every json, base64 and encrypted field it finds set, so an omitted field
+  of those kinds is stored encoded twice. The administrator form never sees
+  this because it loads the decoded item first. The fix is to back-fill in
+  `preprocessSaveData()` of the generated controller from the model's
+  decoded `getItem()` instead, or to make the generated encoders idempotent;
+  either way it is a contract of `Architecture/Model/ItemSave` and needs its
+  own scenario in the harness (a view with a json or base64 field).
+- **`getForm()` reads a body `id`.** When the body carries no positive `id`
+  the generated `getForm()` falls back to the application input, which in
+  the API application is the decoded body, so a create whose body names an
+  existing record builds its form under that record's edit-state
+  permissions. The save itself ignores the body id (§4.9); the form
+  permissions should read the same `id` the save will bind, which is `0`
+  for a create.
+- **Omitted `NOT NULL` columns.** A create body is not completed with the
+  form's defaults, so a `NOT NULL` column without a database default that
+  the client omits fails the insert under strict SQL mode with a `500` that
+  names the column. Completing a create body with the form defaults in the
+  generated `preprocessSaveData()` (`Form::getData()` of a freshly loaded
+  form, `array_replace`d with the body) would make the API accept the same
+  minimal body the administrator form accepts.
+- **Custom code that reads absent keys.** A `php_before_save` or `php_save`
+  script that reads a body key unguarded logs a warning under the API, and
+  a warning is printed into the JSON response where error display is on. The
+  shipped `saveGUIDPower` custom code (JCB custom code 360) is the case in
+  point: it is no longer needed for the guid once §4.9 is compiled, but a
+  component that keeps it should guard its reads.
+
+### 9.2 In the shipped demo data
+
+- **The `guid` validation rule** (JCB validation rule `guid`, compiled to
+  `src/Rule/GuidRule.php`) calls `trim($value)` before it checks whether the
+  field is required, so a body without a `guid` logs a PHP deprecation on
+  every API create. The rule should read `trim((string) $value)`. This is
+  data, changed in JCB itself, not in the compiler.
+- **The demo carries no `webservices` plugin**, so its API cannot be reached
+  without the seeding step of the harness. Shipping one in the demo data
+  (a plugin of the `webservices` group linked to the demo component with
+  `[[[API_ROUTES_METHOD]]]` in its main class code, as
+  `libraries/vendor_jcb/tests/api/seed-webservices-plugin.php` creates it)
+  would let the harness, and any owner, compile a working API out of the box.
+
+### 9.3 Owner actions
+
+1. Update custom code 360 (`saveGUIDPower`) in JCB, or drop it from the demo
+   views: the generated `save()` now owns the guid.
+2. Correct the `guid` validation rule as above.
+3. Add a `webservices` plugin to the demo data, then remove the seeding step
+   from `.github/api-tests/run.sh`.
+4. Decide the `getItem()` change to the protected administrator model
+   template, and record it in the GUI change record if the template's
+   permission is granted.
