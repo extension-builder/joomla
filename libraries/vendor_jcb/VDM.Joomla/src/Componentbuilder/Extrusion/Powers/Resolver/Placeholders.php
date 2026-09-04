@@ -312,7 +312,8 @@ final class Placeholders
 	 * The compiler's own component placeholders, valued as it values them.
 	 *
 	 * Compiler\Component\Placeholder::addCorePlaceholders names the
-	 * component's code three ways and its language prefix once. A record a
+	 * component's code three ways, its language prefix once, the vendor
+	 * prefix, and the path a component loads its powers through. A record a
 	 * person wrote through them -- a seed statement naming
 	 * `#__[[[component]]]_item` -- reads as the compiled source only once
 	 * these are resolved the compiler's way.
@@ -322,18 +323,29 @@ final class Placeholders
 	 */
 	public function core(): array
 	{
-		$code = $this->values()['code'];
+		$values = $this->values();
+		$code = $values['code'];
+		$core = [
+			// the loader path follows the Joomla family the source was built
+			// for, exactly as Compiler\Config::getComponentautoloaderpath
+			// answers it from the version being compiled for
+			$this->wrap('POWERLOADERPATH') =>
+				strtolower((string) $this->source->get('layout', 'j4')) === 'j3'
+					? 'helpers/powerloader.php'
+					: 'src/Helper/PowerloaderHelper.php',
+			$this->wrap('NAMESPACEPREFIX') => $values['prefix']
+		];
 
 		if ($code === '')
 		{
-			return [];
+			return $core;
 		}
 
 		// the code is already safe -- lower case letters and underscores --
 		// so the compiler's safe('F') and safe('U') reduce to these exactly
 		$upper = strtoupper($code);
 
-		return [
+		return $core + [
 			$this->wrap('component') => $code,
 			$this->wrap('Component') => ucfirst($code),
 			$this->wrap('COMPONENT') => $upper,

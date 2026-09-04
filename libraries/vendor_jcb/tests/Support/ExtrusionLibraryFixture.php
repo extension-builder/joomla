@@ -141,7 +141,7 @@ final class Loader extends Getter implements LoaderInterface
 	 */
 	public function value(): string
 	{
-		return 'demo';
+		return 'com_demo';
 	}
 }
 PHP,

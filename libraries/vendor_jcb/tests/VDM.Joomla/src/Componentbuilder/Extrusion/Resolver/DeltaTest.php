@@ -13,11 +13,17 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Diff;
 use VDM\Joomla\Componentbuilder\Table as JcbTable;
 use VDM\Tests\Support\ExtrusionItemFixture;
+use VDM\Tests\Support\ExtrusionPowerLoadFixture;
 use VDM\Tests\Support\TestCase;
 
 
@@ -55,6 +61,22 @@ final class DeltaTest extends TestCase
 	private Proposal $proposal;
 
 	/**
+	 * The served database boundary.
+	 *
+	 * @var    ExtrusionPowerLoadFixture
+	 * @since  6.2.0
+	 */
+	private ExtrusionPowerLoadFixture $load;
+
+	/**
+	 * The run report registry.
+	 *
+	 * @var    Report
+	 * @since  6.2.0
+	 */
+	private Report $report;
+
+	/**
 	 * The weigher under test.
 	 *
 	 * @var    Delta
@@ -74,7 +96,19 @@ final class DeltaTest extends TestCase
 
 		$this->item = new ExtrusionItemFixture();
 		$this->proposal = new Proposal();
-		$this->delta = new Delta($this->item, new JcbTable(), new Diff(), $this->proposal);
+		$config = new Config();
+		$config->set('component', 3);
+		$this->load = new ExtrusionPowerLoadFixture();
+		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
+		$this->load->placeholder(25, '[[[upload_max_filesize]]]', '128M');
+		$this->delta = new Delta(
+			$this->item,
+			new JcbTable(),
+			new Diff(),
+			$this->proposal,
+			new Placeholders($config, $this->load, new Report(), new Source()),
+			$this->report = new Report()
+		);
 	}
 
 	/**
@@ -411,6 +445,160 @@ final class DeltaTest extends TestCase
 		$this->assertSame(1, $moved['additions'], 'One line was added, and that is the one line counted.');
 		$this->assertSame(0, $moved['deletions']);
 		$this->assertStringNotContainsString("\r", $moved['columns']['main_class_code']['before']);
+	}
+
+	/**
+	 * A placeholder a person wrote is never unsaid.
+	 *
+	 * The source a record is weighed against was compiled from that very
+	 * record, so where the record defers to a placeholder the source states
+	 * what the compiler resolved it to. Weighing the two as text would call
+	 * that a change and write the resolved value over the placeholder the
+	 * person chose -- and the next compile would still produce the same file,
+	 * having lost the only thing that made the record portable.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAPlaceholderAPersonWroteIsNeverUnsaid(): void
+	{
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$limit = '[[[upload_max_filesize]]]';"
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$same = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$limit = '128M';"
+		], true);
+
+		$this->assertFalse(
+			$same['changed'],
+			'The record already says what the source states, only more carefully.'
+		);
+
+		$moved = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$limit = '256M';"
+		], true);
+
+		$this->assertTrue(
+			$moved['changed'],
+			'What the placeholder stands for did move, and that is a change.'
+		);
+	}
+
+	/**
+	 * A record that spells the name out is restated through the placeholder.
+	 *
+	 * The two compile to the same file, so nothing a person reads in the
+	 * component moves -- but the record stops being bound to the one
+	 * component it was lifted out of, which is the whole point of writing it
+	 * that way, so this one is worth the write.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testARecordSpellingTheNameOutIsRestatedThroughThePlaceholder(): void
+	{
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__demo_item';"
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$restated = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__[[[component]]]_item';"
+		], true);
+
+		$this->assertTrue(
+			$restated['changed'],
+			'The write defers what the record spells out, and that is worth writing.'
+		);
+	}
+
+	/**
+	 * A deferral this run cannot resolve is never written over.
+	 *
+	 * A record may defer to something only the compiler can produce -- a whole
+	 * generated array of a component's fields, say. Nothing here can stand for
+	 * it, so nothing here can weigh it either, and writing what the compiler
+	 * produced over the deferral that produced it is the one answer that is
+	 * certainly wrong.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testADeferralThisRunCannotResolveIsNeverWrittenOver(): void
+	{
+		$generated = '#' . '#' . '#' . 'ALL_COMPONENT_FIELDS' . '#' . '#' . '#';
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\tprotected array \$tables = " . $generated . ';'
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$kept = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\tprotected array \$tables = ['item' => ['id']];"
+		], true);
+
+		$this->assertFalse(
+			$kept['changed'],
+			'Nothing here can stand for that, so nothing here may write over it.'
+		);
+		$this->assertSame(
+			['ALL_COMPONENT_FIELDS'],
+			$this->report->get(
+				'kept.deferred.power.' . str_replace('-', '_', self::GUID) . '.main_class_code'
+			)
+		);
+	}
+
+	/**
+	 * A placeholder says the same thing under either of its wrappers.
+	 *
+	 * The compiler registers every placeholder under both, and substitutes
+	 * them with the same bare replacement. JCB writes both itself -- a person
+	 * types the bracketed form into a form, the compiler's own custom code
+	 * extractor stores the hashed one -- so a write that only swapped one for
+	 * the other would rewrite what a person curated and change nothing.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAPlaceholderSaysTheSameThingUnderEitherWrapper(): void
+	{
+		// the record names the placeholder through the wrapper JCB's own
+		// custom code extractor writes
+		$hashed = '#' . '#' . '#' . 'component' . '#' . '#' . '#';
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__" . $hashed . "_item';"
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$same = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__[[[component]]]_item';"
+		], true);
+
+		$this->assertFalse(
+			$same['changed'],
+			'Both wrappers name the same placeholder, so neither is a change.'
+		);
+
+		$moved = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__[[[Component]]]_item';"
+		], true);
+
+		$this->assertTrue(
+			$moved['changed'],
+			'A different placeholder is a different thing to say.'
+		);
 	}
 
 	/**

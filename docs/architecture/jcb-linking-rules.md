@@ -328,6 +328,93 @@ Powers outside the libraries folder:
   namespace fragment can stand for a head; a restated namespace is reported
   as `powers.namespace.restated.<guid>` with both forms.
 
+## Saying a component's name through the placeholder that stands for it
+
+The compiler holds one map of placeholders and their values --
+`Compiler\Component\Placeholder::get()`: the system-wide `placeholder` rows,
+then the values it derives from the component itself, then that component's
+`component_placeholders` overrides -- and pours the whole map into
+`Placeholder::$active` (`Component/Data.php`) and into `ContentOne`
+(`Architecture/Component/Details.php`). `Placeholder::update()` then
+substitutes it with a bare `str_replace` into everything it writes,
+`main_class_code` included (`Power/Infusion.php`).
+
+So a class, a screen or a seed a component ships carries the component's own
+name where the record it was built from carried a placeholder, and reading
+that name back binds the record to the one component it was lifted out of.
+`Extrusion\Resolver\Placeholder` gives it back -- and because the compiler's
+substitution is a plain replacement, what it writes always compiles to the
+very same text.
+
+- **Only what JCB itself derives is ever written back.** The component's code
+  name in its three shapes and its namespace segment: values the compiler
+  computes from the component, which cannot be anything else. **A value a
+  person defined for themselves is never touched.** The compiler substitutes
+  those as unconditionally as it substitutes the component's name, but only
+  the person knows where they meant them, and a run that acted on that would
+  be guessing.
+- **The name is only given back where the compiler itself puts it.** Five
+  idioms, each one somewhere the compiler composes the name:
+  `com_<component>` (the extension element), `#__<component>_` (the prefix of
+  every table the component keeps its records in), `COM_<COMPONENT>` (the
+  language prefix `Compiler\Config::getLangprefix` builds), `<Component>Helper`
+  (the component's own helper class), and `\<ComponentNamespace>\` (a segment
+  of the namespace the compiler composes). Three of those are the very pairs
+  JCB's own `Customcode\Extractor` keeps. Everywhere else those letters stand
+  they are the source's own, so a component named `demo` keeps its
+  `demonstration`, its `demoted`, its `com_democracy` and its
+  `hint="demo@example.com"`.
+- **The language prefix is never said as a placeholder of its own.** The
+  compiler reassigns `lang_prefix` while it builds a module or a plugin
+  (`Joomlamodule/*/Data.php`), so a power carrying `[[[LANG_PREFIX]]]` would
+  say `MOD_` or `PLG_` there. `COM_` followed by `[[[COMPONENT]]]` says the
+  same thing in every one of those places.
+- **All five idioms are matched in one pass**, so one just written is never
+  read again as if it were the source.
+- **A licence is left exactly as the file states it.** What stands where a
+  component's name stands in a licence block is as likely to be the company
+  that wrote it, which the compiler fills in from a placeholder of its own
+  that no reading of the file can tell apart from this one.
+- **Both wrappers name the same placeholder.** The compiler registers every
+  target as `[[[target]]]` and as `###target###` and substitutes both with
+  the same value. A person types the first into a form; JCB's own custom code
+  extractor stores the second. `Delta` weighs them as one text, so a write
+  that would only swap one for the other is not a change and what a person
+  curated is not rewritten. What is written for the first time is written
+  bracketed.
+
+This is said at every write of harvested text: a power's `main_class_code`
+and `description`, a site view's and a custom admin view's `default`, a
+field's `xml`, and an admin view's `sql`.
+
+### What a record already defers is never unsaid
+
+The source a record is weighed against was compiled from that very record, so
+where the record defers the source states what the compiler resolved. Weighing
+the two as text would call that a change and write the resolved value over the
+placeholder a person chose -- and the next compile would produce the identical
+file, having lost the only thing that made the record portable. So `Delta`
+weighs what both sides *mean*:
+
+- **Both sides are resolved before they are weighed.** A record saying
+  `'[[[upload_max_filesize]]]'` and a source saying `'128M'` are the same
+  thing, and nothing is written.
+- **A write is still made when it defers more than the record does.** If the
+  two resolve alike but the write names a placeholder the record spells out,
+  the write is worth making: nothing a person reads in the component moves,
+  and the record stops being bound to the one component it came from.
+- **A deferral this run cannot resolve is never written over.** A record may
+  defer to something only the compiler can produce -- `###ALL_COMPONENT_FIELDS###`,
+  a whole generated array. Nothing here can stand for it, so nothing here can
+  weigh it, and the column is kept and named under
+  `kept.deferred.<table>.<identity>.<column>`.
+
+For that weighing to reach as far as the compiler does, the run values every
+core target the compiler values, the loader path included: `POWERLOADERPATH`
+follows the Joomla family the source was built for, exactly as
+`Compiler\Config::getComponentautoloaderpath` answers it from the version
+being compiled for.
+
 ## What a table has to have to be a view
 
 Every view JCB builds keeps its records by an `id` of their own, so a table

@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -94,17 +95,26 @@ final class AdminView extends Writer
 	protected Placeholders $placeholders;
 
 	/**
+	 * The Placeholder Resolver.
+	 *
+	 * @var    Placeholder
+	 * @since  6.2.0
+	 */
+	protected Placeholder $placeholder;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Config         $config    The extrusion configuration.
-	 * @param   Resolved       $resolved  The resolved definition registry.
-	 * @param   ItemInterface  $item      The JCB data item writer.
-	 * @param   Report         $report    The run report registry.
-	 * @param   Delta          $delta     The change weigher.
-	 * @param   Guid           $guid      The identity resolver.
-	 * @param   Source         $source    The source identity registry.
-	 * @param   Pairing        $pairing   The pairing resolver.
-	 * @param   Actions        $actions   The permission actions resolver.
+	 * @param   Config         $config       The extrusion configuration.
+	 * @param   Resolved       $resolved     The resolved definition registry.
+	 * @param   ItemInterface  $item         The JCB data item writer.
+	 * @param   Report         $report       The run report registry.
+	 * @param   Delta          $delta        The change weigher.
+	 * @param   Guid           $guid         The identity resolver.
+	 * @param   Source         $source       The source identity registry.
+	 * @param   Pairing        $pairing      The pairing resolver.
+	 * @param   Actions        $actions      The permission actions resolver.
+	 * @param   Placeholder    $placeholder  The placeholder expresser.
 	 *
 	 * @since   6.1.6
 	 */
@@ -118,7 +128,8 @@ final class AdminView extends Writer
 		Source $source,
 		Pairing $pairing,
 		Actions $actions,
-		Placeholders $placeholders
+		Placeholders $placeholders,
+		Placeholder $placeholder
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report, $delta);
@@ -128,6 +139,7 @@ final class AdminView extends Writer
 		$this->placeholders = $placeholders;
 		$this->pairing = $pairing;
 		$this->actions = $actions;
+		$this->placeholder = $placeholder;
 	}
 
 	/**
@@ -298,7 +310,7 @@ final class AdminView extends Writer
 
 		if (trim($held) === '')
 		{
-			return $seed;
+			return $this->express($guid, $seed);
 		}
 
 		$core = $this->placeholders->core();
@@ -311,21 +323,32 @@ final class AdminView extends Writer
 			return null;
 		}
 
-		$placeholder = $this->placeholders->placeholder('component');
-		$code = (string) ($core[$placeholder] ?? '');
+		return $this->express($guid, $seed);
+	}
 
-		foreach ([$placeholder, '###' . substr($placeholder, 3, -3) . '###'] as $worded)
+	/**
+	 * Seed data, naming the tables the way a person names them.
+	 *
+	 * The compiler wrote the component's own name into every table the seed
+	 * touches, so seed data read back unchanged would carry that component's
+	 * tables into whatever the view is used for next.
+	 *
+	 * @param   string  $guid  The view's identity.
+	 * @param   string  $seed  The seed data the source states.
+	 *
+	 * @return  string  The seed data to write.
+	 * @since   6.2.0
+	 */
+	protected function express(string $guid, string $seed): string
+	{
+		$expressed = $this->placeholder->reverse($seed);
+
+		if ($expressed !== $seed)
 		{
-			if ($code !== '' && str_contains($held, '#__' . $worded . '_'))
-			{
-				$seed = str_replace('#__' . $code . '_', '#__' . $worded . '_', $seed);
-				$this->report->set('expressed.seed.' . $guid, $worded);
-
-				break;
-			}
+			$this->report->set('expressed.seed.' . $guid, true);
 		}
 
-		return $seed;
+		return $expressed;
 	}
 
 	/**

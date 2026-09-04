@@ -394,6 +394,15 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 		$this->assertSame('use Joomla\CMS\Factory;', $loader->head);
 		$this->assertSame(1, $loader->add_head);
+		// the compiler wrote the component's own name into this body, and a
+		// power that read it back would name that component wherever it was
+		// used next
+		$this->assertStringContainsString(
+			"return 'com_[[[component]]]';",
+			$loader->main_class_code,
+			'A class body names the component through the placeholder that stands for it.'
+		);
+		$this->assertStringNotContainsString("'com_demo'", $loader->main_class_code);
 
 		$interface = $this->item->definition('power', self::EXISTING_GUID);
 

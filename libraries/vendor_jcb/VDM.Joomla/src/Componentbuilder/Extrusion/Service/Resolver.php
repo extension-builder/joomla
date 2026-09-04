@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Actions;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
@@ -118,6 +119,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Constants::class, 'Extrusion.Resolver.Constants')
 			->share('Extrusion.Resolver.Constants', [$this, 'getConstants'], true);
+
+		$container->alias(Placeholder::class, 'Extrusion.Resolver.Placeholder')
+			->share('Extrusion.Resolver.Placeholder', [$this, 'getPlaceholder'], true);
 
 		$container->alias(FieldXml::class, 'Extrusion.Resolver.FieldXml')
 			->share('Extrusion.Resolver.FieldXml', [$this, 'getFieldXml'], true);
@@ -440,6 +444,21 @@ class Resolver implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the Placeholder Resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Placeholder
+	 * @since   6.2.0
+	 */
+	public function getPlaceholder(Container $container): Placeholder
+	{
+		return new Placeholder(
+			$container->get('Extrusion.Powers.Resolver.Placeholders')
+		);
+	}
+
+	/**
 	 * Get the Reuse Resolver.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -523,7 +542,9 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Data.Item'),
 			$container->get('Table'),
 			$container->get('Extrusion.Resolver.Diff'),
-			$container->get('Extrusion.Registry.Proposal')
+			$container->get('Extrusion.Registry.Proposal'),
+			$container->get('Extrusion.Powers.Resolver.Placeholders'),
+			$container->get('Extrusion.Registry.Report')
 		);
 	}
 }

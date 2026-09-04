@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Constants;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 
 
 /**
@@ -97,6 +98,14 @@ final class Assembler
 	protected Namespacer $namespacer;
 
 	/**
+	 * The Placeholder Resolver.
+	 *
+	 * @var    Placeholder
+	 * @since  6.2.0
+	 */
+	protected Placeholder $placeholder;
+
+	/**
 	 * The selected candidates' identities, class name keyed to guid.
 	 *
 	 * @var    array<string, string>
@@ -124,7 +133,8 @@ final class Assembler
 		Pairing $pairing,
 		Report $report,
 		Constants $constants,
-		Namespacer $namespacer
+		Namespacer $namespacer,
+		Placeholder $placeholder
 	)
 	{
 		$this->config = $config;
@@ -134,6 +144,7 @@ final class Assembler
 		$this->report = $report;
 		$this->constants = $constants;
 		$this->namespacer = $namespacer;
+		$this->placeholder = $placeholder;
 	}
 
 	/**
@@ -278,6 +289,19 @@ final class Assembler
 	}
 
 	/**
+	 * One piece of a class, saying the component's name through its placeholder.
+	 *
+	 * @param   string  $text  The text the class file stated.
+	 *
+	 * @return  string  The text as a power holds it.
+	 * @since   6.2.0
+	 */
+	protected function say(string $text): string
+	{
+		return $this->placeholder->reverse($text);
+	}
+
+	/**
 	 * Build the definition one candidate is written as.
 	 *
 	 * @param   array<string, mixed>  $candidate  The harvest candidate.
@@ -300,12 +324,15 @@ final class Assembler
 		// JCB stores code speaking text and lets its compiler make the
 		// constant, so a class harvested out of a compiled component has to
 		// speak text again -- otherwise the compiler builds a key from a key
-		// and the component shows a constant to its users
-		$definition->main_class_code = $this->constants->reverse(
-			(string) $candidate['body']
+		// and the component shows a constant to its users. It defers the
+		// component's own name to a placeholder for the same reason: the
+		// compiler wrote that name in, and a class that reads it back is
+		// bound to the one component it was lifted out of
+		$definition->main_class_code = $this->say(
+			$this->constants->reverse((string) $candidate['body'])
 		);
-		$definition->description = $this->constants->reverse(
-			(string) $candidate['docblock']
+		$definition->description = $this->say(
+			$this->constants->reverse((string) $candidate['docblock'])
 		);
 
 		if (!(bool) ($candidate['exists'] ?? false))
@@ -333,6 +360,11 @@ final class Assembler
 
 		if ($license !== '')
 		{
+			// the licence is left exactly as the file states it: what stands
+			// where a component's name stands in a licence is as likely to be
+			// the company that wrote it, and the compiler fills that in from
+			// a placeholder of its own that no reading of the file can tell
+			// apart from this one
 			$definition->licensing_template = $license;
 			$definition->add_licensing_template = 2;
 		}

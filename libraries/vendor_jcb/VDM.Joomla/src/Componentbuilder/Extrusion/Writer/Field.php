@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Record;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -80,17 +81,26 @@ final class Field extends Writer
 	protected Pairing $pairing;
 
 	/**
+	 * The Placeholder Resolver.
+	 *
+	 * @var    Placeholder
+	 * @since  6.2.0
+	 */
+	protected Placeholder $placeholder;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Config         $config    The extrusion configuration.
-	 * @param   Resolved       $resolved  The resolved definition registry.
-	 * @param   ItemInterface  $item      The JCB data item writer.
-	 * @param   Report         $report    The run report registry.
-	 * @param   Delta          $delta     The change weigher.
-	 * @param   Record         $record    The record resolver.
-	 * @param   Guid           $guid      The identity resolver.
-	 * @param   Source         $source    The source identity registry.
-	 * @param   Pairing        $pairing   The pairing resolver.
+	 * @param   Config         $config       The extrusion configuration.
+	 * @param   Resolved       $resolved     The resolved definition registry.
+	 * @param   ItemInterface  $item         The JCB data item writer.
+	 * @param   Report         $report       The run report registry.
+	 * @param   Delta          $delta        The change weigher.
+	 * @param   Record         $record       The record resolver.
+	 * @param   Guid           $guid         The identity resolver.
+	 * @param   Source         $source       The source identity registry.
+	 * @param   Pairing        $pairing      The pairing resolver.
+	 * @param   Placeholder    $placeholder  The placeholder expresser.
 	 *
 	 * @since   6.1.6
 	 */
@@ -103,7 +113,8 @@ final class Field extends Writer
 		Record $record,
 		Guid $guid,
 		Source $source,
-		Pairing $pairing
+		Pairing $pairing,
+		Placeholder $placeholder
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report, $delta);
@@ -112,6 +123,7 @@ final class Field extends Writer
 		$this->guid = $guid;
 		$this->source = $source;
 		$this->pairing = $pairing;
+		$this->placeholder = $placeholder;
 	}
 
 	/**
@@ -265,7 +277,9 @@ final class Field extends Writer
 
 			foreach ($record['columns'] as $property => $value)
 			{
-				$definition->{$property} = $value;
+				$definition->{$property} = $property === 'xml'
+					? $this->placeholder->reverse((string) $value)
+					: $value;
 			}
 
 			$definition->published = 1;
@@ -275,7 +289,9 @@ final class Field extends Writer
 			// a field that stands is a person's: its type, its name, its
 			// storage and its database shape stay exactly as they curated
 			// them, and only its XML takes what the source adds to it
-			$definition->xml = $record['columns']['xml'];
+			$definition->xml = $this->placeholder->reverse(
+				(string) $record['columns']['xml']
+			);
 		}
 
 		if (!$this->store($definition, ['published'], null, $this->row('field', $view, $column)))

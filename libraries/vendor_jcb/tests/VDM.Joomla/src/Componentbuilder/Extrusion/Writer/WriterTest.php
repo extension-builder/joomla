@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -237,12 +238,17 @@ final class WriterTest extends TestCase
 	}
 
 	/**
-	 * Admin view seed SQL is stored raw, because the sql column declares base64.
+	 * Seed SQL is stored unencoded, naming its table through the placeholder.
+	 *
+	 * The sql column declares base64, so the pipeline encodes it and a writer
+	 * that encoded it too would store it twice over. And the compiler wrote
+	 * the component's own name into the table the rows go to, so a record
+	 * that read that name back would seed another component's table.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testAdminViewStoresSeedSqlRaw(): void
+	public function testSeedSqlIsStoredUnencodedNamingItsTableThroughThePlaceholder(): void
 	{
 		$this->seedItemView();
 		$this->resolved->set('view.item.seed', self::SEED);
@@ -251,9 +257,11 @@ final class WriterTest extends TestCase
 
 		$definition = $this->item->definition('admin_view', self::VIEW_GUID);
 
+		$worded = str_replace('#__demo_', '#__[[[component]]]_', self::SEED);
+
 		$this->assertNotNull($definition);
-		$this->assertSame(self::SEED, $definition->sql);
-		$this->assertNotSame(base64_encode(self::SEED), $definition->sql);
+		$this->assertSame($worded, $definition->sql);
+		$this->assertNotSame(base64_encode($worded), $definition->sql);
 		$this->assertSame(1, $definition->add_sql);
 		$this->assertSame(2, $definition->source);
 		$this->assertSame('Item', $definition->system_name);
@@ -2180,7 +2188,38 @@ final class WriterTest extends TestCase
 	 */
 	private function delta(): Delta
 	{
-		return new Delta($this->item, new JcbTable(), new Diff(), $this->proposal);
+		return new Delta(
+			$this->item,
+			new JcbTable(),
+			new Diff(),
+			$this->proposal,
+			$this->placeholders(),
+			$this->report
+		);
+	}
+
+	/**
+	 * The placeholder expresser over the current boundary.
+	 *
+	 * @return  Placeholder  The resolver.
+	 * @since   6.2.0
+	 */
+	private function placeholder(): Placeholder
+	{
+		return new Placeholder($this->placeholders());
+	}
+
+	/**
+	 * The placeholder values over the current boundary.
+	 *
+	 * @return  Placeholders  The resolver.
+	 * @since   6.2.0
+	 */
+	private function placeholders(): Placeholders
+	{
+		return new Placeholders(
+			$this->config, new ExtrusionDatabaseFixture(), $this->report, $this->source
+		);
 	}
 
 	/**
@@ -2206,7 +2245,8 @@ final class WriterTest extends TestCase
 			),
 			$this->guid,
 			$this->source,
-			$this->pairing()
+			$this->pairing(),
+			$this->placeholder()
 		);
 	}
 
@@ -2239,7 +2279,8 @@ final class WriterTest extends TestCase
 			$this->source,
 			$this->pairing(),
 			new Actions($this->report, $this->actionsForm()),
-			new Placeholders($this->config, new ExtrusionDatabaseFixture(), $this->report, $this->source)
+			$this->placeholders(),
+			$this->placeholder()
 		);
 	}
 
@@ -2367,7 +2408,8 @@ final class WriterTest extends TestCase
 			$this->guid,
 			$this->source,
 			$this->pairing(),
-			new Text()
+			new Text(),
+			$this->placeholder()
 		);
 	}
 
@@ -2407,7 +2449,8 @@ final class WriterTest extends TestCase
 			$this->view,
 			$this->guid,
 			$this->source,
-			$this->pairing()
+			$this->pairing(),
+			$this->placeholder()
 		);
 	}
 
@@ -2468,8 +2511,12 @@ final class WriterTest extends TestCase
 		$this->view->set('site_view.app.add_php_view', 1);
 		$this->view->set('site_view.tag.name', 'tag');
 		$this->view->set('site_view.tag.default', '<p>Tag</p>');
-		// the reader took this out of the screen's own template file
-		$this->view->set('site_view.tag.body', '<p>Read from the component</p>');
+		// the reader took this out of the screen's own template file, and the
+		// compiler had written the component's own name into it
+		$this->view->set(
+			'site_view.tag.body',
+			'<p>Read from <a href="index.php?option=com_demo">DemoHelper</a></p>'
+		);
 
 		$this->assertSame(2, $this->siteView()->write());
 
@@ -2502,9 +2549,11 @@ final class WriterTest extends TestCase
 		$tag = $this->item->definitions('site_view')[1];
 
 		$this->assertSame(
-			'<p>Read from the component</p>',
+			'<p>Read from <a href="index.php?option=com_[[[component]]]">'
+			. '[[[Component]]]Helper</a></p>',
 			$tag->default,
-			'What a screen shows is in that screen\'s own template.'
+			'What a screen shows is in that screen\'s own template, naming the '
+			. 'component through the placeholder the compiler resolved.'
 		);
 		$this->assertSame('$a = 1;', $app->php_view);
 		$this->assertSame(1, $app->add_php_view);
@@ -2877,7 +2926,11 @@ final class WriterTest extends TestCase
 		$this->assertSame('item', $definition->name_single, 'The source states the names.');
 		$this->assertSame('items', $definition->name_list);
 		$this->assertSame('Item', $definition->system_name);
-		$this->assertSame(self::SEED, $definition->sql, 'The source states the seed data.');
+		$this->assertSame(
+			str_replace('#__demo_', '#__[[[component]]]_', self::SEED),
+			$definition->sql,
+			'The source states the seed data, naming its table as a person does.'
+		);
 
 		foreach (['addtabs', 'addpermissions', 'description', 'short_description'] as $curated)
 		{
@@ -2967,7 +3020,7 @@ final class WriterTest extends TestCase
 			$this->item->definitions('admin_view')[0]->sql,
 			'Changed rows are restated through the placeholder the person writes tables with.'
 		);
-		$this->assertSame('[[[component]]]', $this->report->get('expressed.seed.' . self::VIEW_GUID));
+		$this->assertTrue($this->report->get('expressed.seed.' . self::VIEW_GUID));
 
 		$this->restate();
 		$this->seedItemView();
@@ -2981,7 +3034,7 @@ final class WriterTest extends TestCase
 
 		$this->assertSame(1, $this->adminView()->write());
 		$this->assertSame(
-			self::SEED,
+			$worded,
 			$this->item->definitions('admin_view')[0]->sql,
 			'Rows the record does not state are the source\'s to state.'
 		);
