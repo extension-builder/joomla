@@ -414,6 +414,50 @@ final class DeltaTest extends TestCase
 	}
 
 	/**
+	 * A placeholder says the same thing under either of its wrappers.
+	 *
+	 * The compiler registers every placeholder under both, and substitutes
+	 * them with the same bare replacement. JCB writes both itself -- a person
+	 * types the bracketed form into a form, the compiler's own custom code
+	 * extractor stores the hashed one -- so a write that only swapped one for
+	 * the other would rewrite what a person curated and change nothing.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testAPlaceholderSaysTheSameThingUnderEitherWrapper(): void
+	{
+		// the record names the placeholder through the wrapper JCB's own
+		// custom code extractor writes
+		$hashed = '#' . '#' . '#' . 'component' . '#' . '#' . '#';
+		$this->item->serve('power', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__" . $hashed . "_item';"
+		]);
+		$this->item->identity('power', self::GUID, 3);
+
+		$same = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__[[[component]]]_item';"
+		], true);
+
+		$this->assertFalse(
+			$same['changed'],
+			'Both wrappers name the same placeholder, so neither is a change.'
+		);
+
+		$moved = $this->delta->weigh('power', 'guid', self::GUID, (object) [
+			'guid' => self::GUID,
+			'main_class_code' => "\t\t\$table = '#__[[[Component]]]_item';"
+		], true);
+
+		$this->assertTrue(
+			$moved['changed'],
+			'A different placeholder is a different thing to say.'
+		);
+	}
+
+	/**
 	 * A subform says the same thing whichever way it was saved.
 	 *
 	 * A form saves its keys in the form's order and every value as text; a

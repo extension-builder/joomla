@@ -4208,6 +4208,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ConstantsTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Placeholder.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/PlaceholderTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/FieldXml.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/ResolverTest.php'

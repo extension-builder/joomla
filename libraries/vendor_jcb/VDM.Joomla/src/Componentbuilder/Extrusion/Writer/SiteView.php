@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
@@ -74,17 +75,26 @@ final class SiteView extends Writer
 	protected Pairing $pairing;
 
 	/**
+	 * The Placeholder Resolver.
+	 *
+	 * @var    Placeholder
+	 * @since  6.2.0
+	 */
+	protected Placeholder $placeholder;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Config         $config    The extrusion configuration.
-	 * @param   Resolved       $resolved  The resolved definition registry.
-	 * @param   ItemInterface  $item      The JCB data item writer.
-	 * @param   Report         $report    The run report registry.
-	 * @param   Delta          $delta     The change weigher.
-	 * @param   View           $view      The classified view registry.
-	 * @param   Guid           $guid      The identity resolver.
-	 * @param   Source         $source    The source identity registry.
-	 * @param   Pairing        $pairing   The pairing resolver.
+	 * @param   Config         $config       The extrusion configuration.
+	 * @param   Resolved       $resolved     The resolved definition registry.
+	 * @param   ItemInterface  $item         The JCB data item writer.
+	 * @param   Report         $report       The run report registry.
+	 * @param   Delta          $delta        The change weigher.
+	 * @param   View           $view         The classified view registry.
+	 * @param   Guid           $guid         The identity resolver.
+	 * @param   Source         $source       The source identity registry.
+	 * @param   Pairing        $pairing      The pairing resolver.
+	 * @param   Placeholder    $placeholder  The placeholder expresser.
 	 *
 	 * @since   6.1.6
 	 */
@@ -97,7 +107,8 @@ final class SiteView extends Writer
 		View $view,
 		Guid $guid,
 		Source $source,
-		Pairing $pairing
+		Pairing $pairing,
+		Placeholder $placeholder
 	)
 	{
 		parent::__construct($config, $resolved, $item, $report, $delta);
@@ -106,6 +117,7 @@ final class SiteView extends Writer
 		$this->guid = $guid;
 		$this->source = $source;
 		$this->pairing = $pairing;
+		$this->placeholder = $placeholder;
 	}
 
 	/**
@@ -245,7 +257,10 @@ final class SiteView extends Writer
 
 		if ($body !== '')
 		{
-			return $body;
+			// the compiler wrote the component's name into this markup, so a
+			// screen that read it back would name that component wherever it
+			// was used next
+			return $this->placeholder->reverse($body);
 		}
 
 		$title = htmlspecialchars($readable, ENT_QUOTES, 'UTF-8');

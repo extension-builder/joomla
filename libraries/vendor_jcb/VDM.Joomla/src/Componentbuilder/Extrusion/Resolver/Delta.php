@@ -190,7 +190,54 @@ final class Delta
 	 */
 	protected function same(string $table, string $column, $before, $after): bool
 	{
-		return $this->stored($table, $column, $before) === $this->stored($table, $column, $after);
+		return $this->stored($table, $column, $this->wrappers($before))
+			=== $this->stored($table, $column, $this->wrappers($after));
+	}
+
+	/**
+	 * One value with both ways of writing a placeholder written the one way.
+	 *
+	 * The compiler registers every placeholder under both wrappers and
+	 * substitutes them with the same bare replacement, so a value naming one
+	 * and a value naming the other say the very same thing to it. JCB writes
+	 * both itself -- a person types the bracketed form into a form, while the
+	 * compiler's own custom code extractor stores the hashed one -- and a
+	 * write that only swapped one for the other would change nothing while
+	 * rewriting what a person curated. This is only ever said for the
+	 * comparison; what the record holds is what a person is shown.
+	 *
+	 * @param   mixed  $value  The value, or a structure of them.
+	 *
+	 * @return  mixed  The value, saying one wrapper.
+	 * @since   6.2.0
+	 */
+	protected function wrappers($value)
+	{
+		if (is_string($value))
+		{
+			return preg_replace(
+				'/#' . '#' . '#([A-Za-z0-9_]+)#' . '#' . '#/', '[[[$1]]]', $value
+			) ?? $value;
+		}
+
+		if (is_object($value))
+		{
+			$value = get_object_vars($value);
+		}
+
+		if (!is_array($value))
+		{
+			return $value;
+		}
+
+		$said = [];
+
+		foreach ($value as $key => $entry)
+		{
+			$said[$key] = $this->wrappers($entry);
+		}
+
+		return $said;
 	}
 
 	/**
