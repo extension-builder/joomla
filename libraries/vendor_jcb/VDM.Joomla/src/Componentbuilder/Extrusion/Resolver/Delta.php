@@ -12,7 +12,9 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 use VDM\Joomla\Interfaces\TableInterface;
 
@@ -75,12 +77,30 @@ final class Delta
 	protected Proposal $proposal;
 
 	/**
+	 * The Placeholders Resolver.
+	 *
+	 * @var    Placeholders
+	 * @since  6.2.0
+	 */
+	protected Placeholders $placeholders;
+
+	/**
+	 * The Report Registry.
+	 *
+	 * @var    Report
+	 * @since  6.2.0
+	 */
+	protected Report $report;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   ItemInterface   $item      The JCB data item reader.
-	 * @param   TableInterface  $tables    The JCB table definitions.
-	 * @param   Diff            $diff      The line comparison.
-	 * @param   Proposal        $proposal  The proposal registry.
+	 * @param   ItemInterface   $item          The JCB data item reader.
+	 * @param   TableInterface  $tables        The JCB table definitions.
+	 * @param   Diff            $diff          The line comparison.
+	 * @param   Proposal        $proposal      The proposal registry.
+	 * @param   Placeholders    $placeholders  The placeholder value resolver.
+	 * @param   Report          $report        The run report registry.
 	 *
 	 * @since   6.2.0
 	 */
@@ -88,13 +108,17 @@ final class Delta
 		ItemInterface $item,
 		TableInterface $tables,
 		Diff $diff,
-		Proposal $proposal
+		Proposal $proposal,
+		Placeholders $placeholders,
+		Report $report
 	)
 	{
 		$this->item = $item;
 		$this->tables = $tables;
 		$this->diff = $diff;
 		$this->proposal = $proposal;
+		$this->placeholders = $placeholders;
+		$this->report = $report;
 	}
 
 	/**
@@ -139,7 +163,8 @@ final class Delta
 
 			$before = is_object($standing) ? ($standing->{$column} ?? null) : null;
 
-			if ($standing !== null && $this->same($table, $column, $before, $after))
+			if ($standing !== null
+				&& $this->same($table, $column, $before, $after, $identity))
 			{
 				continue;
 			}
@@ -188,10 +213,163 @@ final class Delta
 	 * @return  bool  True when the write would change nothing.
 	 * @since   6.2.0
 	 */
-	protected function same(string $table, string $column, $before, $after): bool
+	protected function same(
+		string $table,
+		string $column,
+		$before,
+		$after,
+		string $identity = ''
+	): bool
 	{
-		return $this->stored($table, $column, $this->wrappers($before))
-			=== $this->stored($table, $column, $this->wrappers($after));
+		// a record may defer to something only the compiler can produce -- a
+		// whole generated array, say. This run cannot resolve it, so it cannot
+		// weigh it either, and the one answer that is certainly wrong is to
+		// write what the compiler produced over the deferral that produced it
+		$beyond = array_diff(
+			$this->unresolved($before), $this->deferred($after)
+		);
+
+		if ($beyond !== [])
+		{
+			$this->report->set(
+				'kept.deferred.' . $table . '.' . $this->path($identity) . '.' . $column,
+				array_values($beyond)
+			);
+
+			return true;
+		}
+
+		$stands = $this->stored($table, $column, $this->wrappers($this->meant($before)));
+		$writes = $this->stored($table, $column, $this->wrappers($this->meant($after)));
+
+		if ($stands !== $writes)
+		{
+			return false;
+		}
+
+		// the two compile to the same thing, so the only reason to write is
+		// that the write defers something the record spells out
+		return array_diff($this->deferred($after), $this->deferred($before)) === [];
+	}
+
+	/**
+	 * Every placeholder one value still names once this run has resolved it.
+	 *
+	 * @param   mixed  $value  The value, or a structure of them.
+	 *
+	 * @return  array<string>  The bare targets nothing here can stand for.
+	 * @since   6.2.0
+	 */
+	protected function unresolved($value): array
+	{
+		return $this->deferred($this->meant($value));
+	}
+
+	/**
+	 * Sanitise one registry path segment.
+	 *
+	 * @param   string  $segment  The raw segment.
+	 *
+	 * @return  string  A segment safe to use in a dotted registry path.
+	 * @since   6.2.0
+	 */
+	protected function path(string $segment): string
+	{
+		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
+	}
+
+	/**
+	 * Every placeholder one value names, under either wrapper.
+	 *
+	 * @param   mixed  $value  The value, or a structure of them.
+	 *
+	 * @return  array<string>  The bare targets named.
+	 * @since   6.2.0
+	 */
+	protected function deferred($value): array
+	{
+		if (is_object($value))
+		{
+			$value = get_object_vars($value);
+		}
+
+		if (is_array($value))
+		{
+			$named = [];
+
+			foreach ($value as $entry)
+			{
+				$named = array_merge($named, $this->deferred($entry));
+			}
+
+			return array_values(array_unique($named));
+		}
+
+		if (!is_string($value))
+		{
+			return [];
+		}
+
+		$found = [];
+		preg_match_all(
+			'/(?:\[\[\[|#' . '#' . '#)([A-Za-z0-9_]+)(?:\]\]\]|#' . '#' . '#)/',
+			$value,
+			$found
+		);
+
+		return array_values(array_unique($found[1]));
+	}
+
+	/**
+	 * What a standing value means, once its placeholders stand for their values.
+	 *
+	 * A record may say something through a placeholder the compiler resolves,
+	 * and the source it is weighed against was compiled from that very record
+	 * -- so the source states the resolved form and the record the deferred
+	 * one, and the two say the same thing. Weighing them as text would call
+	 * that a change and write the resolved form over what a person deferred,
+	 * unsaying a placeholder they chose. Only the standing side is resolved:
+	 * the record is allowed to say the same thing more carefully than the
+	 * source can.
+	 *
+	 * @param   mixed  $value  The standing value, or a structure of them.
+	 *
+	 * @return  mixed  The value, saying what it means.
+	 * @since   6.2.0
+	 */
+	protected function meant($value)
+	{
+		if (is_string($value))
+		{
+			if (!str_contains($value, '[' . '[[') && !str_contains($value, '#' . '##'))
+			{
+				return $value;
+			}
+
+			return $this->placeholders->substitute(
+				$value,
+				$this->placeholders->core() + $this->placeholders->map()
+			);
+		}
+
+		if (is_object($value))
+		{
+			$value = get_object_vars($value);
+		}
+
+		if (!is_array($value))
+		{
+			return $value;
+		}
+
+		$meant = [];
+
+		foreach ($value as $key => $entry)
+		{
+			$meant[$key] = $this->meant($entry);
+		}
+
+		return $meant;
 	}
 
 	/**

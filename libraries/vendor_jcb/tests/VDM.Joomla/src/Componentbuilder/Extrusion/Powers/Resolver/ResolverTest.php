@@ -169,6 +169,8 @@ final class ResolverTest extends TestCase
 
 		$this->assertSame(
 			[
+				'[[[POWERLOADERPATH]]]' => 'src/Helper/PowerloaderHelper.php',
+				'[[[NAMESPACEPREFIX]]]' => 'VDM',
 				'[[[component]]]' => 'componentbuilder',
 				'[[[Component]]]' => 'Componentbuilder',
 				'[[[COMPONENT]]]' => 'COMPONENTBUILDER',
@@ -189,9 +191,13 @@ final class ResolverTest extends TestCase
 		$this->config->set('component', 0);
 
 		$this->assertSame(
-			[],
+			[
+				'[[[POWERLOADERPATH]]]' => 'src/Helper/PowerloaderHelper.php',
+				'[[[NAMESPACEPREFIX]]]' => 'JCB'
+			],
 			$this->placeholders()->core(),
-			'With no component named there is no code to value them from.'
+			'With no component named there is no code to value the rest from, '
+			. 'while the loader path and the vendor prefix stand on their own.'
 		);
 	}
 
