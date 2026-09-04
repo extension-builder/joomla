@@ -46,6 +46,13 @@ final class GetModelTest extends ArchitectureTestCase
 			$name = 'demo';
 		}
 
+		// The API carries no request state for the model, as the form controller does not:
+		// the id a save sets must never be replaced by a later read of the request.
+		if (!array_key_exists('ignore_request', $config))
+		{
+			$config['ignore_request'] = true;
+		}
+
 		return parent::getModel($name, $prefix, $config);
 GEN;
 

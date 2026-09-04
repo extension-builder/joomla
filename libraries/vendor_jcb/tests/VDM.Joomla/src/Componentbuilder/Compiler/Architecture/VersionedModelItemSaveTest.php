@@ -15,6 +15,10 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\RecordKeyFix;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\Alias;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseUniqueGuid;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseUniqueKeys;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\JsonItem;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelBasicField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionFields;
@@ -48,7 +52,22 @@ final class VersionedModelItemSaveTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * A view with nothing to save generates nothing.
+	 * The record keys a view with nothing else to save still resolves.
+	 *
+	 * @var    string
+	 * @since  6.1.7
+	 */
+	private const RECORD_KEYS = <<<'GEN'
+
+
+		// The record keys, as every line below expects them: the primary key as an
+		// integer that is never taken from the request (null from the API on create).
+		$data['id'] = (int) ($data['id'] ?? 0);
+GEN;
+
+	/**
+	 * A view with nothing to save still resolves its record keys, the same
+	 * way on every target, because Joomla's API hands the model a null key.
 	 *
 	 * @param   string  $version  Target namespace segment.
 	 * @param   int     $major    Joomla target major.
@@ -57,9 +76,39 @@ final class VersionedModelItemSaveTest extends ArchitectureTestCase
 	 * @since   6.1.7
 	 */
 	#[DataProvider('versions')]
-	public function testAViewWithNothingToSaveGeneratesNothing(string $version, int $major): void
+	public function testAViewWithNothingToSaveStillResolvesItsRecordKeys(string $version, int $major): void
 	{
-		$this->assertSame('', $this->save($version));
+		$this->assertSame(self::RECORD_KEYS, $this->save($version));
+	}
+
+	/**
+	 * The record keys open the save method, ahead of every modelling block,
+	 * so custom code and field scripts never read an undefined key.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('versions')]
+	public function testTheRecordKeysOpenTheSaveMethod(string $version, int $major): void
+	{
+		$guid = new DatabaseUniqueGuid();
+		$guid->set('article', true);
+
+		$code = $this->save($version, $this->jsonOnly() + [
+			'recordkeyfix' => new RecordKeyFix(
+				$this->config(), $guid, new DatabaseUniqueKeys(), new Alias()
+			),
+		]);
+
+		$this->assertStringStartsWith(self::RECORD_KEYS, $code);
+		$this->assertLessThan(
+			strpos($code, '// Set the params items to data.'),
+			strpos($code, "Super___9c513baf_b279_43fd_ae29_a585c8cbc4f0___Power::valid(\$data['guid'], 'article', \$data['id'], 'demo')"),
+			'the guid is settled before the json items are modelled'
+		);
 	}
 
 	/**

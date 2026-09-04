@@ -1,0 +1,74 @@
+name: API tests
+
+# Compiles the shipped demo component with this working tree, installs it on a
+# Joomla with a database, and drives its JSON:API through HTTP: create, read
+# by id and by guid, update, list, a burst of concurrent creates, delete.
+#
+# It installs Joomla and JCB from scratch, so it runs on demand and on pull
+# requests that touch the parts of the compiler the API depends on.
+on:
+  workflow_dispatch:
+    inputs:
+      hammer:
+        description: Concurrent creates in the burst scenario
+        required: false
+        default: '25'
+  pull_request:
+    paths:
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Creator/Builders.php'
+      - 'admin/compiler/joomla_4/API_*.php'
+      - 'admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php'
+      - 'libraries/vendor_jcb/tests/api/**'
+      - '.github/api-tests/**'
+      - '.github/workflows/api-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: Drive the compiled demo's JSON:API
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out this branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          extensions: curl, dom, fileinfo, gd, intl, mbstring, mysqli, openssl, simplexml, sodium, xml, xmlwriter, zip
+          ini-values: memory_limit=1G
+          coverage: none
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # The runner ships MySQL stopped, with root/root; Joomla's installer
+      # creates the database itself once it can reach the server.
+      - name: Start the runner's MySQL
+        run: sudo systemctl start mysql
+
+      - name: Install, compile, and drive the API
+        env:
+          JCB_DB_HOST: 127.0.0.1
+          JCB_DB_USER: root
+          JCB_DB_PASS: root
+          JCB_API_HAMMER: ${{ inputs.hammer || '25' }}
+        run: bash .github/api-tests/run.sh "${GITHUB_WORKSPACE}/.api-tests"
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: api-tests-logs
+          path: |
+            .api-tests/*.log
+          if-no-files-found: ignore
+          # The output directory is hidden, and the action skips hidden paths unless told otherwise.
+          include-hidden-files: true

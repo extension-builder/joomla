@@ -916,6 +916,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/RecordKeyFix.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/RecordKeyFixTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/AliasTitleFix.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ModelAliasTitleFixTest.php'
