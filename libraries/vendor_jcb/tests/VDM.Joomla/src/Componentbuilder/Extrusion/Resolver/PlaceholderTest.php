@@ -26,11 +26,12 @@ use VDM\Tests\Support\TestCase;
 /**
  * A component's own name, said through the placeholder that stands for it.
  *
- * Two obligations meet here. Everything the compiler wrote the component's
- * name into has to defer to a placeholder again, or the record is bound to
- * the one component it was lifted out of. And nothing that merely looks like
- * that name may be touched, because a placeholder written over a coincidence
- * turns into somebody else's name the next time the component is renamed.
+ * Two obligations meet here. Everywhere the compiler writes the component's
+ * name has to defer to a placeholder again, or the record is bound to the one
+ * component it was lifted out of. And nothing else may be touched at all:
+ * every other run of those same letters is the source's own, and a
+ * placeholder written over one of them turns into somebody else's name the
+ * next time the component is renamed.
  *
  * @since  6.2.0
  */
@@ -57,14 +58,6 @@ final class PlaceholderTest extends TestCase
 	private ExtrusionPowerLoadFixture $load;
 
 	/**
-	 * The run report registry.
-	 *
-	 * @var    Report
-	 * @since  6.2.0
-	 */
-	private Report $report;
-
-	/**
 	 * Start every case from a component named demo.
 	 *
 	 * @return  void
@@ -75,229 +68,153 @@ final class PlaceholderTest extends TestCase
 		parent::setUp();
 
 		$this->config = new Config();
-		$this->report = new Report();
 		$this->load = new ExtrusionPowerLoadFixture();
 		$this->load->component(3, 'comp-guid', 'demo', 1, 'VDM');
 		$this->config->set('component', 3);
 	}
 
 	/**
-	 * The component is named through its placeholder wherever it is named.
+	 * The extension element every option and folder is named by.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testTheComponentIsSaidThroughItsPlaceholderInEveryShapeItIsWritten(): void
+	public function testTheExtensionElementIsSaidThroughThePlaceholder(): void
 	{
-		$resolver = $this->resolver();
-
-		$this->assertSame(
-			'class [[[Component]]]Helper extends Helper',
-			$resolver->reverse('class DemoHelper extends Helper')
-		);
 		$this->assertSame(
 			"\$user->authorise('core.edit', 'com_[[[component]]]');",
-			$resolver->reverse("\$user->authorise('core.edit', 'com_demo');")
+			$this->resolver()->reverse("\$user->authorise('core.edit', 'com_demo');")
 		);
 		$this->assertSame(
-			'CREATE TABLE `#__[[[component]]]_address`',
-			$resolver->reverse('CREATE TABLE `#__demo_address`')
-		);
-		$this->assertSame(
-			"Text::_('COM_[[[COMPONENT]]]_SAVED')",
-			$resolver->reverse("Text::_('COM_DEMO_SAVED')")
+			'index.php?option=com_[[[component]]]&view=addresses',
+			$this->resolver()->reverse('index.php?option=com_demo&view=addresses')
 		);
 	}
 
 	/**
-	 * A name is bounded by the seams of a name, not by a word boundary.
-	 *
-	 * A component is named in the middle of identifiers all day, so a word
-	 * boundary would find none of the places that matter. What bounds a name
-	 * is the edge of the text, anything that is not a letter or a digit, and
-	 * the hump where a lower case run gives way to an upper case one.
+	 * The prefix of every table the component keeps its records in.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testAWordThatMerelyBeginsWithTheNameIsLeftAlone(): void
+	public function testTheTablePrefixIsSaidThroughThePlaceholder(): void
 	{
-		$said = 'a demonstration of the demoted DEMOGRAPHIC data, $demo2 and $xdemo';
+		$this->assertSame(
+			'CREATE TABLE `#__[[[component]]]_address`',
+			$this->resolver()->reverse('CREATE TABLE `#__demo_address`')
+		);
+	}
+
+	/**
+	 * The language prefix, said as COM_ and the name rather than as itself.
+	 *
+	 * The compiler reassigns lang_prefix while it builds a module or a plugin,
+	 * so a power carrying that placeholder would say MOD_ or PLG_ there. COM_
+	 * followed by the upper case name says the same thing in every one of
+	 * those places, and it is the pair JCB's own custom code extractor writes.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testTheLanguagePrefixIsSaidAsComAndTheName(): void
+	{
+		$said = $this->resolver()->reverse("Text::_('COM_DEMO_SAVED')");
+
+		$this->assertSame("Text::_('COM_[[[COMPONENT]]]_SAVED')", $said);
+		$this->assertStringNotContainsString('LANG_PREFIX', $said);
+	}
+
+	/**
+	 * The component's own helper class, and its namespace segment.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testTheHelperAndTheNamespaceSegmentAreSaidThroughTheirPlaceholders(): void
+	{
+		$this->assertSame(
+			'class [[[Component]]]Helper extends Helper',
+			$this->resolver()->reverse('class DemoHelper extends Helper')
+		);
+		$this->assertSame(
+			'use VDM\\Component\\[[[ComponentNamespace]]]\\Administrator\\Helper\\[[[Component]]]Helper;',
+			$this->resolver()->reverse(
+				'use VDM\\Component\\Demo\\Administrator\\Helper\\DemoHelper;'
+			)
+		);
+	}
+
+	/**
+	 * Everywhere else those letters stand, they are the source's own.
+	 *
+	 * The name is only given back where the compiler itself put it, so a
+	 * component named demo keeps its demonstrations, its demoted rows, and the
+	 * example address in a form's hint.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testNothingButThoseIdiomsIsTouched(): void
+	{
+		$said = 'a demonstration of the demoted DEMOGRAPHIC data, com_democracy, '
+			. 'COM_DEMOGRAPHIC, hint="demo@example.com" and $mode = \'demo\';';
 
 		$this->assertSame($said, $this->resolver()->reverse($said));
 	}
 
 	/**
-	 * A hump on both sides is a name, whatever stands around it.
+	 * A value a person defined for themselves is never touched.
+	 *
+	 * The compiler substitutes those as unconditionally as it substitutes the
+	 * component's name, but only the person knows where they meant them, and a
+	 * run that acted on that would be guessing. JCB ships two placeholders
+	 * standing for VDM and two standing for 60.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testANameBetweenTwoHumpsIsStillTheName(): void
-	{
-		$this->assertSame(
-			'class My[[[Component]]]Thing',
-			$this->resolver()->reverse('class MyDemoThing')
-		);
-	}
-
-	/**
-	 * The language prefix is said as COM_ and the name, not as itself.
-	 *
-	 * The compiler reassigns the language prefix while it builds a module or
-	 * a plugin, so a power carrying that placeholder would say MOD_ or PLG_
-	 * there. COM_ followed by the upper case name says the same thing in
-	 * every one of those places, and it is the pair JCB's own custom code
-	 * extractor writes.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testTheLanguagePrefixIsNeverSaidAsAPlaceholderOfItsOwn(): void
-	{
-		$said = $this->resolver()->reverse("Text::_('COM_DEMO_SAVED')");
-
-		$this->assertStringNotContainsString('LANG_PREFIX', $said);
-		$this->assertStringStartsWith("Text::_('COM_[[[COMPONENT]]]", $said);
-	}
-
-	/**
-	 * A placeholder more than one target claims names none of them.
-	 *
-	 * JCB ships two placeholders standing for VDM and two standing for 60,
-	 * and a run that trusted them would rewrite every namespace and every
-	 * small number the component holds.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testAValueMoreThanOnePlaceholderClaimsIsLeftUnsaid(): void
+	public function testAValueAPersonDefinedIsNeverTouched(): void
 	{
 		$this->load->placeholder(20, '[[[COMPANY]]]', 'VDM');
 		$this->load->placeholder(22, '[[[gitea_host_name]]]', 'VDM');
 		$this->load->placeholder(27, '[[[max_execution_time]]]', '60');
-		$this->load->placeholder(29, '[[[max_input_time]]]', '60');
-
-		$said = 'use VDM\\Joomla\\Utilities; $timeout = 60;';
-
-		$this->assertSame($said, $this->resolver()->reverse($said));
-		$this->assertSame(
-			'more than one placeholder stands for this same value, so reading '
-			. 'it back names none of them',
-			$this->report->get('unsaid.placeholder.COMPANY')
-		);
-		$this->assertNotNull($this->report->get('unsaid.placeholder.max_execution_time'));
-	}
-
-	/**
-	 * A value that is only a number, or barely there, names nothing.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testAValueTooShortOrOnlyANumberIsLeftUnsaid(): void
-	{
-		$this->load->placeholder(31, '[[[tiny]]]', 'ab');
-		$this->load->placeholder(32, '[[[year]]]', '2026');
-
-		$said = 'about the abbey in 2026';
-
-		$this->assertSame($said, $this->resolver()->reverse($said));
-		$this->assertSame(
-			'the value is too short to be told from a coincidence in the source',
-			$this->report->get('unsaid.placeholder.tiny')
-		);
-		$this->assertSame(
-			'the value is only a number, which the source says for its own '
-			. 'reasons far more often than for this one',
-			$this->report->get('unsaid.placeholder.year')
-		);
-	}
-
-	/**
-	 * A placeholder only one target claims, and distinctive, is said.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testAPlaceholderOnlyOneTargetClaimsIsSaid(): void
-	{
 		$this->load->placeholder(19, '[[[gitea_api_url]]]', 'https://git.vdm.dev/api/v1');
 
-		$this->assertSame(
-			'$url = "[[[gitea_api_url]]]/repos";',
-			$this->resolver()->reverse('$url = "https://git.vdm.dev/api/v1/repos";')
-		);
+		$said = 'use VDM\\Joomla\\Utilities; $timeout = 60; '
+			. '$url = "https://git.vdm.dev/api/v1";';
+
+		$this->assertSame($said, $this->resolver()->reverse($said));
 	}
 
 	/**
-	 * The longer of two overlapping values settles first.
+	 * A run with no component to name says nothing at all.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testTheLongerOfTwoOverlappingValuesSettlesFirst(): void
+	public function testARunWithNoComponentToNameSaysNothing(): void
 	{
-		$this->load->placeholder(40, '[[[host]]]', 'git.vdm.dev');
-		$this->load->placeholder(41, '[[[api]]]', 'git.vdm.dev/api');
+		$this->config->set('component', 0);
+		$said = 'class DemoHelper {} com_demo #__demo_address COM_DEMO';
 
-		$this->assertSame(
-			'[[[api]]]/v1',
-			$this->resolver()->reverse('git.vdm.dev/api/v1')
-		);
+		$this->assertSame($said, $this->resolver()->reverse($said));
+		$this->assertSame('', $this->resolver()->reverse(''));
 	}
 
 	/**
-	 * A placeholder just written is never read again as if it were source.
+	 * A short name is still safe, because every idiom is anchored.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testWhatWasJustSaidIsNeverReadAgain(): void
-	{
-		$this->load->placeholder(43, '[[[nested]]]', 'Component');
-
-		$said = $this->resolver()->reverse('the Demo thing');
-
-		$this->assertSame('the [[[Component]]] thing', $said);
-		$this->assertStringNotContainsString('[[[[[[nested]]]]]]', $said);
-	}
-
-	/**
-	 * A component named too briefly to be told apart is left unsaid.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testAComponentNamedTooBrieflyIsLeftUnsaid(): void
+	public function testAShortNameIsStillSafeBecauseTheIdiomsAreAnchored(): void
 	{
 		$this->load->component(4, 'brief-guid', 'cw', 1, 'VDM');
 		$this->config->set('component', 4);
 
-		$said = 'the cw thing and the Cw thing and CW';
-
-		$this->assertSame($said, $this->resolver()->reverse($said));
 		$this->assertSame(
-			'the component is named too briefly to be told from a coincidence, '
-			. 'so the source keeps it as it stated it',
-			$this->report->get('unsaid.placeholder.component')
-		);
-	}
-
-	/**
-	 * Text carrying nothing to say comes back exactly as it stands.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function testTextCarryingNothingToSayComesBackUnchanged(): void
-	{
-		$resolver = $this->resolver();
-
-		$this->assertSame('', $resolver->reverse(''));
-		$this->assertSame(
-			'nothing here names anything',
-			$resolver->reverse('nothing here names anything')
+			'com_[[[component]]] but not cworks, cw or Cwikipedia',
+			$this->resolver()->reverse('com_cw but not cworks, cw or Cwikipedia')
 		);
 	}
 
@@ -310,8 +227,7 @@ final class PlaceholderTest extends TestCase
 	private function resolver(): Placeholder
 	{
 		return new Placeholder(
-			new Placeholders($this->config, $this->load, $this->report, new Source()),
-			$this->report
+			new Placeholders($this->config, $this->load, new Report(), new Source())
 		);
 	}
 }

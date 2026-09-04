@@ -2206,7 +2206,7 @@ final class WriterTest extends TestCase
 	 */
 	private function placeholder(): Placeholder
 	{
-		return new Placeholder($this->placeholders(), $this->report);
+		return new Placeholder($this->placeholders());
 	}
 
 	/**

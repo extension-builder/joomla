@@ -454,8 +454,7 @@ class Resolver implements ServiceProviderInterface
 	public function getPlaceholder(Container $container): Placeholder
 	{
 		return new Placeholder(
-			$container->get('Extrusion.Powers.Resolver.Placeholders'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Powers.Resolver.Placeholders')
 		);
 	}
 

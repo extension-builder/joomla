@@ -339,39 +339,38 @@ then the values it derives from the component itself, then that component's
 substitutes it with a bare `str_replace` into everything it writes,
 `main_class_code` included (`Power/Infusion.php`).
 
-Every value in that map is therefore a place where the compiler wrote
-something in, and reading it back unchanged binds the record to the one
-component it was lifted out of. Because the substitution is a plain
-replacement, turning a value back into its placeholder always compiles to
-the very same text; what a reading of the finished source cannot tell on its
-own is whether a run of characters is that value or a coincidence, and that
-is the whole of what `Extrusion\Resolver\Placeholder` decides.
+So a class, a screen or a seed a component ships carries the component's own
+name where the record it was built from carried a placeholder, and reading
+that name back binds the record to the one component it was lifted out of.
+`Extrusion\Resolver\Placeholder` gives it back -- and because the compiler's
+substitution is a plain replacement, what it writes always compiles to the
+very same text.
 
-- **The component's own name is always said through its placeholder.**
-  `component`, `Component`, `COMPONENT` and `ComponentNamespace` -- the
-  values the compiler derives from the component itself. A namespace segment
-  that is the same word as the component's name is one placeholder, not two.
+- **Only what JCB itself derives is ever written back.** The component's code
+  name in its three shapes and its namespace segment: values the compiler
+  computes from the component, which cannot be anything else. **A value a
+  person defined for themselves is never touched.** The compiler substitutes
+  those as unconditionally as it substitutes the component's name, but only
+  the person knows where they meant them, and a run that acted on that would
+  be guessing.
+- **The name is only given back where the compiler itself puts it.** Five
+  idioms, each one somewhere the compiler composes the name:
+  `com_<component>` (the extension element), `#__<component>_` (the prefix of
+  every table the component keeps its records in), `COM_<COMPONENT>` (the
+  language prefix `Compiler\Config::getLangprefix` builds), `<Component>Helper`
+  (the component's own helper class), and `\<ComponentNamespace>\` (a segment
+  of the namespace the compiler composes). Three of those are the very pairs
+  JCB's own `Customcode\Extractor` keeps. Everywhere else those letters stand
+  they are the source's own, so a component named `demo` keeps its
+  `demonstration`, its `demoted`, its `com_democracy` and its
+  `hint="demo@example.com"`.
 - **The language prefix is never said as a placeholder of its own.** The
-  compiler reassigns `lang_prefix` while it builds a module or a plugin, so a
-  power carrying `[[[LANG_PREFIX]]]` would say `MOD_` or `PLG_` there.
-  `COM_` followed by `[[[COMPONENT]]]` says the same thing everywhere, and it
-  is the pair JCB's own `Customcode\Extractor` writes.
-- **A person's own placeholder is said only where the run can tell it apart
-  from a coincidence.** Its value is claimed by no other target, is not only
-  a number, and is at least four characters. JCB ships two placeholders
-  standing for `VDM` and two standing for `60`; a run that trusted them would
-  rewrite every namespace and every small number in the component. Each one
-  left unsaid is named under `unsaid.placeholder.<target>`.
-- **A name is bounded by the seams of a name, not by a word boundary.** A
-  component is named in the middle of identifiers all day -- `com_demo`,
-  `DemoHelper`, `#__demo_address`, `COM_DEMO_SAVED` -- and a word boundary
-  finds none of them. What bounds a match is the edge of the text, anything
-  that is not a letter or a digit, and the hump where a lower case run gives
-  way to an upper case one. So `demonstration`, `demoted` and `DEMOGRAPHIC`
-  are left alone.
-- **The longest value settles first, and in one pass.** A value containing
-  another yields to the more particular of the two, and a placeholder just
-  written is never read again as if it were source.
+  compiler reassigns `lang_prefix` while it builds a module or a plugin
+  (`Joomlamodule/*/Data.php`), so a power carrying `[[[LANG_PREFIX]]]` would
+  say `MOD_` or `PLG_` there. `COM_` followed by `[[[COMPONENT]]]` says the
+  same thing in every one of those places.
+- **All five idioms are matched in one pass**, so one just written is never
+  read again as if it were the source.
 - **A licence is left exactly as the file states it.** What stands where a
   component's name stands in a licence block is as likely to be the company
   that wrote it, which the compiler fills in from a placeholder of its own
