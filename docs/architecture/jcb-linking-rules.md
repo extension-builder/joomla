@@ -328,6 +328,66 @@ Powers outside the libraries folder:
   namespace fragment can stand for a head; a restated namespace is reported
   as `powers.namespace.restated.<guid>` with both forms.
 
+## Saying a component's name through the placeholder that stands for it
+
+The compiler holds one map of placeholders and their values --
+`Compiler\Component\Placeholder::get()`: the system-wide `placeholder` rows,
+then the values it derives from the component itself, then that component's
+`component_placeholders` overrides -- and pours the whole map into
+`Placeholder::$active` (`Component/Data.php`) and into `ContentOne`
+(`Architecture/Component/Details.php`). `Placeholder::update()` then
+substitutes it with a bare `str_replace` into everything it writes,
+`main_class_code` included (`Power/Infusion.php`).
+
+Every value in that map is therefore a place where the compiler wrote
+something in, and reading it back unchanged binds the record to the one
+component it was lifted out of. Because the substitution is a plain
+replacement, turning a value back into its placeholder always compiles to
+the very same text; what a reading of the finished source cannot tell on its
+own is whether a run of characters is that value or a coincidence, and that
+is the whole of what `Extrusion\Resolver\Placeholder` decides.
+
+- **The component's own name is always said through its placeholder.**
+  `component`, `Component`, `COMPONENT` and `ComponentNamespace` -- the
+  values the compiler derives from the component itself. A namespace segment
+  that is the same word as the component's name is one placeholder, not two.
+- **The language prefix is never said as a placeholder of its own.** The
+  compiler reassigns `lang_prefix` while it builds a module or a plugin, so a
+  power carrying `[[[LANG_PREFIX]]]` would say `MOD_` or `PLG_` there.
+  `COM_` followed by `[[[COMPONENT]]]` says the same thing everywhere, and it
+  is the pair JCB's own `Customcode\Extractor` writes.
+- **A person's own placeholder is said only where the run can tell it apart
+  from a coincidence.** Its value is claimed by no other target, is not only
+  a number, and is at least four characters. JCB ships two placeholders
+  standing for `VDM` and two standing for `60`; a run that trusted them would
+  rewrite every namespace and every small number in the component. Each one
+  left unsaid is named under `unsaid.placeholder.<target>`.
+- **A name is bounded by the seams of a name, not by a word boundary.** A
+  component is named in the middle of identifiers all day -- `com_demo`,
+  `DemoHelper`, `#__demo_address`, `COM_DEMO_SAVED` -- and a word boundary
+  finds none of them. What bounds a match is the edge of the text, anything
+  that is not a letter or a digit, and the hump where a lower case run gives
+  way to an upper case one. So `demonstration`, `demoted` and `DEMOGRAPHIC`
+  are left alone.
+- **The longest value settles first, and in one pass.** A value containing
+  another yields to the more particular of the two, and a placeholder just
+  written is never read again as if it were source.
+- **A licence is left exactly as the file states it.** What stands where a
+  component's name stands in a licence block is as likely to be the company
+  that wrote it, which the compiler fills in from a placeholder of its own
+  that no reading of the file can tell apart from this one.
+- **Both wrappers name the same placeholder.** The compiler registers every
+  target as `[[[target]]]` and as `###target###` and substitutes both with
+  the same value. A person types the first into a form; JCB's own custom code
+  extractor stores the second. `Delta` weighs them as one text, so a write
+  that would only swap one for the other is not a change and what a person
+  curated is not rewritten. What is written for the first time is written
+  bracketed.
+
+This is said at every write of harvested text: a power's `main_class_code`
+and `description`, a site view's and a custom admin view's `default`, a
+field's `xml`, and an admin view's `sql`.
+
 ## What a table has to have to be a view
 
 Every view JCB builds keeps its records by an `id` of their own, so a table

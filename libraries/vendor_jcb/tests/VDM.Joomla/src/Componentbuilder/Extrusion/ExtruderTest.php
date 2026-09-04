@@ -726,7 +726,13 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 
 		$this->assertNotNull($seeded);
-		$this->assertStringContainsString('INSERT INTO `#__example_category`', $seeded->sql);
+		$this->assertStringContainsString(
+			'INSERT INTO `#__[[[component]]]_category`',
+			$seeded->sql,
+			'The seed names its table through the placeholder the compiler '
+			. 'resolved, so the rows follow the component they are written for.'
+		);
+		$this->assertStringNotContainsString('#__example_', $seeded->sql);
 		$this->assertStringContainsString("First; not a split", $seeded->sql);
 		$this->assertSame(1, $seeded->add_sql);
 		$this->assertSame(

@@ -102,7 +102,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Record'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing')
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Resolver.Placeholder')
 		);
 	}
 
@@ -126,7 +127,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Pairing'),
 			$container->get('Extrusion.Resolver.Actions'),
-			$container->get('Extrusion.Powers.Resolver.Placeholders')
+			$container->get('Extrusion.Powers.Resolver.Placeholders'),
+			$container->get('Extrusion.Resolver.Placeholder')
 		);
 	}
 
@@ -191,7 +193,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
-			$container->get('Extrusion.Resolver.Pairing')
+			$container->get('Extrusion.Resolver.Pairing'),
+			$container->get('Extrusion.Resolver.Placeholder')
 		);
 	}
 
@@ -237,7 +240,8 @@ class Writer implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Source'),
 			$container->get('Extrusion.Resolver.Pairing'),
-			$container->get('Extrusion.Resolver.Text')
+			$container->get('Extrusion.Resolver.Text'),
+			$container->get('Extrusion.Resolver.Placeholder')
 		);
 	}
 
