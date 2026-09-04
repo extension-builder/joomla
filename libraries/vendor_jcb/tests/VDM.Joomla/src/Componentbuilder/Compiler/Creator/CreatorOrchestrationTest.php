@@ -231,6 +231,46 @@ final class CreatorOrchestrationTest extends CreatorTestCase
 	}
 
 	/**
+	 * A guid column force-loads the GuidHelper power, whichever registry it
+	 * lands in, because the generated save method keeps the guid valid and
+	 * unique with it even when the component does not add powers itself.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testBuildersForceLoadsTheGuidPowerForAGuidColumn(): void
+	{
+		$power = $this->createMock(Power::class);
+		$power->expects($this->exactly(2))
+			->method('get')
+			->with('9c513baf-b279-43fd-ae29-a585c8cbc4f0', 1);
+
+		[$subject, $state] = $this->builders(null, $power);
+		$view = ['settings' => (object) ['tabs' => [1 => 'Details']]];
+
+		// a plain key: the column registers as the table's unique guid
+		$field = $this->builderField('field-guid', 1);
+		$field['title'] = 0;
+		$field['settings']->name = 'guid';
+		$field['settings']->indexes = 2;
+		$subject->set(
+			'', 'COM_DEMO_ARTICLE', 'article', 'articles', 'guid',
+			$view, $field, 'text', false
+		);
+
+		// a unique index: the column registers among the unique keys instead
+		$field['settings']->indexes = 1;
+		$subject->set(
+			'', 'COM_DEMO_ITEM', 'item', 'items', 'guid',
+			$view, $field, 'text', false
+		);
+
+		$this->assertTrue($state['databaseuniqueguid']->get('article'));
+		$this->assertNull($state['databaseuniqueguid']->get('item'));
+		$this->assertSame(['guid'], $state['databaseuniquekeys']->get('item'));
+	}
+
+	/**
 	 * Keep non-persistent fields out of DB registries while retaining UI layout.
 	 *
 	 * @return  void
@@ -436,11 +476,12 @@ final class CreatorOrchestrationTest extends CreatorTestCase
 	 * Create the registry-heavy Builders subject without the compiler factory.
 	 *
 	 * @param   Config|null  $config  Shared configuration when composing fieldsets.
+	 * @param   Power|null   $power   The power loader, when a test observes it.
 	 *
 	 * @return  array{0:Builders,1:array<string,mixed>}
 	 * @since   6.1.6
 	 */
-	private function builders(?Config $config = null): array
+	private function builders(?Config $config = null, ?Power $power = null): array
 	{
 		$config ??= $this->config([
 			'lang_target' => 'admin',
@@ -486,7 +527,7 @@ final class CreatorOrchestrationTest extends CreatorTestCase
 			$dependency = match ($class)
 			{
 				Config::class => $config,
-				Power::class => $this->createStub(Power::class),
+				Power::class => $power ?? $this->createStub(Power::class),
 				Language::class => $language,
 				Placeholder::class => $placeholder,
 				Layout::class => $layout,

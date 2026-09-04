@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface as ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as SharedModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemSave as J3ModelItemSave;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\RecordKeyFix as ModelRecordKeyFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface as ModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchCopy as SharedModelBatchCopy;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\BatchCopy as J3ModelBatchCopy;
@@ -143,6 +144,9 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(J3ModelItemSave::class, 'Architecture.Model.J3.ItemSave')
 			->share('Architecture.Model.J3.ItemSave', [$this, 'getJ3ModelItemSave'], true);
+
+		$container->alias(ModelRecordKeyFix::class, 'Architecture.Model.RecordKeyFix')
+			->share('Architecture.Model.RecordKeyFix', [$this, 'getModelRecordKeyFix'], true);
 
 		$container->alias(AliasTitleFix::class, 'Architecture.Model.AliasTitleFix')
 			->share('Architecture.Model.AliasTitleFix', [$this, 'getModelAliasTitleFix'], true);
@@ -644,7 +648,8 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Medium.Field'),
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Compiler.Builder.Model.Expert.Field'),
-			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator'),
+			$container->get('Architecture.Model.RecordKeyFix')
 		);
 	}
 
@@ -671,7 +676,26 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Model.Medium.Field'),
 			$container->get('Compiler.Builder.Model.Whmcs.Field'),
 			$container->get('Compiler.Builder.Model.Expert.Field'),
-			$container->get('Compiler.Builder.Model.Expert.Field.Initiator')
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator'),
+			$container->get('Architecture.Model.RecordKeyFix')
+		);
+	}
+
+	/**
+	 * Get The RecordKeyFix Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelRecordKeyFix
+	 * @since   6.1.7
+	 */
+	public function getModelRecordKeyFix(Container $container): ModelRecordKeyFix
+	{
+		return new ModelRecordKeyFix(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Database.Unique.Guid'),
+			$container->get('Compiler.Builder.Database.Unique.Keys'),
+			$container->get('Compiler.Builder.Alias')
 		);
 	}
 
