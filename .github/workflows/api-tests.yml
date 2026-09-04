@@ -70,3 +70,5 @@ jobs:
           path: |
             .api-tests/*.log
           if-no-files-found: ignore
+          # The output directory is hidden, and the action skips hidden paths unless told otherwise.
+          include-hidden-files: true
