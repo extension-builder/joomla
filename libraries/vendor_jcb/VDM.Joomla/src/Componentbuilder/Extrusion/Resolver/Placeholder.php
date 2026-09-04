@@ -179,7 +179,8 @@ final class Placeholder
 			return $this->spoken[$signature];
 		}
 
-		$spoken = $this->identity() + $this->owned();
+		$identity = $this->identity();
+		$spoken = $identity + $this->owned($identity);
 
 		uasort(
 			$spoken,
@@ -192,6 +193,8 @@ final class Placeholder
 		{
 			$this->spoken[$signature][] = ['target' => $target, 'value' => $value];
 		}
+
+		$this->announce($this->spoken[$signature]);
 
 		return $this->spoken[$signature];
 	}
@@ -249,10 +252,12 @@ final class Placeholder
 	 * them; a value of two or three characters, or one that is only a number,
 	 * names nothing at all. Each one left unsaid is named in the report.
 	 *
+	 * @param   array<string, string>  $identity  What the component's own name is said as.
+	 *
 	 * @return  array<string, string>  Bare target keyed to its value.
 	 * @since   6.2.0
 	 */
-	protected function owned(): array
+	protected function owned(array $identity): array
 	{
 		$claims = [];
 
@@ -267,7 +272,9 @@ final class Placeholder
 		{
 			$value = (string) $value;
 			$target = (string) $targets[0];
-			$reason = $this->unsayable($value, count($targets));
+			$reason = $this->unsayable(
+				$value, count($targets) + count(array_keys($identity, $value, true))
+			);
 
 			if ($reason !== null)
 			{
@@ -282,6 +289,29 @@ final class Placeholder
 		}
 
 		return $owned;
+	}
+
+	/**
+	 * Say in the report which placeholders this run may write.
+	 *
+	 * A person's own placeholder stands for whatever they typed, and what
+	 * they typed may be an ordinary turn of phrase the source says for its
+	 * own reasons. So every one this run is willing to write is named, and a
+	 * reading of the report says exactly what was deferred to what.
+	 *
+	 * @param   array<int, array{target: string, value: string}>  $spoken  The placeholders.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function announce(array $spoken): void
+	{
+		foreach ($spoken as $entry)
+		{
+			$this->report->set(
+				'said.placeholder.' . $this->key($entry['target']), $entry['value']
+			);
+		}
 	}
 
 	/**
@@ -300,6 +330,7 @@ final class Placeholder
 			return 'more than one placeholder stands for this same value, so '
 				. 'reading it back names none of them';
 		}
+
 
 		if (strlen($value) < self::VALUE)
 		{

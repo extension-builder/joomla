@@ -2188,7 +2188,14 @@ final class WriterTest extends TestCase
 	 */
 	private function delta(): Delta
 	{
-		return new Delta($this->item, new JcbTable(), new Diff(), $this->proposal);
+		return new Delta(
+			$this->item,
+			new JcbTable(),
+			new Diff(),
+			$this->proposal,
+			$this->placeholders(),
+			$this->report
+		);
 	}
 
 	/**

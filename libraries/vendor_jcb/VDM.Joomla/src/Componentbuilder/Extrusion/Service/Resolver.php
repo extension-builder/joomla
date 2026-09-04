@@ -543,7 +543,9 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Data.Item'),
 			$container->get('Table'),
 			$container->get('Extrusion.Resolver.Diff'),
-			$container->get('Extrusion.Registry.Proposal')
+			$container->get('Extrusion.Registry.Proposal'),
+			$container->get('Extrusion.Powers.Resolver.Placeholders'),
+			$container->get('Extrusion.Registry.Report')
 		);
 	}
 }

@@ -388,6 +388,34 @@ This is said at every write of harvested text: a power's `main_class_code`
 and `description`, a site view's and a custom admin view's `default`, a
 field's `xml`, and an admin view's `sql`.
 
+### What a record already defers is never unsaid
+
+The source a record is weighed against was compiled from that very record, so
+where the record defers the source states what the compiler resolved. Weighing
+the two as text would call that a change and write the resolved value over the
+placeholder a person chose -- and the next compile would produce the identical
+file, having lost the only thing that made the record portable. So `Delta`
+weighs what both sides *mean*:
+
+- **Both sides are resolved before they are weighed.** A record saying
+  `'[[[upload_max_filesize]]]'` and a source saying `'128M'` are the same
+  thing, and nothing is written.
+- **A write is still made when it defers more than the record does.** If the
+  two resolve alike but the write names a placeholder the record spells out,
+  the write is worth making: nothing a person reads in the component moves,
+  and the record stops being bound to the one component it came from.
+- **A deferral this run cannot resolve is never written over.** A record may
+  defer to something only the compiler can produce -- `###ALL_COMPONENT_FIELDS###`,
+  a whole generated array. Nothing here can stand for it, so nothing here can
+  weigh it, and the column is kept and named under
+  `kept.deferred.<table>.<identity>.<column>`.
+
+For that weighing to reach as far as the compiler does, the run values every
+core target the compiler values, the loader path included: `POWERLOADERPATH`
+follows the Joomla family the source was built for, exactly as
+`Compiler\Config::getComponentautoloaderpath` answers it from the version
+being compiled for.
+
 ## What a table has to have to be a view
 
 Every view JCB builds keeps its records by an `id` of their own, so a table
