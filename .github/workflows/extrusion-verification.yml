@@ -1,0 +1,69 @@
+name: Extrusion verification workspace
+
+on:
+  push:
+    branches:
+      - fix/extrusion-scoped-power-identity
+    paths:
+      - .github/workflows/extrusion-verification.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out pinned Joomla test runtime
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: joomla/joomla-cms
+          ref: c623e73b17c749f4644cb5634f59ca683b69d17b # 6.1.2
+          path: libraries/vendor_jcb/tests/.runtime/joomla-cms
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: curl, dom, fileinfo, gd, intl, ldap, mbstring, openssl, pdo_sqlite, simplexml, sodium, xml, xmlwriter, zip
+          ini-values: memory_limit=1G
+          tools: composer:2.10.2@sha256:5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027
+        env:
+          fail-fast: true
+
+      - name: Install locked test dependencies
+        run: composer --working-dir=libraries/vendor_jcb/tests install --prefer-dist --no-progress --optimize-autoloader --no-interaction
+
+      - name: Run baseline unit suite
+        run: |
+          set -o pipefail
+          composer --working-dir=libraries/vendor_jcb/tests test 2>&1 | tee "$RUNNER_TEMP/extrusion-baseline.log"
+
+      - name: Archive isolated source and test runtime
+        if: always()
+        run: |
+          cp "$(command -v composer)" libraries/vendor_jcb/tests/.runtime/composer.phar
+          git rev-parse HEAD > "$RUNNER_TEMP/extrusion-revision.txt"
+          tar --exclude='./libraries/vendor_jcb/tests/build' -czf "$RUNNER_TEMP/extrusion-workspace.tar.gz" .
+
+      - name: Upload verification workspace
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: extrusion-verification-workspace
+          path: |
+            ${{ runner.temp }}/extrusion-workspace.tar.gz
+            ${{ runner.temp }}/extrusion-baseline.log
+            ${{ runner.temp }}/extrusion-revision.txt
+          if-no-files-found: error
+          retention-days: 3
