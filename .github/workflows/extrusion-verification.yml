@@ -49,21 +49,43 @@ jobs:
           set -o pipefail
           composer --working-dir=libraries/vendor_jcb/tests test 2>&1 | tee "$RUNNER_TEMP/extrusion-baseline.log"
 
-      - name: Archive isolated source and test runtime
-        if: always()
+      - name: Capture PHP and its non-system runtime dependencies
         run: |
-          cp "$(command -v composer)" libraries/vendor_jcb/tests/.runtime/composer.phar
-          git rev-parse HEAD > "$RUNNER_TEMP/extrusion-revision.txt"
-          tar --exclude='./libraries/vendor_jcb/tests/build' -czf "$RUNNER_TEMP/extrusion-workspace.tar.gz" .
+          runtime="$RUNNER_TEMP/extrusion-php"
+          mkdir -p "$runtime/extensions" "$runtime/lib" "$runtime/conf.d"
+          cp -L "$(command -v php)" "$runtime/php"
+          cp -L "$(php -r 'echo php_ini_loaded_file();')" "$runtime/php.ini"
+          php -r 'foreach (explode(",", php_ini_scanned_files()) as $file) { echo trim($file), PHP_EOL; }' |
+            while IFS= read -r file; do
+              if [[ -n "$file" ]]; then
+                cp -L "$file" "$runtime/conf.d/$(basename "$file")"
+              fi
+            done
+          extensions="$(php -r 'echo ini_get("extension_dir");')"
+          cp -L "$extensions/"*.so "$runtime/extensions/"
+          ldd "$runtime/php" "$runtime/extensions/"*.so |
+            awk '/=> \// {print $3}' | sort -u |
+            while IFS= read -r library; do
+              case "$(basename "$library")" in
+                libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*|ld-linux*) continue ;;
+              esac
+              cp -L "$library" "$runtime/lib/$(basename "$library")"
+            done
+          printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+            'root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"' \
+            'export LD_LIBRARY_PATH="$root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' \
+            'export PHP_INI_SCAN_DIR="$root/conf.d"' \
+            'exec "$root/php" -c "$root/php.ini" -d "extension_dir=$root/extensions" "$@"' \
+            > "$runtime/run-php"
+          chmod +x "$runtime/run-php"
+          tar -czf "$RUNNER_TEMP/extrusion-php.tar.gz" -C "$RUNNER_TEMP" extrusion-php
 
-      - name: Upload verification workspace
-        if: always()
+      - name: Upload isolated PHP runtime
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: extrusion-verification-workspace
+          name: extrusion-php-runtime
           path: |
-            ${{ runner.temp }}/extrusion-workspace.tar.gz
+            ${{ runner.temp }}/extrusion-php.tar.gz
             ${{ runner.temp }}/extrusion-baseline.log
-            ${{ runner.temp }}/extrusion-revision.txt
           if-no-files-found: error
           retention-days: 3
