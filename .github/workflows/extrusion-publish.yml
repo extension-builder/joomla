@@ -1,0 +1,35 @@
+name: Extrusion source publication
+
+on:
+  push:
+    branches: [fix/extrusion-scoped-power-identity]
+    paths: [.github/workflows/extrusion-publish.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.repository == 'extension-builder/joomla' && github.ref == 'refs/heads/fix/extrusion-scoped-power-identity'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify the published patch bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/extrusion-source
+          gh api repos/extension-builder/joomla/git/blobs/35385355744337dbb1841d75147c0dd67162b67e --jq .content | base64 --decode > /tmp/extrusion-source/01.patch
+          sha256sum /tmp/extrusion-source/01.patch
+          git apply --check /tmp/extrusion-source/01.patch 2>&1 | tee /tmp/extrusion-source/validation.log
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: extrusion-source-bytes
+          path: /tmp/extrusion-source/
+          retention-days: 1
