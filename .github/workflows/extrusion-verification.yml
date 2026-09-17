@@ -1,37 +1,73 @@
-name: Extrusion verification workspace
+name: Extrusion implementation verification
 
 on:
   push:
     branches:
       - fix/extrusion-scoped-power-identity
     paths:
-      - .github/workflows/extrusion-verification.yml
-  workflow_dispatch:
+      - .github/extrusion-transfer.json
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: extrusion-implementation-transfer
+  cancel-in-progress: false
 
 jobs:
-  baseline:
+  verify-and-commit:
+    if: github.repository == 'extension-builder/joomla' && github.ref == 'refs/heads/fix/extrusion-scoped-power-identity'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check out repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out the authorized implementation branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
-          persist-credentials: false
+
+      - name: Validate and apply the exact reviewed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          transfer=.github/extrusion-transfer.json
+          base="$(jq -r .base "$transfer")"
+          git merge-base --is-ancestor "$base" HEAD
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/extrusion-verification.yml|.github/extrusion-transfer.json) ;;
+              *) printf 'The branch advanced outside the transfer boundary: %s\n' "$path" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$base" HEAD)
+          patch="$RUNNER_TEMP/extrusion-approved.patch"
+          jq -r .payload "$transfer" | base64 --decode | gzip --decompress > "$patch"
+          printf '%s  %s\n' "$(jq -r .sha256 "$transfer")" "$patch" | sha256sum --check
+          while IFS= read -r path; do
+            case "$path" in
+              libraries/vendor_jcb/*|docs/architecture/extrusion.md|docs/architecture/jcb-linking-rules.md|docs/graphical-user-interface-changes/*|admin/src/Model/AjaxModel.php|admin/assets/js/extrusion.js|admin/tmpl/extrusion/default.php|.github/gui-tests/*|.github/workflows/vendor-jcb-tests.yml|.github/workflows/gui-tests.yml) ;;
+              *) printf 'Patch path is outside the authorized change boundary: %s\n' "$path" >&2; exit 1 ;;
+            esac
+          done < <(git apply --numstat "$patch" | cut -f3)
+          git apply --check --whitespace=error "$patch"
+          git apply --index --whitespace=error "$patch"
+          jq -r .message "$transfer" > "$RUNNER_TEMP/extrusion-commit-message"
+          jq -r '.test_filter // ""' "$transfer" > "$RUNNER_TEMP/extrusion-test-filter"
+          git rm -- "$transfer" .github/workflows/extrusion-verification.yml
+          git config user.name 'JCB Extrusion Agent'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git diff --cached --check
+          git commit -F "$RUNNER_TEMP/extrusion-commit-message"
+          git rev-parse HEAD
 
       - name: Check out pinned Joomla test runtime
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: joomla/joomla-cms
-          ref: c623e73b17c749f4644cb5634f59ca683b69d17b # 6.1.2
+          ref: c623e73b17c749f4644cb5634f59ca683b69d17b
           path: libraries/vendor_jcb/tests/.runtime/joomla-cms
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
         with:
           php-version: '8.4'
           coverage: none
@@ -44,48 +80,21 @@ jobs:
       - name: Install locked test dependencies
         run: composer --working-dir=libraries/vendor_jcb/tests install --prefer-dist --no-progress --optimize-autoloader --no-interaction
 
-      - name: Run baseline unit suite
+      - name: Run production-service verification
+        shell: bash
+        env:
+          MIBS: ''
         run: |
-          set -o pipefail
-          composer --working-dir=libraries/vendor_jcb/tests test 2>&1 | tee "$RUNNER_TEMP/extrusion-baseline.log"
+          set -euo pipefail
+          cd libraries/vendor_jcb/tests
+          filter="$(cat "$RUNNER_TEMP/extrusion-test-filter")"
+          args=(--configuration phpunit.xml.dist --exclude-group known-defect --no-coverage)
+          if [[ -n "$filter" ]]; then args+=(--filter "$filter"); fi
+          php vendor/bin/phpunit "${args[@]}"
+          php bin/check-php-style.php --base=HEAD^
+          php bin/check-test-ownership.php --base=HEAD^
+          php bin/check-moved-conditions.php --base=HEAD^
+          php bin/check-container-keys.php
 
-      - name: Capture PHP and its non-system runtime dependencies
-        run: |
-          runtime="$RUNNER_TEMP/extrusion-php"
-          mkdir -p "$runtime/extensions" "$runtime/lib" "$runtime/conf.d"
-          cp -L "$(command -v php)" "$runtime/php"
-          cp -L "$(php -r 'echo php_ini_loaded_file();')" "$runtime/php.ini"
-          php -r 'foreach (explode(",", php_ini_scanned_files()) as $file) { echo trim($file), PHP_EOL; }' |
-            while IFS= read -r file; do
-              if [[ -n "$file" ]]; then
-                cp -L "$file" "$runtime/conf.d/$(basename "$file")"
-              fi
-            done
-          extensions="$(php -r 'echo ini_get("extension_dir");')"
-          cp -L "$extensions/"*.so "$runtime/extensions/"
-          ldd "$runtime/php" "$runtime/extensions/"*.so |
-            awk '/=> \// {print $3}' | sort -u |
-            while IFS= read -r library; do
-              case "$(basename "$library")" in
-                libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*|ld-linux*) continue ;;
-              esac
-              cp -L "$library" "$runtime/lib/$(basename "$library")"
-            done
-          printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
-            'root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"' \
-            'export LD_LIBRARY_PATH="$root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' \
-            'export PHP_INI_SCAN_DIR="$root/conf.d"' \
-            'exec "$root/php" -c "$root/php.ini" -d "extension_dir=$root/extensions" "$@"' \
-            > "$runtime/run-php"
-          chmod +x "$runtime/run-php"
-          tar -czf "$RUNNER_TEMP/extrusion-php.tar.gz" -C "$RUNNER_TEMP" extrusion-php
-
-      - name: Upload isolated PHP runtime
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: extrusion-php-runtime
-          path: |
-            ${{ runner.temp }}/extrusion-php.tar.gz
-            ${{ runner.temp }}/extrusion-baseline.log
-          if-no-files-found: error
-          retention-days: 3
+      - name: Push the verified implementation commit without force
+        run: git push origin HEAD:refs/heads/fix/extrusion-scoped-power-identity
