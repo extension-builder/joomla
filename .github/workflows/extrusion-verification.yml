@@ -34,12 +34,20 @@ jobs:
           git merge-base --is-ancestor "$base" HEAD
           while IFS= read -r path; do
             case "$path" in
-              .github/workflows/extrusion-verification.yml|.github/extrusion-transfer.json) ;;
+              .github/workflows/extrusion-verification.yml|.github/extrusion-transfer.*) ;;
               *) printf 'The branch advanced outside the transfer boundary: %s\n' "$path" >&2; exit 1 ;;
             esac
           done < <(git diff --name-only "$base" HEAD)
+          encoded="$RUNNER_TEMP/extrusion-approved.b64"
+          : > "$encoded"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/extrusion-transfer.[0-9][0-9]) cat "$path" >> "$encoded" ;;
+              *) printf 'Invalid transfer part: %s\n' "$path" >&2; exit 1 ;;
+            esac
+          done < <(jq -r '.parts[]' "$transfer")
           patch="$RUNNER_TEMP/extrusion-approved.patch"
-          jq -r .payload "$transfer" | base64 --decode | gzip --decompress > "$patch"
+          base64 --decode "$encoded" | gzip --decompress > "$patch"
           printf '%s  %s\n' "$(jq -r .sha256 "$transfer")" "$patch" | sha256sum --check
           while IFS= read -r path; do
             case "$path" in
@@ -51,7 +59,7 @@ jobs:
           git apply --index --whitespace=error "$patch"
           jq -r .message "$transfer" > "$RUNNER_TEMP/extrusion-commit-message"
           jq -r '.test_filter // ""' "$transfer" > "$RUNNER_TEMP/extrusion-test-filter"
-          git rm -- "$transfer" .github/workflows/extrusion-verification.yml
+          git rm -- .github/extrusion-transfer.* .github/workflows/extrusion-verification.yml
           git config user.name 'JCB Extrusion Agent'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git diff --cached --check
