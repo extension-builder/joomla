@@ -154,8 +154,8 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 		]];
 		yield 'powers' => [Powers::class, [
 			'aliases' => 13,
-			'services' => 12,
-			'hash' => 'd58991c3c9c6964b432172d35ec46940aed90cb7a0b7acc6870f4e2055488beb'
+			'services' => 13,
+			'hash' => '6a3b0c59bee9aabbd4ac607a93636110c02b955330c860690e98c4694a4faba4'
 		]];
 	}
 

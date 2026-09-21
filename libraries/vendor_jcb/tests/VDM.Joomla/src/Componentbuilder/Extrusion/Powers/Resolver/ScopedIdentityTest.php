@@ -12,7 +12,9 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers\Resolver;
 
 
+use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
+use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
@@ -117,7 +119,13 @@ final class ScopedIdentityTest extends TestCase
 		$load = new ExtrusionPowerLoadFixture();
 		$load->component(3, 'aaaaaaaa-1111-4111-8111-111111111111', 'beta', 1, 'Acme');
 		$load->component(4, 'bbbbbbbb-2222-4222-8222-222222222222', 'alpha', 1, 'Other');
-		$names = new Namespacer(new Placeholders($config, $load, new Report(), new Source()));
+		$container = new Container();
+		$container->set('Extrusion.Config', $config);
+		$container->set('Load', $load);
+		$container->set('Extrusion.Registry.Report', new Report());
+		$container->set('Extrusion.Registry.Source', new Source());
+		$container->registerServiceProvider(new Powers());
+		$names = $container->get('Extrusion.Powers.Resolver.Namespacer');
 		$context = $names->context(3);
 		$cases = [
 			'[[[NamespacePrefix]]]\Joomla\Abstraction.Registry.Value' => 'library:Acme.Joomla/src/Abstraction/Registry/Value.php',

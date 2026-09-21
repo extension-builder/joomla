@@ -14,6 +14,11 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
+use Joomla\Input\Input;
+use Joomla\Registry\Registry as JoomlaRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
+use VDM\Joomla\Componentbuilder\Compiler\Joomla\Path as CompilerPath;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Extruder;
@@ -62,6 +67,8 @@ class Powers implements ServiceProviderInterface
 
 		$container->alias(Placeholders::class, 'Extrusion.Powers.Resolver.Placeholders')
 			->share('Extrusion.Powers.Resolver.Placeholders', [$this, 'getPlaceholders'], true);
+
+		$container->share('Extrusion.Powers.Resolver.Output', [$this, 'getOutput'], true);
 
 		$container->alias(Namespacer::class, 'Extrusion.Powers.Resolver.Namespacer')
 			->share('Extrusion.Powers.Resolver.Namespacer', [$this, 'getNamespacer'], true);
@@ -149,8 +156,36 @@ class Powers implements ServiceProviderInterface
 	public function getNamespacer(Container $container): Namespacer
 	{
 		return new Namespacer(
-			$container->get('Extrusion.Powers.Resolver.Placeholders')
+			$container->get('Extrusion.Powers.Resolver.Placeholders'),
+			$container->get('Extrusion.Powers.Resolver.Output')
 		);
+	}
+
+	/**
+	 * Get a factory for fresh, context-isolated compiler output mapping.
+	 *
+	 * Helpers are composed here, not on a resolver or on the live Compiler
+	 * container. The compiler Path caches resolved prefixes, so each requested
+	 * component context receives its own helper and explicit empty configuration.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  \Closure  Map-to-CompilerPath factory.
+	 * @since   6.2.0
+	 */
+	public function getOutput(Container $container): \Closure
+	{
+		return static function (array $map): CompilerPath
+		{
+			$placeholder = new CompilerPlaceholder(new CompilerConfig(new Input([]), new JoomlaRegistry(), new JoomlaRegistry()));
+
+			foreach ($map as $key => $value)
+			{
+				$placeholder->set(substr($key, 3, -3), $value);
+			}
+
+			return new CompilerPath($placeholder);
+		};
 	}
 
 	/**
