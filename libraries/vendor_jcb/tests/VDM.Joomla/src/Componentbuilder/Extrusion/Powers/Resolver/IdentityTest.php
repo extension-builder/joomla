@@ -109,6 +109,27 @@ final class IdentityTest extends TestCase
 	}
 
 	/**
+	 * Incomplete foreign references cannot establish an exclusive mutation scope.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testMalformedForeignRelationshipRequiresScopeApprovalWithoutChangingTheTarget(): void
+	{
+		[$identity, $load] = $this->engine();
+		$load->record('power', 11, $this->power('power-a', $this->template(), 'Factory A') + [
+			'use_selection' => json_encode([['use' => 'unreadable-identity', 'as' => 'Unknown']])
+		]);
+		$identity->refresh();
+		$result = $identity->resolve($this->source());
+		$this->assertSame('matched', $result['status']);
+		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
+		$this->assertSame('component-reference', $result['reason']);
+		$this->assertSame('unestablished', $result['write_scope']);
+		$this->assertSame('approval', $result['write_eligibility']);
+	}
+
+	/**
 	 * Conflicting GUID metadata cannot bypass the target component's references.
 	 *
 	 * @return  void
