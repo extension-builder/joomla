@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Discovery;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use PHPUnit\Framework\Attributes\CoversClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
@@ -170,7 +171,7 @@ final class DiscoveryTest extends FilesystemTestCase
 	 */
 	private function scanner(): Scanner
 	{
-		return new Scanner($this->config, $this->report);
+		return new Scanner($this->config, $this->report, new Plan());
 	}
 
 	/**

@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers;
 
 
 use Joomla\DI\Container;
+use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
@@ -138,12 +139,14 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->item = new ExtrusionItemFixture();
 		$this->load = new ExtrusionPowerLoadFixture();
-		$this->load->component(3, 'comp-guid-0001', 'demo', 1, 'Demo');
+		$this->load->component(3, 'dddddddd-4444-4444-8444-444444444444', 'demo', 1, 'Demo');
 		$this->load->power(
 			7, self::EXISTING_GUID, 'LoaderInterface',
 			'[[[NamespacePrefix]]]\Joomla\Interfaces.LoaderInterface'
 		);
+		$this->referencePowers([self::EXISTING_GUID]);
 		$this->container = new Container();
+		$this->container->set('Joomla.Database', $this->createStub(DatabaseInterface::class), true);
 		$this->container->share('Data.Item', fn (): ExtrusionItemFixture => $this->item);
 		$this->container->share('Load', fn (): ExtrusionPowerLoadFixture => $this->load);
 		// the table definitions say how every column is stored, which is what
@@ -226,10 +229,11 @@ final class ExtruderTest extends FilesystemTestCase
 
 		$this->assertFalse((bool) $extruder->harvest()->get('powers.completed'));
 		$this->assertFalse((bool) $extruder->extrude()->get('powers.completed'));
-		$this->assertSame(
-			[['message' => 'No library folder was given to harvest powers from.']],
+		$this->assertContains(
+			['message' => 'No library folder was given to harvest powers from.'],
 			$extruder->messages()['error']
 		);
+		$this->assertSame('blocked', $this->report()->get('plan.status'));
 		$this->assertSame([], $this->item->records());
 	}
 
@@ -247,7 +251,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->component(3)
 			->harvest();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame(3, $report->get('counts.powers.classes'));
 		$this->assertSame(2, $report->get('counts.powers.new'));
 		$this->assertSame(1, $report->get('counts.powers.existing'));
@@ -265,7 +269,7 @@ final class ExtruderTest extends FilesystemTestCase
 			'Classes bundle by the folder they sit in.'
 		);
 
-		$loader = $tree['classes'][$this->guid('Demo\Joomla\Data\Loader')] ?? null;
+		$loader = $this->candidate('Demo\Joomla\Data\Loader');
 
 		$this->assertNotNull($loader);
 		$this->assertSame('Loader', $loader['class']);
@@ -275,7 +279,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertSame('create', $loader['action']);
 		$this->assertFalse($loader['exists']);
 
-		$interface = $tree['classes'][self::EXISTING_GUID] ?? null;
+		$interface = $this->candidate('Demo\Joomla\Interfaces\LoaderInterface');
 
 		$this->assertNotNull($interface);
 		$this->assertTrue($interface['exists']);
@@ -318,7 +322,7 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 		$this->assertSame('Demo.Joomla', $library['folder']);
 
-		$loader = $tree['classes'][$this->guid('Demo\Joomla\Data\Loader')] ?? null;
+		$loader = $this->candidate('Demo\Joomla\Data\Loader');
 
 		$this->assertNotNull($loader);
 		$this->assertSame(
@@ -343,7 +347,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->component(3)
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame(['power', 'power', 'power'], $this->item->sequence());
 
 		$fetch = $this->item->definition('power', $this->guid('Demo\Joomla\Data\Action\Fetch'));
@@ -421,50 +425,34 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
-	 * Pairing verdicts govern the powers write: ignore and retarget.
+	 * Validated target selection and Ignore operate on source keys, not targets.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testPairingVerdictsGovernThePowersWrite(): void
 	{
 		$other = 'eeeeeeee-5555-4555-8555-555555555555';
-		$fetch = $this->guid('Demo\Joomla\Data\Action\Fetch');
-		$loader = $this->guid('Demo\Joomla\Data\Loader');
-
-		$extruder = $this->extruder()->reset()
-			->library($this->library)
-			->component(3);
-
-		// verdicts load after the reset, because reset is the run boundary
-		$this->container->get('Extrusion.Resolver.Pairing')->load([
-			'power' => [
-				$loader => ['action' => 'ignore'],
-				$fetch => ['action' => 'update', 'target' => $other]
-			]
-		]);
+		$this->load->power(8, $other, 'Fetch', '[[[NamespacePrefix]]]\\Joomla\\Data.Action.Fetch');
+		$this->referencePowers([self::EXISTING_GUID, $other]);
+		$this->item->identity('power', $other, 8);
+		$extruder = $this->extruder()->reset()->library($this->library)->component(3);
+		$extruder->harvest();
+		$fetch = $this->candidate('Demo\\Joomla\\Data\\Action\\Fetch')['source_key'];
+		$loader = $this->candidate('Demo\\Joomla\\Data\\Loader')['source_key'];
+		$this->container->get('Extrusion.Resolver.Pairing')->load(['power' => [
+			$loader => ['action' => 'ignore'],
+			$fetch => ['action' => 'update', 'target' => $other]
+		]]);
 		$report = $extruder->extrude();
-
-		$this->assertTrue((bool) $report->get('powers.completed'));
-
-		$written = array_column($this->item->records('power'), 'item');
-		$guids = array_map(static fn (object $definition): string => $definition->guid, $written);
-
-		$this->assertNotContains($loader, $guids, 'An ignored class is never written.');
-		$this->assertContains(
-			$other,
-			$guids,
-			'A retargeted class updates the power the person pointed at.'
-		);
-		$this->assertNotContains($fetch, $guids);
-
-		// the board knows the class by the identity the harvest gave it, so
-		// that is the row its weight answers on, whatever it is written under
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
+		$guids = array_map(static fn (object $definition): string => $definition->guid, $this->item->definitions('power'));
+		$this->assertContains($other, $guids);
+		$this->assertNotContains($this->candidate('Demo\\Joomla\\Data\\Loader')['guid'], $guids);
 		$summary = $this->container->get('Extrusion.Registry.Proposal')->summary();
-
-		$this->assertArrayHasKey('power|' . $fetch, $summary, 'The retargeted class weighs on its own board row.');
+		$this->assertArrayHasKey('power|' . $fetch, $summary);
 		$this->assertArrayNotHasKey('power|' . $other, $summary);
-		$this->assertArrayNotHasKey('power|' . $loader, $summary, 'An ignored class is out of the run, so it has no weight.');
+		$this->assertArrayNotHasKey('power|' . $loader, $summary);
 		$this->assertSame(1, $summary['power|' . $fetch]['records']);
 	}
 
@@ -483,7 +471,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->onExisting('skip')
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertNull(
 			$this->item->definition('power', self::EXISTING_GUID),
 			'A skipped power is mentioned, never written.'
@@ -522,7 +510,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->dryRun()
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame([], $this->item->records());
 		$this->assertCount(3, (array) $report->get('dryrun.power'));
 		$this->assertSame(
@@ -545,7 +533,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->include(['Demo\Joomla\Data\Action\Fetch'])
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertCount(1, $this->item->records('power'));
 		$this->assertNotNull(
 			$this->item->definition('power', $this->guid('Demo\Joomla\Data\Action\Fetch'))
@@ -574,161 +562,72 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
-	 * Harvesting twice in one run gathers once.
+	 * Repeated harvesting rechecks sources while preserving logical results.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testHarvestingTwiceInOneRunGathersOnce(): void
+	public function testRepeatedHarvestRebuildsEquivalentLogicalResults(): void
 	{
 		$extruder = $this->extruder()->reset()->library($this->library)->component(3);
 		$extruder->harvest();
 		$first = $extruder->harvested();
 		$extruder->harvest();
 
-		$this->assertSame($first, $extruder->harvested());
+		$this->assertEquals($first, $extruder->harvested());
 		$this->assertSame(3, $this->report()->get('counts.powers.classes'));
 	}
 
 	/**
-	 * The witnessed placeholder values are recorded onto the component.
-	 *
-	 * A component-owned class carries the very values its placeholders must
-	 * resolve back to. The person's standing prefix is never overwritten --
-	 * only the disagreement is named -- while the component segment's own
-	 * casing, differing from what the code name derives, is recorded as a
-	 * ComponentNamespace override, as the plain text the compiler
-	 * decodes it.
+	 * Only an identified component-variable definition may justify local overrides.
 	 *
 	 * @return  void
-	 * @since   6.1.9
+	 * @since   6.2.0
 	 */
-	public function testTheWitnessedValuesAreRecordedOnTheComponent(): void
+	public function testValidatedRolesProposeLocalValuesWithoutOverwritingExplicitPrefix(): void
 	{
-		$this->writeTemporaryFile(
-			'vend/Acme.Joomla/src/DeMo/Helper.php',
-			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\nuse Acme\\Joomla\\Interfaces\\LoaderInterface;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
-		);
-
-		$report = $this->extruder()->reset()
-			->library($this->temporaryPath('vend/Acme.Joomla'))
-			->component(3)
-			->extrude();
-
-		$this->assertTrue((bool) $report->get('powers.completed'));
-
-		$power = $this->item->definition(
-			'power',
-			(new Guid())->derive([
-				'power',
-				'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper'
-			])
-		);
-
-		$this->assertNotNull($power);
-		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper',
-			$power->namespace,
-			'The prefix is always deferred, and the segment answers by word.'
-		);
-		$this->assertSame('Acme.DeMo.Helper', $power->system_name);
-		$this->assertSame(
-			[['use' => self::EXISTING_GUID, 'as' => 'default']],
-			array_values(array_map(
-				static fn ($row): array => (array) $row,
-				(array) $power->use_selection
-			)),
-			'An import written under this library\'s own prefix is the very '
-			. 'power that already stands, so it links by identity instead of '
-			. 'landing in the class header.'
-		);
-		$this->assertSame('', $power->head);
-
-		$this->assertSame(
-			'Demo (the library was built with Acme)',
-			$report->get('powers.vendor.kept.namespace_prefix'),
-			'The person\'s standing prefix is kept, and the disagreement named.'
-		);
-
-		// the placeholder row is keyed by its component, not by a guid
-		$placeholders = null;
-
-		foreach ($this->item->definitions('component_placeholders') as $definition)
-		{
-			if ((string) ($definition->joomla_component ?? '') === 'comp-guid-0001')
-			{
-				$placeholders = $definition;
-			}
-		}
-
-		$this->assertNotNull($placeholders);
-		$this->assertSame(
-			['target' => '[[[ComponentNamespace]]]', 'value' => 'DeMo'],
-			(array) ($placeholders->addplaceholders['addplaceholders0'] ?? null),
-			'The casing the library was built with is recorded for the compiler '
-			. 'to resolve back to.'
-		);
-		$this->assertSame('DeMo', $report->get('powers.vendor.component_namespace'));
+		$this->load->power(9, self::TEAM_GUID, 'Helper', '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Helper');
+		$this->referencePowers([self::EXISTING_GUID, self::TEAM_GUID]);
+		$this->item->identity('power', self::TEAM_GUID, 9);
+		$this->writeTemporaryFile('vend/Acme.Joomla/src/DeMo/Helper.php',
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\nuse Acme\\Joomla\\Interfaces\\LoaderInterface;\nfinal class Helper { public function go(): bool { return true; } }\n");
+		$engine = $this->extruder()->reset()->library($this->temporaryPath('vend/Acme.Joomla'))->component(3);
+		$report = $engine->dryRun()->extrude();
+		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame(['remapping'], $report->get('plan.required_approvals'));
+		$this->assertSame([], $this->item->records());
+		$this->config()->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeRemapping', true);
+		$this->assertSame('committed', $engine->dryRun(false)->extrude()->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertNotNull($this->item->definition('power', self::TEAM_GUID));
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Helper', $this->candidate('Acme\\Joomla\\DeMo\\Helper')['placeholder']);
+		$this->assertSame([], $this->item->records('joomla_component'), 'An explicitly configured prefix is not overwritten.');
+		$this->assertSame([], $this->item->records('placeholder'), 'A source can never set global namespace values.');
+		$rows = $this->item->definitions('component_placeholders');
+		$this->assertCount(1, $rows);
+		$this->assertSame('dddddddd-4444-4444-8444-444444444444', $rows[0]->joomla_component);
+		$this->assertSame(['target' => '[[[ComponentNamespace]]]', 'value' => 'DeMo'], $rows[0]->addplaceholders['addplaceholders0']);
 	}
 
 	/**
-	 * With no component paired, the named component is remembered globally.
-	 *
-	 * The person selected none and named the component instead: the classes
-	 * still defer the component segment to its placeholder, and the casing
-	 * the library carries is remembered as a global placeholder row -- the
-	 * system's own memory of the name -- since no component row stands to
-	 * carry it.
+	 * Naming an unpaired component never turns a literal into global configuration.
 	 *
 	 * @return  void
-	 * @since   6.1.9
+	 * @since   6.2.0
 	 */
-	public function testANamedComponentIsRememberedGlobally(): void
+	public function testANamedUnpairedComponentKeepsLiteralsAndWritesNoConfiguration(): void
 	{
-		$this->writeTemporaryFile(
-			'named/Acme.Joomla/src/DeMo/Helper.php',
-			"<?php\nnamespace Acme\\Joomla\\DeMo;\n\n/**\n * The demo helper.\n *\n * @since 1.0.0\n */\nfinal class Helper\n{\n\tpublic function go(): bool\n\t{\n\t\treturn true;\n\t}\n}\n"
-		);
-
-		$report = $this->extruder()->reset()
-			->library($this->temporaryPath('named/Acme.Joomla'))
-			->component(0)
-			->componentCode('com_demo')
-			->extrude();
-
-		$this->assertTrue((bool) $report->get('powers.completed'));
-
-		$power = $this->item->definition(
-			'power',
-			(new Guid())->derive([
-				'power',
-				'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper'
-			])
-		);
-
+		$this->load->params(['namespace_prefix' => 'Acme']);
+		$this->writeTemporaryFile('named/Acme.Joomla/src/DeMo/Helper.php',
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\nfinal class Helper { public function go(): bool { return true; } }\n");
+		$report = $this->extruder()->reset()->library($this->temporaryPath('named/Acme.Joomla'))
+			->component(0)->componentCode('com_demo')->extrude();
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
+		$power = $this->item->definition('power', $this->guid('Acme\\Joomla\\DeMo\\Helper'));
 		$this->assertNotNull($power);
-		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Helper',
-			$power->namespace,
-			'The named component answers for its segment with no row paired.'
-		);
-
-		$global = null;
-
-		foreach ($this->item->definitions('placeholder') as $definition)
-		{
-			$global = $definition;
-		}
-
-		$this->assertNotNull($global);
-		$this->assertSame('[[[ComponentNamespace]]]', $global->target);
-		$this->assertSame(
-			'DeMo',
-			$global->value,
-			'The casing the library carries is remembered raw; the table\'s '
-			. 'own storage encoding is the pipeline\'s to apply.'
-		);
-		$this->assertSame('DeMo', $report->get('powers.vendor.global_component_namespace'));
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\DeMo.Helper', $power->namespace);
+		$this->assertSame([], $this->item->records('placeholder'));
+		$this->assertSame([], $this->item->records('component_placeholders'));
+		$this->assertSame([], $this->item->records('joomla_component'));
 	}
 
 	/**
@@ -743,6 +642,7 @@ final class ExtruderTest extends FilesystemTestCase
 	{
 		$this->load->placeholder(1, '[[[ComponentEngineNamespace]]]', self::ENGINE);
 		$this->load->power(9, self::TEAM_GUID, 'Team', '[[[ComponentEngineNamespace]]].Team');
+		$this->referencePowers([self::EXISTING_GUID, self::TEAM_GUID]);
 		$this->item->identity('power', self::TEAM_GUID, 9);
 		$this->item->serve('power', self::TEAM_GUID, (object) ([
 			'guid' => self::TEAM_GUID,
@@ -912,6 +812,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->load
 			->power(9, self::TEAM_GUID, 'Team', '[[[ComponentEngineNamespace]]].Team')
 			->power(10, self::REFEREE_GUID, 'Referee', '[[[ComponentEngineNamespace]]].Referee');
+		$this->referencePowers([self::EXISTING_GUID, self::TEAM_GUID, self::REFEREE_GUID]);
 		$this->item->identity('power', self::TEAM_GUID, 9);
 		$engine = 'site/administrator/components/com_demo/src/Engine';
 		$this->writeTemporaryFile(
@@ -929,20 +830,20 @@ final class ExtruderTest extends FilesystemTestCase
 			->component(3)
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame(2, $report->get('counts.powers.classes'));
 		$this->assertSame(1, $report->get('counts.powers.existing'));
 
-		$team = $extruder->harvested()['classes'][self::TEAM_GUID] ?? null;
+		$team = $this->candidate('Demo\Component\Demo\Administrator\Engine\Team');
 
 		$this->assertNotNull(
 			$team,
 			'The standing power is recognised by identity, aimed at the Engine '
 			. 'folder itself.'
 		);
-		$this->assertSame('identity', $team['matched']);
+		$this->assertSame('component-reference', $team['resolution']['reason']);
 		$this->assertSame(
-			self::ENGINE . '.Team',
+			'[[[ComponentEngineNamespace]]].Team',
 			$team['placeholder'],
 			'Engine is a folder under src, so it is a dot part, never a head segment.'
 		);
@@ -965,12 +866,12 @@ final class ExtruderTest extends FilesystemTestCase
 			'A reference to a sibling power resolves through the person\'s '
 			. 'placeholder and links by identity.'
 		);
-		$this->assertSame('', $written->head);
+		$this->assertObjectNotHasProperty('head', $written, 'An unchanged empty field is absent from the effective update.');
 		$this->assertNull($report->get('powers.namespace.restated'));
 
 		$season = $this->item->definition(
 			'power',
-			(new Guid())->derive(['power', self::ENGINE . '.Season'])
+			$this->guid('Demo\Component\Demo\Administrator\Engine\Season')
 		);
 
 		$this->assertNotNull($season);
@@ -999,6 +900,7 @@ final class ExtruderTest extends FilesystemTestCase
 	{
 		$this->load->placeholder(1, '[[[ComponentEngineNamespace]]]', self::ENGINE);
 		$this->load->power(9, self::TEAM_GUID, 'Team', self::ENGINE . '\Team');
+		$this->referencePowers([self::EXISTING_GUID, self::TEAM_GUID]);
 		$this->item->identity('power', self::TEAM_GUID, 9);
 		$source = 'site/administrator/components/com_demo/src';
 		$this->writeTemporaryFile(
@@ -1012,12 +914,12 @@ final class ExtruderTest extends FilesystemTestCase
 			->component(3)
 			->extrude();
 
-		$this->assertTrue((bool) $report->get('powers.completed'));
+		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 
-		$team = $extruder->harvested()['classes'][self::TEAM_GUID] ?? null;
+		$team = $this->candidate('Demo\Component\Demo\Administrator\Engine\Team');
 
 		$this->assertNotNull($team, 'The class it compiles to is the standing power.');
-		$this->assertSame('class', $team['matched']);
+		$this->assertTrue($team['resolution']['namespace']['relocation']);
 
 		$written = $this->item->definition('power', self::TEAM_GUID);
 
@@ -1029,7 +931,7 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 		$this->assertSame(
 			['from' => self::ENGINE . '\Team', 'to' => '[[[ComponentEngineNamespace]]].Team'],
-			$report->get('powers.namespace.restated.bbbbbbbb_2222_4222_8222_222222222222')
+			$report->get('powers.namespace.restated.' . $team['source_key'])
 		);
 		$this->assertContains(
 			'1 existing power(s) were recognised by the class they compile to, '
@@ -1073,30 +975,53 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
-	 * The identity the harvest derives for one class.
+	 * Read the resolved GUID separately from the stable source key.
 	 *
-	 * A new power's identity comes from its stored namespace, not the name it
-	 * happened to be built under, so the same class harvested from two
-	 * libraries whose prefixes differ lands on one identity. The fixture
-	 * library folds two head segments and defers the first, so the same
-	 * conversion is applied here.
+	 * @param   string  $fqn  The exact observed class name.
 	 *
-	 * @param   string  $fqn  The fully qualified class name.
-	 *
-	 * @return  string  The derived identity.
-	 * @since   6.1.7
+	 * @return  string  The resolved Power GUID.
+	 * @since   6.2.0
 	 */
 	private function guid(string $fqn): string
 	{
-		$segments = explode('\\', trim($fqn, '\\'));
-		$class = array_pop($segments);
-		$head = array_splice($segments, 0, 2);
-		$head[0] = '[[[NamespacePrefix]]]';
+		$source = $this->candidate($fqn);
+		$this->assertNotEmpty($source['guid'], 'This assertion requires a resolved target.');
 
-		return (new Guid())->derive([
-			'power',
-			implode('\\', $head) . '\\'
-			. implode('.', array_merge($segments, [$class]))
+		return $source['guid'];
+	}
+
+	/**
+	 * Find a source row without assuming the target GUID is its map key.
+	 *
+	 * @param   string  $fqn  The raw observed fully qualified name.
+	 *
+	 * @return  array  Exactly one source candidate.
+	 * @since   6.2.0
+	 */
+	private function candidate(string $fqn): array
+	{
+		$matches = array_values(array_filter($this->extruder()->harvested()['classes'] ?? [],
+			static fn (array $source): bool => $source['fqn'] === $fqn));
+		$this->assertCount(1, $matches, 'The declaration remains individually addressable by source.');
+
+		return $matches[0];
+	}
+
+	/**
+	 * Declare actual selected-component usage through the compiler's Power tokens.
+	 *
+	 * @param   array  $guids  Existing Powers this fixture component references.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	private function referencePowers(array $guids): void
+	{
+		$this->load->record('joomla_component', 3, [
+			'guid' => 'dddddddd-4444-4444-8444-444444444444', 'name_code' => 'demo',
+			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Demo',
+			'php_preflight_install' => base64_encode(implode(';', array_map(static fn (string $guid): string =>
+				'Super___' . str_replace('-', '_', $guid) . '___Power', $guids)))
 		]);
 	}
 

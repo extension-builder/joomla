@@ -108,7 +108,8 @@ class Discovery implements ServiceProviderInterface
 	{
 		return new Scanner(
 			$container->get('Extrusion.Config'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Plan')
 		);
 	}
 

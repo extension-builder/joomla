@@ -221,77 +221,25 @@ final class Namespacer
 	}
 
 	/**
-	 * Defer the resolved prefix and component segments back to placeholders.
+	 * Defer the established vendor prefix without guessing component ownership.
 	 *
-	 * The vendor prefix is the first segment: that is what the convention
-	 * means, and every power JCB ships carries the placeholder there -- so
-	 * the first segment is ALWAYS deferred, whatever it reads. Deferring it
-	 * is the whole point: one class then serves components whose prefixes
-	 * differ, and a harvested library folds onto the very powers it was
-	 * compiled from.
+	 * A component name, catalogue membership and a matching text round trip
+	 * are not role evidence. Component positions are recovered separately from
+	 * an identified definition or a validated, explicit source-root binding.
 	 *
-	 * A segment that answers, case aside, to a component namespace this run
-	 * knows -- the component being extruded, the component being paired, or
-	 * either one's placeholder overrides -- is that component's own segment,
-	 * and is deferred the same way. What it actually read is witnessed with
-	 * the vendor prefix beside it, so the run can record the values the
-	 * placeholders must resolve back to.
+	 * @param   string  $stored   The concrete stored namespace.
+	 * @param   bool    $witness  Retained for callers; a lookup never witnesses ownership.
 	 *
-	 * @param   string  $stored   The stored form with concrete values.
-	 * @param   bool    $witness  Whether a recognised component segment is witnessed.
-	 *
-	 * @return  string  The stored form as a power row carries it.
+	 * @return  string  The vendor-portable form with all other words preserved.
 	 * @since   6.1.7
 	 */
 	public function placeholderize(string $stored, bool $witness = true): string
 	{
 		$sections = explode('\\', $stored);
-		$last = count($sections) - 1;
-		$vendor = (string) $sections[0];
-		$component = null;
 
-		foreach ($sections as $index => $section)
+		if (count($sections) > 1 && $sections[0] !== '')
 		{
-			if ($index === 0 && $last > 0)
-			{
-				$sections[0] = Placeholders::PREFIX;
-
-				continue;
-			}
-
-			if ($index < $last && $this->placeholders->answers($section))
-			{
-				$component ??= $section;
-				$sections[$index] = Placeholders::COMPONENT;
-
-				continue;
-			}
-
-			if ($index === $last && str_contains($section, '.'))
-			{
-				$parts = explode('.', $section);
-
-				// the final part is the class itself, never a placeholder
-				foreach (array_slice(array_keys($parts), 0, -1) as $key)
-				{
-					if ($this->placeholders->answers($parts[$key]))
-					{
-						$component ??= $parts[$key];
-						$parts[$key] = Placeholders::COMPONENT;
-					}
-				}
-
-				$sections[$index] = implode('.', $parts);
-			}
-		}
-
-		if ($witness && $component !== null)
-		{
-			// a class carrying the component's segment is the component's own,
-			// so its library states the very values the placeholders must
-			// resolve back to when the component is compiled again -- an
-			// import merely refers, so it never testifies
-			$this->placeholders->witness($vendor, $component);
+			$sections[0] = Placeholders::PREFIX;
 		}
 
 		return implode('\\', $sections);
@@ -308,14 +256,16 @@ final class Namespacer
 	 * compiler's own order, the core placeholders stay standing, and the two
 	 * wrapper forms become one.
 	 *
-	 * @param   string  $stored  The stored form, placeholders included.
+	 * @param   string      $stored   The stored form, placeholders included.
+	 * @param   array|null  $context  The applicable component context.
 	 *
 	 * @return  string  The canonical stored form.
 	 * @since   6.1.9
 	 */
-	public function canonical(string $stored): string
+	public function canonical(string $stored, ?array $context = null): string
 	{
-		$stored = $this->placeholders->expand(trim($stored, '\\'));
+		$custom = $this->custom($context);
+		$stored = $this->placeholders->substitute(trim($stored, '\\'), $custom);
 
 		return (string) preg_replace('/###([A-Za-z0-9_]+)###/', '[[[$1]]]', $stored);
 	}
@@ -332,28 +282,29 @@ final class Namespacer
 	 * a dot where a folder follows, a backslash where the head continues.
 	 * Only a value that is itself a namespace fragment can stand for one.
 	 *
-	 * @param   string  $stored  The canonical stored form.
+	 * @param   string      $stored   The canonical stored form.
+	 * @param   array|null  $context  The applicable namespace context.
 	 *
 	 * @return  string  The stored form as the person would write it.
 	 * @since   6.1.9
 	 */
-	public function express(string $stored): string
+	public function express(string $stored, ?array $context = null): string
 	{
-		$stored = $this->canonical($stored);
+		$stored = $this->canonical($stored, $context);
 		[$segments, $joiners] = $this->split($stored);
 		$total = count($segments);
-		$map = $this->placeholders->map();
+		$map = $context['map'] ?? $this->placeholders->map();
 		$best = null;
 		$covered = 0;
 
-		foreach ($this->placeholders->custom() as $placeholder => $value)
+		foreach ($this->custom($context) as $placeholder => $value)
 		{
 			if (!str_contains($value, '\\'))
 			{
 				continue;
 			}
 
-			[$parts, $joins] = $this->split($this->canonical($value));
+			[$parts, $joins] = $this->split($this->canonical($value, $context));
 			$length = count($parts);
 
 			if ($length < 2 || $length >= $total || $length <= $covered
@@ -488,15 +439,16 @@ final class Namespacer
 	/**
 	 * Unfold a stored namespace into the real fully qualified class name.
 	 *
-	 * @param   string  $stored  The stored form, with or without placeholders.
+	 * @param   string      $stored   The stored form, with or without placeholders.
+	 * @param   array|null  $context  The applicable component context.
 	 *
 	 * @return  string  The fully qualified class name, or an empty string when
 	 *                  a placeholder in it has no value to resolve to.
 	 * @since   6.1.7
 	 */
-	public function resolve(string $stored): string
+	public function resolve(string $stored, ?array $context = null): string
 	{
-		$stored = $this->placeholders->substitute($stored, $this->placeholders->map());
+		$stored = $this->placeholders->substitute($stored, $context['map'] ?? $this->placeholders->map());
 
 		if (str_contains($stored, '[[[') || str_contains($stored, '###'))
 		{
@@ -550,7 +502,7 @@ final class Namespacer
 	 */
 	public function signature(): string
 	{
-		return (string) json_encode($this->placeholders->map());
+		return hash('sha256', (string) json_encode($this->placeholders->context(), JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -567,5 +519,341 @@ final class Namespacer
 			explode('\\', trim($namespace, '\\')),
 			'strlen'
 		));
+	}
+	/**
+	 * Read a separate source or target context.
+	 *
+	 * @param   int|null  $component  The component id, or the active context.
+	 *
+	 * @return  array  The context snapshot.
+	 * @since   6.2.0
+	 */
+	public function context(?int $component = null): array
+	{
+		return $this->placeholders->context($component);
+	}
+
+	/**
+	 * Expand a stored representation without erasing its placement separators.
+	 *
+	 * @param   string  $stored   The stored representation.
+	 * @param   array   $context  The source context.
+	 *
+	 * @return  string  The concrete placement representation.
+	 * @since   6.2.0
+	 */
+	public function expand(string $stored, array $context): string
+	{
+		return $this->placeholders->substitute($stored, $context['map']);
+	}
+
+	/**
+	 * Validate a namespace proposal against raw source namespace and placement.
+	 *
+	 * The caller must first establish definition identity or an explicit root
+	 * binding. This method validates a proposal; it does not prove ownership.
+	 *
+	 * @param   array        $source     The raw source observation.
+	 * @param   string|null  $standing   An identified existing representation.
+	 * @param   array|null   $context    The verified source component context.
+	 *
+	 * @return  array  The representation, placement and round-trip verdict.
+	 * @since   6.2.0
+	 */
+	public function proposal(array $source, ?string $standing = null, ?array $context = null): array
+	{
+		$context ??= $this->context();
+		$stored = (string) ($source['stored'] ?? '');
+		$fqn = (string) ($source['fqn'] ?? '');
+		$context = $this->sourceContext($stored, $context);
+		$value = $standing ?? $this->express($this->placeholderize($stored, false), $context);
+		$placement = (bool) ($source['placement_valid'] ?? false);
+		$relocation = false;
+		$matches = $fqn !== '' && $this->key($this->resolve($value, $context)) === $this->key($fqn);
+
+		if ($standing !== null && $matches && $placement
+			&& strcasecmp($this->expand($value, $context), $stored) !== 0)
+		{
+			// Identity was established independently. Only a real declaration/
+			// file observation, not an inferred namespace, authorises a seam move.
+			if (!empty($source['placement_evidence']))
+			{
+				$moved = $this->reposition($stored, $this->canonical($standing, $context), $context);
+
+				if ($moved !== null)
+				{
+					$value = $this->express($moved, $context);
+					$relocation = true;
+				}
+			}
+		}
+
+		$roundTrip = $placement && $matches
+			&& strcasecmp($this->expand($value, $context), $stored) === 0;
+
+		return [
+			'value' => $value,
+			'preserved' => $standing !== null && $roundTrip && !$relocation,
+			'round_trip' => $roundTrip,
+			'relocation' => $relocation,
+			'source_fqn' => $this->resolve($value, $context),
+			'target_fqn' => $this->resolve($value),
+			'provenance' => $standing !== null ? 'identified-definition' : 'literal-source'
+		];
+	}
+
+	/**
+	 * Preserve the independent vendor axis in a source reconstruction context.
+	 *
+	 * @param   string  $stored   The raw source placement.
+	 * @param   array   $context  The applicable component context.
+	 *
+	 * @return  array  A copy with the verified source vendor prefix.
+	 * @since   6.2.0
+	 */
+	public function sourceContext(string $stored, array $context): array
+	{
+		$known = (string) ($context['map'][Placeholders::PREFIX] ?? '');
+
+		if ($known === '' || strncasecmp($stored, $known . '\\', strlen($known) + 1) !== 0)
+		{
+			$context['map'][Placeholders::PREFIX] = explode('\\', $stored)[0] ?? '';
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Whether a representation contains a component-variable role.
+	 *
+	 * @param   string  $stored   The stored namespace.
+	 * @param   array   $context  The namespace's applicable component context.
+	 *
+	 * @return  bool  True for a component-dependent canonical representation.
+	 * @since   6.2.0
+	 */
+	public function componentVariable(string $stored, array $context): bool
+	{
+		$canonical = $this->canonical($stored, $context);
+
+		foreach (array_diff(Placeholders::CORE, ['NamespacePrefix', 'NAMESPACEPREFIX']) as $name)
+		{
+			if (str_contains($canonical, '[[[' . $name . ']]]'))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Recover reusable root roles only from an independently identified Power.
+	 *
+	 * @param   array   $source   The source descriptor and unit identity.
+	 * @param   string  $stored   The validated representation of that Power.
+	 * @param   array   $context  Its verified source component context.
+	 * @param   string  $guid     The identified definition providing evidence.
+	 *
+	 * @return  array|null  A source-unit binding, or null for literal/unresolved roots.
+	 * @since   6.2.0
+	 */
+	public function binding(array $source, string $stored, array $context, string $guid): ?array
+	{
+		$canonical = $this->canonical($stored, $context);
+		[$parts, $joins] = $this->split($canonical);
+		$last = null;
+
+		foreach (array_slice($parts, 0, -1) as $index => $part)
+		{
+			if ($this->componentVariable($part, $context))
+			{
+				$last = $index;
+			}
+		}
+
+		if ($last === null)
+		{
+			return null;
+		}
+
+		$template = $parts[0];
+
+		for ($i = 1; $i <= $last; $i++)
+		{
+			$template .= $joins[$i - 1] . $parts[$i];
+		}
+
+		$context = $this->sourceContext((string) $source['stored'], $context);
+		$root = $this->resolve($template, $context);
+
+		if ($root === '' || !str_starts_with($this->key((string) $source['fqn']), $this->key($root) . '\\'))
+		{
+			return null;
+		}
+
+		return [
+			'source_unit' => (string) $source['source_unit'],
+			'root' => $root,
+			'template' => $template,
+			'component' => (int) ($context['id'] ?? 0),
+			'guid' => $guid,
+			'provenance' => 'identified-definition'
+		];
+	}
+
+	/**
+	 * Recover core values only at independently established symbolic positions.
+	 *
+	 * @param   array   $source   The raw source declaration and placement.
+	 * @param   string  $stored   Its validated, identified namespace representation.
+	 * @param   array   $context  The source reconstruction context.
+	 *
+	 * @return  array|null  A consistent prefix/component pair, or no such evidence.
+	 * @since   6.2.0
+	 */
+	public function variables(array $source, string $stored, array $context): ?array
+	{
+		$context = $this->sourceContext((string) $source['stored'], $context);
+		[$actual] = $this->split((string) $source['stored']);
+		[$parts] = $this->split($this->canonical($stored, $context));
+		$cursor = 0;
+		$values = [];
+
+		foreach ($parts as $part)
+		{
+			[$expanded] = $this->split($this->expand($part, $context));
+			$observed = array_slice($actual, $cursor, count($expanded));
+
+			if (array_map('strtolower', $expanded) !== array_map('strtolower', $observed))
+			{
+				return null;
+			}
+
+			$name = $part === Placeholders::PREFIX ? 'prefix' : ($part === Placeholders::COMPONENT ? 'component' : null);
+
+			if ($name !== null)
+			{
+				$value = implode('\\', $observed);
+
+				if (isset($values[$name]) && $values[$name] !== $value)
+				{
+					return null;
+				}
+
+				$values[$name] = $value;
+			}
+
+			$cursor += count($expanded);
+		}
+
+		return isset($values['prefix'], $values['component']) && $cursor === count($actual) ? $values : null;
+	}
+
+	/**
+	 * Apply root evidence to another declaration in the same source unit.
+	 *
+	 * @param   array  $source   The new raw source descriptor.
+	 * @param   array  $binding  The independently validated root binding.
+	 * @param   array  $context  The verified source context.
+	 *
+	 * @return  string|null  A round-trip-safe representation, or no applicable binding.
+	 * @since   6.2.0
+	 */
+	public function bind(array $source, array $binding, array $context): ?string
+	{
+		if (($source['source_unit'] ?? '') !== ($binding['source_unit'] ?? '')
+			|| !is_string($binding['root'] ?? null) || !is_string($binding['template'] ?? null))
+		{
+			return null;
+		}
+
+		$root = trim($binding['root'], '\\');
+		$fqn = trim((string) ($source['fqn'] ?? ''), '\\');
+		$context = $this->sourceContext((string) ($source['stored'] ?? ''), $context);
+
+		if ($root === '' || !str_starts_with($this->key($fqn), $this->key($root) . '\\')
+			|| $this->key($this->resolve($binding['template'], $context)) !== $this->key($root))
+		{
+			return null;
+		}
+
+		$template = $binding['template'] . '\\' . substr($fqn, strlen($root) + 1);
+
+		return $this->reposition((string) $source['stored'], $template, $context);
+	}
+
+	/**
+	 * Move existing symbolic spans onto a source-observed placement seam.
+	 *
+	 * Every symbolic span must expand to the same concrete segments. No word
+	 * search, fixed depth or source-file ownership assumption is involved.
+	 *
+	 * @param   string  $stored    The source's observed concrete placement.
+	 * @param   string  $template  The established symbolic namespace.
+	 * @param   array   $context   The verified source context.
+	 *
+	 * @return  string|null  The validated representation with source placement.
+	 * @since   6.2.0
+	 */
+	protected function reposition(string $stored, string $template, array $context): ?string
+	{
+		[$source, $joins] = $this->split($stored);
+		[$parts] = $this->split($this->canonical($template, $context));
+		$cursor = 0;
+		$result = '';
+
+		foreach ($parts as $part)
+		{
+			$expanded = $this->expand($part, $context);
+			[$values, $inside] = $this->split($expanded);
+			$length = count($values);
+			$actual = array_slice($source, $cursor, $length);
+
+			if (str_contains($expanded, '[[[') || str_contains($expanded, '###')
+				|| array_map('strtolower', $values) !== array_map('strtolower', $actual))
+			{
+				return null;
+			}
+
+			$symbolic = str_contains($part, '[[[') || str_contains($part, '###');
+
+			if ($symbolic && $inside !== array_slice($joins, $cursor, $length - 1))
+			{
+				return null;
+			}
+
+			$result .= $cursor === 0 ? '' : $joins[$cursor - 1];
+			$result .= $symbolic ? $part : $actual[0];
+
+			if (!$symbolic)
+			{
+				for ($i = 1; $i < $length; $i++)
+				{
+					$result .= $joins[$cursor + $i - 1] . $actual[$i];
+				}
+			}
+
+			$cursor += $length;
+		}
+
+		return $cursor === count($source) && strcasecmp($this->expand($result, $context), $stored) === 0
+			? $result : null;
+	}
+	/**
+	 * Get custom namespace roots only in their applicable component context.
+	 *
+	 * @param   array|null  $context  An independent context or the active one.
+	 *
+	 * @return  array<string, string>  Ordered custom namespace values.
+	 * @since   6.2.0
+	 */
+	protected function custom(?array $context): array
+	{
+		return $context === null ? $this->placeholders->custom() : array_filter(
+			$context['map'],
+			static fn (string $key): bool => !in_array(substr($key, 3, -3), Placeholders::CORE, true),
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 }

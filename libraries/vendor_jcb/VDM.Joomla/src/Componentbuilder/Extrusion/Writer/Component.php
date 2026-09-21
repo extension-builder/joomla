@@ -258,6 +258,7 @@ final class Component extends Writer
 		}
 
 		$this->resolved->set('component.guid', $guid);
+		$this->config->set('targetComponentGuid', $guid);
 		$this->report->set('counts.joomla_component', 1);
 
 		return 1;

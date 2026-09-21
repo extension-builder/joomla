@@ -225,27 +225,26 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * A library harvested on its own still recognises the component area.
+	 * A library without role evidence retains words even when a component matches.
 	 *
-	 * No component is paired and no source names one -- but the system knows
-	 * the component by name, and its segment answers by its word whatever
-	 * casing the library carries.
+	 * An unrelated catalogue entry is not evidence that this source belongs
+	 * to that component. Casing and namespace placement remain the source
+	 * declaration's own.
 	 *
 	 * @return  void
 	 * @since   6.1.9
 	 */
-	public function testALibraryAloneStillRecognisesAKnownComponent(): void
+	public function testAnUnpairedLibraryDoesNotInheritCatalogueWordOwnership(): void
 	{
 		$this->load->component(9, 'guid-nine', 'sermondistributor');
 		$namespacer = $this->namespacer();
 
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Utilities.Permitted.Actions',
+			'[[[NamespacePrefix]]]\Joomla\SermonDistributor.Utilities.Permitted.Actions',
 			$namespacer->placeholderize(
 				'TrueChristianSermon\Joomla\SermonDistributor.Utilities.Permitted.Actions'
 			),
-			'The component the system knows answers for its segment, paired '
-			. 'or not.'
+			'A known component name does not establish a namespace role.'
 		);
 	}
 
@@ -355,19 +354,19 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * Deferring the resolved values back to their placeholders.
+	 * The vendor convention is independent of unproven component-role values.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testPlaceholderizeDefersTheResolvedValues(): void
+	public function testPlaceholderizeDoesNotInferRolesFromResolvedValues(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
 		$this->config->set('component', 3);
 		$namespacer = $this->namespacer();
 
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Package.Readme.Item',
+			'[[[NamespacePrefix]]]\Joomla\Componentbuilder.Package.Readme.Item',
 			$namespacer->placeholderize('VDM\Joomla\Componentbuilder.Package.Readme.Item')
 		);
 		$this->assertSame(
@@ -389,12 +388,12 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * The prefix is always the first segment, and the component answers by word.
+	 * Preserve component-like literal words and emit no unapproved witness.
 	 *
 	 * @return  void
 	 * @since   6.1.8
 	 */
-	public function testThePrefixIsAlwaysDeferredAndTheComponentAnswersByWord(): void
+	public function testThePrefixConventionDoesNotAuthoriseComponentWordReplacement(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
 		$this->config->set('component', 3);
@@ -407,10 +406,9 @@ final class ResolverTest extends TestCase
 			'The first segment is the vendor prefix, whatever it reads.'
 		);
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].File.Display',
+			'[[[NamespacePrefix]]]\Joomla\ComponentBuilder.File.Display',
 			$namespacer->placeholderize('Other\Joomla\ComponentBuilder.File.Display'),
-			'A namespace is case-insensitive to PHP: the segment answers by '
-			. 'its word, and the casing it actually carried is witnessed.'
+			'The original literal casing survives; equal component values are not role evidence.'
 		);
 		$this->assertSame(
 			'[[[NamespacePrefix]]]\Query',
@@ -418,10 +416,9 @@ final class ResolverTest extends TestCase
 			'A vendor of its own defers its prefix like any other.'
 		);
 		$this->assertSame(
-			[['prefix' => 'Other', 'component' => 'ComponentBuilder', 'count' => 1]],
+			[],
 			$placeholders->witnessed(),
-			'The component-owned class witnessed the values its library was '
-			. 'built with.'
+			'An unproved variable cannot justify auxiliary configuration changes.'
 		);
 	}
 
@@ -526,12 +523,12 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * Two powers reaching one class name keep the first and report the second.
+	 * Two powers reaching one class name remain competing lookup candidates.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testADuplicateClaimKeepsTheFirstAndReportsTheSecond(): void
+	public function testADuplicateClaimRetainsBothAndDoesNotChooseOne(): void
 	{
 		$this->load
 			->power(1, 'aaaaaaaa-1111-4111-8111-111111111111', 'Load', 'JCB\Joomla\Data.Load')
@@ -541,12 +538,11 @@ final class ResolverTest extends TestCase
 		$this->assertSame(
 			2,
 			$existing->count(),
-			'Two stored namespaces are two identities, however they resolve.'
+			'Both Power GUIDs remain addressable, however their namespaces resolve.'
 		);
-		$this->assertSame(
-			'aaaaaaaa-1111-4111-8111-111111111111',
-			$existing->find('JCB\Joomla\Data\Load')['guid'] ?? null
-		);
+		$this->assertNull($existing->find('JCB\Joomla\Data\Load'));
+		$this->assertCount(2, $existing->candidates('', 'JCB\Joomla\Data\Load'));
+		$this->assertNotNull($existing->power('bbbbbbbb-2222-4222-8222-222222222222'));
 		$this->assertSame(
 			'JCB\Joomla\Data\Load',
 			$this->report->get(
@@ -933,11 +929,9 @@ final class ResolverTest extends TestCase
 			$guid,
 			$existing->power(strtoupper($guid))['guid'] ?? null
 		);
-		$this->assertSame(
-			$guid,
-			$existing->fold('Other\Component\DEMO\Administrator\Engine\Team')['guid'] ?? null,
-			'A reference under another prefix folds at the seam the power '
-			. 'keeps, not only at the conventional one.'
+		$this->assertNull(
+			$existing->fold('Other\Component\DEMO\Administrator\Engine\Team'),
+			'A generic component-variable alias needs scoped identity evidence, not a word-based fold.'
 		);
 		$this->assertNull(
 			$this->report->get('powers.unresolved.namespace.aaaaaaaa_1111_4111_8111_111111111111'),

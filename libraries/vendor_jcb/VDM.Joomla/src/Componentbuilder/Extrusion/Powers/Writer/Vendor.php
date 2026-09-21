@@ -2,7 +2,7 @@
 /**
  * @package    Joomla.Component.Builder
  *
- * @created    28th August, 2026
+ * @created    21st September, 2026
  * @author     Llewellyn van der Merwe <https://dev.vdm.io>
  * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
  * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
@@ -13,371 +13,347 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 
 /**
- * Records the placeholder values the harvested library was built with.
+ * Propose component-local namespace values from validated, approved source roles.
  *
- * A power's stored namespace defers its vendor prefix and component segment,
- * and compiling the component must resolve them back to the very values the
- * library carries, or every class lands in a different folder than the one it
- * was harvested from. The classes witnessed those values on the way in --
- * this writer records them where the compiler reads them: the vendor prefix
- * onto the component row, and the component segment, when its casing differs
- * from what the code name derives, as a ComponentNamespace override in the
- * component's own placeholder table, as the plain text the compiler reads
- * it as.
+ * A word match or an informal witness never grants a configuration write.
+ * Shared, skipped, ignored and unresolved definitions do not supply ownership
+ * evidence, conflicting values do not vote, and no global placeholder is written.
  *
- * What a person already set always stands: a standing prefix or a standing
- * override is never overwritten, only reported when the library disagrees
- * with it.
- *
- * @since 6.1.9
+ * @since  6.1.9
  */
 final class Vendor
 {
 	/**
-	 * The Config Class.
+	 * The active operation configuration.
 	 *
 	 * @var    Config
-	 * @since  6.1.9
+	 * @since  6.2.0
 	 */
 	protected Config $config;
 
 	/**
-	 * The Database Loader.
+	 * The read-only raw database boundary.
 	 *
 	 * @var    LoadInterface
-	 * @since  6.1.9
+	 * @since  6.2.0
 	 */
 	protected LoadInterface $load;
 
 	/**
-	 * The Data Item Class.
+	 * The existing Data value reader.
 	 *
 	 * @var    ItemInterface
-	 * @since  6.1.9
+	 * @since  6.2.0
 	 */
 	protected ItemInterface $item;
 
 	/**
-	 * The Placeholders Resolver.
+	 * Compiler-compatible placeholder values.
 	 *
 	 * @var    Placeholders
-	 * @since  6.1.9
+	 * @since  6.2.0
 	 */
 	protected Placeholders $placeholders;
 
 	/**
-	 * The Report Registry.
+	 * The operation diagnostics.
 	 *
 	 * @var    Report
-	 * @since  6.1.9
+	 * @since  6.2.0
 	 */
 	protected Report $report;
 
 	/**
+	 * Validated source-to-target decisions.
+	 *
+	 * @var    Harvest
+	 * @since  6.2.0
+	 */
+	protected Harvest $harvest;
+
+	/**
+	 * The complete operation write plan.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
+	 * The common effective change weigher.
+	 *
+	 * @var    Delta
+	 * @since  6.2.0
+	 */
+	protected Delta $delta;
+
+	/**
+	 * Source role and namespace validation.
+	 *
+	 * @var    Namespacer
+	 * @since  6.2.0
+	 */
+	protected Namespacer $names;
+
+	/**
+	 * The source context resolver.
+	 *
+	 * @var    Identity
+	 * @since  6.2.0
+	 */
+	protected Identity $identity;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Config         $config        The extrusion configuration.
-	 * @param   LoadInterface  $load          The database loader.
-	 * @param   ItemInterface  $item          The JCB data item writer.
-	 * @param   Placeholders   $placeholders  The placeholder value resolver.
-	 * @param   Report         $report        The run report registry.
+	 * @param   Config  $config  The active operation configuration.
+	 * @param   LoadInterface  $load  The read-only raw database boundary.
+	 * @param   ItemInterface  $item  The existing Data value reader.
+	 * @param   Placeholders  $placeholders  Compiler-compatible placeholder values.
+	 * @param   Report  $report  The operation diagnostics.
+	 * @param   Harvest  $harvest  Validated source-to-target decisions.
+	 * @param   Plan  $plan  The complete operation write plan.
+	 * @param   Delta  $delta  The common effective change weigher.
+	 * @param   Namespacer  $names  Source role and namespace validation.
+	 * @param   Identity  $identity  The source context resolver.
 	 *
-	 * @since   6.1.9
+	 * @since   6.2.0
 	 */
-	public function __construct(
-		Config $config,
-		LoadInterface $load,
-		ItemInterface $item,
-		Placeholders $placeholders,
-		Report $report
-	)
+	public function __construct(Config $config, LoadInterface $load, ItemInterface $item, Placeholders $placeholders, Report $report, Harvest $harvest, Plan $plan, Delta $delta, Namespacer $names, Identity $identity)
 	{
 		$this->config = $config;
 		$this->load = $load;
 		$this->item = $item;
 		$this->placeholders = $placeholders;
 		$this->report = $report;
+		$this->harvest = $harvest;
+		$this->plan = $plan;
+		$this->delta = $delta;
+		$this->names = $names;
+		$this->identity = $identity;
 	}
 
 	/**
-	 * Record what the harvested classes witnessed onto the paired component.
+	 * Stage only component-local values justified by changed approved definitions.
 	 *
-	 * @return  int  How many values were recorded.
+	 * @return  int  Number of effective auxiliary record proposals.
 	 * @since   6.1.9
 	 */
 	public function write(): int
 	{
-		$witnessed = $this->placeholders->witnessed();
-		$id = (int) $this->config->get('component', 0);
-
-		if ($witnessed === [])
+		if (!$this->plan->active())
 		{
 			return 0;
 		}
 
-		if ($id <= 0)
+		$pairs = [];
+
+		foreach ($this->plan->writes() as $write)
 		{
-			// no component row stands to carry the values, so the component
-			// segment is remembered as a global placeholder instead -- the
-			// system's own memory of the name, which every later run
-			// recognises and every compile overrides with its own component
-			return $this->remember($witnessed[0]);
-		}
-
-		if (count($witnessed) > 1)
-		{
-			// a split chorus is named, never guessed at -- the most
-			// spoken-for pair is recorded and the rest reported
-			$this->report->set('powers.vendor.also_witnessed', array_slice($witnessed, 1));
-		}
-
-		$row = $this->load->item(
-			[
-				'a.guid' => 'guid',
-				'a.add_namespace_prefix' => 'add_namespace_prefix',
-				'a.namespace_prefix' => 'namespace_prefix'
-			],
-			['a' => 'joomla_component'],
-			['a.id' => $id]
-		);
-
-		if ($row === null || trim((string) ($row->guid ?? '')) === '')
-		{
-			$this->report->set('powers.vendor.failed.component', $id);
-
-			return 0;
-		}
-
-		return $this->prefix($row, (string) $witnessed[0]['prefix'])
-			+ $this->override($row, (string) $witnessed[0]['component']);
-	}
-
-	/**
-	 * Remember the witnessed component segment as a global placeholder.
-	 *
-	 * @param   array{prefix: string, component: string, count: int}  $pair  The witnessed pair.
-	 *
-	 * @return  int  One when recorded, zero otherwise.
-	 * @since   6.1.9
-	 */
-	protected function remember(array $pair): int
-	{
-		$component = trim((string) ($pair['component'] ?? ''));
-		$prefix = trim((string) ($pair['prefix'] ?? ''));
-
-		if ($component === '')
-		{
-			return 0;
-		}
-
-		if ($prefix !== '')
-		{
-			// with no component row there is no place the prefix belongs;
-			// it is named so the run's record still carries it
-			$this->report->set('powers.vendor.unplaced.namespace_prefix', $prefix);
-		}
-
-		$rows = $this->load->items(
-			['a.target' => 'target', 'a.value' => 'value'],
-			['a' => 'placeholder']
-		);
-
-		foreach ((array) $rows as $row)
-		{
-			$row = (array) $row;
-
-			if ($this->placeholders->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
+			if ($write['table'] !== 'power')
 			{
 				continue;
 			}
 
-			$standing = trim(base64_decode((string) ($row['value'] ?? '')));
-
-			if ($standing !== $component)
+			foreach (array_keys($write['origins']) as $origin)
 			{
-				$this->report->set(
-					'powers.vendor.kept.global_component_namespace',
-					$standing . ' (the library was built with ' . $component . ')'
-				);
-			}
+				$key = str_starts_with($origin, 'power|') ? substr($origin, 6) : '';
+				$source = $this->harvest->get('classes.' . $key);
+				$result = $source['resolution'] ?? [];
 
-			return 0;
-		}
-
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('powers.vendor.dryrun.global_component_namespace', $component);
-
-			return 1;
-		}
-
-		$definition = new \stdClass();
-		$definition->target = '[[[ComponentNamespace]]]';
-		// the value travels raw: the placeholder table's own storage encoding
-		// is applied by the Data pipeline, exactly as every writer passes it
-		$definition->value = $component;
-		$definition->published = 1;
-
-		if (!$this->item->table('placeholder')->set($definition, 'target'))
-		{
-			$this->report->set('powers.vendor.failed.global_component_namespace', $component);
-
-			return 0;
-		}
-
-		$this->report->set('powers.vendor.global_component_namespace', $component);
-
-		return 1;
-	}
-
-	/**
-	 * Record the vendor prefix the library states, where none stands.
-	 *
-	 * @param   object  $row     The component row.
-	 * @param   string  $prefix  The witnessed vendor prefix.
-	 *
-	 * @return  int  One when recorded, zero otherwise.
-	 * @since   6.1.9
-	 */
-	protected function prefix(object $row, string $prefix): int
-	{
-		if ($prefix === '')
-		{
-			return 0;
-		}
-
-		$standing = trim((string) ($row->namespace_prefix ?? ''));
-
-		if ((int) ($row->add_namespace_prefix ?? 0) === 1 && $standing !== '')
-		{
-			if (strcasecmp($standing, $prefix) !== 0)
-			{
-				// the person's own prefix stands; the disagreement is named
-				$this->report->set(
-					'powers.vendor.kept.namespace_prefix',
-					$standing . ' (the library was built with ' . $prefix . ')'
-				);
-			}
-
-			return 0;
-		}
-
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('powers.vendor.dryrun.namespace_prefix', $prefix);
-
-			return 1;
-		}
-
-		$definition = new \stdClass();
-		$definition->guid = trim((string) $row->guid);
-		$definition->add_namespace_prefix = 1;
-		$definition->namespace_prefix = $prefix;
-
-		if (!$this->item->table('joomla_component')->set($definition, 'guid'))
-		{
-			$this->report->set('powers.vendor.failed.namespace_prefix', $prefix);
-
-			return 0;
-		}
-
-		$this->report->set('powers.vendor.namespace_prefix', $prefix);
-
-		return 1;
-	}
-
-	/**
-	 * Record the component segment's own casing, where the derivation differs.
-	 *
-	 * @param   object  $row        The component row.
-	 * @param   string  $component  The witnessed component segment.
-	 *
-	 * @return  int  One when recorded, zero otherwise.
-	 * @since   6.1.9
-	 */
-	protected function override(object $row, string $component): int
-	{
-		if ($component === ''
-			|| $this->placeholders->component() === $component)
-		{
-			// what resolves already is what the library carries
-			return 0;
-		}
-
-		$guid = trim((string) $row->guid);
-		$stored = $this->load->value(
-			['a.addplaceholders' => 'addplaceholders'],
-			['a' => 'component_placeholders'],
-			['a.joomla_component' => $guid]
-		);
-		$rows = is_string($stored) && trim($stored) !== ''
-			? json_decode($stored, true)
-			: [];
-		$rows = is_array($rows) ? $rows : [];
-
-		foreach ($rows as $standing)
-		{
-			$standing = (array) $standing;
-
-			if ($this->placeholders->target((string) ($standing['target'] ?? '')) === 'ComponentNamespace')
-			{
-				$value = trim((string) ($standing['value'] ?? ''));
-
-				if ($value !== $component)
+				if (!in_array($result['status'] ?? '', ['matched', 'new'], true)
+					|| !in_array($result['write_scope'] ?? '', ['component', 'new'], true)
+					|| in_array($source['action'] ?? '', ['ignored', 'filtered', 'skip'], true)
+					|| !empty($result['remapping']) || empty($result['namespace']['round_trip']))
 				{
-					// the person's own override stands; the disagreement is named
-					$this->report->set(
-						'powers.vendor.kept.component_namespace',
-						$value . ' (the library was built with ' . $component . ')'
-					);
+					continue;
 				}
 
+				$pair = $this->names->variables($source, $result['namespace']['value'], $this->identity->sourceContext($source));
+
+				if ($pair !== null && ($result['status'] === 'matched' || isset($source['binding'])))
+				{
+					$pairs[Plan::digest($pair)] = $pair;
+				}
+			}
+		}
+
+		$projected = $this->names->context();
+		$count = 0;
+
+		if (count($pairs) > 1)
+		{
+			$this->plan->block('namespace.values', 'Approved component-variable bindings disagree about their source values. No namespace configuration can be selected by a vote.');
+		}
+		elseif (count($pairs) === 1)
+		{
+			$pair = reset($pairs);
+			$id = (int) $this->config->get('component', 0);
+			$row = $id > 0 ? $this->load->item(['all' => 'a.*'], ['a' => 'joomla_component'], ['a.id' => $id]) : null;
+
+			if ($row === null && $id === 0)
+			{
+				foreach ($this->plan->writes() as $write)
+				{
+					if ($write['table'] === 'joomla_component' && $write['action'] === 'create')
+					{
+						$row = (object) $write['payload'];
+						break;
+					}
+				}
+			}
+
+			if ($row !== null && !empty($row->guid))
+			{
+				$count += $this->prefix($row, $pair['prefix'], $projected);
+				$count += $this->override($row, $pair['component'], $projected);
+			}
+			else
+			{
+				$this->report->set('powers.vendor.unplaced', 'No selected or newly staged component exists; no global namespace value was written.');
+			}
+		}
+
+		$this->project($projected);
+
+		return $count;
+	}
+
+	/**
+	 * Propose a vendor prefix only where the component has not explicitly set one.
+	 *
+	 * @param   object  $row      The selected or newly staged component row.
+	 * @param   string  $prefix   The validated source prefix value.
+	 * @param   array   $context  The projected target context for this plan.
+	 *
+	 * @return  int  One for a changed auxiliary proposal.
+	 * @since   6.2.0
+	 */
+	protected function prefix(object $row, string $prefix, array &$context): int
+	{
+		if ($prefix === '' || ((int) ($row->add_namespace_prefix ?? 0) === 1 && trim((string) ($row->namespace_prefix ?? '')) !== ''))
+		{
+			return 0;
+		}
+
+		$definition = (object) ['guid' => $row->guid, 'add_namespace_prefix' => 1, 'namespace_prefix' => $prefix];
+		$exists = (int) $this->item->table('joomla_component')->value($row->guid, 'guid', 'id') > 0;
+		$delta = $this->delta->weigh('joomla_component', 'guid', $row->guid, $definition, $exists, 'namespace|' . $row->guid);
+		$context['map'][Placeholders::PREFIX] = $prefix;
+		$context['map']['###NamespacePrefix###'] = $prefix;
+
+		return $delta['changed'] ? 1 : 0;
+	}
+
+	/**
+	 * Preserve explicit component overrides; stage only a missing required value.
+	 *
+	 * @param   object  $row        The selected or newly staged component.
+	 * @param   string  $component  The validated source component segment.
+	 * @param   array   $context    The projected target context.
+	 *
+	 * @return  int  One for a changed auxiliary proposal.
+	 * @since   6.2.0
+	 */
+	protected function override(object $row, string $component, array &$context): int
+	{
+		if ($component === '' || ($context['map'][Placeholders::COMPONENT] ?? '') === $component)
+		{
+			return 0;
+		}
+
+		$stored = $this->load->value(['a.addplaceholders' => 'addplaceholders'],
+			['a' => 'component_placeholders'], ['a.joomla_component' => $row->guid]);
+		$rows = $stored === null || $stored === '' ? [] : (is_string($stored) ? json_decode($stored, true) : null);
+
+		if (!is_array($rows))
+		{
+			$this->plan->block('namespace.overrides', 'Existing component placeholder data is malformed and cannot be safely extended.');
+
+			return 0;
+		}
+
+		foreach ($rows as $entry)
+		{
+			if ($this->placeholders->target((string) ($entry['target'] ?? '')) === 'ComponentNamespace')
+			{
 				return 0;
 			}
 		}
 
-		if ($this->config->get('dryRun', false))
-		{
-			$this->report->set('powers.vendor.dryrun.component_namespace', $component);
+		$number = 0;
 
-			return 1;
+		while (isset($rows['addplaceholders' . $number]))
+		{
+			$number++;
 		}
 
-		$next = 0;
+		$rows['addplaceholders' . $number] = ['target' => Placeholders::COMPONENT, 'value' => $component];
+		$exists = (int) $this->item->table('component_placeholders')->value($row->guid, 'joomla_component', 'id') > 0;
+		$definition = (object) ['joomla_component' => $row->guid, 'addplaceholders' => $rows];
 
-		while (isset($rows['addplaceholders' . $next]))
+		if (!$exists)
 		{
-			$next++;
+			$definition->published = 1;
 		}
 
-		// an override value is stored as plain text: the subform holds what
-		// the person typed, and the compiler reads it as it stands
-		$rows['addplaceholders' . $next] = [
-			'target' => '[[[ComponentNamespace]]]',
-			'value' => $component
-		];
+		$delta = $this->delta->weigh('component_placeholders', 'joomla_component', $row->guid, $definition, $exists, 'namespace|' . $row->guid);
+		$context['map'][Placeholders::COMPONENT] = $component;
+		$context['map']['###ComponentNamespace###'] = $component;
 
-		$definition = new \stdClass();
-		$definition->joomla_component = $guid;
-		$definition->addplaceholders = $rows;
-		$definition->published = 1;
+		return $delta['changed'] ? 1 : 0;
+	}
 
-		if (!$this->item->table('component_placeholders')->set($definition, 'joomla_component'))
+	/**
+	 * Expose final projected outputs, including the auxiliary values in this plan.
+	 *
+	 * @param   array  $context  The private projected target placeholder map.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function project(array $context): void
+	{
+		$outputs = [];
+
+		foreach ((array) $this->harvest->get('classes', []) as $key => $source)
 		{
-			$this->report->set('powers.vendor.failed.component_namespace', $component);
+			$result = $source['resolution'];
 
-			return 0;
+			if (!in_array($result['status'], ['matched', 'new'], true) || in_array($source['action'], ['ignored', 'filtered'], true))
+			{
+				continue;
+			}
+
+			$fqn = $this->names->resolve($result['namespace']['value'], $context);
+			$result['namespace']['target_fqn'] = $fqn;
+			$result['remapping'] = !empty($result['remapping']) || $fqn !== $result['namespace']['source_fqn'];
+			$index = strtolower($fqn);
+
+			if ($fqn === '')
+			{
+				$this->plan->block('namespace.target.' . $key, 'The projected target namespace has unresolved placeholders.');
+			}
+			elseif (isset($outputs[$index]) && $outputs[$index]['guid'] !== $result['write_guid'])
+			{
+				$this->plan->block('namespace.output.' . $key, 'Distinct approved definitions produce one class in the projected target context.');
+			}
+
+			$outputs[$index] = ['key' => $key, 'guid' => $result['write_guid']];
+			$source['resolution'] = $result;
+			$this->harvest->set('classes.' . $key, $source);
 		}
-
-		$this->report->set('powers.vendor.component_namespace', $component);
-
-		return 1;
 	}
 }

@@ -140,6 +140,14 @@ final class Scope
 	protected Proposal $proposal;
 
 	/**
+	 * The complete-operation write plan.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config     $config     The extrusion configuration.
@@ -156,6 +164,7 @@ final class Scope
 	 * @param   Report     $report     The run report registry.
 	 * @param   Message    $message    The message bus.
 	 * @param   Proposal   $proposal   The proposal registry.
+	 * @param   Plan       $plan       The complete operation write plan.
 	 *
 	 * @since   6.1.6
 	 */
@@ -173,7 +182,8 @@ final class Scope
 		Decision $decision,
 		Report $report,
 		Message $message,
-		Proposal $proposal
+		Proposal $proposal,
+		Plan $plan
 	)
 	{
 		$this->config = $config;
@@ -190,6 +200,7 @@ final class Scope
 		$this->report = $report;
 		$this->message = $message;
 		$this->proposal = $proposal;
+		$this->plan = $plan;
 	}
 
 	/**
@@ -232,7 +243,8 @@ final class Scope
 			'decision' => $this->decision,
 			'report' => $this->report,
 			'message' => $this->message,
-			'proposal' => $this->proposal
+			'proposal' => $this->proposal,
+			'plan' => $this->plan
 		];
 	}
 }

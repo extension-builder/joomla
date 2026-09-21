@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 use VDM\Joomla\Interfaces\TableInterface;
@@ -93,6 +94,14 @@ final class Delta
 	protected Report $report;
 
 	/**
+	 * The complete-operation write plan.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   ItemInterface   $item          The JCB data item reader.
@@ -110,7 +119,8 @@ final class Delta
 		Diff $diff,
 		Proposal $proposal,
 		Placeholders $placeholders,
-		Report $report
+		Report $report,
+		Plan $plan
 	)
 	{
 		$this->item = $item;
@@ -119,6 +129,7 @@ final class Delta
 		$this->proposal = $proposal;
 		$this->placeholders = $placeholders;
 		$this->report = $report;
+		$this->plan = $plan;
 	}
 
 	/**
@@ -197,9 +208,39 @@ final class Delta
 			$delta['deletions'] += $change['deletions'];
 		}
 
+		if ($this->plan->active())
+		{
+			$effective = clone $definition;
+
+			if ($exists)
+			{
+				foreach (get_object_vars($effective) as $column => $value)
+				{
+					if ($column !== $key && !array_key_exists($column, $columns))
+					{
+						unset($effective->{$column});
+					}
+				}
+			}
+
+			$id = $this->item->table($table)->value($identity, $key, 'id');
+			$this->plan->stage($table, $key, $identity, $effective, $delta, $standing, $id);
+		}
+
 		$this->proposal->propose($table, $identity, $delta);
 
 		return $delta;
+	}
+
+	/**
+	 * Whether the complete operation defers all persistence to preflight.
+	 *
+	 * @return  bool  True while all writers are staging.
+	 * @since   6.2.0
+	 */
+	public function staging(): bool
+	{
+		return $this->plan->active();
 	}
 
 	/**

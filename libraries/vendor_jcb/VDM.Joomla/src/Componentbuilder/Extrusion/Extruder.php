@@ -14,10 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Extrusion;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ExtruderInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher as ReaderDispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Commit;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
@@ -157,6 +160,30 @@ final class Extruder implements ExtruderInterface
 	protected Sharing $sharing;
 
 	/**
+	 * The complete-operation plan.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
+	 * The operation validation and commit boundary.
+	 *
+	 * @var    Commit
+	 * @since  6.2.0
+	 */
+	protected Commit $commit;
+
+	/**
+	 * The library engine participating in the same operation.
+	 *
+	 * @var    PowersExtruderInterface
+	 * @since  6.2.0
+	 */
+	protected PowersExtruderInterface $powers;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config            $config     The extrusion configuration.
@@ -188,10 +215,16 @@ final class Extruder implements ExtruderInterface
 		Prefix $prefix,
 		Reuse $reuse,
 		Candidates $candidates,
-		Sharing $sharing
+		Sharing $sharing,
+		Plan $plan,
+		Commit $commit,
+		PowersExtruderInterface $powers
 	)
 	{
 		$this->config = $config;
+		$this->plan = $plan;
+		$this->commit = $commit;
+		$this->powers = $powers;
 		$this->scope = $scope;
 		$this->collector = $collector;
 		$this->readers = $readers;
@@ -568,32 +601,57 @@ final class Extruder implements ExtruderInterface
 	 */
 	public function extrude(): Report
 	{
-		$views = $this->assembleSource();
+		$owner = $this->plan->begin();
 
-		if ($views === null)
+		try
 		{
+			$views = $this->assembleSource();
+
+			if ($views === null)
+			{
+				$this->plan->block('component.empty', 'No usable component source or schema was supplied.');
+			}
+			else
+			{
+				$this->reuse->apply();
+				$written = $this->writers->dispatch();
+
+				if ($views === 0 && $written === 0)
+				{
+					$this->plan->block('component.empty', 'No component definition was recoverable.');
+				}
+
+				if ((array) $this->config->get('libraries', []) !== [])
+				{
+					$this->powers->extrude();
+				}
+			}
+
+			$completed = $owner ? $this->commit->apply() : $this->plan->blockers() === [];
+
+			if ($completed && $owner)
+			{
+				$this->achieved((int) $views);
+			}
+
+			if ((array) $this->config->get('libraries', []) !== [])
+			{
+				$this->report->set('powers.completed', $completed && $owner);
+			}
+
+			return $this->finish($completed && $owner);
+		}
+		catch (\Throwable $error)
+		{
+			$this->plan->block('component.prepare', $error->getMessage());
+
+			if ($owner)
+			{
+				$this->commit->apply();
+			}
+
 			return $this->finish(false);
 		}
-
-		// what already stands in JCB is reused, never created again: every
-		// matched candidate without an explicit verdict updates its match,
-		// and matched fields record the identity their views must link
-		$this->reuse->apply();
-
-		$written = $this->writers->dispatch();
-
-		if ($views === 0 && $written === 0)
-		{
-			$this->message->error(
-				'Nothing described a table and nothing else was recoverable either, so '
-				. 'no definition was written.'
-			);
-
-			return $this->finish(false);
-		}
-		$this->achieved($views);
-
-		return $this->finish(true);
 	}
 
 	/**

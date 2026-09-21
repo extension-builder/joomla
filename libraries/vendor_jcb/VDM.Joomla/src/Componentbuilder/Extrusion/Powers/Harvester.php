@@ -15,7 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Scanner;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Reader\ClassFile;
-use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -32,10 +32,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
  * exists -- is deliberately the shape a caller presents for approval, so the
  * eventual interface only has to render it, never reorganise it.
  *
- * Identity is settled here and never revisited: a candidate that resolves to
- * an existing power carries that power's guid, and a new one derives a stable
- * version 5 guid from its class name, so a second harvest of the same library
- * lands on the same identities.
+ * A declaration's stable source key is independent of a selected database
+ * GUID. Raw observations survive ambiguous matching and are re-resolved under
+ * the final context and explicit pairing before assembly or persistence.
  *
  * @since 6.1.7
  */
@@ -74,12 +73,12 @@ final class Harvester
 	protected Namespacer $namespacer;
 
 	/**
-	 * The Existing Power Resolver.
+	 * The scoped Power identity resolver.
 	 *
-	 * @var    Existing
+	 * @var    Identity
 	 * @since  6.1.7
 	 */
-	protected Existing $existing;
+	protected Identity $identity;
 
 	/**
 	 * The Guid Resolver.
@@ -112,7 +111,7 @@ final class Harvester
 	 * @param   Scanner     $scanner     The bounded tree scanner.
 	 * @param   ClassFile   $reader      The class file reader.
 	 * @param   Namespacer  $namespacer  The namespace conversion resolver.
-	 * @param   Existing    $existing    The existing power resolver.
+	 * @param   Identity    $identity    The scoped identity resolver.
 	 * @param   Guid        $guid        The identity resolver.
 	 * @param   Harvest     $harvest     The harvest registry.
 	 * @param   Report      $report      The run report registry.
@@ -124,7 +123,7 @@ final class Harvester
 		Scanner $scanner,
 		ClassFile $reader,
 		Namespacer $namespacer,
-		Existing $existing,
+		Identity $identity,
 		Guid $guid,
 		Harvest $harvest,
 		Report $report
@@ -134,7 +133,7 @@ final class Harvester
 		$this->scanner = $scanner;
 		$this->reader = $reader;
 		$this->namespacer = $namespacer;
-		$this->existing = $existing;
+		$this->identity = $identity;
 		$this->guid = $guid;
 		$this->harvest = $harvest;
 		$this->report = $report;
@@ -153,19 +152,11 @@ final class Harvester
 	 */
 	public function harvest(): int
 	{
-		$signature = $this->namespacer->signature();
-
-		if ((bool) $this->harvest->get('harvested', false)
-			&& $this->harvest->get('signature') === $signature)
-		{
-			return (int) $this->report->get('counts.powers.classes', 0);
-		}
-
-		// a fresh gather must see the table as it stands now, and witness the
-		// placeholder values of its own classes rather than an earlier run's
+		// Re-read source and database evidence at every operation boundary. A
+		// namespace-value cache alone cannot detect source/relationship changes.
 		$this->harvest->clear();
-		$this->existing->refresh();
-		$this->namespacer->forget();
+		$this->identity->refresh();
+		$signature = $this->namespacer->signature();
 
 		$found = 0;
 		$existing = 0;
@@ -317,7 +308,7 @@ final class Harvester
 			$bundle = $candidate['bundle'];
 			$bundles[$bundle] ??= ['folder' => $bundle, 'count' => 0, 'classes' => []];
 			$bundles[$bundle]['count']++;
-			$bundles[$bundle]['classes'][] = $candidate['guid'];
+			$bundles[$bundle]['classes'][] = $candidate['source_key'];
 		}
 
 		$this->harvest->set('libraries.' . $key, [
@@ -347,7 +338,7 @@ final class Harvester
 	 * @param   string  $library  The library key the candidate belongs to.
 	 * @param   string  $folder   The library's own folder name, which states its head.
 	 *
-	 * @return  array{guid: string, exists: bool, bundle: string}|null  The stored candidate essentials, or null.
+	 * @return  array{source_key: string, guid: string|null, exists: bool, bundle: string}|null  The stored candidate essentials, or null.
 	 * @since   6.1.7
 	 */
 	protected function candidate(string $file, string $source, string $library, string $folder): ?array
@@ -409,69 +400,113 @@ final class Harvester
 			explode('/', trim($source, '/'))
 		);
 
+		$placement = $stored !== null && basename($file, '.php') === $parts['class'];
+		$metadata = $this->metadata($file, $parts);
+
+		if ($metadata !== null && !isset($metadata['error']))
+		{
+			$context = $this->namespacer->context((int) $this->config->get('sourceComponent', $this->config->get('component', 0)));
+			$observed = $this->namespacer->expand($metadata['namespace'], $context);
+
+			if ($this->namespacer->key($this->namespacer->resolve($metadata['namespace'], $context)) === $this->namespacer->key($fqn))
+			{
+				// Compiler Power distribution puts code.php beside settings.json.
+				// That validated metadata describes its intended compiled location;
+				// the GUID-named distribution directory does not imply relocation.
+				$stored = $observed;
+				$placement = true;
+			}
+			else
+			{
+				$metadata['error'] = 'Power metadata does not reconstruct this source namespace.';
+			}
+		}
+
 		if ($stored === null)
 		{
 			$stored = $this->namespacer->conventional($parts['namespace'], $parts['class']);
 			$this->report->set('powers.derived.convention.' . md5($file), $fqn);
 		}
 
-		$placeholder = $this->namespacer->placeholderize($stored);
-
-		// a power is the same power when it folds to the same stored
-		// namespace, whatever prefix the library it came out of was built
-		// with -- and failing that, when it compiles to the very class name
-		$matched = '';
-		$existing = $this->existing->match($placeholder);
-
-		if ($existing !== null)
+		$sections = explode('\\', $stored);
+		$location = str_replace('.', '/', (string) array_pop($sections)) . '.php';
+		$unit = 'unit_' . hash('sha256', strtolower(implode('\\', $sections)));
+		// A nonconforming filename is still a distinct, visible observation.
+		// Absolute installation paths and selected ancestor folders are not
+		// logical identity inputs.
+		if (!$placement)
 		{
-			$matched = 'identity';
-		}
-		elseif (($existing = $this->existing->find($fqn)) !== null)
-		{
-			$matched = 'class';
+			$location .= '|' . basename($file);
 		}
 
-		$guid = $existing['guid'] ?? $this->guid->derive(['power', $placeholder]);
-
-		if ($this->harvest->exists('classes.' . $guid))
-		{
-			$this->report->set('powers.skipped.duplicate.' . md5($file), $fqn);
-
-			return null;
-		}
-
-		$this->harvest->set('classes.' . $guid, [
-			'guid' => $guid,
+		$key = 'source_' . hash('sha256', serialize([$unit, strtolower($fqn), $location, $parts['type']]));
+		$occurrence = ['file' => $file, 'relative' => $relative, 'snapshot' => hash('sha256', $code)];
+		$candidate = [
+			'source_key' => $key,
+			'source_unit' => $unit,
+			'source_component_id' => (int) $this->config->get('sourceComponent', $this->config->get('component', 0)),
+			'source_guid' => $metadata['guid'] ?? '',
+			'metadata_files' => isset($metadata['file']) ? [['file' => $metadata['file'], 'snapshot' => $metadata['snapshot']]] : [],
 			'library' => $library,
 			'file' => $file,
 			'relative' => $relative,
+			'location' => $location,
 			'bundle' => $bundle,
 			'class' => $parts['class'],
 			'type' => $parts['type'],
 			'namespace' => $parts['namespace'],
 			'fqn' => $fqn,
 			'stored' => $stored,
-			'placeholder' => $placeholder,
-			'exists' => $existing !== null,
-			'id' => $existing['id'] ?? 0,
-			'matched' => $matched,
-			'standing' => (string) ($existing['namespace'] ?? ''),
-			'action' => $existing === null ? 'create'
-				: ($this->config->get('onExisting', 'update') === 'skip' ? 'skip' : 'update'),
+			'placement_valid' => $placement,
+			'placement_evidence' => $metadata === null ? $relative : 'settings.json',
+			'occurrences' => [$occurrence],
 			'docblock' => $parts['docblock'],
 			'license' => $parts['license'],
 			'extends' => $parts['extends'],
 			'implements' => $parts['implements'],
 			'uses' => $parts['uses'],
 			'body' => (string) $parts['body']
-		]);
-
-		return [
-			'guid' => $guid,
-			'exists' => $existing !== null,
-			'bundle' => $bundle
 		];
+
+		if (isset($metadata['error']))
+		{
+			$candidate['source_error'] = $metadata['error'];
+		}
+
+		$previous = $this->harvest->get('classes.' . $key);
+
+		if (is_array($previous))
+		{
+			foreach ($previous['occurrences'] as $seen)
+			{
+				if ($seen['file'] === $file)
+				{
+					$this->report->set('powers.skipped.duplicate.' . md5($file), $fqn);
+
+					return null;
+				}
+			}
+
+			$previous['occurrences'][] = $occurrence;
+			$this->harvest->set('classes.' . $key, $previous);
+			$this->report->set('powers.duplicate.sources.' . $key, array_column($previous['occurrences'], 'file'));
+
+			return ['source_key' => $key, 'guid' => $previous['guid'], 'exists' => $previous['exists'], 'bundle' => $bundle];
+		}
+
+		$result = $this->identity->resolve($candidate);
+		$candidate['resolution'] = $result;
+		$candidate['guid'] = $result['write_guid'];
+		$candidate['matched_guid'] = $result['matched_guid'];
+		$candidate['placeholder'] = $result['namespace']['value'] ?? $this->namespacer->placeholderize($stored, false);
+		$candidate['exists'] = $result['status'] === 'matched';
+		$candidate['id'] = $result['target']['id'] ?? 0;
+		$candidate['standing'] = $result['target']['namespace'] ?? '';
+		$candidate['action'] = $result['status'] === 'new' ? 'create'
+			: ($result['status'] === 'matched' ? 'update' : $result['status']);
+		$this->harvest->set('classes.' . $key, $candidate);
+
+		return ['source_key' => $key, 'guid' => $candidate['guid'], 'exists' => $candidate['exists'], 'bundle' => $bundle];
 	}
 
 	/**
@@ -486,4 +521,41 @@ final class Harvester
 	{
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
+	/**
+	 * Validate optional compiler-generated metadata beside a distributed Power.
+	 *
+	 * @param   string  $file   An already scanned PHP source file.
+	 * @param   array   $parts  The lexically read declaration.
+	 *
+	 * @return  array|null  Validated identity/namespace metadata, an error, or none.
+	 * @since   6.2.0
+	 */
+	protected function metadata(string $file, array $parts): ?array
+	{
+		if (basename($file) !== 'code.php')
+		{
+			return null;
+		}
+
+		$path = dirname($file) . '/settings.json';
+
+		if (!is_file($path) || is_link($path) || realpath(dirname($path)) !== realpath(dirname($file)))
+		{
+			return null;
+		}
+
+		$text = $this->scanner->read($path);
+		$data = $text === null ? null : json_decode($text, true);
+
+		if (!is_array($data) || !$this->guid->valid($data['guid'] ?? null)
+			|| !is_string($data['namespace'] ?? null)
+			|| strcasecmp((string) ($data['name'] ?? ''), $parts['class']) !== 0
+			|| (string) ($data['type'] ?? '') !== $parts['type'])
+		{
+			return ['error' => 'The optional Power metadata is malformed or contradicts its declaration.'];
+		}
+
+		return ['guid' => strtolower($data['guid']), 'namespace' => $data['namespace'], 'file' => $path, 'snapshot' => hash('sha256', $text)];
+	}
+
 }

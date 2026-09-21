@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion;
 
 
 use Joomla\DI\Container;
+use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
@@ -104,6 +105,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->item = new ExtrusionItemFixture();
 		$this->catalogue = new ExtrusionCatalogueFixture();
 		$this->container = new Container();
+		$this->container->set('Joomla.Database', $this->createStub(DatabaseInterface::class), true);
 		$this->container->share('Data.Item', fn (): ExtrusionItemFixture => $this->item);
 		$this->container->share('Load', fn (): ExtrusionCatalogueFixture => $this->catalogue);
 		$this->container->share('Table', static fn (): Table => new Table(), true);

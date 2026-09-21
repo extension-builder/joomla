@@ -69,6 +69,31 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	private array $placeholders = [];
 
 	/**
+	 * Additional raw records for metadata-driven relationship tests.
+	 *
+	 * @var    array<string, array<int, object>>
+	 * @since  6.2.0
+	 */
+	private array $records = [];
+
+	/**
+	 * Declare or replace a raw record without implementing any graph logic.
+	 *
+	 * @param   string  $table  The table name.
+	 * @param   int     $id     The row id.
+	 * @param   array   $row    Raw stored columns.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.2.0
+	 */
+	public function record(string $table, int $id, array $row): self
+	{
+		$this->records[$table][$id] = (object) (['id' => $id] + $row);
+
+		return $this;
+	}
+
+	/**
 	 * Declare one system-wide placeholder row.
 	 *
 	 * The value is given raw and stored base64 encoded, exactly as the
@@ -130,6 +155,7 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	public function component(int $id, string $guid, string $code, int $add = 0, string $prefix = ''): self
 	{
 		$this->components[$id] = (object) [
+			'id' => $id,
 			'guid' => $guid,
 			'name_code' => $code,
 			'add_namespace_prefix' => $add,
@@ -203,22 +229,28 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	public function items(array $select, array $tables, ?array $where = null,
 		?array $order = null, ?int $limit = null): ?array
 	{
-		if (($tables['a'] ?? '') === 'power')
+		$table = $tables['a'] ?? '';
+		$rows = match ($table)
 		{
-			return $this->powers === [] ? null : $this->powers;
+			'power' => $this->powers,
+			'joomla_component' => array_values($this->components),
+			'placeholder' => $this->placeholders,
+			default => []
+		};
+
+		foreach ($this->records[$table] ?? [] as $id => $row)
+		{
+			$rows = array_filter($rows, static fn (object $old): bool => (int) ($old->id ?? 0) !== $id);
+			$rows[] = $row;
 		}
 
-		if (($tables['a'] ?? '') === 'joomla_component')
+		foreach ($where ?? [] as $field => $value)
 		{
-			return $this->components === [] ? null : array_values($this->components);
+			$field = str_starts_with($field, 'a.') ? substr($field, 2) : $field;
+			$rows = array_filter($rows, static fn (object $row): bool => (string) ($row->{$field} ?? '') === (string) $value);
 		}
 
-		if (($tables['a'] ?? '') === 'placeholder')
-		{
-			return $this->placeholders === [] ? null : $this->placeholders;
-		}
-
-		return null;
+		return $rows === [] ? null : array_values($rows);
 	}
 
 	/**
@@ -250,12 +282,9 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	 */
 	public function item(array $select, array $tables, ?array $where = null, ?array $order = null): ?object
 	{
-		if (($tables['a'] ?? '') === 'joomla_component')
-		{
-			return $this->components[(int) ($where['a.id'] ?? 0)] ?? null;
-		}
+		$rows = $this->items($select, $tables, $where, $order);
 
-		return null;
+		return $rows === null ? null : reset($rows);
 	}
 
 	/**

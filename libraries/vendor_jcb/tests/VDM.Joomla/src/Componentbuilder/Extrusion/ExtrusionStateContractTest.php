@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -540,19 +541,19 @@ final class ExtrusionStateContractTest extends TestCase
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheThirteenStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheFourteenStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(13, $exposed);
+		$this->assertCount(14, $exposed);
 		$this->assertSame(
 			[
 				'source', 'inventory', 'table', 'schema', 'form',
 				'language', 'view', 'resolved', 'harvest', 'decision', 'report',
-				'message', 'proposal'
+				'message', 'proposal', 'plan'
 			],
 			array_keys($exposed)
 		);
@@ -731,7 +732,8 @@ final class ExtrusionStateContractTest extends TestCase
 			'decision' => new Decision(),
 			'report' => new Report(),
 			'message' => new Message(),
-			'proposal' => new Proposal()
+			'proposal' => new Proposal(),
+			'plan' => new Plan()
 		];
 	}
 
