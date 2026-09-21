@@ -127,7 +127,7 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 		<div class="row p-md-3">
 			<div class="col-md-8">
 				<h3><?php echo Text::_('Pair the harvest with what you already have'); ?></h3>
-				<p><?php echo Text::_('Everything below was found in the source. A matched item is set to update its match; everything else is created new. Change any decision -- nothing is written until you import.'); ?></p>
+				<p><?php echo Text::_('Everything below was found in the source. Proposals identify the actual target records. Ambiguous or conflicting Powers must be resolved before import. Change any decision -- nothing is written until you approve the current plan.'); ?></p>
 			</div>
 			<div class="col-md-4" style="text-align: right;">
 				<label for="extrusion-component-select" style="display:block;"><?php echo Text::_('Target component'); ?></label>
@@ -145,9 +145,17 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 			</span>
 		</div>
 		<div id="extrusion-board" class="p-md-2"></div>
+		<div class="p-md-2">
+			<div id="extrusion-review-notice" role="status" aria-live="polite"></div>
+			<div id="extrusion-scope-approval" class="alert alert-warning" hidden>
+				<p><?php echo Text::_('The reviewed changes affect these scopes:'); ?> <strong id="extrusion-required-scopes"></strong></p>
+				<label for="extrusion-acknowledge-scopes"><input type="checkbox" id="extrusion-acknowledge-scopes" />
+					<?php echo Text::_('I acknowledge the scope of these reviewed changes.'); ?></label>
+			</div>
+		</div>
 		<div class="p-md-3">
 			<?php if ($this->canDo->get('extrusion.import')): ?>
-				<button type="button" class="btn btn-success btn-lg px-4" id="extrusion-import-button">
+				<button type="button" class="btn btn-success btn-lg px-4" id="extrusion-import-button" disabled>
 					<span class="icon-download icon-white" aria-hidden="true"></span>
 					<?php echo Text::_('Import into JCB'); ?>
 				</button>
@@ -192,12 +200,41 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 	</div>
 </div>
 
+<style>
+.extrusion-power-evidence { display: block; overflow-wrap: anywhere; margin-top: .35rem; }
+.extrusion-power-evidence > span, .extrusion-power-evidence > code, .extrusion-power-evidence details > span, .extrusion-power-evidence details > code { display: block; }
+</style>
 <script type="text/javascript">
 // the extrusion page bootstrap
 window.JCBExtrusion = {
 	url: '<?php echo $urlAjax; ?>',
 	canImport: <?php echo $this->canDo->get('extrusion.import') ? 'true' : 'false'; ?>,
 	text: {
+		reviewPending: '<?php echo Text::_('Resolving the current targets and write plan...', true); ?>',
+		reviewBlocked: '<?php echo Text::_('Import is blocked until the following conflicts are resolved:', true); ?>',
+		reviewReady: '<?php echo Text::_('The current targets and effective changes have been validated.', true); ?>',
+		actualTarget: '<?php echo Text::_('Actual target', true); ?>',
+		newIdentity: '<?php echo Text::_('New Power identity', true); ?>',
+		knownConsumers: '<?php echo Text::_('Known component usage', true); ?>',
+		writeScope: '<?php echo Text::_('Write scope', true); ?>',
+		otherCandidates: '<?php echo Text::_('Other candidates', true); ?>',
+		relocation: '<?php echo Text::_('Validated namespace relocation', true); ?>',
+		skippedExisting: '<?php echo Text::_('Skipped existing (available to dependencies)', true); ?>',
+		unresolved: '<?php echo Text::_('unresolved', true); ?>',
+		status_matched: '<?php echo Text::_('Matched', true); ?>',
+		status_new: '<?php echo Text::_('New', true); ?>',
+		status_ambiguous: '<?php echo Text::_('Ambiguous', true); ?>',
+		status_conflict: '<?php echo Text::_('Conflict', true); ?>',
+		status_unresolved: '<?php echo Text::_('Unresolved', true); ?>',
+		status_ignored: '<?php echo Text::_('Ignored', true); ?>',
+		status_filtered: '<?php echo Text::_('Filtered', true); ?>',
+		scope_component: '<?php echo Text::_('Selected component', true); ?>',
+		scope_new: '<?php echo Text::_('New definition', true); ?>',
+		scope_shared: '<?php echo Text::_('Shared definition', true); ?>',
+		scope_foreign: '<?php echo Text::_('Other component', true); ?>',
+		scope_unknown: '<?php echo Text::_('Usage not fully established', true); ?>',
+		scope_unestablished: '<?php echo Text::_('Usage not fully established', true); ?>',
+		scope_remapping: '<?php echo Text::_('Source-to-target namespace remapping', true); ?>',
 		harvesting: '<?php echo Text::_('is being harvested', true); ?>',
 		importing: '<?php echo Text::_('is being imported', true); ?>',
 		theSource: '<?php echo Text::_('The source', true); ?>',
@@ -210,7 +247,7 @@ window.JCBExtrusion = {
 		ignore: '<?php echo Text::_('Ignore', true); ?>',
 		proposed: '<?php echo Text::_('proposed', true); ?>',
 		detected: '<?php echo Text::_('The source was recognised as', true); ?>',
-		noTarget: '<?php echo Text::_('None - everything is created new', true); ?>',
+		noTarget: '<?php echo Text::_('No target component', true); ?>',
 		chooseTarget: '<?php echo Text::_('Choose the target', true); ?>',
 		noMatches: '<?php echo Text::_('Nothing matches your search', true); ?>',
 		adminViews: '<?php echo Text::_('Admin views', true); ?>',

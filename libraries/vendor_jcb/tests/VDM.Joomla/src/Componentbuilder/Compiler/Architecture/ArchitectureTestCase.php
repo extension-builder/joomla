@@ -376,6 +376,12 @@ abstract class ArchitectureTestCase extends FilesystemTestCase
 		);
 	}
 
+	/**
+	 * Isolate deferred custom code in generated architecture tests.
+	 *
+	 * @return  Dispenser  A typed empty custom-code boundary.
+	 * @since   6.2.0
+	 */
 	private function createDispenser(): Dispenser
 	{
 		$dispenser = $this->createStub(Dispenser::class);

@@ -79,5 +79,7 @@ jobs:
             .gui-tests/test-results
             .gui-tests/container.log
             .gui-tests/install.log
+            .gui-tests/extrusion-*.log
+            .gui-tests/extrusion-*.json
           if-no-files-found: warn
           retention-days: 30
