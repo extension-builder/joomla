@@ -20,6 +20,14 @@
  * @since   1.0.0
  */
 return [
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Commit.php' => [
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CommitTest.php',
+		'mode' => 'integration'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Registry/Plan.php' => [
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CommitTest.php',
+		'mode' => 'integration'
+	],
 	'VDM.Joomla.Git/src/Repository/Contents.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla.Git/src/Repository/ContentsTest.php'
@@ -4067,6 +4075,14 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Reader/ClassFile.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Reader/ClassFileTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Resolver/References.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Resolver/ReferencesTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Resolver/Identity.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Resolver/IdentityTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Powers/Resolver/Existing.php' => [
 		'mode' => 'unit',

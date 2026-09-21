@@ -22,6 +22,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -81,6 +82,9 @@ class Registry implements ServiceProviderInterface
 		$container->alias(Resolved::class, 'Extrusion.Registry.Resolved')
 			->share('Extrusion.Registry.Resolved', [$this, 'getResolved'], true);
 
+		$container->alias(Plan::class, 'Extrusion.Registry.Plan')
+			->share('Extrusion.Registry.Plan', [$this, 'getPlan'], true);
+
 		$container->alias(Proposal::class, 'Extrusion.Registry.Proposal')
 			->share('Extrusion.Registry.Proposal', [$this, 'getProposal'], true);
 
@@ -134,7 +138,8 @@ class Registry implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Decision'),
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Message'),
-			$container->get('Extrusion.Registry.Proposal')
+			$container->get('Extrusion.Registry.Proposal'),
+			$container->get('Extrusion.Registry.Plan')
 		);
 	}
 
@@ -305,5 +310,18 @@ class Registry implements ServiceProviderInterface
 	public function getProposal(Container $container): Proposal
 	{
 		return new Proposal();
+	}
+
+	/**
+	 * Get the complete-operation plan registry.
+	 *
+	 * @param   Container  $container  The service container.
+	 *
+	 * @return  Plan  The shared operation plan.
+	 * @since   6.2.0
+	 */
+	public function getPlan(Container $container): Plan
+	{
+		return new Plan();
 	}
 }

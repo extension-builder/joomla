@@ -19,6 +19,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Vendor as VendorWriter;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Commit;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
 
 
@@ -115,6 +117,22 @@ final class Extruder implements PowersExtruderInterface
 	protected Message $message;
 
 	/**
+	 * The complete-operation plan.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
+	 * The operation validation and commit boundary.
+	 *
+	 * @var    Commit
+	 * @since  6.2.0
+	 */
+	protected Commit $commit;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config       $config     The extrusion configuration.
@@ -138,10 +156,14 @@ final class Extruder implements PowersExtruderInterface
 		VendorWriter $vendor,
 		Harvest $harvest,
 		Report $report,
-		Message $message
+		Message $message,
+		Plan $plan,
+		Commit $commit
 	)
 	{
 		$this->config = $config;
+		$this->plan = $plan;
+		$this->commit = $commit;
 		$this->scope = $scope;
 		$this->harvester = $harvester;
 		$this->assembler = $assembler;
@@ -360,6 +382,8 @@ final class Extruder implements PowersExtruderInterface
 			return $this->finish(false);
 		}
 
+		$this->assembler->assemble();
+
 		$this->message->success(
 			'Harvested ' . $found . ' class(es): '
 			. (int) $this->report->get('counts.powers.new', 0) . ' new, '
@@ -379,59 +403,42 @@ final class Extruder implements PowersExtruderInterface
 	 */
 	public function extrude(): Report
 	{
-		if ((array) $this->config->get('libraries', []) === [])
+		$owner = $this->plan->begin();
+
+		try
 		{
-			$this->message->error('No library folder was given to harvest powers from.');
+			if ((array) $this->config->get('libraries', []) === [] || $this->harvester->harvest() === 0)
+			{
+				$this->plan->block('powers.empty', 'No usable class was found in the supplied library folders.');
+			}
+
+			$assembled = $this->assembler->assemble();
+			$this->writer->write();
+			$this->vendor->write();
+			$completed = $owner ? $this->commit->apply() : $this->plan->blockers() === [];
+
+			if ($owner && $completed)
+			{
+				$this->achieved($assembled);
+			}
+			elseif ($owner)
+			{
+				$this->message->error('The complete import was not committed. Review its write-plan blockers or failure report.');
+			}
+
+			return $this->finish($completed && $owner);
+		}
+		catch (\Throwable $error)
+		{
+			$this->plan->block('powers.prepare', $error->getMessage());
+
+			if ($owner)
+			{
+				$this->commit->apply();
+			}
 
 			return $this->finish(false);
 		}
-
-		if ($this->harvester->harvest() === 0)
-		{
-			$this->message->error(
-				'No class was found in the given library folder(s), so there is '
-				. 'nothing to extrude.'
-			);
-			$this->shortfalls();
-
-			return $this->finish(false);
-		}
-
-		$assembled = $this->assembler->assemble();
-		$skipped = (int) $this->report->get('counts.powers.skipped', 0);
-
-		if ($assembled === 0 && $skipped > 0)
-		{
-			// nothing to write is the right answer, not a failure: the caller
-			// asked to be told what already exists rather than to overwrite it
-			$this->message->success(sprintf(
-				'Every one of the %d harvested class(es) is already a power, so '
-				. 'none was written.',
-				$skipped
-			));
-
-			return $this->finish(true);
-		}
-
-		if ($assembled === 0)
-		{
-			$this->message->error(
-				'Every harvested class was filtered out, so no power was written.'
-			);
-			$this->shortfalls();
-
-			return $this->finish(false);
-		}
-
-		$this->writer->write();
-
-		// the values the library was built with are recorded onto the paired
-		// component, so compiling it resolves every class back to its own home
-		$this->vendor->write();
-
-		$this->achieved($assembled);
-
-		return $this->finish(true);
 	}
 
 	/**

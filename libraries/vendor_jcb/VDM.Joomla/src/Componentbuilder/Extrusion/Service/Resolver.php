@@ -17,6 +17,7 @@ use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Condition;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Commit;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Diff;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\FieldXml;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Fieldtype;
@@ -95,6 +96,9 @@ class Resolver implements ServiceProviderInterface
 
 		$container->alias(Diff::class, 'Extrusion.Resolver.Diff')
 			->share('Extrusion.Resolver.Diff', [$this, 'getDiff'], true);
+
+		$container->alias(Commit::class, 'Extrusion.Resolver.Commit')
+			->share('Extrusion.Resolver.Commit', [$this, 'getCommit'], true);
 
 		$container->alias(Delta::class, 'Extrusion.Resolver.Delta')
 			->share('Extrusion.Resolver.Delta', [$this, 'getDelta'], true);
@@ -544,7 +548,31 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Diff'),
 			$container->get('Extrusion.Registry.Proposal'),
 			$container->get('Extrusion.Powers.Resolver.Placeholders'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Plan')
+		);
+	}
+
+	/**
+	 * Get the validated operation commit boundary.
+	 *
+	 * @param   Container  $container  The service container.
+	 *
+	 * @return  Commit  The shared commit service.
+	 * @since   6.2.0
+	 */
+	public function getCommit(Container $container): Commit
+	{
+		return new Commit(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Registry.Plan'),
+			$container->get('Data.Item'),
+			$container->get('Joomla.Database'),
+			$container->get('Extrusion.Powers.Resolver.Identity'),
+			$container->get('Extrusion.Registry.Harvest'),
+			$container->get('Extrusion.Registry.Decision'),
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Scanner')
 		);
 	}
 }

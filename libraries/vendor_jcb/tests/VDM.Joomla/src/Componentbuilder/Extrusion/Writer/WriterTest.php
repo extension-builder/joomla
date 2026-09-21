@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Writer;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use ArrayObject;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -2194,7 +2195,8 @@ final class WriterTest extends TestCase
 			new Diff(),
 			$this->proposal,
 			$this->placeholders(),
-			$this->report
+			$this->report,
+			new Plan()
 		);
 	}
 

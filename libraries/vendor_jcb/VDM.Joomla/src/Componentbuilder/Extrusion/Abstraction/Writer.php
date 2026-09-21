@@ -215,11 +215,27 @@ abstract class Writer implements WriterInterface
 			return true;
 		}
 
+		if ($this->delta->staging())
+		{
+			return true;
+		}
+
 		if ($this->config->get('dryRun', false))
 		{
 			$this->report->set('dryrun.' . $this->table() . '.' . $identity, true);
 
 			return true;
+		}
+
+		if ($stands)
+		{
+			foreach (get_object_vars($definition) as $column => $value)
+			{
+				if ($column !== $key && !array_key_exists($column, $delta['columns']))
+				{
+					unset($definition->{$column});
+				}
+			}
 		}
 
 		if (!$this->item->table($this->table())->set($definition, $key))

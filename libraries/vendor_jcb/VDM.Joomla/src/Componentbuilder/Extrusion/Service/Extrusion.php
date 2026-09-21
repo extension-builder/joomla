@@ -67,7 +67,10 @@ class Extrusion implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Prefix'),
 			$container->get('Extrusion.Resolver.Reuse'),
 			$container->get('Extrusion.Resolver.Candidates'),
-			$container->get('Extrusion.Resolver.Sharing')
+			$container->get('Extrusion.Resolver.Sharing'),
+			$container->get('Extrusion.Registry.Plan'),
+			$container->get('Extrusion.Resolver.Commit'),
+			$container->get('Extrusion.Powers.Extruder')
 		);
 	}
 }

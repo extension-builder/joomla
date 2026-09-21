@@ -20,6 +20,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Extruder;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Harvester;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Reader\ClassFile;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Extractor;
+use VDM\Joomla\Componentbuilder\Factory as EntityFactory;
+use VDM\Joomla\Componentbuilder\Power\Table as PowerTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Power as PowerWriter;
@@ -63,6 +68,12 @@ class Powers implements ServiceProviderInterface
 
 		$container->alias(Existing::class, 'Extrusion.Powers.Resolver.Existing')
 			->share('Extrusion.Powers.Resolver.Existing', [$this, 'getExisting'], true);
+
+		$container->alias(References::class, 'Extrusion.Powers.Resolver.References')
+			->share('Extrusion.Powers.Resolver.References', [$this, 'getReferences'], true);
+
+		$container->alias(Identity::class, 'Extrusion.Powers.Resolver.Identity')
+			->share('Extrusion.Powers.Resolver.Identity', [$this, 'getIdentity'], true);
 
 		$container->alias(Harvester::class, 'Extrusion.Powers.Harvester')
 			->share('Extrusion.Powers.Harvester', [$this, 'getHarvester'], true);
@@ -174,7 +185,7 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Scanner'),
 			$container->get('Extrusion.Powers.Reader.ClassFile'),
 			$container->get('Extrusion.Powers.Resolver.Namespacer'),
-			$container->get('Extrusion.Powers.Resolver.Existing'),
+			$container->get('Extrusion.Powers.Resolver.Identity'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Harvest'),
 			$container->get('Extrusion.Registry.Report')
@@ -199,7 +210,8 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Resolver.Constants'),
 			$container->get('Extrusion.Powers.Resolver.Namespacer'),
-			$container->get('Extrusion.Resolver.Placeholder')
+			$container->get('Extrusion.Resolver.Placeholder'),
+			$container->get('Extrusion.Powers.Resolver.Identity')
 		);
 	}
 
@@ -238,7 +250,12 @@ class Powers implements ServiceProviderInterface
 			$container->get('Load'),
 			$container->get('Data.Item'),
 			$container->get('Extrusion.Powers.Resolver.Placeholders'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Harvest'),
+			$container->get('Extrusion.Registry.Plan'),
+			$container->get('Extrusion.Resolver.Delta'),
+			$container->get('Extrusion.Powers.Resolver.Namespacer'),
+			$container->get('Extrusion.Powers.Resolver.Identity')
 		);
 	}
 
@@ -261,7 +278,66 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Powers.Writer.Vendor'),
 			$container->get('Extrusion.Registry.Harvest'),
 			$container->get('Extrusion.Registry.Report'),
-			$container->get('Extrusion.Registry.Message')
+			$container->get('Extrusion.Registry.Message'),
+			$container->get('Extrusion.Registry.Plan'),
+			$container->get('Extrusion.Resolver.Commit')
 		);
 	}
+	/**
+	 * Get the read-only reference graph without constructing the Compiler.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  References
+	 * @since   6.2.0
+	 */
+	public function getReferences(Container $container): References
+	{
+		$core = new PowerTable();
+		$children = [];
+
+		foreach ($core->tables() as $entity)
+		{
+			$area = EntityFactory::getArea($entity);
+
+			if ($area === null)
+			{
+				continue;
+			}
+
+			$class = 'VDM\\Joomla\\Componentbuilder\\Package\\' . $area . '\\Remote\\Config';
+
+			if (is_subclass_of($class, \VDM\Joomla\Abstraction\Remote\Config::class))
+			{
+				$children[$entity] = (new $class($core))->getChildren();
+			}
+		}
+
+		return new References(
+			$container->get('Load'),
+			$core,
+			new Extractor($container->get('Joomla.Database')),
+			$children
+		);
+	}
+
+	/**
+	 * Get the common source and dependency identity resolver.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Identity
+	 * @since   6.2.0
+	 */
+	public function getIdentity(Container $container): Identity
+	{
+		return new Identity(
+			$container->get('Extrusion.Config'),
+			$container->get('Extrusion.Powers.Resolver.Existing'),
+			$container->get('Extrusion.Powers.Resolver.Namespacer'),
+			$container->get('Extrusion.Powers.Resolver.References'),
+			$container->get('Extrusion.Resolver.Guid')
+		);
+	}
+
 }

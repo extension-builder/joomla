@@ -134,17 +134,27 @@ final class Power extends Writer
 	{
 		$written = 0;
 
-		foreach ((array) $this->harvest->get('resolved', []) as $definition)
+		foreach ((array) $this->harvest->get('resolved', []) as $sourceKey => $definition)
 		{
 			if (!is_object($definition))
 			{
 				$definition = (object) $definition;
 			}
 
-			// a power's board row is the identity the harvest gave the class,
-			// which a verdict may have replaced with the one it is written under
 			$guid = (string) ($definition->guid ?? '');
-			$row = 'power|' . (string) $this->harvest->get('rows.' . $guid, $guid);
+			$candidate = $this->harvest->get('classes.' . $sourceKey);
+
+			if (!$this->delta->staging() || !is_array($candidate)
+				|| ($candidate['resolution']['write_guid'] ?? null) !== $guid
+				|| !in_array($candidate['resolution']['status'] ?? '', ['matched', 'new'], true)
+				|| ($candidate['resolution']['write_eligibility'] ?? 'blocked') === 'blocked')
+			{
+				$this->report->set('failed.power.' . $sourceKey, 'A Power write requires the complete validated operation plan.');
+
+				continue;
+			}
+
+			$row = 'power|' . $sourceKey;
 
 			$this->settle($definition, $guid);
 

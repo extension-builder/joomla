@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -106,12 +107,36 @@ final class Assembler
 	protected Placeholder $placeholder;
 
 	/**
-	 * The selected candidates' identities, class name keyed to guid.
+	 * All local source candidates grouped by concrete class name.
 	 *
-	 * @var    array<string, string>
+	 * @var    array<string, array>
 	 * @since  6.1.7
 	 */
 	protected array $local = [];
+
+	/**
+	 * The common source and dependency identity resolver.
+	 *
+	 * @var    Identity
+	 * @since  6.2.0
+	 */
+	protected Identity $resolver;
+
+	/**
+	 * The source whose relationships are currently being assembled.
+	 *
+	 * @var    array
+	 * @since  6.2.0
+	 */
+	protected array $active = [];
+
+	/**
+	 * Dependency results of the active source, keyed by concrete name.
+	 *
+	 * @var    array
+	 * @since  6.2.0
+	 */
+	protected array $dependencies = [];
 
 	/**
 	 * Constructor.
@@ -123,6 +148,8 @@ final class Assembler
 	 * @param   Report     $report     The run report registry.
 	 * @param   Constants   $constants   The language constant resolver.
 	 * @param   Namespacer  $namespacer  The namespace conversion resolver.
+	 * @param   Placeholder $placeholder The code placeholder resolver.
+	 * @param   Identity    $resolver    The scoped identity resolver.
 	 *
 	 * @since   6.1.7
 	 */
@@ -134,7 +161,8 @@ final class Assembler
 		Report $report,
 		Constants $constants,
 		Namespacer $namespacer,
-		Placeholder $placeholder
+		Placeholder $placeholder,
+		Identity $resolver
 	)
 	{
 		$this->config = $config;
@@ -145,6 +173,7 @@ final class Assembler
 		$this->constants = $constants;
 		$this->namespacer = $namespacer;
 		$this->placeholder = $placeholder;
+		$this->resolver = $resolver;
 	}
 
 	/**
@@ -155,101 +184,327 @@ final class Assembler
 	 */
 	public function assemble(): int
 	{
-		// a second assembly may select differently, so nothing lingers
 		$this->harvest->remove('resolved');
-
-		$candidates = (array) $this->harvest->get('classes', []);
-		$selected = [];
-		$skipped = 0;
+		$this->harvest->remove('rows');
+		$this->report->remove('powers.blocked');
 		$this->local = [];
+		$candidates = (array) $this->harvest->get('classes', []);
+		ksort($candidates);
 
-		foreach ($candidates as $candidate)
+		foreach ($candidates as $key => &$candidate)
 		{
 			$candidate = (array) $candidate;
-			$guid = (string) ($candidate['guid'] ?? '');
+			$decision = $this->pairing->verdict('power', (string) $key);
+			$binding = $this->config->get('sourceBindings', [])[$candidate['source_unit']] ?? null;
 
-			if ($guid === '')
+			if (is_array($binding))
 			{
-				continue;
+				$candidate['binding'] = $binding + ['source_unit' => $candidate['source_unit']];
 			}
+
+			$this->resolve($candidate, $decision);
 
 			if (!$this->selected($candidate))
 			{
-				$this->report->set('powers.skipped.filtered.' . $this->key($guid), true);
-
-				continue;
+				$candidate['action'] = 'filtered';
+				$this->report->set('powers.skipped.filtered.' . $key, true);
 			}
 
-			// the caller's pairing verdict outranks the harvested identity
-			$decided = $this->pairing->guid('power', $guid, $guid);
+			$observations = (array) ($candidate['occurrences'] ?? []);
+			$contents = array_unique(array_column($observations, 'snapshot'));
 
-			if ($decided === null)
+			if (count($observations) > 1 && (count($contents) !== 1 || !$candidate['exists']))
+			{
+				$this->block($candidate, 'Multiple physical declarations claim this source identity without one consistent existing definition.');
+			}
+		}
+		unset($candidate);
+
+		$this->bindings($candidates);
+
+		// The complete map is built before any relationship is assembled. A
+		// skipped existing record stays here; ignoring a new one cannot invent
+		// a dependency identity that will never be persisted.
+		foreach ($candidates as $key => $candidate)
+		{
+			$this->local[strtolower(trim($candidate['fqn'], '\\'))][$key] = $candidate;
+		}
+
+		$resolved = [];
+
+		foreach ($candidates as $key => &$candidate)
+		{
+			if (!$this->writable($candidate))
 			{
 				continue;
 			}
 
-			$verdict = $this->pairing->verdict('power', $guid);
-			$action = (string) ($candidate['action'] ?? 'create');
+			$this->active = $candidate;
+			$this->dependencies = [];
+			$definition = $this->definition($candidate);
+			$candidate['resolution']['dependencies'] = $this->dependencies;
 
-			// the board knows this class by the identity the harvest gave it,
-			// whatever identity the verdict writes it under
-			$this->harvest->set('rows.' . $decided, $guid);
-
-			if ($verdict !== null)
+			foreach ($this->dependencies as $dependency)
 			{
-				$candidate['guid'] = $decided;
-				$candidate['exists'] = $verdict['action'] === 'update';
-				$action = (string) $verdict['action'];
-
-				if ($decided !== $guid)
+				if (!in_array($dependency['status'], ['matched', 'new', 'external'], true))
 				{
-					// the person paired this class to another power, so that
-					// power's own stored namespace is the one an update weighs
-					$standing = (string) ($this->existing->power($decided)['namespace'] ?? '');
-					$candidate['standing'] = $standing;
-					$candidate['matched'] = $standing !== ''
-						&& $this->existing->identity($standing)
-							=== $this->existing->identity((string) $candidate['placeholder'])
-						? 'identity' : 'class';
+					$this->block($candidate, 'Unresolved Power dependency: ' . $dependency['fqn']);
 				}
 			}
 
-			// every candidate claims its identity before any linking, a dropped
-			// one included: the power it stands for is still what the classes
-			// beside it refer to, and they must reach it
-			$this->local[strtolower((string) $candidate['fqn'])] = $decided;
+			$resolved[$key] = $definition;
+		}
+		unset($candidate);
 
-			if ($action === 'skip')
+		$this->conflicts($candidates, $resolved);
+
+		// Propagate dependencies to a fixed point, including cycles. Each pass
+		// can block only previously eligible sources, so the loop terminates.
+		do
+		{
+			$changed = false;
+
+			foreach ($candidates as &$candidate)
 			{
-				// the caller asked to be told about what already exists, not to
-				// have this library's copy written over it. Deciding that here
-				// rather than at the write is what "just drops it" means, and
-				// the key is the one every writer reports a skip under, so a
-				// caller reads one thing whichever layer settled it
-				$this->report->set('skipped.existing.power.' . $decided, true);
-				$skipped++;
+				if (!$this->writable($candidate))
+				{
+					continue;
+				}
 
+				foreach ($candidate['resolution']['dependencies'] as $dependency)
+				{
+					foreach ($dependency['source_keys'] ?? [] as $key)
+					{
+						if (!empty($candidates[$key]['resolution']['blockers']))
+						{
+							$this->block($candidate, 'Dependency source is blocked: ' . $key);
+							$changed = true;
+						}
+					}
+				}
+			}
+			unset($candidate);
+		} while ($changed);
+
+		$states = [];
+		$skipped = 0;
+
+		foreach ($candidates as $key => $candidate)
+		{
+			$status = $candidate['resolution']['status'];
+			$states[$status] = ($states[$status] ?? 0) + 1;
+
+			if ($candidate['action'] === 'skip')
+			{
+				$skipped++;
+				$this->report->set('skipped.existing.power.' . $candidate['matched_guid'], true);
+			}
+
+			if (!in_array($candidate['action'], ['ignore', 'ignored', 'filtered'], true)
+				&& $candidate['resolution']['blockers'] !== [])
+			{
+				$this->report->set('powers.blocked.' . $key, $candidate['resolution']['blockers']);
+			}
+
+			if ($this->writable($candidate) && isset($resolved[$key]))
+			{
+				$this->harvest->set('resolved.' . $key, $resolved[$key]);
+				$this->harvest->set('rows.' . $key, $key);
+			}
+		}
+
+		$this->harvest->set('classes', $candidates);
+		$this->active = [];
+		$this->report->set('counts.powers.states', $states);
+		$this->report->set('counts.powers.new', $states['new'] ?? 0);
+		$this->report->set('counts.powers.existing', $states['matched'] ?? 0);
+		$this->report->set('counts.powers.skipped', $skipped);
+		$count = count((array) $this->harvest->get('resolved', []));
+		$this->report->set('counts.powers.assembled', $count);
+
+		return $count;
+	}
+
+	/**
+	 * Apply one authoritative decision while keeping source identity stable.
+	 *
+	 * @param   array       $candidate  The source candidate to update.
+	 * @param   array|null  $decision   Its explicit pairing verdict.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function resolve(array &$candidate, ?array $decision): void
+	{
+		$result = $this->resolver->resolve($candidate, $decision);
+		$candidate['resolution'] = $result;
+		$candidate['guid'] = $result['write_guid'];
+		$candidate['matched_guid'] = $result['matched_guid'];
+		$candidate['exists'] = $result['status'] === 'matched';
+		$candidate['placeholder'] = $result['namespace']['value'] ?? $candidate['stored'];
+		$candidate['standing'] = $result['target']['namespace'] ?? '';
+		$candidate['id'] = $result['target']['id'] ?? 0;
+		$candidate['action'] = $result['status'] === 'new' ? 'create'
+			: ($result['status'] === 'matched' ? 'update' : $result['status']);
+
+		if ($decision === null && $result['status'] === 'matched'
+			&& $this->config->get('onExisting', 'update') === 'skip')
+		{
+			$candidate['action'] = 'skip';
+		}
+	}
+
+	/**
+	 * Recover reusable root roles only from already identified, consistent sources.
+	 *
+	 * @param   array  $candidates  All distinct source declarations.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function bindings(array &$candidates): void
+	{
+		$bindings = [];
+
+		foreach ($candidates as $candidate)
+		{
+			if ($candidate['resolution']['status'] !== 'matched'
+				|| in_array($candidate['action'], ['ignored', 'filtered'], true))
+			{
 				continue;
 			}
 
-			$selected[$decided] = $candidate;
+			$binding = $this->namespacer->binding($candidate, $candidate['standing'],
+				$this->resolver->sourceContext($candidate), $candidate['matched_guid']);
+
+			if ($binding !== null)
+			{
+				$bindings[$candidate['source_unit']][] = $binding;
+			}
 		}
 
-		$assembled = 0;
-
-		foreach ($selected as $guid => $candidate)
+		foreach ($candidates as $key => &$candidate)
 		{
-			$this->harvest->set(
-				'resolved.' . $guid,
-				$this->definition($candidate)
-			);
-			$assembled++;
+			if ($candidate['resolution']['status'] !== 'new' || isset($candidate['binding'])
+				|| $candidate['action'] === 'filtered')
+			{
+				continue;
+			}
+
+			$possible = [];
+
+			foreach ($bindings[$candidate['source_unit']] ?? [] as $binding)
+			{
+				$bound = $this->namespacer->bind($candidate, $binding, $this->resolver->sourceContext($candidate));
+
+				if ($bound === null)
+				{
+					continue;
+				}
+
+				foreach ($candidates as $standing)
+				{
+					if ($standing['source_unit'] !== $candidate['source_unit'] || !$standing['exists'])
+					{
+						continue;
+					}
+
+					$context = $this->resolver->sourceContext($standing);
+					$check = $this->namespacer->bind($standing, $binding, $context);
+
+					if ($check !== null && $this->namespacer->canonical($check, $context)
+						!== $this->namespacer->canonical($standing['standing'], $context))
+					{
+						continue 2;
+					}
+				}
+
+				$possible[$bound] = $binding;
+			}
+
+			if (count($possible) === 1)
+			{
+				$candidate['binding'] = reset($possible);
+				$this->resolve($candidate, $this->pairing->verdict('power', (string) $key));
+			}
+			elseif (count($possible) > 1)
+			{
+				$this->report->set('powers.namespace.unresolved.' . $key, 'Competing root roles were retained literally.');
+			}
 		}
+		unset($candidate);
+	}
 
-		$this->report->set('counts.powers.assembled', $assembled);
-		$this->report->set('counts.powers.skipped', $skipped);
+	/**
+	 * Detect incompatible identities and generated outputs before persistence.
+	 *
+	 * @param   array  $candidates  The resolved source candidates.
+	 * @param   array  $definitions Effective source definitions, before write policies.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function conflicts(array &$candidates, array $definitions): void
+	{
+		$targets = [];
+		$outputs = [];
 
-		return $assembled;
+		foreach ($candidates as $key => $candidate)
+		{
+			if (!$this->writable($candidate))
+			{
+				continue;
+			}
+
+			$guid = $candidate['guid'];
+			$fqn = strtolower($candidate['resolution']['namespace']['target_fqn']);
+
+			if (isset($targets[$guid]) && ($definitions[$key] ?? null) != ($definitions[$targets[$guid]] ?? null))
+			{
+				$this->block($candidates[$key], 'Incompatible source definitions target one Power GUID.');
+				$this->block($candidates[$targets[$guid]], 'Incompatible source definitions target one Power GUID.');
+			}
+
+			if (isset($outputs[$fqn]) && $candidates[$outputs[$fqn]]['guid'] !== $guid)
+			{
+				$this->block($candidates[$key], 'Distinct Power definitions produce the same compiled class.');
+				$this->block($candidates[$outputs[$fqn]], 'Distinct Power definitions produce the same compiled class.');
+			}
+
+			$targets[$guid] = $key;
+			$outputs[$fqn] = $key;
+		}
+	}
+
+	/**
+	 * Whether a candidate can produce a write proposal, subject to approval.
+	 *
+	 * @param   array  $candidate  One source candidate.
+	 *
+	 * @return  bool  True for an included, fully resolved source.
+	 * @since   6.2.0
+	 */
+	protected function writable(array $candidate): bool
+	{
+		return in_array($candidate['resolution']['status'], ['matched', 'new'], true)
+			&& in_array($candidate['action'], ['update', 'create'], true);
+	}
+
+	/**
+	 * Record a blocker without losing the source or the intended target label.
+	 *
+	 * @param   array   $candidate  The candidate to block.
+	 * @param   string  $reason     The bounded diagnostic.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function block(array &$candidate, string $reason): void
+	{
+		$candidate['resolution']['status'] = 'conflict';
+		$candidate['resolution']['write_eligibility'] = 'blocked';
+		$candidate['resolution']['blockers'][] = $reason;
+		$candidate['resolution']['blockers'] = array_values(array_unique($candidate['resolution']['blockers']));
 	}
 
 	/**
@@ -269,6 +524,7 @@ final class Assembler
 		$include = (array) $this->config->get('include', []);
 		$exclude = (array) $this->config->get('exclude', []);
 		$names = array_filter([
+			(string) ($candidate['source_key'] ?? ''),
 			(string) ($candidate['guid'] ?? ''),
 			(string) ($candidate['class'] ?? ''),
 			(string) ($candidate['fqn'] ?? ''),
@@ -378,13 +634,9 @@ final class Assembler
 	/**
 	 * State the namespace a definition is written with, or leave the standing one.
 	 *
-	 * A power recognised by its stored namespace already sits exactly where
-	 * the class does, in the form the person stored it -- through a
-	 * placeholder of their own or not -- so nothing is restated. A new power,
-	 * or one recognised only by the class name it compiles to, is written
-	 * with the placement the file itself states, expressed through whatever
-	 * placeholder the person has defined for that head, so it lands beside
-	 * the powers they already keep there.
+	 * The identity resolver has already checked the source context, symbolic
+	 * roles and placement. A class-name match alone does not permit rewriting
+	 * an established representation. Relocations have their own evidence.
 	 *
 	 * @param   object                $definition  The definition being built.
 	 * @param   array<string, mixed>  $candidate   The harvest candidate.
@@ -394,34 +646,26 @@ final class Assembler
 	 */
 	protected function placement(object $definition, array $candidate): void
 	{
-		$guid = (string) $candidate['guid'];
-		$standing = (string) ($candidate['standing'] ?? '');
-		$namespace = $this->namespacer->express((string) $candidate['placeholder']);
+		$proposal = $candidate['resolution']['namespace'] ?? null;
 
-		if ((bool) ($candidate['exists'] ?? false) && $standing !== ''
-			&& (string) ($candidate['matched'] ?? '') === 'identity')
+		if ($proposal === null || !$proposal['round_trip'])
 		{
-			if ($standing !== $namespace)
-			{
-				$this->report->set(
-					'powers.namespace.kept.' . $this->key($guid),
-					$standing
-				);
-			}
+			throw new \LogicException('A Power requires a validated namespace and file-placement proposal.');
+		}
+
+		if ($candidate['exists'] && $proposal['preserved'])
+		{
+			$this->report->set('powers.namespace.kept.' . $candidate['source_key'], $proposal['value']);
 
 			return;
 		}
 
-		$definition->namespace = $namespace;
+		$definition->namespace = $proposal['value'];
 
-		if ($standing !== '' && $standing !== $namespace)
+		if ($proposal['relocation'])
 		{
-			// the class compiles to the same name but its stored placement
-			// says otherwise: the file is the evidence of where the class
-			// really sits, so the placement follows the file
-			$this->report->set('powers.namespace.restated.' . $this->key($guid), [
-				'from' => $standing,
-				'to' => $namespace
+			$this->report->set('powers.namespace.restated.' . $candidate['source_key'], [
+				'from' => $candidate['standing'], 'to' => $proposal['value']
 			]);
 		}
 	}
@@ -750,18 +994,55 @@ final class Assembler
 	protected function find(string $fqn): ?string
 	{
 		$key = strtolower(trim($fqn, '\\'));
+		$local = $this->local[$key] ?? [];
 
-		if (isset($this->local[$key]))
+		if ($local !== [])
 		{
-			return $this->local[$key];
+			$within = array_filter($local, fn (array $source): bool => $source['source_unit'] === $this->active['source_unit']);
+			$local = $within !== [] ? $within : $local;
+			$guids = [];
+			$bad = false;
+
+			foreach ($local as $source)
+			{
+				$result = $source['resolution'];
+
+				if (in_array($result['status'], ['matched', 'new'], true)
+					&& ($result['status'] === 'matched' || $this->writable($source)))
+				{
+					$guids[$result['write_guid']] = true;
+				}
+				else
+				{
+					$bad = true;
+				}
+			}
+
+			$guid = !$bad && count($guids) === 1 ? (string) array_key_first($guids) : null;
+			$this->dependencies[$key] = [
+				'fqn' => $fqn, 'status' => $guid !== null ? 'matched' : 'ambiguous',
+				'guid' => $guid, 'source_keys' => array_keys($local)
+			];
+
+			return $guid;
 		}
 
-		// a power's identity is its stored namespace, and an import written
-		// under another component's prefix or casing is still that power --
-		// so a reference no resolved name answers for folds to its stored
-		// form and matches by identity, exactly as harvested classes do
-		return ($this->existing->find($fqn) ?? $this->existing->fold($fqn))['guid']
-			?? null;
+		$parts = explode('\\', trim($fqn, '\\'));
+		$class = (string) array_pop($parts);
+		$result = $this->resolver->resolve([
+			'source_key' => 'reference_' . hash('sha256', $key),
+			'source_unit' => $this->active['source_unit'],
+			'source_component_id' => $this->active['source_component_id'] ?? null,
+			'fqn' => $fqn, 'type' => '',
+			'stored' => $this->namespacer->conventional(implode('\\', $parts), $class),
+			'placement_valid' => true
+		], null, true);
+		$this->dependencies[$key] = [
+			'fqn' => $fqn, 'status' => $result['status'], 'guid' => $result['matched_guid'],
+			'candidates' => array_keys($result['candidates']), 'source_keys' => []
+		];
+
+		return $result['matched_guid'];
 	}
 
 	/**

@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 
 
 /**
@@ -56,6 +57,14 @@ final class Scanner
 	protected Report $report;
 
 	/**
+	 * The operation source read set.
+	 *
+	 * @var    Plan
+	 * @since  6.2.0
+	 */
+	protected Plan $plan;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config  $config  The extrusion configuration.
@@ -63,10 +72,11 @@ final class Scanner
 	 *
 	 * @since   6.1.6
 	 */
-	public function __construct(Config $config, Report $report)
+	public function __construct(Config $config, Report $report, Plan $plan)
 	{
 		$this->config = $config;
 		$this->report = $report;
+		$this->plan = $plan;
 	}
 
 	/**
@@ -248,6 +258,11 @@ final class Scanner
 
 		sort($found, SORT_STRING);
 
+		if ($this->plan->active())
+		{
+			$this->plan->directory($root, $extensions, $found);
+		}
+
 		return $found;
 	}
 
@@ -286,6 +301,11 @@ final class Scanner
 	public function read(string $path): ?string
 	{
 		$content = @file_get_contents($path);
+
+		if ($content !== false && $this->plan->active())
+		{
+			$this->plan->file($path, hash('sha256', $content));
+		}
 
 		return $content === false ? null : $content;
 	}

@@ -184,25 +184,57 @@ final class Placeholders
 	}
 
 	/**
-	 * Whether one namespace segment answers to a component this run knows.
-	 *
-	 * A namespace is case-insensitive to PHP, and the segment's identity is
-	 * the word, not its casing -- SermonDistributor and Sermondistributor are
-	 * one component area. The set answered against holds every component
-	 * namespace the run can know: the component being extruded, the component
-	 * being paired against, and what either one's overrides resolve to.
+	 * Whether a word is a configured value, not permission to replace it.
 	 *
 	 * @param   string  $segment  The namespace segment.
 	 *
-	 * @return  bool  True when the segment is a known component namespace.
+	 * @return  bool  True for a value in this component context only.
 	 * @since   6.1.9
 	 */
 	public function answers(string $segment): bool
 	{
-		$segment = strtolower(trim($segment));
+		return in_array(strtolower(trim($segment)), $this->values()['recognise'], true);
+	}
 
-		return $segment !== ''
-			&& in_array($segment, $this->values()['recognise'], true);
+	/**
+	 * Read an isolated component context without mutating this run's target.
+	 *
+	 * The clone shares only the read boundary; its configuration, source and
+	 * diagnostic registries are independent. Two components with identical
+	 * namespace values still have distinct identities and override snapshots.
+	 *
+	 * @param   int|null  $component  The component id, or null for the active context.
+	 *
+	 * @return  array  The identity, values and ordered compiler placeholder map.
+	 * @since   6.2.0
+	 */
+	public function context(?int $component = null): array
+	{
+		$view = $this;
+
+		if ($component !== null)
+		{
+			$view = clone $this;
+			$view->config = clone $this->config;
+			$view->source = clone $this->source;
+			$view->report = clone $this->report;
+			$view->source->clear();
+			$view->report->clear();
+			$view->config->set('component', $component)->set('componentCode', '');
+			$view->resolved = [];
+			$view->witnessed = [];
+		}
+
+		$values = $view->values();
+
+		return [
+			'id' => $values['id'],
+			'guid' => $values['guid'],
+			'code' => $values['code'],
+			'prefix' => $values['prefix'],
+			'component' => $values['component'],
+			'map' => $view->map() + $view->core()
+		];
 	}
 
 	/**
@@ -234,7 +266,7 @@ final class Placeholders
 	}
 
 	/**
-	 * What the harvested classes witnessed, most spoken-for first.
+	 * Approved namespace bindings, in deterministic order rather than vote order.
 	 *
 	 * @return  array<int, array{prefix: string, component: string, count: int}>  The witnessed pairs.
 	 * @since   6.1.9
@@ -245,7 +277,7 @@ final class Placeholders
 
 		usort(
 			$witnessed,
-			static fn (array $one, array $two): int => $two['count'] <=> $one['count']
+			static fn (array $one, array $two): int => strcmp($one['prefix'] . '|' . $one['component'], $two['prefix'] . '|' . $two['component'])
 		);
 
 		return $witnessed;
@@ -643,25 +675,12 @@ final class Placeholders
 			? ''
 			: NamespaceHelper::safeSegment($component);
 
-		// every component namespace this run can know answers for a harvested
-		// segment: the paired component's own value, the value it derives
-		// without its overrides, the component the source itself names --
-		// and every component JCB already holds, because a library harvested
-		// on its own still belongs to a component the system knows by name
-		$recognise = [];
-
-		foreach (array_merge(
-			[$component, $derived, $this->segment($this->code($named))],
-			$this->catalogue()
-		) as $known)
-		{
-			$known = strtolower(trim((string) $known));
-
-			if ($known !== '' && !in_array($known, $recognise, true))
-			{
-				$recognise[] = $known;
-			}
-		}
+		// Values are contextual data, never evidence that a source segment is
+		// component-owned. Unrelated catalogue rows cannot change this set.
+		$recognise = array_values(array_unique(array_filter(array_map(
+			static fn (string $value): string => strtolower(trim($value)),
+			[$component, $derived, $this->segment($this->code($named))]
+		), 'strlen')));
 
 		// the report names which overrides stood, never their values: a
 		// value is a person's free text, and the report is read by a page
@@ -673,88 +692,14 @@ final class Placeholders
 		]);
 
 		return $this->resolved[$key] = [
+			'id' => $id,
+			'guid' => $guid,
 			'prefix' => $prefix,
 			'component' => $component,
 			'code' => $code,
 			'recognise' => $recognise,
 			'overrides' => $overrides
 		];
-	}
-
-	/**
-	 * Every component namespace the whole system knows.
-	 *
-	 * Each component's code name derives its segment the way the compiler
-	 * does, and each ComponentNamespace override -- stored as the plain text
-	 * the person typed, exactly as the compiler reads it -- states the value
-	 * a person chose instead.
-	 * Together they are every value the placeholder has ever resolved to on
-	 * this system, which is what lets a library harvested on its own still
-	 * recognise the component area its classes carry.
-	 *
-	 * @return  array<string>  The known component namespace values.
-	 * @since   6.1.9
-	 */
-	protected function catalogue(): array
-	{
-		$known = [];
-		$rows = $this->load->items(
-			['a.name_code' => 'name_code'],
-			['a' => 'joomla_component']
-		);
-
-		foreach ((array) $rows as $row)
-		{
-			$known[] = $this->segment($this->code(
-				(string) (((array) $row)['name_code'] ?? '')
-			));
-		}
-
-		$overrides = $this->load->values(
-			['a.addplaceholders' => 'addplaceholders'],
-			['a' => 'component_placeholders']
-		);
-
-		foreach ((array) $overrides as $stored)
-		{
-			if (!is_string($stored) || trim($stored) === '')
-			{
-				continue;
-			}
-
-			$rows = json_decode($stored, true);
-
-			if (!is_array($rows))
-			{
-				continue;
-			}
-
-			foreach ($rows as $row)
-			{
-				$row = (array) $row;
-
-				if ($this->target((string) ($row['target'] ?? '')) !== 'ComponentNamespace')
-				{
-					continue;
-				}
-
-				$value = trim((string) ($row['value'] ?? ''));
-
-				if ($value !== '' && $this->text($value))
-				{
-					$known[] = NamespaceHelper::safeSegment($value);
-				}
-			}
-		}
-
-		$value = trim($this->globals()['ComponentNamespace'] ?? '');
-
-		if ($value !== '')
-		{
-			$known[] = NamespaceHelper::safeSegment($value);
-		}
-
-		return array_values(array_filter($known, 'strlen'));
 	}
 
 	/**

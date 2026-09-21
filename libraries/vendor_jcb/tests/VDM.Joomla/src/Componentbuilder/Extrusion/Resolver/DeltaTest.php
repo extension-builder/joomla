@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
@@ -107,7 +108,8 @@ final class DeltaTest extends TestCase
 			new Diff(),
 			$this->proposal,
 			new Placeholders($config, $this->load, new Report(), new Source()),
-			$this->report = new Report()
+			$this->report = new Report(),
+			new Plan()
 		);
 	}
 
