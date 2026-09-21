@@ -218,7 +218,11 @@ try
 				$record = Extrusion::_('Data.Item')->table($entry['table'])->get($entry['identity'], $entry['key']);
 				foreach ($entry['payload'] as $column => $value)
 				{
-					check($record->{$column} == $value, 'preview equals actual Data value: ' . $entry['table'] . '.' . $column);
+					// Model Load decodes JSON objects as stdClass; compare canonical
+					// raw values, retaining exact scalar types and relationship data.
+					check(VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan::digest($record->{$column})
+						=== VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan::digest($value),
+						'preview equals actual Data value: ' . $entry['table'] . '.' . $column);
 				}
 			}
 			$compiledAAfter = compiled($manifest, 'a', $manifest['factory_a']);
@@ -258,7 +262,8 @@ try
 			// destroyed by the harness even if verification fails before here.
 			foreach ($before as $row)
 			{
-				$db->updateObject('#__componentbuilder_power', (object) $row, 'id', true);
+				$restore = (object) $row;
+				$db->updateObject('#__componentbuilder_power', $restore, 'id', true);
 			}
 		}
 		echo "PASS installed-schema extrusion and actual Power compiler integration\n";
