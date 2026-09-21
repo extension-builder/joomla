@@ -448,18 +448,35 @@ final class Assembler
 	{
 		$targets = [];
 		$outputs = [];
+		$paths = [];
 
 		foreach ($candidates as $key => $candidate)
 		{
-			if (!$this->writable($candidate))
+			if (!in_array($candidate['resolution']['status'], ['matched', 'new'], true)
+				|| !in_array($candidate['action'], ['update', 'create', 'skip'], true))
 			{
 				continue;
 			}
 
 			$guid = $candidate['guid'];
-			$fqn = strtolower($candidate['resolution']['namespace']['target_fqn']);
+			$output = $this->namespacer->output($candidate['resolution']['namespace']['value']);
 
-			if (isset($targets[$guid]) && ($definitions[$key] ?? null) != ($definitions[$targets[$guid]] ?? null))
+			if ($output === null)
+			{
+				$this->block($candidates[$key], 'The target namespace and compiler file path cannot be resolved.');
+
+				continue;
+			}
+
+			// Preserve spelling in diagnostics; comparison also protects targets
+			// compiled on case-insensitive filesystems. Skipped existing sources
+			// still occupy an output location even though they propose no write.
+			$candidates[$key]['resolution']['namespace']['target_path'] = $output['path'];
+			$fqn = strtolower($output['fqn']);
+			$path = strtolower($output['path']);
+
+			if (isset($targets[$guid], $definitions[$key], $definitions[$targets[$guid]])
+				&& $definitions[$key] != $definitions[$targets[$guid]])
 			{
 				$this->block($candidates[$key], 'Incompatible source definitions target one Power GUID.');
 				$this->block($candidates[$targets[$guid]], 'Incompatible source definitions target one Power GUID.');
@@ -471,8 +488,19 @@ final class Assembler
 				$this->block($candidates[$outputs[$fqn]], 'Distinct Power definitions produce the same compiled class.');
 			}
 
-			$targets[$guid] = $key;
+			if (isset($paths[$path]) && $candidates[$paths[$path]]['guid'] !== $guid)
+			{
+				$this->block($candidates[$key], 'Distinct Power definitions produce the same compiler file path.');
+				$this->block($candidates[$paths[$path]], 'Distinct Power definitions produce the same compiler file path.');
+			}
+
+			if (isset($definitions[$key]))
+			{
+				$targets[$guid] = $key;
+			}
+
 			$outputs[$fqn] = $key;
+			$paths[$path] = $key;
 		}
 	}
 

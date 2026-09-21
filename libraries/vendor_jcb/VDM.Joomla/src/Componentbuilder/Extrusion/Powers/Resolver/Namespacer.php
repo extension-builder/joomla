@@ -12,6 +12,11 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 
+use Joomla\Input\Input;
+use Joomla\Registry\Registry as JoomlaRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
+use VDM\Joomla\Componentbuilder\Compiler\Joomla\Path as CompilerPath;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Utilities\String\ClassfunctionHelper;
 use VDM\Joomla\Utilities\String\NamespaceHelper;
 
@@ -19,8 +24,8 @@ use VDM\Joomla\Utilities\String\NamespaceHelper;
 /**
  * Converts between a class's real namespace and the form a power row stores.
  *
- * A stored power namespace is both an identity and a placement instruction: its
- * backslash segments name the vendor library folder, the dots in its last
+ * A stored power namespace describes a compiled name and placement, not GUID
+ * identity. Its backslash segments name the vendor library folder, the dots in its last
  * segment name the folders below src, and its final dot part is the class
  * itself -- the exact inverse of what Compiler\Power::setNamespace unfolds.
  * Reversing a built class is therefore two independent conversions: fold the
@@ -251,7 +256,8 @@ final class Namespacer
 	 * A person may store a namespace through a placeholder of their own --
 	 * [[[ComponentEngineNamespace]]].Team, where the placeholder stands for
 	 * the whole head -- and the compiler resolves it to the very class the
-	 * long form names. Identity is the same on both forms, so both fold to
+	 * long form names. Their lookup forms agree without establishing a shared
+	 * definition identity, so both fold to
 	 * this one: every placeholder the person defined is substituted in the
 	 * compiler's own order, the core placeholders stay standing, and the two
 	 * wrapper forms become one.
@@ -621,6 +627,59 @@ final class Namespacer
 		}
 
 		return $context;
+	}
+
+	/**
+	 * Describe the compiler's logical output destination without running a build.
+	 *
+	 * Native placement is delegated to the existing compiler Path resolver. The
+	 * explicitly configured standalone placeholder helpers never touch the live
+	 * Compiler container, application input or an independent build's state.
+	 * Library paths use a logical root because jcb_powers_path is common to all
+	 * library Powers within a build; native extension roots remain separate.
+	 *
+	 * @param   string      $stored   The validated namespace representation.
+	 * @param   array|null  $context  The output component's namespace context.
+	 *
+	 * @return  array|null  Case-preserved FQN/path, or null for unresolved output.
+	 * @since   6.2.0
+	 */
+	public function output(string $stored, ?array $context = null): ?array
+	{
+		$context ??= $this->context();
+		$expanded = $this->expand($stored, $context);
+		$head = explode('\\', trim($expanded, '\\'));
+
+		if (count($head) < 2 || str_contains($expanded, '[[[') || str_contains($expanded, '###'))
+		{
+			return null;
+		}
+
+		$tail = explode('.', (string) array_pop($head));
+		$class = ClassfunctionHelper::safe((string) array_pop($tail));
+		$head = array_map([NamespaceHelper::class, 'safeSegment'], $head);
+		$tail = array_map([NamespaceHelper::class, 'safeSegment'], $tail);
+
+		if ($class === '' || in_array('', array_merge($head, $tail), true))
+		{
+			return null;
+		}
+
+		$namespace = implode('\\', array_merge($head, $tail));
+		$placeholders = new CompilerPlaceholder(new CompilerConfig(new Input([]), new JoomlaRegistry(), new JoomlaRegistry()));
+
+		foreach ($context['map'] as $key => $value)
+		{
+			$placeholders->set(substr($key, 3, -3), $value);
+		}
+
+		$native = (new CompilerPath($placeholders))->core($namespace);
+		$root = $native === null ? 'library:' . implode('.', $head) : 'extension:' . $native;
+
+		return [
+			'fqn' => $namespace . '\\' . $class,
+			'path' => $root . '/src/' . implode('/', array_merge($tail, [$class . '.php']))
+		];
 	}
 
 	/**
