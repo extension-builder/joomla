@@ -33,6 +33,10 @@ Factory::$application = $container->get(Joomla\Console\Application::class);
 define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_ADMINISTRATOR . '/components/com_componentbuilder');
 require_once JPATH_COMPONENT_ADMINISTRATOR . '/src/Helper/PowerloaderHelper.php';
 
+// CLI has no component request option; the Data table prefix needs the same
+// explicit context the administrator establishes before resolving JCB services.
+VDM\Joomla\Utilities\Component\Helper::setOption('com_componentbuilder');
+
 $db = $container->get(DatabaseInterface::class);
 $root = JPATH_ROOT . '/tmp/jcb-extrusion-fixtures';
 $manifestPath = $root . '/manifest.json';
