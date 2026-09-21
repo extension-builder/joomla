@@ -156,6 +156,43 @@ final class ScopedPipelineTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Different native namespaces must not write the same compiler destination.
+	 *
+	 * @param   bool  $reverse  Reverse library discovery order.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('orders')]
+	public function testDistinctNamespacesCannotCollideAtOneNativeOutputPath(bool $reverse): void
+	{
+		[$container, $load, $item] = $this->engine();
+		$roots = [];
+
+		foreach (['First', 'Second'] as $area)
+		{
+			$root = 'copies/Acme.Component.Beta.Administrator.' . $area;
+			$this->writeTemporaryFile($root . '/src/Widget.php', "<?php\nnamespace Acme\\Component\\Beta\\Administrator\\" . $area . ";\nclass Widget {}\n");
+			$roots[] = $this->temporaryPath($root);
+		}
+
+		$container->get('Extrusion.Config')->set('libraries', $reverse ? array_reverse($roots) : $roots);
+		$container->get('Extrusion.Powers.Harvester')->harvest();
+		$this->assertSame(0, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$classes = $container->get('Extrusion.Registry.Harvest')->get('classes');
+		$this->assertCount(2, $classes, 'Neither source disappears into a guessed target.');
+		$this->assertCount(2, array_unique(array_column($classes, 'fqn')));
+
+		foreach ($classes as $source)
+		{
+			$this->assertSame('conflict', $source['resolution']['status']);
+			$this->assertContains('Distinct Power definitions produce the same compiler file path.', $source['resolution']['blockers']);
+		}
+
+		$this->assertSame([], $item->records());
+	}
+
+	/**
 	 * Both deterministic database orders.
 	 *
 	 * @return  array  Named order cases.

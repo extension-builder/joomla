@@ -105,4 +105,40 @@ final class ScopedIdentityTest extends TestCase
 			$this->assertNull($existing->find('Acme\\Joomla\\Beta\\Factory'));
 		}
 	}
+	/**
+	 * Output placement follows the compiler's core paths, not namespace depth.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testOutputPreservesPlacementAndDoesNotReuseAnotherContext(): void
+	{
+		$config = new Config(['component' => 3]);
+		$load = new ExtrusionPowerLoadFixture();
+		$load->component(3, 'aaaaaaaa-1111-4111-8111-111111111111', 'beta', 1, 'Acme');
+		$load->component(4, 'bbbbbbbb-2222-4222-8222-222222222222', 'alpha', 1, 'Other');
+		$names = new Namespacer(new Placeholders($config, $load, new Report(), new Source()));
+		$context = $names->context(3);
+		$cases = [
+			'[[[NamespacePrefix]]]\Joomla\Abstraction.Registry.Value' => 'library:Acme.Joomla/src/Abstraction/Registry/Value.php',
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine.Widget' => 'extension:admin/src/Engine/Widget.php',
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine\Widget' => 'extension:admin/src/Widget.php',
+			'[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Site\Widget' => 'extension:site/src/Widget.php',
+			'[[[NamespacePrefix]]]\Module\Example\Service.Widget' => 'extension:mod_example/src/Service/Widget.php',
+			'[[[NamespacePrefix]]]\Plugin\System\Example\Service.Widget' => 'extension:plg_system_example/src/Service/Widget.php'
+		];
+
+		foreach ($cases as $stored => $path)
+		{
+			$this->assertSame($path, $names->output($stored, $context)['path']);
+			$this->assertSame($names->resolve($stored, $context), $names->output($stored, $context)['fqn']);
+		}
+
+		$stored = '[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine.Widget';
+		$before = $names->output($stored, $context);
+		$this->assertSame('Other\Component\Alpha\Administrator\Engine\Widget', $names->output($stored, $names->context(4))['fqn']);
+		$this->assertSame($before, $names->output($stored, $context));
+		$this->assertNull($names->output('[[[Unknown]]]\Engine.Widget', $context));
+	}
+
 }
