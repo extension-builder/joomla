@@ -14,28 +14,22 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
+use VDM\Joomla\Utilities\GuidHelper;
 
 
 /**
- * Knows every power that already exists, by the class it resolves to.
+ * Retains Power definitions by GUID and namespace lookup candidate sets.
  *
- * A built class carries no power identity, so recognition works through the
- * namespace: every stored power namespace is unfolded into the real class name
- * it would compile to under this run's placeholder values, and a harvested
- * class that lands on the same name IS that power. The whole catalogue is read
- * once and held as a map, because every harvested class asks this question and
- * every use statement asks it again.
- *
- * A power made for a different component resolves to a different class name
- * under this run's values, so it simply never matches -- which is exactly the
- * decoupling the placeholders exist to provide.
+ * A compiled namespace is evidence, not a globally unique definition identity.
+ * These lookups never discard a GUID because another definition has the same
+ * namespace. Choosing an update target additionally requires scoped evidence.
  *
  * @since 6.1.7
  */
 final class Existing
 {
 	/**
-	 * The Database Loader.
+	 * The database loader.
 	 *
 	 * @var    LoadInterface
 	 * @since  6.1.7
@@ -43,7 +37,7 @@ final class Existing
 	protected LoadInterface $load;
 
 	/**
-	 * The Namespacer Resolver.
+	 * The namespace conversion resolver.
 	 *
 	 * @var    Namespacer
 	 * @since  6.1.7
@@ -51,7 +45,7 @@ final class Existing
 	protected Namespacer $namespacer;
 
 	/**
-	 * The Report Registry.
+	 * The run report registry.
 	 *
 	 * @var    Report
 	 * @since  6.1.7
@@ -59,15 +53,15 @@ final class Existing
 	protected Report $report;
 
 	/**
-	 * The catalogue, held under the canonical namespace, the class name, and the guid.
+	 * GUID records and namespace/FQN maps of GUID-keyed candidate records.
 	 *
-	 * @var    array{namespace: array<string, array{guid: string, id: int, name: string, namespace: string}>, class: array<string, array{guid: string, id: int, name: string, namespace: string}>, guid: array<string, array{guid: string, id: int, name: string, namespace: string}>}|null
+	 * @var    array<string, array>|null
 	 * @since  6.1.7
 	 */
 	protected ?array $index = null;
 
 	/**
-	 * The placeholder values the catalogue was resolved under.
+	 * The context in which the secondary indexes were resolved.
 	 *
 	 * @var    string|null
 	 * @since  6.1.7
@@ -83,11 +77,7 @@ final class Existing
 	 *
 	 * @since   6.1.7
 	 */
-	public function __construct(
-		LoadInterface $load,
-		Namespacer $namespacer,
-		Report $report
-	)
+	public function __construct(LoadInterface $load, Namespacer $namespacer, Report $report)
 	{
 		$this->load = $load;
 		$this->namespacer = $namespacer;
@@ -95,48 +85,37 @@ final class Existing
 	}
 
 	/**
-	 * The existing power one fully qualified class name resolves to.
+	 * Read an unambiguous concrete-name lookup, without granting write scope.
 	 *
 	 * @param   string  $fqn  The fully qualified class name.
 	 *
-	 * @return  array{guid: string, id: int, name: string}|null  The power, or null when none matches.
+	 * @return  array|null  The only candidate, or null for no match or a collision.
 	 * @since   6.1.7
 	 */
 	public function find(string $fqn): ?array
 	{
-		return $this->index()['class'][$this->namespacer->key($fqn)] ?? null;
+		return $this->unique($this->index()['class'][$this->namespacer->key($fqn)] ?? []);
 	}
 
 	/**
-	 * The existing power one stored namespace names.
+	 * Read an unambiguous namespace lookup, without treating a template as identity.
 	 *
-	 * This is what identity means here. A power's stored namespace defers its
-	 * vendor prefix and component segment, so the same class serves components
-	 * whose prefixes differ -- and two classes are the same power exactly when
-	 * they fold to the same stored namespace, whatever they were compiled as.
-	 * Resolving both sides to concrete names instead would make every library
-	 * whose prefix differs from this run's look new.
+	 * @param   string  $namespace  The stored namespace.
 	 *
-	 * The namespace is matched in its canonical form, so a power a person
-	 * stored through a placeholder of their own is the same power as the
-	 * long form the placeholder stands for.
-	 *
-	 * @param   string  $namespace  The stored, placeholder-carrying namespace.
-	 *
-	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none matches.
+	 * @return  array|null  The only candidate, or null for no match or a collision.
 	 * @since   6.1.8
 	 */
 	public function match(string $namespace): ?array
 	{
-		return $this->index()['namespace'][$this->identity($namespace)] ?? null;
+		return $this->unique($this->index()['namespace'][$this->identity($namespace)] ?? []);
 	}
 
 	/**
-	 * The existing power one identity names.
+	 * Retrieve a definition even when its namespace collides or cannot resolve.
 	 *
-	 * @param   string  $guid  The power identity.
+	 * @param   string  $guid  The Power identity.
 	 *
-	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none stands.
+	 * @return  array|null  The record, including its eligibility, or null.
 	 * @since   6.1.9
 	 */
 	public function power(string $guid): ?array
@@ -145,27 +124,54 @@ final class Existing
 	}
 
 	/**
-	 * The existing power one written reference folds to.
+	 * Read every valid GUID, not just the first record under each namespace.
 	 *
-	 * An import or a parent written under another component's prefix or
-	 * casing is still the same power: the reference is folded to its stored
-	 * form and matched by that identity. The convention every power JCB
-	 * ships follows -- two head segments, then dots -- is tried first, and
-	 * then every other seam the written name allows, because a power that
-	 * lives in a component's own source folder keeps a longer head. Nothing
-	 * is witnessed on the way: a reference merely refers.
+	 * @return  array<string, array>  Records keyed and sorted by GUID.
+	 * @since   6.2.0
+	 */
+	public function records(): array
+	{
+		return $this->index()['guid'];
+	}
+
+	/**
+	 * Gather both lookup sets before any scoped decision is made.
 	 *
-	 * @param   string  $fqn  The fully qualified class name as written.
+	 * @param   string  $namespace  Optional stored namespace.
+	 * @param   string  $fqn        Optional concrete class name.
 	 *
-	 * @return  array{guid: string, id: int, name: string, namespace: string}|null  The power, or null when none matches.
+	 * @return  array<string, array>  All competing records, sorted by GUID.
+	 * @since   6.2.0
+	 */
+	public function candidates(string $namespace = '', string $fqn = ''): array
+	{
+		$index = $this->index();
+		$candidates = $namespace === '' ? [] : ($index['namespace'][$this->identity($namespace)] ?? []);
+
+		if ($fqn !== '')
+		{
+			$candidates += $index['class'][$this->namespacer->key($fqn)] ?? [];
+		}
+
+		ksort($candidates);
+
+		return $candidates;
+	}
+
+	/**
+	 * Gather every conventional placement of a reference before returning one.
+	 *
+	 * This compatibility lookup does not establish component association. An
+	 * ambiguous set remains ambiguous even when its first placement is unique.
+	 *
+	 * @param   string  $fqn  The written fully qualified class name.
+	 *
+	 * @return  array|null  The only lookup candidate, or null.
 	 * @since   6.1.9
 	 */
 	public function fold(string $fqn): ?array
 	{
-		$segments = array_values(array_filter(
-			explode('\\', trim($fqn, '\\')),
-			'strlen'
-		));
+		$segments = array_values(array_filter(explode('\\', trim($fqn, '\\')), 'strlen'));
 
 		if (count($segments) < 2)
 		{
@@ -173,34 +179,30 @@ final class Existing
 		}
 
 		$class = (string) array_pop($segments);
-		$namespace = implode('\\', $segments);
-		$stored = [$this->namespacer->conventional($namespace, $class)];
+		$forms = [$this->namespacer->conventional(implode('\\', $segments), $class)];
 
-		for ($keep = 3; $keep <= count($segments); $keep++)
+		for ($keep = 1; $keep <= count($segments); $keep++)
 		{
-			$stored[] = implode('\\', array_slice($segments, 0, $keep)) . '\\'
+			$forms[] = implode('\\', array_slice($segments, 0, $keep)) . '\\'
 				. implode('.', array_merge(array_slice($segments, $keep), [$class]));
 		}
 
-		foreach (array_unique($stored) as $form)
-		{
-			$power = $this->match($this->namespacer->placeholderize($form, false));
+		$candidates = [];
 
-			if ($power !== null)
-			{
-				return $power;
-			}
+		foreach (array_unique($forms) as $form)
+		{
+			$candidates += $this->candidates($this->namespacer->placeholderize($form, false));
 		}
 
-		return null;
+		return $this->unique($candidates);
 	}
 
 	/**
-	 * The key one stored namespace is held under: its canonical form, case folded.
+	 * Canonical lookup key; this is not a Power GUID or ownership proof.
 	 *
 	 * @param   string  $namespace  The stored namespace.
 	 *
-	 * @return  string  The identity key.
+	 * @return  string  The case-folded lookup key, retaining placement separators.
 	 * @since   6.1.9
 	 */
 	public function identity(string $namespace): string
@@ -209,22 +211,18 @@ final class Existing
 	}
 
 	/**
-	 * How many existing powers the catalogue holds.
+	 * Count retained GUIDs, including collisions and unresolved namespaces.
 	 *
-	 * @return  int  The number of matchable powers.
+	 * @return  int  The number of distinct valid GUIDs.
 	 * @since   6.1.7
 	 */
 	public function count(): int
 	{
-		return count($this->index()['namespace']);
+		return count($this->index()['guid']);
 	}
 
 	/**
-	 * Drop the catalogue, so the next question reads the table again.
-	 *
-	 * A harvest calls this as it starts gathering: within one run the single
-	 * snapshot is exactly right, but a fresh run must see what the previous
-	 * run's own writes put into the table.
+	 * Invalidate the complete catalogue at a fresh run boundary.
 	 *
 	 * @return  self  For method chaining.
 	 * @since   6.1.7
@@ -238,20 +236,13 @@ final class Existing
 	}
 
 	/**
-	 * Read the whole power catalogue, once, under both of its names.
+	 * Build GUID records first; only then build the secondary candidate sets.
 	 *
-	 * A power answers to two questions. Identity asks whether a harvested
-	 * class is already this power, and that is its stored namespace. Linking
-	 * asks which power a name written in someone's code refers to, and that is
-	 * the concrete class the stored namespace resolves to for this run.
-	 *
-	 * @return  array{namespace: array<string, array{guid: string, id: int, name: string}>, class: array<string, array{guid: string, id: int, name: string}>}  The catalogue.
+	 * @return  array<string, array>  The complete catalogue and lookup indexes.
 	 * @since   6.1.7
 	 */
 	protected function index(): array
 	{
-		// a second run may resolve under other placeholder values, so the
-		// catalogue is only reused while those values still hold
 		$under = $this->namespacer->signature();
 
 		if ($this->index !== null && $this->under === $under)
@@ -261,88 +252,116 @@ final class Existing
 
 		$this->under = $under;
 		$this->index = ['namespace' => [], 'class' => [], 'guid' => []];
-		$rows = $this->load->items(
-			[
-				'a.id' => 'id',
-				'a.guid' => 'guid',
-				'a.name' => 'name',
-				'a.namespace' => 'namespace'
-			],
-			['a' => 'power']
-		);
+		$rows = $this->load->items([
+			'a.id' => 'id', 'a.guid' => 'guid', 'a.name' => 'name',
+			'a.namespace' => 'namespace', 'a.type' => 'type', 'a.system_name' => 'system_name'
+		], ['a' => 'power']);
 
 		foreach ((array) $rows as $row)
 		{
 			$row = (array) $row;
-			$guid = trim((string) ($row['guid'] ?? ''));
-			$namespace = trim((string) ($row['namespace'] ?? ''));
+			$guid = strtolower(trim((string) ($row['guid'] ?? '')));
 
-			if ($guid === '' || $namespace === '')
+			if (!GuidHelper::valid($guid))
 			{
+				$this->report->set('powers.invalid.guid.' . (int) ($row['id'] ?? 0), true);
+
 				continue;
 			}
 
-			$power = [
+			if (isset($this->index['guid'][$guid]))
+			{
+				$this->index['guid'][$guid]['selectable'] = false;
+				$this->report->set('powers.duplicate.guid.' . $this->key($guid), true);
+
+				continue;
+			}
+
+			$this->index['guid'][$guid] = [
 				'guid' => $guid,
 				'id' => (int) ($row['id'] ?? 0),
 				'name' => trim((string) ($row['name'] ?? '')),
-				'namespace' => $namespace
+				'system_name' => trim((string) ($row['system_name'] ?? '')),
+				'type' => trim((string) ($row['type'] ?? '')),
+				'namespace' => trim((string) ($row['namespace'] ?? '')),
+				'selectable' => trim((string) ($row['namespace'] ?? '')) !== ''
 			];
-			$identity = $this->identity($namespace);
+		}
 
-			if (isset($this->index['namespace'][$identity]))
+		ksort($this->index['guid']);
+
+		foreach ($this->index['guid'] as $guid => $power)
+		{
+			$namespace = $power['namespace'];
+
+			if ($namespace === '')
 			{
-				$this->report->set(
-					'powers.duplicate.namespace.' . $this->key($guid),
-					$namespace
-				);
+				$this->report->set('powers.unresolved.namespace.' . $this->key($guid), '');
 
 				continue;
 			}
 
-			$this->index['namespace'][$identity] = $power;
-			$this->index['guid'][strtolower($guid)] = $power;
-
+			$this->index['namespace'][$this->identity($namespace)][$guid] = $power;
 			$fqn = $this->namespacer->resolve($namespace);
 
 			if ($fqn === '')
 			{
-				// a placeholder this run has no value for still identifies the
-				// power; it just cannot say which written name reaches it
-				$this->report->set(
-					'powers.unresolved.namespace.' . $this->key($guid),
-					$namespace
-				);
+				$this->report->set('powers.unresolved.namespace.' . $this->key($guid), $namespace);
 
 				continue;
 			}
 
-			$name = $this->namespacer->key($fqn);
+			$this->index['class'][$this->namespacer->key($fqn)][$guid] = $power;
+		}
 
-			if (isset($this->index['class'][$name]))
+		foreach (['namespace', 'class'] as $kind)
+		{
+			foreach ($this->index[$kind] as $key => $candidates)
 			{
-				// two identities reaching one class name cannot both answer
-				// for a written reference, so the first keeps it
-				$this->report->set(
-					'powers.duplicate.class.' . $this->key($guid),
-					$fqn
-				);
+				if (count($candidates) < 2)
+				{
+					continue;
+				}
 
-				continue;
+				$this->report->set('powers.collisions.' . $kind . '.' . hash('sha256', $key), array_keys($candidates));
+
+				foreach ($candidates as $guid => $power)
+				{
+					$this->report->set('powers.duplicate.' . $kind . '.' . $this->key($guid),
+						$kind === 'namespace' ? $power['namespace'] : $this->namespacer->resolve($power['namespace']));
+				}
 			}
-
-			$this->index['class'][$name] = $power;
 		}
 
 		return $this->index;
 	}
 
 	/**
-	 * Sanitise one registry path segment.
+	 * Return a single usable candidate, never a first-row tie breaker.
+	 *
+	 * @param   array<string, array>  $candidates  The complete candidate set.
+	 *
+	 * @return  array|null  The unique usable record.
+	 * @since   6.2.0
+	 */
+	protected function unique(array $candidates): ?array
+	{
+		if (count($candidates) !== 1)
+		{
+			return null;
+		}
+
+		$power = reset($candidates);
+
+		return $power['selectable'] ? $power : null;
+	}
+
+	/**
+	 * Sanitise one registry path segment without changing stored output.
 	 *
 	 * @param   string  $segment  The raw segment.
 	 *
-	 * @return  string  A segment safe to use in a dotted registry path.
+	 * @return  string  A registry-safe segment.
 	 * @since   6.1.7
 	 */
 	protected function key(string $segment): string
