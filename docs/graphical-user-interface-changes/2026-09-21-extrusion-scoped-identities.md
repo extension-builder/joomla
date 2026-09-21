@@ -84,10 +84,15 @@ writes and Power compiler results, and restores fixture records before browser
 journeys. The harness destroys its database/container volumes on completion.
 No production definitions are used or modified.
 
-Local checks completed while preparing this change: PHP syntax for the changed
-model/template and integration fixture, JavaScript syntax, Bash syntax. Full
-repository and installed-browser CI results are recorded in PR #53 after each
-published checkpoint; unrun checks are not represented as passed here.
+Verification on published commit `6e8d9b528049fd3abb8127ab0bb7c037d53cfe34`:
+Vendor JCB unit workflow `35649762940` passed; GUI workflow `35649762919`
+passed all 12 browser tests (zero skipped or flaky) after the real database and
+Power compiler assertions. The fixture proved B-specific writes/dependencies,
+unchanged A records/output, preserved B licence/namespace, exact effective
+payloads, no-op metadata, no auxiliary writes and stale-plan rejection. Logs and
+compiler evidence are retained in the workflow artifact. PHP/JavaScript/Bash
+syntax checks also passed. PR #53 records final-head reruns after subsequent
+source changes; this pinned result does not substitute for those reruns.
 
 ## Risks, limits and rollback
 
