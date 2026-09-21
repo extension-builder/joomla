@@ -45,11 +45,31 @@ say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 compose() { docker compose -f "${COMPOSE_FILE}" "$@"; }
 
 cleanup() {
+	local status=$?
+	trap - EXIT
+	# Preserve setup/integration failures too, before their container is removed.
+	# Failure of evidence collection must never hide the original failing step.
+	if [[ -d "${OUT_DIR}" ]]
+	then
+		compose logs joomla > "${OUT_DIR}/container.log" 2>&1 || true
+		if [[ "${SUITE_STARTED:-0}" == "1" ]]
+		then
+			for artifact in results.json playwright-report test-results
+			do
+				if [[ -e "${SUITE_DIR}/${artifact}" ]]
+				then
+					cp -r "${SUITE_DIR}/${artifact}" "${OUT_DIR}/" || true
+				fi
+			done
+		fi
+		rm -f "${OUT_DIR}/jcb-under-test.zip" || true
+	fi
 	if [[ "${KEEP_STACK}" != "1" ]]
 	then
 		say "Removing the stack"
 		compose down -v >/dev/null 2>&1 || true
 	fi
+	exit "${status}"
 }
 
 # Wait for a line the entrypoint writes when it finishes a step.
@@ -205,7 +225,8 @@ compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
 compose cp "${REPO_ROOT}/.github/gui-tests/extrusion-fixtures.php" "joomla:/tmp/extrusion-fixtures.php"
 for phase in seed verify
 do
-	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php -d memory_limit=1G 		/tmp/extrusion-fixtures.php "--${phase}" > "${OUT_DIR}/extrusion-${phase}.log" 2>&1
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php -d memory_limit=1G \
+		/tmp/extrusion-fixtures.php "--${phase}" > "${OUT_DIR}/extrusion-${phase}.log" 2>&1
 	then
 		cat "${OUT_DIR}/extrusion-${phase}.log"
 		exit 1
@@ -222,6 +243,7 @@ say "Running the GUI suite"
 	npx playwright install ${PLAYWRIGHT_INSTALL_ARGS}
 )
 
+SUITE_STARTED=1
 set +e
 (
 	cd "${SUITE_DIR}"
@@ -233,19 +255,6 @@ set +e
 )
 SUITE_STATUS=$?
 set -e
-
-say "Keeping the evidence"
-compose logs joomla > "${OUT_DIR}/container.log" 2>&1
-
-for artifact in results.json playwright-report test-results
-do
-	if [[ -e "${SUITE_DIR}/${artifact}" ]]
-	then
-		cp -r "${SUITE_DIR}/${artifact}" "${OUT_DIR}/"
-	fi
-done
-
-rm -f "${PACKAGE}"
 
 if (( SUITE_STATUS != 0 ))
 then

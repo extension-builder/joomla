@@ -100,5 +100,7 @@ jobs:
             .gui-tests/install.log
             .gui-tests/extrusion-*.log
             .gui-tests/extrusion-*.json
+          # Only the explicit evidence files above, never session/auth state.
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
