@@ -10,16 +10,20 @@
  * mocks. The import runs as a dry run, so the suite proves the whole pipeline
  * without writing a single row into the site it runs on.
  *
- * The harvest is aimed at a folder the installed extension itself ships
- * (the Extrusion Registry classes), so the source is always present in the
- * container and the harvest result is stable run over run.
+ * The harness seeds an isolated A/B/shared catalogue and independent source
+ * fixtures before these read-only journeys. Its separate integration phase
+ * checks actual persistence and compiler output, then restores fixture rows.
  */
 const { test, expect } = require('@playwright/test');
 const { openView, setRadio } = require('../helpers/jcb');
 
 const WEBROOT = process.env.JCB_WEBROOT || '/var/www/html';
-const LIBRARY = WEBROOT
-	+ '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/Registry';
+const fixturePath = process.env.JCB_EXTRUSION_FIXTURES;
+if (!fixturePath) {
+	throw new Error('Run the disposable GUI harness to seed the extrusion fixtures.');
+}
+const fixtures = JSON.parse(require('node:fs').readFileSync(fixturePath, 'utf8'));
+const LIBRARY = fixtures.library_new;
 const COMPONENT_ADMIN = WEBROOT + '/administrator/components/com_componentbuilder';
 const COMPONENT_SITE = WEBROOT + '/components/com_componentbuilder';
 
@@ -263,7 +267,119 @@ test.describe('the extrusion view', () => {
 		await expect(row.locator('.extrusion-change .extrusion-add')).not.toHaveText('+0');
 	});
 
+
+	/** A response is observed, never mocked: assertions inspect the real contract. */
+	function responseFor(page, task) {
+		return page.waitForResponse((response) => response.url().includes(task)
+			&& response.request().method() === 'POST', { timeout: 120_000 });
+	}
+
+	async function harvestFixture(page, library, target, dry = true) {
+		await setRadio(page, 'show_advanced_options', '1');
+		await setRadio(page, 'dry_run', dry ? '1' : '0');
+		await page.locator('[name="component_id"]').selectOption(String(target));
+		await page.locator('[name="libraries"]').fill(library);
+		const response = responseFor(page, 'extrusionHarvest');
+		await page.getByRole('button', { name: 'Harvest the source' }).click();
+		const payload = await (await response).json();
+		expect(payload.error, JSON.stringify(payload)).toBeUndefined();
+		await expect(page.locator('#extrusion-pane-pairing')).toBeVisible();
+		return payload;
+	}
+
+	function powerRow(page, key) {
+		return page.locator('[data-extrusion-row="power|' + key + '"]');
+	}
+
+	test('shows B’s actual GUID and recalculates complete pairings across A → B → A', async ({ page }) => {
+		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
+		const consumer = payload.powers.classes.find((candidate) => candidate.class === 'Consumer');
+		expect(factory.matched_guid).toBe(fixtures.factory_b);
+		expect(consumer.dependencies.some((dependency) => dependency.guid === fixtures.factory_b)).toBe(true);
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-name'))
+			.toHaveText('Extrusion Fixture Factory B');
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.factory_b);
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-namespace'))
+			.toHaveText('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory');
+		const originalKeys = payload.powers.classes.map((candidate) => candidate.source_key).sort();
+		for (const target of [fixtures.component_a_id, fixtures.component_b_id, fixtures.component_a_id, fixtures.component_b_id]) {
+			const response = responseFor(page, 'extrusionWeigh');
+			await page.locator('#extrusion-component-select').selectOption(String(target));
+			await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+			const changed = await (await response).json();
+			expect(changed.error, JSON.stringify(changed)).toBeUndefined();
+			expect(changed.powers.classes.map((candidate) => candidate.source_key).sort()).toEqual(originalKeys);
+			const row = changed.powers.classes.find((candidate) => candidate.class === 'Factory');
+			const wanted = target === fixtures.component_b_id ? fixtures.factory_b : fixtures.factory_a;
+			expect(row.matched_guid).toBe(wanted);
+			await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(wanted);
+			await expect(page.locator('#extrusion-acknowledge-scopes')).not.toBeChecked();
+		}
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
+	});
+
+	test('leaves ambiguous identities unresolved until a real manual target is selected', async ({ page }) => {
+		const payload = await harvestFixture(page, fixtures.library_b, 0);
+		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
+		expect(factory.status).toBe('ambiguous');
+		expect(factory.matched_guid).toBeNull();
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveCount(0);
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-match-status')).toContainText('Ambiguous');
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+		await powerRow(page, factory.source_key).getByRole('button', { name: 'Update', exact: false }).click();
+		const modal = page.locator('#extrusion-modal');
+		await expect(modal).toBeVisible();
+		await modal.locator('#extrusion-modal-search').fill('Extrusion Fixture Factory B');
+		const response = responseFor(page, 'extrusionWeigh');
+		await modal.locator('[data-extrusion-target="' + fixtures.factory_b + '"]').click();
+		const corrected = await (await response).json();
+		const actual = corrected.powers.classes.find((candidate) => candidate.source_key === factory.source_key);
+		expect(actual.matched_guid).toBe(fixtures.factory_b);
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.factory_b);
+		// A different unresolved source cannot be concealed by fixing only Factory.
+		expect(corrected.plan.status).toBe('blocked');
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+	});
+
+	test('keeps a shared GUID and requires one reviewed scope acknowledgement for real writes', async ({ page }) => {
+		const payload = await harvestFixture(page, fixtures.library_shared, fixtures.component_b_id, false);
+		const shared = payload.powers.classes[0];
+		expect(shared.matched_guid).toBe(fixtures.shared);
+		expect(shared.write_scope).toBe('shared');
+		expect(shared.namespace_proposal.value).toContain('Abstraction.Registry.Value');
+		expect(payload.plan.required_approvals).toContain('shared');
+		await expect(powerRow(page, shared.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.shared);
+		await expect(page.locator('#extrusion-scope-approval')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+		await page.locator('#extrusion-acknowledge-scopes').check();
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
+		const response = responseFor(page, 'extrusionWeigh');
+		await page.locator('#extrusion-component-select').selectOption(String(fixtures.component_a_id));
+		await response;
+		await expect(page.locator('#extrusion-acknowledge-scopes')).not.toBeChecked();
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+		// Deliberately do not click Import: browser tests leave every seeded row intact.
+	});
+
+	test('imports the exact reviewed B plan in dry-run mode and retains aliased dependencies', async ({ page }) => {
+		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		expect(payload.plan.status).toBe('preview');
+		const response = responseFor(page, 'extrusionImport');
+		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		const result = await (await response).json();
+		expect(result.error, JSON.stringify(result)).toBeUndefined();
+		expect(result.plan.fingerprint).toBe(payload.plan.fingerprint);
+		expect(result.plan.status).toBe('preview');
+		expect(result.plan.writes || []).toEqual([]);
+		const consumer = result.powers.classes.find((candidate) => candidate.class === 'Consumer');
+		expect(consumer.dependencies.some((dependency) => dependency.guid === fixtures.factory_b)).toBe(true);
+		await expect(page.locator('#extrusion-pane-results .alert-success').first()).toBeVisible();
+	});
+
 	test('harvests the installed component against the real schema', async ({ page }) => {
+		await setRadio(page, 'show_advanced_options', '1');
+		await setRadio(page, 'dry_run', '1');
 		// the heaviest journey on the board: a real component, both folders,
 		// resolved and paired against the live database -- the run that a
 		// fabricated fixture schema can never stand in for
@@ -363,9 +479,9 @@ test.describe('the extrusion view', () => {
 			+ similar.slice(0, 5).join(' | ')
 		).toBe(true);
 
-		// and the import runs FOR REAL against the live database -- a dry run
-		// returns before the writers ever query, which is exactly how a broken
-		// write path once slipped past this suite
+		// The installed component is weighed against the live schema without
+		// durable mutations. The harness separately verifies actual Power writes
+		// and compiler output, restoring its isolated fixtures afterwards.
 		await page.getByRole('button', { name: 'Import into JCB' }).click();
 		const results = page.locator('#extrusion-pane-results');
 		await expect(results).toBeVisible({ timeout: 300_000 });
@@ -376,7 +492,7 @@ test.describe('the extrusion view', () => {
 		expect(raised, 'The live import raised on the page: ' + raised.join(' | '))
 			.toEqual([]);
 		await expect(results.locator('.alert-success').first()).toBeVisible();
-		await expect(results.getByText('Written', { exact: false }).first()).toBeVisible();
+		await expect(results.getByText('nothing was written', { exact: false }).first()).toBeVisible();
 
 		// the way back to setup stays open
 		await page.locator('#extrusion-tab-setup').click();

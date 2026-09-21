@@ -7080,7 +7080,6 @@ class AjaxModel extends ListModel
 			}
 
 			$extruder?->harvest();
-			$powers?->harvest();
 
 			$candidates = ExtrusionFactory::_('Extrusion.Resolver.Candidates');
 			$component = (int) ($options['component'] ?? 0);
@@ -7091,13 +7090,16 @@ class AjaxModel extends ListModel
 				$component = (int) $detected->id;
 			}
 
+			$sourceComponent = max(0, (int) ($options['source_component'] ?? $component));
+
 			$harvested = [
 				'success' => Text::_('The source was harvested. Review the pairings below, then import.'),
 				'component' => $component,
+				'source_component' => $sourceComponent,
 				'detected' => $detected,
 				'components' => $candidates->components(),
 				'candidates' => $extruder !== null ? $candidates->candidates($component) : null,
-				'powers' => $powers !== null ? $this->extrusionPowersTree() : null,
+				'powers' => null,
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
 				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
 			];
@@ -7110,8 +7112,11 @@ class AjaxModel extends ListModel
 			try
 			{
 				$harvested['changes'] = $this->extrusionProposals(
-					['component' => $component, 'detect' => false] + $options
+					['component' => $component, 'source_component' => $sourceComponent, 'detect' => false] + $options
 				) ?? [];
+				$harvested = array_replace($harvested, $this->extrusionReview());
+				$harvested['messages'] = ExtrusionFactory::_('Extruder')->messages();
+				$harvested['report'] = ExtrusionFactory::_('Extrusion.Registry.Report')->toArray();
 			}
 			catch (\Exception $error)
 			{
@@ -7156,9 +7161,14 @@ class AjaxModel extends ListModel
 		$options = json_decode($config, true);
 		$verdicts = json_decode($decisions, true);
 
-		if (!is_array($options))
+		if (!is_array($options) || !is_array($verdicts))
 		{
 			return ['error' => Text::_('The extrusion configuration could not be read.')];
+		}
+
+		if (empty($options['dry_run']) && !preg_match('/^[a-f0-9]{64}$/D', (string) ($options['approved_plan'] ?? '')))
+		{
+			return ['error' => Text::_('Review the current write plan before importing.')];
 		}
 
 		try
@@ -7176,11 +7186,16 @@ class AjaxModel extends ListModel
 				ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
 			}
 
-			$extruder?->extrude();
-			$powers?->extrude();
+			// The component engine owns the shared plan, including its libraries.
+			($extruder ?? $powers)->extrude();
+			$review = $this->extrusionReview();
+			$status = $review['plan']['status'] ?? 'blocked';
 
-			return [
-				'success' => Text::_('The import has run. The full report follows.'),
+			return $review + [
+				(in_array($status, ['committed', 'unchanged', 'preview'], true) ? 'success' : 'error')
+					=> in_array($status, ['committed', 'unchanged', 'preview'], true)
+						? Text::_('The import has run. The full report follows.')
+						: Text::_('The import was blocked or rolled back. Review the reported plan before trying again.'),
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
 				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
 			];
@@ -7393,6 +7408,26 @@ class AjaxModel extends ListModel
 				->limits($depth, $maxFiles);
 		}
 
+		$settings = ExtrusionFactory::_('Extrusion.Config');
+		$settings->set('sourceComponent', max(0, (int) ($options['source_component'] ?? $component)));
+		$settings->set('approvedPlan', (string) ($options['approved_plan'] ?? ''));
+
+		foreach (['shared', 'foreign', 'unknown', 'remapping'] as $scope)
+		{
+			$settings->set('acknowledge' . ucfirst($scope),
+				($options['acknowledged_scopes'][$scope] ?? false) === true);
+		}
+
+		if (isset($options['source_bindings']))
+		{
+			if (!is_array($options['source_bindings']))
+			{
+				throw new \InvalidArgumentException(Text::_('Source-root bindings must be a mapping.'));
+			}
+
+			$settings->set('sourceBindings', $options['source_bindings']);
+		}
+
 		return [$aimed ? $extruder : null, $libraries !== [] ? $powers : null];
 	}
 
@@ -7436,14 +7471,19 @@ class AjaxModel extends ListModel
 
 		try
 		{
-			$changes = $this->extrusionProposals($options, is_array($verdicts) ? $verdicts : []);
+			if (!is_array($verdicts))
+			{
+				return ['error' => Text::_('The pairing decisions could not be read.')];
+			}
+
+			$changes = $this->extrusionProposals($options, $verdicts);
 
 			if ($changes === null)
 			{
 				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
 			}
 
-			return ['changes' => $changes];
+			return ['changes' => $changes] + $this->extrusionReview();
 		}
 		catch (\Exception $error)
 		{
@@ -7489,7 +7529,7 @@ class AjaxModel extends ListModel
 		$verdicts = json_decode($decisions, true);
 		$row = trim($row);
 
-		if (!is_array($options) || $row === '')
+		if (!is_array($options) || !is_array($verdicts) || $row === '')
 		{
 			return ['error' => Text::_('The extrusion configuration could not be read.')];
 		}
@@ -7504,7 +7544,7 @@ class AjaxModel extends ListModel
 			return [
 				'row' => $row,
 				'records' => $this->extrusionRecords($row)
-			];
+			] + $this->extrusionReview();
 		}
 		catch (\Exception $error)
 		{
@@ -7543,8 +7583,7 @@ class AjaxModel extends ListModel
 			ExtrusionFactory::_('Extrusion.Resolver.Pairing')->load($verdicts);
 		}
 
-		$extruder?->extrude();
-		$powers?->extrude();
+		($extruder ?? $powers)->extrude();
 
 		return ExtrusionFactory::_('Extrusion.Registry.Proposal')->summary();
 	}
@@ -7599,6 +7638,24 @@ class AjaxModel extends ListModel
 	}
 
 	/**
+	 * The authoritative public review contract, without raw source or placeholder maps.
+	 *
+	 * @return array  The plan and freshly resolved Power rows for this context.
+	 * @since  6.2.0
+	 */
+	protected function extrusionReview(): array
+	{
+		$plan = (array) ExtrusionFactory::_('Extrusion.Registry.Report')->get('plan', []);
+
+		return [
+			'plan' => array_intersect_key($plan, array_flip([
+				'fingerprint', 'status', 'required_approvals', 'changes', 'blockers', 'writes'
+			])),
+			'powers' => $this->extrusionPowersTree()
+		];
+	}
+
+	/**
 	 * The powers harvest tree, trimmed for the pairing board.
 	 *
 	 * A harvest can carry hundreds of classes, each with its full body --
@@ -7615,7 +7672,10 @@ class AjaxModel extends ListModel
 		foreach ((array) ($tree['classes'] ?? []) as $candidate)
 		{
 			$candidate = (array) $candidate;
+			$result = (array) ($candidate['resolution'] ?? []);
 			$classes[] = [
+				'source_key' => $candidate['source_key'] ?? '',
+				'source_unit' => $candidate['source_unit'] ?? '',
 				'guid' => $candidate['guid'] ?? '',
 				'library' => $candidate['library'] ?? '',
 				'bundle' => $candidate['bundle'] ?? '',
@@ -7626,7 +7686,24 @@ class AjaxModel extends ListModel
 				'stored' => $candidate['stored'] ?? '',
 				'exists' => !empty($candidate['exists']),
 				'id' => (int) ($candidate['id'] ?? 0),
-				'action' => $candidate['action'] ?? 'create'
+				'action' => $candidate['action'] ?? 'unresolved',
+				'status' => $result['status'] ?? 'unresolved',
+				'matched_guid' => $result['matched_guid'] ?? null,
+				'write_guid' => $result['write_guid'] ?? null,
+				'target' => $result['target'] ?? null,
+				'consumers' => array_values((array) ($result['consumers'] ?? [])),
+				'source_component' => $result['source_component'] ?? null,
+				'target_component' => $result['target_component'] ?? null,
+				'write_eligibility' => $result['write_eligibility'] ?? 'blocked',
+				'write_scope' => $result['write_scope'] ?? 'unestablished',
+				'reason' => $result['reason'] ?? '',
+				'remapping' => !empty($result['remapping']),
+				'blockers' => array_values((array) ($result['blockers'] ?? [])),
+				'alternatives' => array_values((array) ($result['candidates'] ?? [])),
+				'dependencies' => array_values((array) ($result['dependencies'] ?? [])),
+				'namespace_proposal' => array_intersect_key((array) ($result['namespace'] ?? []), array_flip([
+					'value', 'preserved', 'relocation', 'round_trip', 'provenance', 'target_fqn'
+				]))
 			];
 		}
 

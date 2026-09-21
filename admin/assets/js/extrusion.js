@@ -34,6 +34,9 @@
 	 */
 	const state = {
 		data: null,
+		plan: null,
+		reviewPending: true,
+		catalogueRun: 0,
 		catalogue: null,
 		catalogueFailed: false,
 		decisions: {},
@@ -182,11 +185,12 @@
 		if (payload.powers && payload.powers.classes) {
 			payload.powers.classes.forEach((candidate) => {
 				candidate.kind = 'power';
-				candidate.key = candidate.guid;
+				candidate.key = candidate.source_key;
 				candidate.label = candidate.class;
 				candidate.detail = candidate.fqn;
 			});
 		}
+		state.config.source_component = payload.source_component ?? payload.component ?? 0;
 		state.data = payload;
 		state.decisions = {};
 		state.selected.clear();
@@ -199,6 +203,7 @@
 		enableTab('setup');
 		enableTab('pairing');
 		fillComponentSelect(payload);
+		acceptReview(payload);
 		await loadCatalogue(payload.component || 0);
 		renderBoard();
 		showPane('pairing');
@@ -236,17 +241,22 @@
 	 * exactly the way the server pairs -- lowercase, name then system name.
 	 */
 	async function loadCatalogue(componentId) {
+		const run = ++state.catalogueRun;
 		let catalogue;
 		try {
 			catalogue = await post('extrusionCatalogue', { component_id: componentId });
 		} catch (error) {
 			catalogue = null;
 		}
+		if (run !== state.catalogueRun) {
+			return false;
+		}
 		state.catalogue = (catalogue && !catalogue.error) ? catalogue : null;
 		// a failed catalogue must be said, never quietly rendered as a board
 		// where nothing happens to match
 		state.catalogueFailed = state.catalogue === null;
 		rematch();
+		return true;
 	}
 
 	function matchByGuid(guid, pool) {
@@ -358,9 +368,13 @@
 	 */
 	function proposal(candidate) {
 		if (candidate.kind === 'power') {
-			return candidate.exists
-				? { action: 'update', target: candidate.guid, label: candidate.fqn }
-				: { action: 'create' };
+			if (candidate.status === 'matched') {
+				const target = candidate.target || {};
+				return { action: candidate.action === 'skip' ? 'skip' : 'update',
+					target: candidate.matched_guid, label: target.system_name || target.name || candidate.matched_guid };
+			}
+			return { action: candidate.status === 'new' ? 'create'
+				: (candidate.status === 'ignored' || candidate.status === 'filtered' ? 'ignore' : 'blocked') };
 		}
 		return candidate.match
 			&& (candidate.match.by === 'guid' || candidate.match.by === 'scoped')
@@ -396,12 +410,128 @@
 	 * aimed at the component the board pairs against -- detected or chosen --
 	 * so a weighing, a diff and the import are all the same run.
 	 */
-	function runConfig() {
+	function runConfig(importing = false) {
 		const config = Object.assign({}, state.config);
 		const select = $('extrusion-component-select');
 		config.component = parseInt(select.value, 10) || 0;
 		config.detect = false;
+		delete config.approved_plan;
+		delete config.acknowledged_scopes;
+		if (importing && state.plan) {
+			config.approved_plan = state.plan.fingerprint;
+			config.acknowledged_scopes = {};
+			if ($('extrusion-acknowledge-scopes').checked) {
+				(state.plan.required_approvals || []).forEach((scope) => {
+					config.acknowledged_scopes[scope] = true;
+				});
+			}
+		}
 		return config;
+	}
+
+	/** Invalidate immediately, including an older request still in flight. */
+	function invalidateReview() {
+		weighingRun++;
+		state.reviewPending = true;
+		state.plan = null;
+		const acknowledgement = $('extrusion-acknowledge-scopes');
+		if (acknowledgement) {
+			acknowledgement.checked = false;
+		}
+		renderReview();
+	}
+
+	/** Keep source keys, never guessed target GUIDs, as the board identity. */
+	function acceptReview(payload) {
+		if (payload.powers && Array.isArray(payload.powers.classes)) {
+			payload.powers.classes.forEach((candidate) => {
+				candidate.kind = 'power';
+				candidate.key = candidate.source_key;
+				candidate.label = candidate.class;
+				candidate.detail = candidate.fqn;
+			});
+			state.data.powers = payload.powers;
+		}
+		const plan = payload.plan;
+		const same = state.plan && plan && state.plan.fingerprint === plan.fingerprint;
+		state.plan = plan && /^[a-f0-9]{64}$/.test(plan.fingerprint || '') ? plan : null;
+		state.reviewPending = false;
+		if (!same) {
+			$('extrusion-acknowledge-scopes').checked = false;
+		}
+	}
+
+	function reviewReady() {
+		if (!E.canImport || state.reviewPending || state.weighingFailed || !state.plan
+			|| state.plan.status !== 'preview' || Object.keys(state.plan.blockers || {}).length) {
+			return false;
+		}
+		const scopes = state.plan.required_approvals || [];
+		return String((state.config || {}).dry_run) === '1' || !scopes.length
+			|| $('extrusion-acknowledge-scopes').checked;
+	}
+
+	function renderReview() {
+		const notice = $('extrusion-review-notice');
+		if (!notice) {
+			return;
+		}
+		const blockers = Object.values((state.plan || {}).blockers || {});
+		const pending = state.reviewPending || !state.plan;
+		notice.className = 'alert ' + (pending ? 'alert-info' : (blockers.length ? 'alert-warning' : 'alert-success'));
+		notice.textContent = state.weighingFailed || (pending ? T.reviewPending
+			: (blockers.length ? T.reviewBlocked + ' ' + blockers.join(' ') : T.reviewReady));
+		const scopes = (state.plan || {}).required_approvals || [];
+		$('extrusion-scope-approval').hidden = !scopes.length;
+		$('extrusion-required-scopes').textContent = scopes.map((scope) => T['scope_' + scope] || scope).join(', ');
+		const button = $('extrusion-import-button');
+		if (button) {
+			button.disabled = !reviewReady();
+		}
+	}
+
+	/** Render the server's actual target and bounded evidence, independently of the source. */
+	function powerDetails(candidate) {
+		if (state.reviewPending) {
+			return '<span class="extrusion-power-evidence">' + esc(T.reviewPending) + '</span>';
+		}
+		const target = candidate.target;
+		let html = '<span class="extrusion-power-evidence"><span class="badge bg-secondary extrusion-match-status">'
+			+ esc(T['status_' + candidate.status] || candidate.status) + '</span> ';
+		if (candidate.action === 'skip') {
+			html += '<span>' + esc(T.skippedExisting) + '</span> ';
+		}
+		if (target) {
+			html += '<span>' + esc(T.actualTarget) + ': <strong class="extrusion-target-name">'
+				+ esc(target.system_name || target.name) + '</strong></span>'
+				+ '<code class="extrusion-target-guid">' + esc(target.guid) + '</code>'
+				+ '<code class="extrusion-target-namespace">' + esc(target.namespace) + '</code>';
+		} else if (candidate.status === 'new') {
+			html += '<span>' + esc(T.newIdentity) + ': <code>' + esc(candidate.write_guid) + '</code></span>';
+		}
+		const consumers = Object.values(candidate.consumers || {});
+		if (consumers.length) {
+			html += '<span>' + esc(T.knownConsumers) + ': '
+				+ consumers.map((consumer) => esc(consumer.code || consumer.guid || consumer.id)).join(', ') + '</span>';
+		}
+		html += '<span>' + esc(T.writeScope) + ': ' + esc(T['scope_' + candidate.write_scope] || candidate.write_scope) + '</span>';
+		(candidate.blockers || []).forEach((reason) => {
+			html += '<span class="text-danger">' + esc(reason) + '</span>';
+		});
+		const alternatives = (candidate.alternatives || []).filter((entry) => !target || entry.guid !== target.guid);
+		if (alternatives.length) {
+			html += '<details><summary>' + esc(T.otherCandidates) + ' (' + alternatives.length + ')</summary>';
+			alternatives.forEach((entry) => {
+				html += '<span><code>' + esc(entry.guid) + '</code> ' + esc(entry.system_name)
+					+ ' — ' + esc(entry.reason) + '</span><code>' + esc(entry.namespace) + '</code>';
+			});
+			html += '</details>';
+		}
+		const namespace = candidate.namespace_proposal;
+		if (namespace && namespace.relocation) {
+			html += '<span>' + esc(T.relocation) + ': <code>' + esc(namespace.value) + '</code></span>';
+		}
+		return html + '</span>';
 	}
 
 	/**
@@ -432,6 +562,7 @@
 	}
 
 	function scheduleWeighing() {
+		invalidateReview();
 		window.clearTimeout(weighingTimer);
 		weighingTimer = window.setTimeout(reweigh, 400);
 	}
@@ -465,6 +596,7 @@
 			renderBoard();
 			return;
 		}
+		acceptReview(payload);
 		const before = state.changes;
 		state.changes = payload.changes;
 		state.weighingFailed = '';
@@ -532,6 +664,7 @@
 	 * Read one row's diff under the decisions as they stand, and hold it.
 	 */
 	async function fetchDiff(id) {
+		const run = weighingRun;
 		state.diffs[id] = { loading: true };
 		renderBoard();
 		let payload;
@@ -543,6 +676,13 @@
 			});
 		} catch (error) {
 			payload = { error: error.message || T.requestFailed };
+		}
+		if (run !== weighingRun) {
+			return;
+		}
+		if (payload && payload.plan && state.plan
+			&& payload.plan.fingerprint !== state.plan.fingerprint) {
+			scheduleWeighing();
 		}
 		// the person may have closed it while it was on its way
 		if (Object.prototype.hasOwnProperty.call(state.diffs, id)) {
@@ -697,6 +837,7 @@
 			html += powersSection(data.powers);
 		}
 		board.innerHTML = html;
+		renderReview();
 		refreshBulkBar();
 		applyFilter($('extrusion-filter').value);
 		$$('#extrusion-board [data-extrusion-open]').forEach((node) => {
@@ -715,12 +856,15 @@
 		let matched = 0;
 		let similar = 0;
 		let shared = 0;
+		let unresolved = 0;
 		(list || []).forEach((candidate) => {
-			if (candidate.shared && !candidate.detached) {
+			if (candidate.kind === 'power' && !['matched', 'new'].includes(candidate.status)) {
+				unresolved++;
+			} else if (candidate.shared && !candidate.detached) {
 				shared++;
 			} else if ((candidate.match
 				&& (candidate.match.by === 'guid' || candidate.match.by === 'scoped'))
-				|| (candidate.kind === 'power' && candidate.exists)) {
+				|| (candidate.kind === 'power' && candidate.status === 'matched')) {
 				matched++;
 			} else if (candidate.match) {
 				similar++;
@@ -729,7 +873,8 @@
 		return ' <small>(' + list.length + ' ' + esc(T.items) + ', ' + matched + ' '
 			+ esc(T.matched) + ', ' + similar + ' ' + esc(T.similar) + ', '
 			+ (shared ? shared + ' ' + esc(T.shared) + ', ' : '')
-			+ (list.length - matched - shared) + ' ' + esc(T.newItem) + ')</small>';
+			+ (unresolved ? unresolved + ' ' + esc(T.unresolved) + ', ' : '')
+			+ (list.length - matched - shared - unresolved) + ' ' + esc(T.newItem) + ')</small>';
 	}
 
 	function kindSection(kind, label, list, withFields) {
@@ -830,6 +975,7 @@
 				? ' <span class="badge bg-warning extrusion-shared-note">'
 					+ esc(T.detached) + '</span>'
 				: '')
+			+ (candidate.kind === 'power' ? powerDetails(candidate) : '')
 			+ '</span>'
 			+ '<span class="extrusion-actions">'
 			+ changeBadge(candidate)
@@ -1055,7 +1201,11 @@
 	 * Run the import under the decisions of the board.
 	 */
 	async function runImport() {
-		const config = runConfig();
+		if (!reviewReady()) {
+			renderReview();
+			return;
+		}
+		const config = runConfig(true);
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.importing;
 		showPane('running');
@@ -1067,6 +1217,9 @@
 			});
 		} catch (error) {
 			payload = { error: error.message || T.requestFailed };
+		}
+		if (payload && payload.error) {
+			invalidateReview();
 		}
 		enableTab('results');
 		renderResults(payload || { error: T.importFailed });
@@ -1086,6 +1239,10 @@
 			html += '<div class="alert alert-success">' + esc(payload.success || T.importDone) + '</div>';
 		}
 		const report = payload.report || {};
+		const blockers = (payload.plan || report.plan || {}).blockers || {};
+		Object.values(blockers).forEach((reason) => {
+			html += '<div class="alert alert-warning">' + esc(reason) + '</div>';
+		});
 		if (report.dry_run) {
 			html += '<div class="alert alert-info">' + esc(T.dryRun) + '</div>';
 		}
@@ -1287,8 +1444,15 @@
 				}
 			});
 		});
+		$('extrusion-acknowledge-scopes').addEventListener('change', renderReview);
 		$('extrusion-component-select').addEventListener('change', async (event) => {
-			await loadCatalogue(parseInt(event.target.value, 10) || 0);
+			invalidateReview();
+			state.decisions = {};
+			state.selected.clear();
+			state.diffs = {};
+			if (!await loadCatalogue(parseInt(event.target.value, 10) || 0)) {
+				return;
+			}
 			// the weights were read against the component paired before, so
 			// every row is weighed again against the one chosen now
 			allCandidates().forEach((candidate) => {

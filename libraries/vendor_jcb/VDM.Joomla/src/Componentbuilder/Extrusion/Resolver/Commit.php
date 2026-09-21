@@ -116,6 +116,7 @@ final class Commit
 	 * @param   Harvest  $harvest  All Power source and resolution records.
 	 * @param   Decision  $decisions  Explicit pairing verdicts.
 	 * @param   Report  $report  Bounded operation diagnostics.
+	 * @param   Scanner  $scanner  The source selection used for revalidation.
 	 *
 	 * @since   6.2.0
 	 */

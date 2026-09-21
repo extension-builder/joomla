@@ -200,6 +200,21 @@ do
 	sleep 3
 done
 
+say "Seeding and verifying disposable extrusion definitions"
+compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
+compose cp "${REPO_ROOT}/.github/gui-tests/extrusion-fixtures.php" "joomla:/tmp/extrusion-fixtures.php"
+for phase in seed verify
+do
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php -d memory_limit=1G 		/tmp/extrusion-fixtures.php "--${phase}" > "${OUT_DIR}/extrusion-${phase}.log" 2>&1
+	then
+		cat "${OUT_DIR}/extrusion-${phase}.log"
+		exit 1
+	fi
+	tail -8 "${OUT_DIR}/extrusion-${phase}.log"
+done
+compose cp "joomla:${WEBROOT}/tmp/jcb-extrusion-fixtures/manifest.json" "${OUT_DIR}/extrusion-fixtures.json"
+compose cp "joomla:${WEBROOT}/tmp/jcb-extrusion-fixtures/compiler-evidence.json" "${OUT_DIR}/extrusion-compiler.json"
+
 say "Running the GUI suite"
 (
 	cd "${SUITE_DIR}"
@@ -210,6 +225,7 @@ say "Running the GUI suite"
 set +e
 (
 	cd "${SUITE_DIR}"
+	JCB_EXTRUSION_FIXTURES="${OUT_DIR}/extrusion-fixtures.json" \
 	JCB_BASE_URL="${JCB_BASE_URL}" \
 	JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
 	JCB_ADMIN_PASS="${JCB_ADMIN_PASS}" \
