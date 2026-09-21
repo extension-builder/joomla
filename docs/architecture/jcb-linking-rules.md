@@ -42,7 +42,7 @@ to update rather than create.
 
 A component's screens are the folders it ships them in, and its
 administrator menu names the ones it offers. That is all any Joomla
-component is obliged to state, and it is all extrusion reads.
+component is obliged to state, and that is all extrusion reads.
 
 A view's plural is derived, then checked: a derived plural the menu never
 names is reported, not settled quietly. Nothing recovers an irregular
@@ -245,88 +245,115 @@ without a table are built.
   routes recompute the namespace at compile time, which is what lets the
   same power compile into different components.
 
-**A power's identity is its stored namespace, not the class it compiles
-to.** The prefix is deferred precisely so one class serves components
-whose prefixes differ, so two classes are the same power exactly when
-they fold to the same stored namespace, whatever they were built as.
-Resolving both sides to concrete names instead makes every library whose
-prefix differs from the run's look new -- which duplicates a whole library
-on first harvest.
+**A Power GUID identifies a definition. A namespace describes its compiled
+name and placement, not its record identity.** Equal canonical templates or
+concrete class names are candidate evidence, never a reason to discard a GUID
+or choose the first database row. `Powers/Resolver/Existing` preserves the full
+GUID catalogue and competing namespace/FQN candidates in their applicable
+placeholder contexts.
+
+The selected component's actual references matter. `Powers/Resolver/References`
+reads component and linked-definition records statically, follows supported
+Power relationship fields/tokens transitively, and records provenance and known
+consumers with cycle protection. It does not execute stored PHP or construct the
+live Compiler service. Usage does not establish exclusive ownership; absent
+references mean unestablished scope, not globally shared or exclusively foreign.
+
+`Powers/Resolver/Identity` considers compatible explicit pairings, validated
+optional source GUIDs, the target component's reference context, and independently
+established literal/shared identity together. One compatible B-referenced Power
+wins over unrelated generic lookalikes; conflicting evidence and ties stay
+ambiguous or blocked. Short names, body similarity, canonical templates and row
+order are not sole update authority. Ambiguity is not silently converted to
+Create. A shared Power remains one GUID, and effective changed shared writes
+require acknowledgement. A foreign-only write additionally needs an explicit
+compatible pairing. The engine enforces mutation eligibility even without the
+administrator board; a referencable dependency is not automatically writable.
+
+The harvester uses a stable `source_key`, separately from `matched_guid` and
+`write_guid`. It derives that key from the logical source unit, FQN, declaration
+kind and observed relative placement; target choice, body hash, absolute install
+path and discovery order are not identity inputs. Multiple observations remain
+visible. New GUID derivation includes source provenance and target scope; known
+matches/shared GUIDs are preserved and repeated explicit creation is idempotent.
+The board, pairings, dependency mapping, proposal origins and reports all use the
+same source key rather than an early guessed target GUID.
 
 Folding a built class back:
 
-- A Joomla library extension is a folder of **vendor folders**. The
-  extension folder is what Joomla installs; the vendor folder inside it
-  (`VDM.Joomla`, `Acme.Joomla`) names the namespace head in its own
-  dotted name and keeps its classes under `src`.
-- The **first segment of every namespace is the vendor prefix**, and it is
-  ALWAYS deferred to `[[[NamespacePrefix]]]`, whatever it reads -- that is
-  the convention's own statement, and deferring it is what lets one class
-  serve components whose prefixes differ.
-- A **component segment answers by its word, not its casing** -- PHP
-  namespaces are case-insensitive, so `SermonDistributor` and
-  `Sermondistributor` are one component area. The set answered against
-  holds every component namespace the run can know: the component being
-  extruded, the component being paired against (its code name derived the
-  way `Compiler\Component\Placeholder` does, plus its
-  `component_placeholders` overrides, whose values are **plain text**
-  exactly as `applyComponentOverrides` reads them -- only the system-wide
-  `placeholder` table is base64 encoded). A match becomes
-  `[[[ComponentNamespace]]]`.
-- The **casing the library actually carries is witnessed and recorded**
-  onto the paired component -- the vendor prefix onto the component row
-  where none stands, and a differing component-segment casing as a
-  ComponentNamespace override -- so compiling the component resolves every
-  class back to the very folders it was harvested from. A person's
-  standing values are never overwritten, only reported when the library
-  disagrees.
-- The `system_name` speaks JCB's own convention: the vendor prefix, then
-  the dotted tail with the class -- `VDM.Data.Action.Load` -- never the
-  connecting head between them.
+- The vendor-folder convention (`VDM.Joomla`, `Acme.Joomla`, with classes under
+  `src`) establishes a namespace head. The independently established prefix
+  abstraction is retained; no production vendor name is special-cased.
+- A component-variable segment needs validated structural evidence at that
+  position: a compatible independently identified Power's placeholder roles,
+  a verified source-root mapping or an explicit reusable root binding. A word
+  appearing in a component catalogue, override, or selected component name does
+  **not** authorise its replacement. Literal `Abstraction.Registry` remains
+  literal even when the selected component is itself named Registry.
+- Unknown component roles stay literal, with bounded diagnostics. A text
+  round trip is necessary but cannot by itself prove ownership when both the
+  literal and component have the same spelling. Conflicting root evidence is
+  not resolved by voting or a fixed namespace-depth rule.
+- Source and target contexts remain separate. Namespace and placement proposals
+  reconstruct the source before any explicit source-to-target remapping. A valid
+  standing representation keeps its aliases, wrapper form and casing. A concrete
+  class match alone does not authorise restating a curated namespace. A real
+  relocation needs separate location evidence and a visible validated proposal.
+- Only validated, included component-variable bindings may supply auxiliary
+  prefix/namespace proposals. Shared, ignored, unresolved or rejected sources do
+  not witness configuration changes. Existing configured values are retained;
+  legitimate auxiliary changes participate in the same effective write plan.
+- `system_name` remains a human label, traditionally the vendor prefix and dotted
+  tail (`VDM.Data.Action.Load`), not an identity or overwrite permission.
 
 Powers outside the libraries folder:
 
-- The compiler's own core map (`Compiler\Joomla\Path`) places a power whose
-  namespace opens with `[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator`
-  (or `\Site`, or a `\Module\` or `\Plugin\` head) in that extension's own
-  `src`. Under such a head only the **dot parts are folders**; a further
-  backslash segment is not a folder at all, so `...\Administrator\Engine\Team`
-  would be written to `src/Team.php` while declaring the Engine namespace.
-  The stored form for `administrator/components/com_x/src/Engine/Team.php`
-  is therefore `...\Administrator\Engine.Team`, and for `src/Team.php` it is
-  `...\Administrator\Team`.
-- **The seam is read from the file's real ancestry, not from the folder the
-  run was aimed at.** The trailing namespace segments that mirror the file's
-  parent folder names, name for name, are the dot parts; the mirroring stops
-  at the source root (`src`) in every layout the compiler writes, and what
-  is left is the head. Aiming the run at `.../src/Engine`, at `.../src`, or
-  at the component folder lands on the same stored form. A folder below the
-  aimed folder that the namespace does not mirror is still a contradiction,
-  and falls back to the two-segment convention with a report entry.
-- **A person's placeholders are resolved in the compiler's order.** The
-  system-wide `placeholder` table (every target, base64 decoded), then the
-  core values over it in place, then the paired component's
-  `component_placeholders` overrides (every target). A power a person stores
-  as `[[[ComponentEngineNamespace]]].Team`, with that placeholder standing for
-  `[[[NamespacePrefix]]]\Component\[[[ComponentNamespace]]]\Administrator\Engine`,
-  resolves to the very class the compiler writes, so the catalogue answers
-  for it by class name as well as by identity.
-- **Identity is the canonical form.** Every placeholder the person defined
-  is unfolded, the core placeholders stay standing, and both wrapper forms
-  become one -- so `[[[ComponentEngineNamespace]]].Team` and the long form
-  it stands for are one power. A reference written under another prefix
-  folds at every seam the written name allows, not only the conventional
-  two-segment one, so an import of such a power still links by identity.
-- **A power recognised by identity keeps the namespace the person stored**,
-  through their placeholder or not; nothing is restated. A new power, or one
-  recognised only by the class it compiles to (an earlier run's misplaced
-  form, say), is written with the placement the file states, **expressed
-  through the longest placeholder whose value stands for a leading run of
-  the head** -- the joiner after the covered run kept, a dot where a folder
-  follows -- so it lands beside the powers the person already keeps there:
-  `[[[ComponentEngineNamespace]]].Match`. Only a value that is itself a
-  namespace fragment can stand for a head; a restated namespace is reported
-  as `powers.namespace.restated.<guid>` with both forms.
+The compiler's `Compiler\Joomla\Path` map places native component Administrator
+and Site heads, and Module/Plugin heads, in their extension `src` areas. Only dot
+parts of the last stored segment become folders beneath `src`. Consequently
+`...\Administrator\Engine\Team` declares the Engine namespace but occupies
+`src/Team.php`; `...\Administrator\Engine.Team` occupies `src/Engine/Team.php`.
+Two different FQNs can therefore collide at one physical compiler destination.
+`Namespacer::output()` reuses that compiler helper with isolated explicit context
+to produce logical output keys; preflight checks both FQN and file-path collisions,
+including occupied locations of skipped existing sources. Stored and diagnostic
+spelling is preserved even when collision comparison is case-insensitive.
+
+The source seam is read from the file's real ancestry, not merely the selected
+ancestor folder. Trailing namespace segments that mirror physical folders form
+the dot tail, bounded by the established root. Contradictory/unsupported placement
+is visible and cannot authorise an automatic write. Valid optional distributed
+Power metadata is checked against the source before informing intended placement.
+Neither a vendored file's location nor conditional GUID metadata is unrestricted
+component ownership or overwrite authority.
+
+Custom placeholders resolve in compiler order: system-wide `placeholder` values
+are base64 decoded, core values overlay them, then the applicable component's
+plain-text `component_placeholders` overrides apply. Custom heads and both wrapper
+forms can describe the same placement without being the same record. Canonical
+forms normalise lookup evidence, not GUID identity. A valid stored representation
+is preserved; a validated new representation can use an applicable custom head
+while retaining the correct dot/backslash seam.
+
+Relationships are assembled only after the source-to-Power map is settled. Imports,
+parents and interfaces use that same scoped decision, including after manual
+re-pairing. A known ambiguous Power reference blocks dependants instead of quietly
+becoming a raw import/custom parent. Aliases and the separate Super/Joomla Power
+contracts remain intact. Incompatible sources targeting one GUID or distinct GUIDs
+sharing a compiled FQN/path are rejected before any definition or auxiliary write.
+
+`Registry/Plan`, `Resolver/Delta` and `Resolver/Commit` make the effective preview
+payload the persistence payload. Preserved fields must really be omitted or kept,
+not merely removed from the displayed diff. Source and record snapshots bind the
+reviewed fingerprint; stale approvals return for review. Dry-run, blocked and
+identical re-import operations cause no definition or auxiliary writes. Component
+and Power execution share the complete preflight, rather than writing one half
+before discovering that the other half has unsafe identities.
+
+See [Extrusion §9](extrusion.md#9-current-power-identity-namespace-and-write-plan-contract)
+for service boundaries, context reset, API/board transport and verification. These
+Power namespace-role rules are distinct from the source-code idiom preservation
+rules below.
 
 ## Saying a component's name through the placeholder that stands for it
 
@@ -438,11 +465,13 @@ each rewrites the table:
 
 ## An update never rewrites what a person curated
 
-An update run is aimed at a component that already stands in JCB, and the
-source it reads was compiled from those very records. What the source states
-is therefore an echo of the record with the compiler's transforms applied:
-placeholders resolved, constants looked up, defaults laid out. The record is
-the truth and the echo never overwrites it.
+An update can reconstruct source produced from standing JCB records, including
+compiler transforms such as resolved placeholders, looked-up constants and laid
+out defaults. Those transforms are not permission to replace curated values.
+First establish the actual record identity and permitted mutation scope; a
+selected component or lookalike namespace does not prove source provenance. The
+preservation rules below then operate on that validated target, and the effective
+write plan must retain or omit each preserved field in the actual payload.
 
 - **A standing field keeps its type, its name, its storage and its database
   shape.** Only its XML is written, and that XML is the standing XML with the

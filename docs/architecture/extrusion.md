@@ -8,11 +8,11 @@ administrator area into JCB definitions.
 `Componentbuilder/Extrusion`, in two halves that share one set of registries:
 the component pipeline and the powers pipeline. `Helper\Mapping` and
 `Helper\Builder` are deleted, and `Helper\Extrusion` is a thin delegate that
-hands a pasted dump to the same `Extruder` a folder goes through (§8). What
-remains is the graphical interface, which needs `admin/**` and therefore a
-separate, explicitly authorised change. Sections 7 and 8 record what the
-working implementation proved and the places where reality differed from this
-design.
+hands a pasted dump to the same `Extruder` a folder goes through (§8). The
+authorised Extrusion administrator interface consumes the same source-keyed
+Power decisions and reviewed write plan (§9). Sections 7 and 8 retain the
+earlier implementation history; §9 is the current Power identity, namespace,
+preview and persistence contract and supersedes older identity assumptions.
 
 **What the engine reads, and what it refuses to.** Extrusion works on any
 Joomla component, whether or not JCB built it. It therefore reads only what
@@ -37,21 +37,23 @@ JCB's own default, which a person then arranges.
 
 **A run has two halves.** `harvest()` reads and resolves and writes nothing;
 `candidates()` returns what it found, grouped by kind and already paired
-against what the target component links; `extrude()` writes the selection.
-The powers pipeline works the same way, and the two share the run's registries
-so the component's code name resolves the library's `[[[ComponentNamespace]]]`
-without being given twice.
+against what the target component links; `extrude()` prepares, validates and
+then commits the complete effective selection. The component and Powers
+pipelines share one run-scoped plan. Supplying component placeholder values
+is not proof that a Power belongs to that component or that an equal namespace
+word is a component-variable segment; §9 describes the required evidence.
 
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
 consistent organization in the tree; **proposed** is design that does not exist
 yet.
 
-The graphical user interface, the folder picker, and the request/permission
-surface are explicitly out of scope here. This roadmap covers only the library
-classes under `libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion`
-and their contracts, so that the interface work can be done against a finished
-service API.
+The historical roadmap below concentrates on the library classes under
+`libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion`. The current
+interface/API boundary is documented in §9 and in the same-change
+[GUI record](../graphical-user-interface-changes/2026-09-21-extrusion-scoped-identities.md);
+that record also identifies the authoritative JCB source-transfer work required
+before regenerating the protected administrator files.
 
 ## 1. Current contract
 
@@ -239,7 +241,10 @@ domain gets several small ones, each shared and each with one subject:
 | `Extrusion.Registry.View` | classified templates and layouts, split into PHP and HTML | Reader |
 | `Extrusion.Registry.Resolved` | final per-field values, each with its origin | Resolver |
 | `Extrusion.Registry.Report` | matched, unmatched, guessed, skipped, unresolved | all |
-| `Extrusion.Registry.Proposal` | what every write would change against what stands, by pairing-board row | Writer, through `Resolver\Delta` |
+| `Extrusion.Registry.Proposal` | effective changes by stable pairing-board source row | Writer, through `Resolver\Delta` |
+| `Extrusion.Registry.Harvest` | raw Power sources and their scoped resolution results | Powers harvester/assembler |
+| `Extrusion.Registry.Decision` | explicit source-key pairings, separate from defaults | Pairing resolver |
+| `Extrusion.Registry.Plan` | effective payloads, source/record snapshots, scopes and blockers for one complete operation | Delta, writers and Commit |
 
 Indicative paths:
 
@@ -1147,3 +1152,179 @@ definition class states the list name outright for every field it describes, so
 stated `people` must not be overwritten with `persons`. This is the same lesson
 as §2's precedence order, applied to a place the original design had not noticed
 it applied.
+
+
+## 9. Current Power identity, namespace and write-plan contract
+
+This section describes the coordinated implementation in `Powers/Resolver`,
+`Powers/Harvester`, `Powers/Assembler`, the effective writers and
+`Resolver/Commit`. It supersedes any older statement that an equal stored
+namespace proves one Power identity, or that a component-name word authorises
+placeholder replacement. The component field/view rules elsewhere in this
+history are not alternative Power matching algorithms.
+
+### 9.1 Source identity is not the target GUID
+
+`Powers/Resolver/Existing` keeps every valid record in its GUID index. Canonical
+namespaces and resolved FQNs are context-dependent candidate sets, not unique
+keys; unresolved or colliding namespace representations do not hide a valid
+GUID. `Powers/Resolver/References` reads component and linked-definition records
+using Table metadata and supported GUID/token relationships, then follows Power
+dependencies with a cycle-safe traversal. It records direct/transitive evidence
+and consumers. It does not execute stored PHP or resolve the live Compiler
+service. Missing usage evidence is unestablished scope, not exclusive ownership
+or proof of globally shared identity.
+
+`Powers/Harvester` records each declaration under `source_key`, independently of
+`matched_guid` and `write_guid`. The key uses the logical source-unit head,
+normalised declaration FQN, observed relative placement and declaration kind.
+Body hashes are freshness evidence, not identity; absolute deployment paths,
+selected ancestor folders, target choices and enumeration order are not key
+inputs. Physical occurrences remain observable and incompatible occurrences
+block rather than overwrite one another. Validated optional `settings.json`
+Power metadata is evidence; arbitrary source GUIDs do not authorise writes.
+New GUIDs are deterministically derived from the scoped source identity and
+selected component identity. Existing matches and genuinely shared definitions
+retain their GUIDs; repeating an explicit creation does not create another row.
+
+`Powers/Resolver/Identity` gathers the competing evidence before choosing. A
+compatible explicit pairing is validated; consistent source-GUID evidence can
+identify a record; a single compatible record in the selected component's
+actual reference context identifies that component's existing Power. A unique
+literal/shared identity can be reused where established independently. A generic
+template, system name, code similarity or row order cannot alone authorise an
+update. Ties, contradictions and foreign-only generic candidates remain blocked;
+absence of an answer is not an automatic replacement creation.
+
+The common result carries source/target descriptors, status, nullable matched
+GUID, competing candidates/reasons, namespace proposal, dependencies,
+`write_scope` and `write_eligibility`. Resolution distinguishes `matched`, `new`,
+`ambiguous`, `conflict`, `unresolved`, `ignored` and `filtered`. A matched existing
+source that is skipped or unchanged remains available for relationship linking.
+
+### 9.2 Namespace variables require scoped structural evidence
+
+`Powers/Resolver/Placeholders` still resolves values in compiler order: global
+placeholder rows, core values, then the applicable component's overrides. Value
+resolution and permission to substitute a namespace segment are separate.
+`Namespacer::placeholderize()` does not turn arbitrary recognised component
+words into `ComponentNamespace`, including when that word is also the selected
+component's name. The established vendor convention is retained independently.
+
+A compatible independently identified standing Power can establish component
+variable positions. Validated explicit source-root bindings and consistent
+root evidence can recover those roles for new sources. Unproven component
+segments remain literal with bounded diagnostics; conflicting root roles do not
+vote for a winner. A text round trip is necessary but does not establish role
+ownership when a literal and component happen to have the same spelling.
+
+A valid standing stored namespace is preserved, including custom aliases,
+wrapper form, casing and placement. A concrete-FQN match alone does not
+permit restating it. `Namespacer` reconstructs the proposal in the **source**
+context and checks the declared FQN and observed placement. Real relocation
+requires independent location evidence and a visible proposal. Source-to-target
+remapping is a separate explicit scope, not a side effect of selecting another
+component. Unsupported placement or contradictory metadata blocks writing.
+
+`Powers/Writer/Vendor` contributes only validated, included component-variable
+bindings to auxiliary proposals. Shared, ignored, unresolved and rejected sources
+cannot supply false configuration witnesses. Existing configured values are not
+silently overwritten. Auxiliary changes go through the same preview, no-op and
+preflight rules as Power and component records.
+
+### 9.3 Dependencies and compiler output conflicts
+
+`Powers/Assembler` first settles source-to-GUID decisions, then assembles imports,
+parents, interfaces and supported relationships. The local FQN map retains
+source context and ambiguity. Manual re-pairing changes dependent GUIDs as well
+as the selected row's diff. Known ambiguous Power dependencies are blockers, not
+silently downgraded raw imports. Aliases and the distinction between Super Powers
+and Joomla Powers remain intact. Dependency blockers propagate to a fixed point,
+including cycles, before any mutation.
+
+Preflight rejects incompatible proposed definitions targeting one GUID and
+separate GUIDs producing one compiled FQN or file path. Skipped existing sources
+still occupy output locations. `Namespacer::output()` obtains native extension
+placement from the existing `Compiler\Joomla\Path` helper, using standalone,
+explicitly configured placeholder helpers rather than the Compiler factory.
+The `Extrusion.Powers.Resolver.Output` factory in `Service/Powers` creates
+a fresh helper per context; mutable prefix caches cannot leak across components.
+Its path is a **logical collision key** (`library:<head>/src/...` or
+`extension:<area>/src/...`), not an absolute filesystem destination. Library
+base directories common to a build do not distinguish collisions; native
+extension roots do. Case-insensitive comparison protects deployments without
+lowercasing the stored namespace or reported output spelling.
+
+Distinct namespaces can still share a native `src/Widget.php`: backslashes in
+the namespace head are not dot-tail folders. Tests therefore check both FQN and
+physical placement, not just duplicate class names. The guard reuses the actual
+compiler mapping for components, modules and plugins instead of inventing
+namespace-depth or vendor-name rules in extrusion.
+
+### 9.4 Prepare all effects, validate freshness, then commit
+
+`Registry/Plan` is run-scoped; `Resolver/Delta` stages the effective payload after
+preservation/no-op rules. `Resolver/Commit` owns the complete operation. Both
+extruders, Power writes and namespace/configuration proposals share that plan;
+component-plus-library import does not execute the Power pipeline again after
+component persistence. No included identity, dependency or output conflict may
+be discovered only after the first write.
+
+Preview and persistence use the same raw Data payload and GUID upsert boundary.
+Preserved fields are actually retained or omitted from writes, not merely hidden
+from the diff. Changed shared, foreign, unknown or remapping scopes require a
+reviewed fingerprint and acknowledgement; foreign writes also require an explicit
+compatible pairing. Being permitted as a dependency is not permission to mutate
+that definition. These checks run in the library boundary, not just JavaScript.
+
+Before committing, source/metadata and relevant record/reference snapshots are
+re-read. Changed targets or effective effects invalidate the reviewed fingerprint.
+The installed database transaction covers the approved writes; failure reports
+distinguish attempted, rolled-back and actually retained writes. Dry run and
+blocked preflight write nothing. An identical re-import is `unchanged`, including
+auxiliary configuration, without touching record metadata. Fingerprints bind
+review to current inputs; they are not persistent copies of complete diffs.
+
+### 9.5 The administrator is a consumer of the same plan
+
+`AjaxModel` establishes explicit or detected target context before returning
+final Power pairings, keeps source context separate, and loads explicit decisions
+after reset. Harvest, weigh, diff and import transport the same source-keyed
+resolution and plan status. Real browser import requires its reviewed plan.
+
+The board shows source FQN separately from the actual target GUID, system name,
+stored namespace and known usage. It renders ambiguity and competing candidates
+instead of deriving Update from `exists`. Target switches refresh full results,
+clear/revalidate context-specific decisions and invalidate previous approvals;
+request generations reject late responses. A single scope acknowledgement covers
+the current selected effects. Unchanged, skipped and ignored remain distinct.
+Existing permissions, request tokens, escaping, global manual picker and JCB
+natural-string language registration are preserved.
+
+`reset()` clears source bindings, graphs, candidates, witnesses and plans. Cache
+boundaries include component identity and reference/override snapshots, not just
+placeholder text. Tests exercise A -> B -> A, including equal placeholder values.
+
+### 9.6 Verification and source maintenance
+
+Production-service regression ownership includes `ScopedIdentityTest`,
+`IdentityTest`, `ReferencesTest`, `ScopedPipelineTest`, `CommitTest` and the
+existing extrusion suites. Run the full normal PHPUnit suite and all gates in
+[the development environment guide](../development/environment.md), not only the
+new tests. Known-defect groups are not a place to quarantine these regressions.
+
+The GUI harness installs this tree into a disposable Joomla/MariaDB stack.
+`.github/gui-tests/extrusion-fixtures.php` checks actual Data writes, complete A
+record preservation, B-specific dependent GUIDs, preview/payload equality,
+licence/namespace preservation, no-op metadata and stale-plan rejection. Actual
+Power compiler preparation checks A/B namespaces, paths, bodies and aliased
+imports. The browser spec then exercises real AJAX and reviewed-plan interactions
+against restored fixtures. These checks do not claim a full-tree JCB
+self-compilation; the separate golden-master harness compares complete generated
+components where applicable.
+
+Protected-path changes and their exact source-transfer mapping live in the
+[GUI change record](../graphical-user-interface-changes/2026-09-21-extrusion-scoped-identities.md).
+No historical Power definitions are repaired, merged or renumbered automatically.
+Source reconciliation in an external authoritative JCB database must not be
+reported as completed without actually transferring those changes.
