@@ -12,11 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 
-use Joomla\Input\Input;
-use Joomla\Registry\Registry as JoomlaRegistry;
-use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
-use VDM\Joomla\Componentbuilder\Compiler\Joomla\Path as CompilerPath;
-use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Utilities\String\ClassfunctionHelper;
 use VDM\Joomla\Utilities\String\NamespaceHelper;
 
@@ -46,15 +41,25 @@ final class Namespacer
 	protected Placeholders $placeholders;
 
 	/**
+	 * Creates isolated compiler placement helpers through the service provider.
+	 *
+	 * @var    \Closure|null
+	 * @since  6.2.0
+	 */
+	protected ?\Closure $outputFactory;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param   Placeholders  $placeholders  The placeholder value resolver.
+	 * @param   Placeholders   $placeholders   The placeholder value resolver.
+	 * @param   \Closure|null  $outputFactory  Isolated placement factory; optional for legacy namespace-only callers.
 	 *
 	 * @since   6.1.7
 	 */
-	public function __construct(Placeholders $placeholders)
+	public function __construct(Placeholders $placeholders, ?\Closure $outputFactory = null)
 	{
 		$this->placeholders = $placeholders;
+		$this->outputFactory = $outputFactory;
 	}
 
 	/**
@@ -641,6 +646,7 @@ final class Namespacer
 	 * @param   string      $stored   The validated namespace representation.
 	 * @param   array|null  $context  The output component's namespace context.
 	 *
+	 * @throws  \LogicException  When the placement service was not supplied.
 	 * @return  array|null  Case-preserved FQN/path, or null for unresolved output.
 	 * @since   6.2.0
 	 */
@@ -666,14 +672,12 @@ final class Namespacer
 		}
 
 		$namespace = implode('\\', array_merge($head, $tail));
-		$placeholders = new CompilerPlaceholder(new CompilerConfig(new Input([]), new JoomlaRegistry(), new JoomlaRegistry()));
-
-		foreach ($context['map'] as $key => $value)
+		if ($this->outputFactory === null)
 		{
-			$placeholders->set(substr($key, 3, -3), $value);
+			throw new \LogicException('The namespace output resolver requires its provider-supplied placement factory.');
 		}
 
-		$native = (new CompilerPath($placeholders))->core($namespace);
+		$native = ($this->outputFactory)($context['map'])->core($namespace);
 		$root = $native === null ? 'library:' . implode('.', $head) : 'extension:' . $native;
 
 		return [
