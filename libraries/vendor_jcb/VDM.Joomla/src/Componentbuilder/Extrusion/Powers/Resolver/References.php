@@ -361,6 +361,14 @@ final class References
 
 		if ($key === null)
 		{
+			// Zero/empty selectors mean none, and -1 is the custom relationship
+			// sentinel. Any other unresolvable Power selector leaves usage
+			// unknown; silently dropping it could authorise an exclusive write.
+			if ($entity === 'power' && !in_array($value, ['', '0', '-1'], true))
+			{
+				$context['gaps'][$via . '->power'] = 'invalid reference';
+			}
+
 			return;
 		}
 

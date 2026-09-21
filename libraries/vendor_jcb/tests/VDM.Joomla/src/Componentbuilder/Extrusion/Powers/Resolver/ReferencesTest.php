@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers\Resolver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
@@ -108,6 +109,52 @@ final class ReferencesTest extends TestCase
 		$this->assertArrayNotHasKey($this->guid('missing'), $graph->context(1)['powers']);
 		$this->assertFalse($graph->context(999)['complete']);
 		$this->assertTrue($graph->context(0)['complete']);
+	}
+
+	/**
+	 * Invalid selector values are missing evidence, not absent relationships.
+	 *
+	 * @param   string  $selection  The stored Power selector value.
+	 * @param   bool    $complete   Whether it represents a supported empty choice.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('selectorValues')]
+	public function testMalformedPowerSelectorsDoNotProveCompleteUsage(string $selection, bool $complete): void
+	{
+		$load = $this->fixture();
+		$load->record('power', 11, [
+			'guid' => $this->guid('power-a'), 'name' => 'Factory',
+			'namespace' => 'Acme\\Library.Factory',
+			'use_selection' => json_encode([['use' => $selection, 'as' => 'Service']])
+		]);
+		$graph = $this->graph($load);
+		$context = $graph->context(1);
+		$this->assertSame($complete, $context['complete']);
+		$this->assertSame($complete, $graph->complete());
+		$this->assertArrayHasKey($this->guid('power-a'), $context['powers']);
+		$this->assertSame($complete ? [] : ['invalid reference'], array_values($context['gaps']));
+		$this->assertTrue($graph->context(2)['complete']);
+	}
+
+	/**
+	 * Empty and custom selectors are valid; malformed identities are not.
+	 *
+	 * @return  array<string, array{string, bool}>  Independent selector cases.
+	 * @since   6.2.0
+	 */
+	public static function selectorValues(): array
+	{
+		return [
+			'malformed-guid' => ['not-a-guid', false],
+			'truncated-guid' => ['aaaaaaaa-1111-4111-8111', false],
+			'unsupported-negative' => ['-2', false],
+			'fractional-id' => ['1.5', false],
+			'empty' => ['', true],
+			'none' => ['0', true],
+			'custom' => ['-1', true]
+		];
 	}
 
 	/**
