@@ -112,7 +112,7 @@ final class Reuse
 	public function apply(): int
 	{
 		$component = (int) $this->config->get('component', 0);
-		$catalogue = $this->candidates->catalogue($component);
+		$catalogue = $this->candidates->catalogue($component, '', false);
 		$reused = 0;
 
 		// the database is the ground truth for what the component already

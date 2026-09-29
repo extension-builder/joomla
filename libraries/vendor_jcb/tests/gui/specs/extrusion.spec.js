@@ -291,6 +291,110 @@ test.describe('the extrusion view', () => {
 		return page.locator('[data-extrusion-row="power|' + key + '"]');
 	}
 
+	for (const failure of ['http', 'json', 'network']) {
+		test('distinguishes a real ' + failure + ' failure and recovers the harvest controls', async ({ page, context }) => {
+			await page.locator('[name="libraries"]').fill(LIBRARY);
+			let imports = 0;
+			page.on('request', (request) => {
+				if (request.url().includes('extrusionImport')) {
+					imports++;
+				}
+			});
+			// Exercise the actual browser/server transport, without fulfilling
+			// or replacing an AJAX response. Apache answers the missing path;
+			// Joomla answers its regular HTML page; offline fetch really rejects.
+			const original = await page.evaluate((kind) => {
+				const bootstrap = /** @type {any} */ (window).JCBExtrusion;
+				const url = bootstrap.url;
+				if (kind === 'http') {
+					bootstrap.url = '/__jcb_missing_transport__/request?task=';
+				} else if (kind === 'json') {
+					bootstrap.url = location.pathname + '?jcb_transport=';
+				}
+				return url;
+			}, failure);
+			const response = failure === 'network' ? null : responseFor(page, 'extrusionHarvest');
+			try {
+				if (failure === 'network') {
+					await context.setOffline(true);
+				}
+				await page.getByRole('button', { name: 'Harvest the source' }).click();
+				const notice = page.locator('#extrusion-setup-notice');
+				await expect(notice).toBeVisible();
+				if (failure === 'network') {
+					await expect(notice).toContainText('connection failed before a response');
+					await expect(notice).not.toContainText('HTTP');
+				} else {
+					const actual = await response;
+					expect(actual.status()).toBe(failure === 'http' ? 404 : 200);
+					await expect(notice).toContainText('(HTTP ' + actual.status() + ')');
+					await expect(notice).toContainText(failure === 'http'
+						? 'unsuccessful response' : 'not valid JSON');
+					await expect(notice).not.toContainText('could not reach the server');
+				}
+				await expect(notice.locator('*'), 'server HTML is never inserted into a notice').toHaveCount(0);
+				await expect(page.locator('#extrusion-pane-running')).toBeHidden();
+				await expect(page.getByRole('button', { name: 'Harvest the source' })).toBeEnabled();
+				await expect(page.locator('#extrusion-tab-pairing')).toBeDisabled();
+				expect(imports, 'failed read-only requests must never trigger an import').toBe(0);
+			} finally {
+				await context.setOffline(false);
+				await page.evaluate((url) => { /** @type {any} */ (window).JCBExtrusion.url = url; }, original);
+			}
+			// Recovery is a new, explicit click and a real successful harvest.
+			const recovered = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+			expect(recovered.plan.status).toBe('preview');
+			expect(imports).toBe(0);
+		});
+	}
+
+	test('returns a safe phase and correlation reference for a real PHP error', async ({ page }) => {
+		const response = await page.evaluate(async () => {
+			const body = new FormData();
+			// A nested path is malformed input to trim(), raising a PHP TypeError
+			// inside the real model boundary before any source or database write.
+			body.append('config', JSON.stringify({ libraries: [['private-source-marker']], dry_run: 1 }));
+			const result = await fetch(/** @type {any} */ (window).JCBExtrusion.url + 'extrusionHarvest',
+				{ method: 'POST', body });
+			return { status: result.status, payload: await result.json() };
+		});
+		expect(response.status).toBe(200);
+		expect(response.payload.error).toContain('server could not complete this operation');
+		expect(response.payload.failure).toMatchObject({
+			kind: 'operation', phase: 'configure', last_completed_phase: 'validated'
+		});
+		expect(response.payload.failure.reference).toMatch(/^[a-f0-9]{16}$/);
+		expect(JSON.stringify(response.payload)).not.toMatch(/TypeError|trim\(|private-source-marker|AjaxModel\.php/);
+	});
+
+	test('never repeats an interrupted import and requires fresh approval after recovery', async ({ page, context }) => {
+		await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		let attempts = 0;
+		page.on('request', (request) => {
+			if (request.url().includes('extrusionImport')) {
+				attempts++;
+			}
+		});
+		try {
+			await context.setOffline(true);
+			await page.getByRole('button', { name: 'Import into JCB' }).click();
+			await expect(page.locator('#extrusion-pane-results')).toBeVisible();
+			await expect(page.locator('#extrusion-results .alert-danger'))
+				.toContainText('connection failed before a response');
+			await expect(page.locator('#extrusion-pane-running')).toBeHidden();
+			await page.locator('#extrusion-tab-pairing').click();
+			await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+		} finally {
+			await context.setOffline(false);
+		}
+		const preview = responseFor(page, 'extrusionWeigh');
+		await page.locator('details[data-extrusion-kind="power"] .extrusion-row').first()
+			.getByRole('button', { name: 'Ignore', exact: true }).click();
+		await preview;
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
+		expect(attempts, 'restoring the connection and previewing must not retry the import').toBe(1);
+	});
+
 	test('shows B’s actual GUID and recalculates complete pairings across A → B → A', async ({ page }) => {
 		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
@@ -324,6 +428,8 @@ test.describe('the extrusion view', () => {
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
 		expect(factory.status).toBe('ambiguous');
 		expect(factory.matched_guid).toBeNull();
+		await expect(page.locator('#extrusion-review-notice')).toContainText(payload.plan.blockers[0].reason);
+		await expect(page.locator('#extrusion-review-notice')).not.toContainText('[object Object]');
 		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveCount(0);
 		await expect(powerRow(page, factory.source_key).locator('.extrusion-match-status')).toContainText('Ambiguous');
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
@@ -342,15 +448,39 @@ test.describe('the extrusion view', () => {
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
 	});
 
-	test('keeps a shared GUID and requires one reviewed scope acknowledgement for real writes', async ({ page }) => {
+	test('loads only linked Powers until an exact manual target is requested', async ({ page }) => {
+		const catalogueResponse = responseFor(page, 'extrusionCatalogue');
+		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		const catalogue = await (await catalogueResponse).json();
+		expect(catalogue.powers.map((power) => power.guid)).toContain(fixtures.factory_b);
+		expect(catalogue.powers.map((power) => power.guid)).not.toContain(fixtures.factory_a);
+		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
+		await powerRow(page, factory.source_key).getByRole('button', { name: 'Update', exact: false }).click();
+		await expect(page.locator('#extrusion-power-search-hint')).toContainText('exact name');
+		const lookup = responseFor(page, 'extrusionCatalogue');
+		await page.locator('#extrusion-modal-search').fill(fixtures.factory_a);
+		const answer = await lookup;
+		expect(answer.request().postData()).toContain('power_search');
+		const choices = await answer.json();
+		expect(choices.powers.map((power) => power.guid)).toContain(fixtures.factory_a);
+		await expect(page.locator('#extrusion-modal [data-extrusion-target="' + fixtures.factory_a + '"]')).toBeVisible();
+		await page.locator('#extrusion-modal-close').click();
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.factory_b);
+		// Reading choices never approves a target or writes its definition.
+	});
+
+	test('keeps a shared GUID and requires acknowledgement of the reported usage scope', async ({ page }) => {
 		const payload = await harvestFixture(page, fixtures.library_shared, fixtures.component_b_id, false);
 		const shared = payload.powers.classes[0];
 		expect(shared.matched_guid).toBe(fixtures.shared);
-		expect(shared.write_scope).toBe('shared');
+		// Root-local discovery establishes B's use, without claiming it has
+		// scanned all other components that may share this same definition.
+		expect(shared.write_scope).toBe('unknown');
 		expect(shared.namespace_proposal.value).toContain('Abstraction.Registry.Value');
-		expect(payload.plan.required_approvals).toContain('shared');
+		expect(payload.plan.required_approvals).toEqual(['unknown']);
 		await expect(powerRow(page, shared.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.shared);
 		await expect(page.locator('#extrusion-scope-approval')).toBeVisible();
+		await expect(page.locator('#extrusion-required-scopes')).toHaveText('Usage not fully established');
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
 		await page.locator('#extrusion-acknowledge-scopes').check();
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();

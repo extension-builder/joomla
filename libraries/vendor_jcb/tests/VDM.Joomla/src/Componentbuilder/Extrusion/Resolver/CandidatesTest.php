@@ -14,7 +14,11 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Joomla\Database\DatabaseInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Extractor;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
+use VDM\Joomla\Componentbuilder\Power\Table as PowerTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -25,6 +29,8 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Tests\Support\ExtrusionDatabaseFixture;
+use VDM\Tests\Support\ExtrusionPowerLoadFixture;
+use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Tests\Support\TestCase;
 
 
@@ -110,6 +116,22 @@ final class CandidatesTest extends TestCase
 	private Candidates $candidates;
 
 	/**
+	 * Raw selected-component graph rows, independent of display projections.
+	 *
+	 * @var    ExtrusionPowerLoadFixture
+	 * @since  6.2.0
+	 */
+	private ExtrusionPowerLoadFixture $powerLoad;
+
+	/**
+	 * The actual selected-root graph.
+	 *
+	 * @var    References
+	 * @since  6.2.0
+	 */
+	private References $references;
+
+	/**
 	 * Compose the resolver over a served catalogue and one resolved view.
 	 *
 	 * @return  void
@@ -179,6 +201,9 @@ final class CandidatesTest extends TestCase
 		$this->view->set('layout', ['itemcard' => ['name' => 'itemcard']]);
 		$this->view->set('site_view', ['itemcard_page' => ['name' => 'Itemcard Page']]);
 
+		$this->powerLoad = new ExtrusionPowerLoadFixture();
+		$this->references = new References($this->powerLoad, new PowerTable(),
+			new Extractor($this->createStub(DatabaseInterface::class)), []);
 		$this->candidates = new Candidates(
 			new Config(),
 			$this->resolved,
@@ -186,7 +211,8 @@ final class CandidatesTest extends TestCase
 			$this->view,
 			$this->load,
 			new Guid(),
-			new Report()
+			new Report(),
+			$this->references
 		);
 	}
 
@@ -435,5 +461,151 @@ final class CandidatesTest extends TestCase
 
 		$this->assertCount(1, $components);
 		$this->assertSame('Demo', $components[0]->name ?? null);
+	}
+
+	/**
+	 * View and field pairing never reads the unused Power catalogue.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testComponentPairingDoesNotLoadAnyPowerPool(): void
+	{
+		$calls = [];
+		$resolver = $this->tracked($calls);
+		$this->assertSame(self::VIEW, $resolver->candidates(3)['admin_view'][0]['match']['guid']);
+		$this->assertSame([], array_values(array_filter($calls, static fn (array $call): bool => $call['table'] === 'power')));
+		$this->assertSame([], $this->powerLoad->queries);
+	}
+
+	/**
+	 * The automatic Power pool contains only the selected reachable graph.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testDefaultPowerPoolDoesNotGrowWithUnrelatedDefinitions(): void
+	{
+		$guid = new Guid();
+		$selected = $guid->derive(['selected-power']);
+		$this->powerLoad->record('joomla_component', 3, [
+			'guid' => $guid->derive(['selected-component']), 'name_code' => 'demo', 'add_powers' => 1,
+			'add_php_helper_both' => 1, 'php_helper_both' => base64_encode('Super___' . str_replace('-', '_', $selected) . '___Power')
+		]);
+		$rows = [['id' => 1, 'guid' => $selected, 'name' => 'Selected', 'system_name' => 'Selected Power',
+			'namespace' => 'Demo\\Library.Selected', 'type' => 'class']];
+		$this->powerLoad->record('power', 1, $rows[0]);
+		$this->load->table('power', $rows);
+		$calls = [];
+		$resolver = $this->tracked($calls);
+		$before = $resolver->catalogue(3)['powers'];
+		$this->assertSame([$selected], array_column($before, 'guid'));
+		$beforeGraph = $this->references->diagnostics();
+
+		for ($index = 2; $index <= 402; $index++)
+		{
+			$row = ['id' => $index, 'guid' => $guid->derive(['unrelated-power', (string) $index]),
+				'name' => 'Unrelated' . $index, 'system_name' => 'Unrelated ' . $index,
+				'namespace' => 'Elsewhere\\Library.Unrelated' . $index, 'type' => 'class'];
+			$rows[] = $row;
+			$this->powerLoad->record('power', $index, $row);
+			$this->powerLoad->record('joomla_component', $index + 1000, [
+				'guid' => $guid->derive(['unrelated-component', (string) $index]), 'name_code' => 'unrelated' . $index
+			]);
+		}
+		$this->load->table('power', $rows);
+		$this->references->refresh();
+		$this->assertSame($before, $resolver->catalogue(3)['powers']);
+		$this->assertSame($beforeGraph, $this->references->diagnostics());
+		foreach ($calls as $call)
+		{
+			if ($call['table'] === 'power')
+			{
+				$this->assertSame(['a.guid' => ['operator' => 'IN', 'value' => [$selected]]], $call['where']);
+			}
+		}
+		$this->assertSame([], $resolver->catalogue(0)['powers']);
+	}
+
+	/**
+	 * Explicit indexed searches preserve manual pairing outside the target graph.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testManualPowerSearchFindsForeignGuidNameNamespaceAndSystemName(): void
+	{
+		$foreign = (new Guid())->derive(['foreign-power']);
+		$this->load->table('power', [['id' => 8, 'guid' => $foreign, 'name' => 'ForeignFactory',
+			'system_name' => 'Other Component Factory', 'namespace' => 'Other\\Library.Factory']]);
+		$calls = [];
+		$resolver = $this->tracked($calls);
+		foreach ([$foreign, 'ForeignFactory', 'Other\\Library.Factory', 'Other Component Factory'] as $search)
+		{
+			$catalogue = $resolver->catalogue(0, $search);
+			$this->assertSame([$foreign], array_column($catalogue['powers'], 'guid'));
+			$this->assertSame(['exact' => true, 'limit' => 100, 'truncated' => false], $catalogue['power_search']);
+		}
+		$this->assertSame([], $resolver->catalogue(0, 'Foreign%')['powers']);
+		$this->assertSame([], $this->powerLoad->queries, 'An explicit lookup must not build any component graph.');
+		$queries = array_values(array_filter($calls, static fn (array $call): bool => $call['table'] === 'power'));
+		$this->assertCount(13, $queries);
+		$this->assertSame(['a.guid' => $foreign], $queries[0]['where']);
+		foreach ($queries as $query)
+		{
+			$this->assertSame(101, $query['limit']);
+			$this->assertCount(1, $query['where']);
+			$this->assertIsString(reset($query['where']));
+		}
+	}
+
+	/**
+	 * Large exact-name buckets disclose truncation while GUID lookup stays exact.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testPowerSearchBoundsDisplayResultsAndRetainsGuidLookup(): void
+	{
+		$rows = [];
+		$guid = new Guid();
+		for ($index = 1; $index <= 130; $index++)
+		{
+			$rows[] = ['id' => $index, 'guid' => $guid->derive(['collision', (string) $index]),
+				'name' => 'Factory', 'system_name' => 'Factory ' . $index, 'namespace' => 'Vendor\\Package' . $index . '.Factory'];
+		}
+		$this->load->table('power', $rows);
+		$calls = [];
+		$resolver = $this->tracked($calls);
+		$catalogue = $resolver->catalogue(0, 'Factory');
+		$this->assertCount(100, $catalogue['powers']);
+		$this->assertTrue($catalogue['power_search']['truncated']);
+		$this->assertSame([$rows[129]['guid']], array_column($resolver->catalogue(0, $rows[129]['guid'])['powers'], 'guid'));
+	}
+
+	/**
+	 * Compose the actual resolver with a recording database boundary.
+	 *
+	 * @param   array  $calls  Receives actual display-pool query predicates.
+	 *
+	 * @return  Candidates  The resolver with real matching and graph semantics.
+	 * @since   6.2.0
+	 */
+	private function tracked(array &$calls): Candidates
+	{
+		$load = $this->createStub(LoadInterface::class);
+		$load->method('items')->willReturnCallback(function (array $select, array $tables, ?array $where = null,
+			?array $order = null, ?int $limit = null) use (&$calls): ?array
+		{
+			$calls[] = ['table' => $tables['a'], 'where' => $where, 'limit' => $limit];
+			$rows = $this->load->items($select, $tables, $where, $order, $limit);
+
+			return $rows !== null && $limit !== null ? array_slice($rows, 0, $limit) : $rows;
+		});
+		$load->method('item')->willReturnCallback(fn (...$arguments): ?object => $this->load->item(...$arguments));
+		$load->method('value')->willReturnCallback(fn (...$arguments) => $this->load->value(...$arguments));
+
+		return new Candidates(new Config(), $this->resolved, $this->source, $this->view,
+			$load, new Guid(), new Report(), $this->references);
 	}
 }

@@ -156,7 +156,7 @@ final class Standing
 			return false;
 		}
 
-		$catalogue = $this->candidates->catalogue($component);
+		$catalogue = $this->candidates->catalogue($component, '', false);
 		$this->fields = (array) ($catalogue['fields'] ?? []);
 		$this->views = (array) ($catalogue['admin_views'] ?? []);
 

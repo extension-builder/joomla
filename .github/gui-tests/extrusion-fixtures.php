@@ -203,8 +203,17 @@ try
 			check(readRecord('power', $manifest['factory_b']) === $before['factory_b'], 'dry run performs no Power writes');
 			$expected = Extrusion::_('Extrusion.Registry.Plan')->writes();
 			$fingerprint = $report->get('plan.fingerprint');
+			$required = (array) $report->get('plan.required_approvals');
+			check(in_array('unknown', $required, true), 'selected-root usage never claims global exclusive ownership');
+			$unapproved = engine($manifest, false)->extrude();
+			check($unapproved->get('plan.status') === 'blocked', 'unknown-scope changes require reviewed acknowledgement');
+			check(readRecord('power', $manifest['factory_b']) === $before['factory_b'], 'unapproved scope writes no Power data');
 			$engine = engine($manifest, false);
 			Extrusion::_('Extrusion.Config')->set('approvedPlan', $fingerprint);
+			foreach ($required as $scope)
+			{
+				Extrusion::_('Extrusion.Config')->set('acknowledge' . ucfirst($scope), true);
+			}
 			$report = $engine->extrude();
 			check($report->get('plan.status') === 'committed', 'real Data pipeline commits approved changes: ' . json_encode($report->get('plan')));
 			check(readRecord('power', $manifest['factory_a']) === $before['factory_a'], 'every A field and metadata value remains unchanged');
@@ -248,7 +257,13 @@ try
 				writeSource($path, str_replace('return 22;', 'return 23;', $source));
 				$engine = engine($manifest, false);
 				Extrusion::_('Extrusion.Config')->set('approvedPlan', $fingerprint);
-				check($engine->extrude()->get('plan.status') === 'blocked', 'stale approval blocks real persistence');
+				foreach ($required as $scope)
+				{
+					Extrusion::_('Extrusion.Config')->set('acknowledge' . ucfirst($scope), true);
+				}
+				$stale = $engine->extrude();
+				check($stale->get('plan.status') === 'blocked', 'stale approval blocks real persistence');
+				check(in_array('approval.stale', array_column((array) $stale->get('plan.blockers'), 'key'), true), 'changed source invalidates approval independently of scope acknowledgement');
 				check(readRecord('power', $manifest['factory_b']) === $standingB, 'stale rejection writes nothing');
 			}
 			finally

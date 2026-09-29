@@ -33,15 +33,18 @@
 	 * rows ticked for bulk work.
 	 */
 	const state = {
+		busy: false,
 		data: null,
 		plan: null,
 		reviewPending: true,
 		catalogueRun: 0,
 		catalogue: null,
-		catalogueFailed: false,
+		catalogueFailed: '',
 		decisions: {},
 		selected: new Set(),
 		modal: null,
+		modalPowers: null,
+		modalPowersTruncated: false,
 		picker: null,
 		// what each row would change, weighed under the decisions as they
 		// stand; the diffs of the rows a person has open, and nothing else --
@@ -60,6 +63,8 @@
 	// weighed once, and only the latest answer is allowed to land
 	let weighingTimer = null;
 	let weighingRun = 0;
+	let powerSearchTimer = null;
+	let powerSearchRun = 0;
 
 	const $ = (id) => document.getElementById(id);
 	const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
@@ -73,11 +78,50 @@
 	async function post(task, params) {
 		const body = new FormData();
 		Object.entries(params || {}).forEach(([key, value]) => body.append(key, value));
-		const response = await fetch(E.url + task, { method: 'POST', body: body });
-		if (!response.ok) {
-			throw new Error(T.requestFailed);
+		let response;
+		try {
+			response = await fetch(E.url + task, { method: 'POST', body: body });
+		} catch (error) {
+			throw new Error(T.networkFailed);
 		}
-		return response.json();
+		const status = ' (HTTP ' + response.status + ')';
+		const reference = response.headers.get('X-Request-ID') || '';
+		const referenceText = /^[a-zA-Z0-9._:-]{1,100}$/.test(reference)
+			? ' ' + T.failureReference + ' ' + reference : '';
+		if (!response.ok) {
+			// Never expose a proxy/server HTML response or its status text.
+			throw new Error(T.httpFailed + status + referenceText);
+		}
+		let payload;
+		try {
+			payload = await response.json();
+		} catch (error) {
+			throw new Error(T.invalidResponse + status + referenceText);
+		}
+		if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+			throw new Error(T.invalidResponse + status + referenceText);
+		}
+		if (payload.error) {
+			const failure = payload.failure || {};
+			const safeReference = /^[a-f0-9]{16}$/.test(failure.reference || '')
+				? ' ' + T.failureReference + ' ' + failure.reference : '';
+			payload.error = (typeof payload.error === 'string' ? payload.error : T.operationFailed)
+				+ safeReference;
+		}
+		return payload;
+	}
+
+	/** Lock the run controls until the single requested operation answers. */
+	function beginRun() {
+		state.busy = true;
+		const controls = $$('#extrusion-tabs .nav-link, #extrusion-harvest-button, #extrusion-import-button');
+		const disabled = controls.map((control) => control.disabled);
+		controls.forEach((control) => { control.disabled = true; });
+		return () => {
+			state.busy = false;
+			controls.forEach((control, index) => { control.disabled = disabled[index]; });
+			renderReview();
+		};
 	}
 
 	/**
@@ -152,6 +196,9 @@
 	 * Run the harvest and land on the pairing board.
 	 */
 	async function harvest() {
+		if (state.busy) {
+			return;
+		}
 		const notice = $('extrusion-setup-notice');
 		notice.style.display = 'none';
 		const config = readConfig();
@@ -162,6 +209,9 @@
 			return;
 		}
 		state.config = config;
+		window.clearTimeout(weighingTimer);
+		invalidateReview();
+		const finishRun = beginRun();
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.harvesting;
 		showPane('running');
@@ -175,6 +225,7 @@
 		// payload must land back on setup with a message, never on an empty
 		// pairing board
 		if (!payload || payload.error || !payload.success) {
+			finishRun();
 			showPane('setup');
 			notice.textContent = (payload && payload.error) ? payload.error : T.harvestFailed;
 			notice.style.display = 'block';
@@ -200,11 +251,12 @@
 		state.weighingFailed = payload.weighing || '';
 		window.clearTimeout(weighingTimer);
 		weighingRun++;
-		enableTab('setup');
-		enableTab('pairing');
 		fillComponentSelect(payload);
 		acceptReview(payload);
 		await loadCatalogue(payload.component || 0);
+		finishRun();
+		enableTab('setup');
+		enableTab('pairing');
 		renderBoard();
 		showPane('pairing');
 	}
@@ -246,7 +298,7 @@
 		try {
 			catalogue = await post('extrusionCatalogue', { component_id: componentId });
 		} catch (error) {
-			catalogue = null;
+			catalogue = { error: error.message || T.requestFailed };
 		}
 		if (run !== state.catalogueRun) {
 			return false;
@@ -254,7 +306,8 @@
 		state.catalogue = (catalogue && !catalogue.error) ? catalogue : null;
 		// a failed catalogue must be said, never quietly rendered as a board
 		// where nothing happens to match
-		state.catalogueFailed = state.catalogue === null;
+		state.catalogueFailed = state.catalogue === null
+			? ((catalogue && catalogue.error) || T.catalogueFailed) : '';
 		rematch();
 		return true;
 	}
@@ -462,7 +515,7 @@
 	}
 
 	function reviewReady() {
-		if (!E.canImport || state.reviewPending || state.weighingFailed || !state.plan
+		if (state.busy || !E.canImport || state.catalogueFailed || state.reviewPending || state.weighingFailed || !state.plan
 			|| state.plan.status !== 'preview' || Object.keys(state.plan.blockers || {}).length) {
 			return false;
 		}
@@ -471,12 +524,18 @@
 			|| $('extrusion-acknowledge-scopes').checked;
 	}
 
+	/** Public plans carry blocker records; display their explanations. */
+	function planBlockers(plan) {
+		return Object.values((plan || {}).blockers || {}).map((blocker) =>
+			blocker && typeof blocker === 'object' ? String(blocker.reason || T.operationFailed) : String(blocker));
+	}
+
 	function renderReview() {
 		const notice = $('extrusion-review-notice');
 		if (!notice) {
 			return;
 		}
-		const blockers = Object.values((state.plan || {}).blockers || {});
+		const blockers = planBlockers(state.plan);
 		const pending = state.reviewPending || !state.plan;
 		notice.className = 'alert ' + (pending ? 'alert-info' : (blockers.length ? 'alert-warning' : 'alert-success'));
 		notice.textContent = state.weighingFailed || (pending ? T.reviewPending
@@ -813,7 +872,7 @@
 		let html = '';
 		if (state.catalogueFailed) {
 			html += '<div class="alert alert-warning" data-extrusion-warning="catalogue">'
-				+ esc(T.catalogueFailed) + '</div>';
+				+ esc(T.catalogueFailed) + ' ' + esc(state.catalogueFailed) + '</div>';
 		}
 		if (state.weighingFailed) {
 			html += '<div class="alert alert-warning" data-extrusion-warning="weighing">'
@@ -1065,7 +1124,7 @@
 			custom_admin_view: catalogue.custom_admin_views,
 			layout: catalogue.layouts,
 			template: catalogue.templates,
-			power: catalogue.powers
+			power: state.modalPowers === null ? catalogue.powers : state.modalPowers
 		};
 		return (pools[kind] || []).map((row) => ({
 			guid: row.guid,
@@ -1077,6 +1136,11 @@
 
 	function openModal(candidate) {
 		state.modal = candidate;
+		state.modalPowers = null;
+		state.modalPowersTruncated = false;
+		powerSearchRun++;
+		window.clearTimeout(powerSearchTimer);
+		$('extrusion-power-search-hint').hidden = candidate.kind !== 'power';
 		const search = $('extrusion-modal-search');
 		// a name lookalike is never acted on by itself, but it is the first
 		// thing the person deciding an update should see
@@ -1093,6 +1157,7 @@
 		const pool = state.modal ? modalPool(state.modal.kind) : [];
 		const rows = pool.filter((row) => wanted === ''
 			|| row.label.toLowerCase().indexOf(wanted) !== -1
+			|| row.guid.toLowerCase().indexOf(wanted) !== -1
 			|| String(row.detail).toLowerCase().indexOf(wanted) !== -1).slice(0, 100);
 		if (!rows.length) {
 			list.innerHTML = '<div class="extrusion-modal-empty">' + esc(T.noMatches) + '</div>';
@@ -1102,12 +1167,52 @@
 			+ 'data-extrusion-target="' + esc(row.guid) + '" data-extrusion-label="' + esc(row.label) + '">'
 			+ '<b>' + esc(row.label) + '</b>'
 			+ (row.detail ? ' <small>' + esc(row.detail) + '</small>' : '')
-			+ '</button>').join('');
+			+ '</button>').join('')
+			+ (state.modalPowersTruncated
+				? '<div class="extrusion-modal-empty">' + esc(T.powerSearchTruncated) + '</div>' : '');
 	}
 
 	function closeModal() {
 		state.modal = null;
+		state.modalPowers = null;
+		state.modalPowersTruncated = false;
+		powerSearchRun++;
+		window.clearTimeout(powerSearchTimer);
 		$('extrusion-modal').style.display = 'none';
+	}
+
+	/** Search outside the linked Power set only when the person supplies a value. */
+	function searchModal(filter) {
+		const run = ++powerSearchRun;
+		window.clearTimeout(powerSearchTimer);
+		state.modalPowers = null;
+		state.modalPowersTruncated = false;
+		renderModalList(filter);
+		if (!state.modal || state.modal.kind !== 'power' || filter.trim() === '') {
+			return;
+		}
+		powerSearchTimer = window.setTimeout(async () => {
+			let payload;
+			try {
+				payload = await post('extrusionCatalogue', {
+					component_id: $('extrusion-component-select').value,
+					power_search: filter.trim()
+				});
+			} catch (error) {
+				payload = { error: error.message || T.requestFailed };
+			}
+			if (run !== powerSearchRun || !state.modal || state.modal.kind !== 'power') {
+				return;
+			}
+			if (payload.error || !Array.isArray(payload.powers)) {
+				$('extrusion-modal-list').innerHTML = '<div class="extrusion-modal-empty">'
+					+ esc(payload.error || T.catalogueFailed) + '</div>';
+				return;
+			}
+			state.modalPowers = payload.powers;
+			state.modalPowersTruncated = payload.power_search && payload.power_search.truncated === true;
+			renderModalList(filter);
+		}, 300);
 	}
 
 	/**
@@ -1206,6 +1311,7 @@
 			return;
 		}
 		const config = runConfig(true);
+		const finishRun = beginRun();
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.importing;
 		showPane('running');
@@ -1217,9 +1323,14 @@
 			});
 		} catch (error) {
 			payload = { error: error.message || T.requestFailed };
-		}
-		if (payload && payload.error) {
+		} finally {
+			// A disconnected request may already have written. Never retain
+			// its approval or retry it; another import needs a fresh review.
 			invalidateReview();
+			finishRun();
+		}
+		if (!payload || (!payload.error && !payload.success)) {
+			payload = { error: T.importFailed };
 		}
 		enableTab('results');
 		renderResults(payload || { error: T.importFailed });
@@ -1239,8 +1350,7 @@
 			html += '<div class="alert alert-success">' + esc(payload.success || T.importDone) + '</div>';
 		}
 		const report = payload.report || {};
-		const blockers = (payload.plan || report.plan || {}).blockers || {};
-		Object.values(blockers).forEach((reason) => {
+		planBlockers(payload.plan || report.plan).forEach((reason) => {
 			html += '<div class="alert alert-warning">' + esc(reason) + '</div>';
 		});
 		if (report.dry_run) {
@@ -1311,6 +1421,7 @@
 	 * composed from the base the server reports.
 	 */
 	async function openFolders(relative) {
+		const picker = state.picker;
 		const pathLine = $('extrusion-folder-path');
 		const list = $('extrusion-folder-list');
 		let payload;
@@ -1318,6 +1429,9 @@
 			payload = await post('extrusionFolders', { path: relative });
 		} catch (error) {
 			payload = { error: error.message || T.folderFailed };
+		}
+		if (!picker || state.picker !== picker) {
+			return;
 		}
 		if (!payload || payload.error) {
 			list.innerHTML = '<div class="extrusion-modal-empty">'
@@ -1468,7 +1582,7 @@
 		$('extrusion-filter').addEventListener('input', (event) => applyFilter(event.target.value));
 		$('extrusion-modal-close').addEventListener('click', closeModal);
 		$('extrusion-modal-search').addEventListener('input',
-			(event) => renderModalList(event.target.value));
+			(event) => searchModal(event.target.value));
 		$('extrusion-modal-list').addEventListener('click', (event) => {
 			const target = event.target.closest('[data-extrusion-target]');
 			if (target && state.modal) {
