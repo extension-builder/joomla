@@ -112,7 +112,7 @@ final class Identity
 	 * @var    array<string, int>
 	 * @since  6.2.0
 	 */
-	protected array $counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0];
+	protected array $counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0, 'index_steps' => 0];
 
 	/**
 	 * Independent operation inputs, including runs which contain no Power files.
@@ -183,7 +183,7 @@ final class Identity
 		$this->effective = [];
 		$this->effectiveOrder = [];
 		$this->decisions = [];
-		$this->counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0];
+		$this->counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0, 'index_steps' => 0];
 		$this->names->forget();
 		$this->existing->refresh();
 		$this->references->refresh();
@@ -421,7 +421,7 @@ final class Identity
 		$compatible = [];
 
 		$index = $this->index($source, $sourceContext, $usage);
-		$records = $this->indexes[$index]['classes'][$this->names->key($source['fqn'])] ?? [];
+		$records = $this->indexedCandidates($index, (string) $source['fqn']);
 
 		foreach (array_unique([$supplied, $explicit, $derived]) as $guid)
 		{
@@ -673,7 +673,7 @@ final class Identity
 	}
 
 	/**
-	 * Index relevant records once per effective source context and name bucket.
+	 * Index relevant records once per component context and name bucket.
 	 *
 	 * The database predicates use existing GUID/name/namespace indexes. Namespace
 	 * compatibility is evaluated only after a direct FQN bucket has been found.
@@ -687,12 +687,13 @@ final class Identity
 	 */
 	protected function index(array $source, array $context, array $usage): string
 	{
-		$context = $this->names->sourceContext((string) $source['stored'], $context);
+		// Source vendors are query values, never index partitions. Only the
+		// actual component's aliases and core values establish a namespace map.
 		$key = hash('sha256', serialize([$context, $usage['id'] ?? $this->config->get('component', 0), count($this->references->observed())]));
 
 		if (!isset($this->indexes[$key]))
 		{
-			$this->indexes[$key] = ['classes' => [], 'outputs' => [], 'paths' => [], 'records' => [], 'names' => [], 'stored' => [], 'effective_cursor' => 0];
+			$this->indexes[$key] = ['classes' => [], 'patterns' => [[]], 'outputs' => [], 'paths' => [], 'records' => [], 'names' => [], 'stored' => [], 'effective_cursor' => 0];
 
 			foreach ($this->references->observed() as $observed)
 			{
@@ -734,7 +735,8 @@ final class Identity
 
 		// Exact written representations also recover legacy records whose name
 		// metadata is not the concrete declaration name. No suffix/LIKE scan.
-		$forms = [(string) $source['stored'], $this->names->express((string) $source['stored'], $context)];
+		$sourceMap = $this->names->sourceContext((string) $source['stored'], $context);
+		$forms = [(string) $source['stored'], $this->names->express((string) $source['stored'], $sourceMap)];
 
 		foreach (array_unique($forms) as $form)
 		{
@@ -810,6 +812,8 @@ final class Identity
 		{
 			$canonical = $this->names->canonical($record['namespace'], $scope);
 
+			$this->indexPattern($key, $record, $canonical, $context);
+
 			foreach ([$this->names->resolve($canonical, $context), $this->names->resolve($record['namespace'], $scope)] as $fqn)
 			{
 				if ($fqn !== '')
@@ -820,6 +824,132 @@ final class Identity
 		}
 
 		$this->indexOutput($key, $record);
+	}
+
+	/**
+	 * Index the variable vendor axis without materialising each source vendor.
+	 *
+	 * Custom aliases have already been expanded in their owning component. A
+	 * unique alphabetic marker survives the compiler's namespace sanitizers;
+	 * only substitutions introduced by the Prefix value become trie slots.
+	 * Reverse paths start with declaration and namespace suffixes, so a lookup
+	 * reaches relevant templates without visiting unrelated selected Powers.
+	 *
+	 * @param   string  $key        The component context index key.
+	 * @param   array   $record     One physical Power definition.
+	 * @param   string  $canonical  Its owner-expanded namespace representation.
+	 * @param   array   $context    The verified source component context.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function indexPattern(string $key, array $record, string $canonical, array $context): void
+	{
+		$marker = 'JcbExtrusionVendor';
+		$literal = $context;
+		$literal['map'][Placeholders::PREFIX] = '';
+		$occupied = strtolower($this->names->expand($canonical, $literal)
+			. $this->names->resolve($canonical, $literal)
+			. $this->names->resolve($canonical . '\\Probe', $literal));
+
+		while (str_contains($occupied, strtolower($marker)))
+		{
+			$marker .= 'Slot';
+		}
+
+		$symbolic = $context;
+		$symbolic['map'][Placeholders::PREFIX] = $marker;
+		$fqn = $this->names->key($this->names->resolve($canonical, $symbolic));
+
+		if (!str_contains($fqn, strtolower($marker)))
+		{
+			return;
+		}
+
+		// A Prefix containing namespace separators can change a preceding
+		// class fragment into a namespace segment (notably its underscores).
+		// Both structural forms share this trie; candidate() checks the exact
+		// source value and repeated-variable equality before selection.
+		$symbolic['map'][Placeholders::PREFIX] = $marker . '\\' . $marker;
+		$forms = [$fqn, $this->names->key($this->names->resolve($canonical, $symbolic))];
+
+		foreach (array_unique($forms) as $form)
+		{
+			$pattern = strrev(str_replace(strtolower($marker), "\0", $form));
+			$node = 0;
+
+			for ($offset = 0, $length = strlen($pattern); $offset < $length; $offset++)
+			{
+				$part = $pattern[$offset];
+
+				if (!isset($this->indexes[$key]['patterns'][$node]['next'][$part]))
+				{
+					$next = count($this->indexes[$key]['patterns']);
+					$this->indexes[$key]['patterns'][] = [];
+					$this->indexes[$key]['patterns'][$node]['next'][$part] = $next;
+				}
+
+				$node = $this->indexes[$key]['patterns'][$node]['next'][$part];
+			}
+
+			$this->indexes[$key]['patterns'][$node]['records'][$record['guid']] = $record;
+		}
+	}
+
+	/**
+	 * Query concrete and symbolic class buckets without a selected-record scan.
+	 *
+	 * Vendor slots are conservative structural evidence: sanitizer effects,
+	 * embedded or repeated Prefix values are validated by candidate(). Each
+	 * trie node/input position is visited at most once for this source FQN.
+	 *
+	 * @param   string  $key  The component context index key.
+	 * @param   string  $fqn  The concrete declared source class.
+	 *
+	 * @return  array<string, array>  All structurally relevant Power records.
+	 * @since   6.2.0
+	 */
+	protected function indexedCandidates(string $key, string $fqn): array
+	{
+		$class = $this->names->key($fqn);
+		$records = $this->indexes[$key]['classes'][$class] ?? [];
+		$input = strrev($class);
+		$length = strlen($input);
+		$pending = [[0, 0]];
+		$visited = [];
+
+		while ($pending !== [])
+		{
+			[$node, $offset] = array_pop($pending);
+
+			if (isset($visited[$node][$offset]))
+			{
+				continue;
+			}
+
+			$visited[$node][$offset] = true;
+			$this->counters['index_steps']++;
+			$entry = $this->indexes[$key]['patterns'][$node];
+
+			if ($offset === $length)
+			{
+				$records += $entry['records'] ?? [];
+			}
+			elseif (isset($entry['next'][$input[$offset]]))
+			{
+				$pending[] = [$entry['next'][$input[$offset]], $offset + 1];
+			}
+
+			if (isset($entry['next']["\0"]))
+			{
+				for ($end = $offset; $end <= $length; $end++)
+				{
+					$pending[] = [$entry['next']["\0"], $end];
+				}
+			}
+		}
+
+		return $records;
 	}
 
 	/**

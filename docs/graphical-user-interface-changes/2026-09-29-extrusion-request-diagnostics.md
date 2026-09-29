@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-09-29
 - **Author/implementer:** Codex
 - **Task/issue/PR:** https://github.com/extension-builder/joomla/pull/54 — W04/W07
-- **Change record status:** Draft
+- **Change record status:** Ready for review
 
 ## Explicit permission
 
@@ -120,8 +120,9 @@ set. This preserves manual target selection without a cold global scan.
 | `git diff --check` for the changed GUI paths | Current checkout | Pass |
 | `vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --colors=never` | Local PHP 8.3.6, PHPUnit 12.5.33 | Pass — 5 tests, 52 assertions; preparation, commit, rollback, business blockers, PHP Errors, correlation logs and private evidence preservation |
 | `php -d pcov.enabled=1 vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --coverage-text` | Local PHP 8.3.6, PCOV 1.0.11 | Pass — 5 tests, 52 assertions; no coverage warnings; generated-admin contract makes no vendor line-coverage claim |
-| Disposable installed GUI harness, commit `6669e0c7`, [run 36592599188](https://github.com/extension-builder/joomla/actions/runs/36592599188) | GitHub Actions, installed Joomla | 14 passed, 4 failed. Real HTTP, invalid JSON, rejected fetch, safe PHP error, A/B switching, dry import and installed component harvest passed. Fixture/selector corrections below await rerun. |
-| Disposable installed GUI harness, commit `b2d19855`, [run 36594044738](https://github.com/extension-builder/joomla/actions/runs/36594044738) | GitHub Actions, installed Joomla | 17 passed, 1 failed. Recovery, bounded picker and scope approval passed; the literal ambiguity fixture is unresolved as expected, but its manual-selection test used the wrong visible button name. The corrected selector awaits rerun. |
+| Disposable installed GUI harness, commit `6669e0c7`, [run 36592599188](https://github.com/extension-builder/joomla/actions/runs/36592599188) | GitHub Actions, installed Joomla | Historical failure: 14 passed, 4 failed. The fixture/selector assumptions below were corrected and rerun. |
+| Disposable installed GUI harness, commit `b2d19855`, [run 36594044738](https://github.com/extension-builder/joomla/actions/runs/36594044738) | GitHub Actions, installed Joomla | Historical failure: 17 passed, 1 failed. The remaining manual-selection test used the wrong visible button name; corrected and rerun. |
+| Disposable installed GUI harness, commit `c68e618550a75a6ad05c0542c99c8be08524152d`, [run 36594958224](https://github.com/extension-builder/joomla/actions/runs/36594958224) | GitHub Actions, installed Joomla, Chromium | Pass — all 18 tests on the first attempt, 47.3 seconds; installed-schema persistence and actual Power compiler integration also passed. [GUI evidence](https://github.com/extension-builder/joomla/actions/runs/36594958224/artifacts/11045357760), [exact source](https://github.com/extension-builder/joomla/actions/runs/36594958224/artifacts/11045502265). |
 
 ### Manual scenarios
 
@@ -143,10 +144,19 @@ set. This preserves manual target selection without a cold global scan.
   unselected component aliases cannot establish ambiguity. The corrected
   recovery chooses the leaf Consumer, and a separate literal-namespace fixture
   now proves real ambiguity and unresolved-source blocking after manual pairing.
+- The installed JCB component journey supplies only its generated admin/site
+  folders. It proves MVC/field harvesting, grouping, detach/reset and live schema
+  catalogue queries. It does not supply `vendor_jcb` library roots, establish
+  the JCB blueprint's Power GUID matches, or compile JCB; it is not a Power-scale
+  acceptance result. Power pairing, dependency aliases, unknown-scope approval,
+  actual writes/no-op and compiler output use the isolated A/B/shared fixtures.
 
 ### Checks not performed
 
-- Installed GUI harness rerun is pending final-head CI evidence.
+- Exact authoritative JCB definition records have not been located or updated;
+  their transfer and regenerated-output verification remain with the maintainer.
+- Full JCB blueprint Power-scale and compilation acceptance is outside these
+  GUI scenarios and is tracked separately in PR #54.
 
 ## Risks, limitations, and rollback
 
@@ -161,16 +171,16 @@ set. This preserves manual target selection without a cold global scan.
 
 | Repository path | Authoritative source identity/path | Transfer required | Status | Evidence, owner, and next action |
 | --- | --- | --- | --- | --- |
-| `admin/src/Model/AjaxModel.php` | JCB component Ajax model custom methods | Yes | Source identified | Maintainer must transfer extrusion methods and helper into its authoritative definition. |
-| `admin/assets/js/extrusion.js` | Extrusion custom administrator view JavaScript | Yes | Source identified | Maintainer must import the revised script into that view. |
-| `admin/tmpl/extrusion/default.php` | Extrusion custom administrator view default template | Yes | Source identified | Maintainer must transfer the text map into that template. |
+| `admin/src/Model/AjaxModel.php` | Logical location: JCB component Ajax model custom methods; exact authoritative record ID not recovered | Yes | Pending source identification | Maintainer must locate the component's authoritative Ajax custom-method records, transfer the extrusion methods and helpers listed above, regenerate and compare this path. |
+| `admin/assets/js/extrusion.js` | Logical location: Extrusion custom administrator view JavaScript; exact authoritative record ID not recovered | Yes | Pending source identification | Maintainer must locate the authoritative Extrusion view record, import the revised script, regenerate and compare this path. |
+| `admin/tmpl/extrusion/default.php` | Logical location: Extrusion custom administrator view default template; exact authoritative record ID not recovered | Yes | Pending source identification | Maintainer must locate the authoritative Extrusion view template record, transfer the text map and search description, regenerate and compare this path. |
 
 ## Final consistency check
 
 - [x] The affected-path lists match the protected diff.
 - [x] Every path has stable locations and what/why details.
 - [x] Behavioral and visual impact are explicit.
-- [ ] Verification records final results and skipped checks.
+- [x] Verification records actual passing results, tested commit and skipped checks.
 - [x] Every path has an authoritative-source mapping and reconciliation status.
 - [x] Transfer remains required until the authoritative definitions are updated.
 - [x] Changed behavior has corresponding GUI coverage.

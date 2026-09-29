@@ -7,7 +7,9 @@ name: Compiler golden master
 on:
   pull_request:
     paths:
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler.php'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/**'
+      - 'admin/compiler/**'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/**'
       - '.github/golden-master/**'
       - '.github/gui-tests/discovery-scale.php'

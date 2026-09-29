@@ -26,6 +26,9 @@ mutation, merge or deployment is part of this work.
 - `Powers/Resolver/Identity` indexes relevant definitions by contextual FQN and
   output destination. Candidate buckets retain competing GUIDs. Matching and
   collision checks use these buckets, including skipped existing occupants.
+  Each component context shares one index across source vendors. Concrete
+  names use direct buckets; variable `NamespacePrefix` representations use a
+  reverse trie whose candidates still pass the existing semantic checks.
   Approval fingerprints cover the bounded read set, including negative queries,
   and replay that evidence before persistence to detect new competitors.
 - `Powers/Harvester`, `Powers/Assembler`, `Resolver/Commit` and `Registry/Plan`
@@ -76,6 +79,15 @@ These tests are intentionally introduced before the implementation. A passing
 candidate must not weaken the catalogue-isolation assertions or move failures
 into the known-defect group. Real SQL plans, full compiler comparisons and
 installed HTTP/browser evidence remain additional acceptance gates.
+
+Final adversarial review also varied the number of source vendors, independently
+of unrelated database growth. With 64 reachable definitions and 32 source
+classes, the old vendor-partitioned index grew from 64 to 2,048 entries as
+vendors increased from one to 32. It now indexes 64 records in either case.
+Durable tests cover literal namespaces, templates, hidden-name aliases, target
+occupants and marker collisions after namespace normalization. Independent
+before/after comparisons preserve embedded/repeated prefixes and configured
+prefixes containing multiple namespace segments.
 
 ## Operation scope and repeated work
 
@@ -159,7 +171,8 @@ of the requested target. Baseline and candidate generated trees and final
 Super/Joomla Power sets are identical. Read-only discovery agrees with all 65
 emitted Super Powers, including the late-generated Actions dependency.
 
-The following installed Hello World measurements are from that run's Joomla 6
+The following historical installed Hello World measurements precede the final
+vendor-sharing correction and are from that run's Joomla 6
 artifact `11044799344` (PHP 8.4.26, host Joomla 6.1.3, MariaDB 13.0.2). The
 actual Power input has 65 PHP files and 379,655 bytes across all 88 files.
 
@@ -170,7 +183,7 @@ actual Power input has 65 PHP files and 379,655 bytes across all 88 files.
 
 The intermediate 100-record sample also preserves the same identities and
 counts. Every sample visits one component context, 82 graph records and 159
-edges through 92 graph queries; identity work stays at 202 contextual index
+edges through 92 graph queries; identity work then stayed at 202 contextual index
 entries and 65 candidate evaluations. Repeat harvest parses zero files and
 reuses all 65 observations. GUID, name and namespace equality queries use their
 respective indexes (`ref`, estimated one row). Harvest and preview perform no
@@ -182,6 +195,10 @@ These timings include the SQL debug monitor and JSON serialization. They do
 not include HTTP/browser time; cold means empty operation-local caches, not
 empty operating-system or database caches. They are measured samples, not a
 latency guarantee or a JCB-scale result.
+
+Final-head workflow links and the current acceptance checklist are maintained
+on [PR #54](https://github.com/extension-builder/joomla/pull/54). Historical
+measurements above must not be substituted for that final-head verification.
 
 The disposable image's pre-fetch component inventory contains only Demo J6.
 The recovered project archives contain repository source and synthetic probes,
