@@ -97,7 +97,18 @@ jobs:
 
       - name: Resolve Composer cache directory
         id: composer-cache
-        run: echo "directory=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+        working-directory: libraries/vendor_jcb/tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          directory="$(composer config cache-files-dir --absolute)"
+
+          if [[ "$directory" != /* || "$directory" == *$'\n'* || "$directory" == *$'\r'* ]]; then
+            echo "Composer returned an invalid cache directory." >&2
+            exit 1
+          fi
+
+          printf 'directory=%s\n' "$directory" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer downloads
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
