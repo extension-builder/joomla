@@ -119,7 +119,8 @@ set. This preserves manual target selection without a cold global scan.
 | `php -l admin/src/Model/AjaxModel.php` and `php -l admin/tmpl/extrusion/default.php` | Local PHP | Pass |
 | `git diff --check` for the changed GUI paths | Current checkout | Pass |
 | `vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --colors=never` | Local PHP 8.3.6, PHPUnit 12.5.33 | Pass — 5 tests, 52 assertions; preparation, commit, rollback, business blockers, PHP Errors, correlation logs and private evidence preservation |
-| Disposable installed GUI harness | GitHub Actions | Pending |
+| `php -d pcov.enabled=1 vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --coverage-text` | Local PHP 8.3.6, PCOV 1.0.11 | Pass — 5 tests, 52 assertions; no coverage warnings; generated-admin contract makes no vendor line-coverage claim |
+| Disposable installed GUI harness, commit `6669e0c7`, [run 36592599188](https://github.com/extension-builder/joomla/actions/runs/36592599188) | GitHub Actions, installed Joomla | 14 passed, 4 failed. Real HTTP, invalid JSON, rejected fetch, safe PHP error, A/B switching, dry import and installed component harvest passed. Fixture/selector corrections below await rerun. |
 
 ### Manual scenarios
 
@@ -135,10 +136,16 @@ set. This preserves manual target selection without a cold global scan.
   no extrusion AJAX response is mocked and imports remain dry runs.
 - The picker asserts the initial catalogue excludes A when B is selected,
   then resolves A by an explicit GUID lookup without changing the pairing.
+- The completed run exposed four test assumptions: the matched button displays
+  its target name; ignoring a dependency correctly blocks its consumer; scope
+  evidence is `unestablished` while its required acknowledgement is `unknown`;
+  unselected component aliases cannot establish ambiguity. The corrected
+  recovery chooses the leaf Consumer, and a separate literal-namespace fixture
+  now proves real ambiguity and unresolved-source blocking after manual pairing.
 
 ### Checks not performed
 
-- Installed GUI harness execution is pending final CI evidence.
+- Installed GUI harness rerun is pending final-head CI evidence.
 
 ## Risks, limitations, and rollback
 
