@@ -56,6 +56,7 @@ jobs:
           TARGET_JOOMLA: ${{ matrix.target }}
           BASELINE_REF: ${{ github.event.pull_request.base.sha || '' }}
           RUN_SCALE: '1'
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/golden-master/run.sh "${GITHUB_WORKSPACE}/.golden-master"
 
       - name: Report what changed
@@ -99,6 +100,7 @@ jobs:
           path: |
             .golden-master/summary.txt
             .golden-master/full.diff
+            .golden-master/warmup.log
             .golden-master/baseline.log
             .golden-master/candidate.log
             .golden-master/container.log
@@ -114,4 +116,5 @@ jobs:
             .golden-master/*-installed.sha256
             .golden-master/verify-*.log
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 30
