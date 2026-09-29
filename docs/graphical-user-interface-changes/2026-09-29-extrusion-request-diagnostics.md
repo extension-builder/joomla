@@ -121,6 +121,7 @@ set. This preserves manual target selection without a cold global scan.
 | `vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --colors=never` | Local PHP 8.3.6, PHPUnit 12.5.33 | Pass — 5 tests, 52 assertions; preparation, commit, rollback, business blockers, PHP Errors, correlation logs and private evidence preservation |
 | `php -d pcov.enabled=1 vendor/bin/phpunit Contract/ExtrusionAjaxDiagnosticsTest.php --coverage-text` | Local PHP 8.3.6, PCOV 1.0.11 | Pass — 5 tests, 52 assertions; no coverage warnings; generated-admin contract makes no vendor line-coverage claim |
 | Disposable installed GUI harness, commit `6669e0c7`, [run 36592599188](https://github.com/extension-builder/joomla/actions/runs/36592599188) | GitHub Actions, installed Joomla | 14 passed, 4 failed. Real HTTP, invalid JSON, rejected fetch, safe PHP error, A/B switching, dry import and installed component harvest passed. Fixture/selector corrections below await rerun. |
+| Disposable installed GUI harness, commit `b2d19855`, [run 36594044738](https://github.com/extension-builder/joomla/actions/runs/36594044738) | GitHub Actions, installed Joomla | 17 passed, 1 failed. Recovery, bounded picker and scope approval passed; the literal ambiguity fixture is unresolved as expected, but its manual-selection test used the wrong visible button name. The corrected selector awaits rerun. |
 
 ### Manual scenarios
 
