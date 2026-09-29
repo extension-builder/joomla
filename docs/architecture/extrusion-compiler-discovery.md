@@ -144,3 +144,49 @@ while adding 0/100/1,000 unrelated component/Power records in a rolled-back
 transaction. These CLI measurements exclude HTTP and browser rendering. The
 GUI workflow separately tests actual transport and persistence, including
 denial before scope acknowledgement, preview/write equality and stale approval.
+
+## Installed evidence, 29 September 2026
+
+Head `b2d198551691f399a75dc6e9c56a0b1b33130b20` passed both PHP 8.3 and
+8.4 unit jobs, including coverage, ownership, changed-file style, dependency
+audit and runtime cleanup. The normal suite contains 4,276 tests. The separate
+known-defect suite remains unchanged and reproduces its documented failures.
+
+[Compiler run 36594044741](https://github.com/extension-builder/joomla/actions/runs/36594044741)
+passed all four generated targets, Joomla 3/4/5/6, on host Joomla 6. It verifies
+the effective compiler configuration and actual output manifests independently
+of the requested target. Baseline and candidate generated trees and final
+Super/Joomla Power sets are identical. Read-only discovery agrees with all 65
+emitted Super Powers, including the late-generated Actions dependency.
+
+The following installed Hello World measurements are from that run's Joomla 6
+artifact `11044799344` (PHP 8.4.26, host Joomla 6.1.3, MariaDB 13.0.2). The
+actual Power input has 65 PHP files and 379,655 bytes across all 88 files.
+
+| Unrelated components and Powers added | Cold harvest | Repeat harvest | Dry preview | Harvest SQL | Preview SQL |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 each | 0.320 s | 0.253 s | 0.444 s | 694 | 1,222 |
+| 1,000 each | 0.329 s | 0.296 s | 0.446 s | 694 | 1,222 |
+
+The intermediate 100-record sample also preserves the same identities and
+counts. Every sample visits one component context, 82 graph records and 159
+edges through 92 graph queries; identity work stays at 202 contextual index
+entries and 65 candidate evaluations. Repeat harvest parses zero files and
+reuses all 65 observations. GUID, name and namespace equality queries use their
+respective indexes (`ref`, estimated one row). Harvest and preview perform no
+database writes, and the catalogue-growth transaction is verified rolled back.
+The dry preview consistently proposes nine changes requiring unknown-scope
+acknowledgement; it does not import them.
+
+These timings include the SQL debug monitor and JSON serialization. They do
+not include HTTP/browser time; cold means empty operation-local caches, not
+empty operating-system or database caches. They are measured samples, not a
+latency guarantee or a JCB-scale result.
+
+The disposable image's pre-fetch component inventory contains only Demo J6.
+The recovered project archives contain repository source and synthetic probes,
+not a JCB definition export; the available package catalogue contains Service
+Directory J5/J6. Thus the real JCB self-compilation and Power-scale fixture is
+still missing. The GUI's installed JCB MVC harvest is separate evidence and
+does not supply that missing Power graph. W02/W08 and final merge readiness
+remain open until the authoritative fixture is supplied and those gates run.

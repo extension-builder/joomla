@@ -443,7 +443,7 @@ test.describe('the extrusion view', () => {
 		await modal.locator('#extrusion-modal-search').fill(fixtures.ambiguous_factory_b);
 		await search;
 		const response = responseFor(page, 'extrusionWeigh');
-		await modal.getByRole('button', { name: 'Factory Extrusion Ambiguous Factory B', exact: true }).click();
+		await modal.getByRole('button', { name: 'Extrusion Ambiguous Factory B', exact: false }).click();
 		const corrected = await (await response).json();
 		const actual = corrected.powers.classes.find((candidate) => candidate.source_key === factory.source_key);
 		expect(actual.matched_guid).toBe(fixtures.ambiguous_factory_b);
