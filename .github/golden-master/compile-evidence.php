@@ -5,17 +5,7 @@
  * This verification driver is never shipped in an installed component.
  */
 
-if (PHP_SAPI !== 'cli' || getenv('JCB_DISPOSABLE_TEST') !== '1'
-	|| !is_file('/tmp/jcb-disposable-gui-stack'))
-{
-	fwrite(STDERR, "This driver requires the disposable golden stack.\n");
-	exit(2);
-}
-
-define('_JEXEC', 1);
-define('JPATH_BASE', '/var/www/html');
-require_once JPATH_BASE . '/includes/defines.php';
-require_once JPATH_BASE . '/includes/framework.php';
+require __DIR__ . '/bootstrap.php';
 
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
@@ -32,17 +22,6 @@ if (!preg_match('/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i', $componentGu
 	fwrite(STDERR, "Usage: compile-evidence.php COMPONENT_GUID TARGET /tmp/jcb-golden-NAME.json [compiler options]\n");
 	exit(2);
 }
-
-$container = Factory::getContainer();
-$container->alias('session', 'session.cli')
-	->alias(Joomla\CMS\Session\Session::class, 'session.cli')
-	->alias(Joomla\Session\Session::class, 'session.cli')
-	->alias(Joomla\Session\SessionInterface::class, 'session.cli');
-Factory::$application = $container->get(Joomla\Console\Application::class);
-define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_ADMINISTRATOR . '/components/com_componentbuilder');
-require_once JPATH_COMPONENT_ADMINISTRATOR . '/src/Helper/PowerloaderHelper.php';
-VDM\Joomla\Utilities\Component\Helper::setOption('com_componentbuilder');
-Joomla\CMS\Layout\LayoutHelper::$defaultBasePath = JPATH_COMPONENT_ADMINISTRATOR . '/layouts';
 
 $db = $container->get(DatabaseInterface::class);
 $query = $db->getQuery(true)->select('*')->from($db->quoteName('#__componentbuilder_joomla_component'))

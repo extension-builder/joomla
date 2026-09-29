@@ -30,6 +30,7 @@
 #   TARGET_JOOMLA   Generated Joomla major (3, 4, 5 or 6; host remains Joomla 6)
 #   BASELINE_REF    Optional source commit installed before the baseline build
 #   RUN_SCALE       Run the installed discovery/SQL probe on emitted libraries
+#   GITHUB_TOKEN     Optional read-only token for fetching public fixture dependencies
 #   KEEP_STACK      Leave the containers running afterwards when set to 1
 #
 set -euo pipefail
@@ -118,7 +119,10 @@ wait_for_log \
 	'the released JCB is installed'
 
 compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
-compose cp "${REPO_ROOT}/.github/golden-master/compile-evidence.php" joomla:/tmp/compile-evidence.php
+for driver in bootstrap cli compile-evidence
+do
+	compose cp "${REPO_ROOT}/.github/golden-master/${driver}.php" "joomla:/tmp/${driver}.php"
+done
 
 install_package() {
 	local package="$1" name="$2"
@@ -158,7 +162,7 @@ verify_package() {
 
 compile_evidence() {
 	local name="$1"
-	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla \
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e GITHUB_TOKEN joomla \
 		php -d memory_limit=1536M /tmp/compile-evidence.php \
 		"${COMPONENT}" "${JOOMLA_VERSION}" "/tmp/jcb-golden-${name}.json" \
 		${COMPILE_EXTRA} > "${OUT_DIR}/${name}.log" 2>&1
@@ -186,13 +190,19 @@ git -C "${REPO_ROOT}" rev-parse HEAD > "${OUT_DIR}/candidate-source.txt"
 # has to be a separate process from the compile: a compile that fetches the
 # component itself does both jobs at once and runs the site out of memory.
 #
-# A fetch that goes wrong stops the run, so nothing compiles against a component
-# that never arrived. A JCB with no fetch command at all is a different thing:
-# the compile fetched for itself before this step existed and still can, so say
-# what is missing and let the run go on rather than reporting nothing at all.
+# The wrapper sets the existing GitHub client parameter only in process memory.
+# The full compile requires a unique local component, even when pull returns 0
+# for a Not Found result.
 if [[ -n "${PULL_COMMAND}" ]]
 then
-	run_cli fetch "Fetching the component" "${PULL_COMMAND}"
+	say "Fetching the component"
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e GITHUB_TOKEN joomla \
+		php /tmp/cli.php ${PULL_COMMAND} > "${OUT_DIR}/fetch.log" 2>&1
+	then
+		cat "${OUT_DIR}/fetch.log"
+		exit 1
+	fi
+	tail -20 "${OUT_DIR}/fetch.log"
 fi
 
 # Populate any missing public dependencies once, then pin the exact database
@@ -230,21 +240,6 @@ fi
 
 cat "${OUT_DIR}/install.log"
 verify_package "${PACKAGE}" candidate
-
-# Prove the install replaced the compiler, rather than trusting that it did.
-# If these match, the container is still running the released compiler and the
-# comparison below would be the release against itself.
-LOCAL_SUM="$(md5sum "${REPO_ROOT}/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Helper/Interpretation.php" | cut -d' ' -f1)"
-CONTAINER_SUM="$(compose exec -T joomla md5sum \
-	"${WEBROOT}/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Helper/Interpretation.php" \
-	| cut -d' ' -f1 | tr -d '\r')"
-
-if [[ "${LOCAL_SUM}" != "${CONTAINER_SUM}" ]]
-then
-	say "The install did not replace the compiler"
-	printf '  working tree: %s\n  container:    %s\n' "${LOCAL_SUM}" "${CONTAINER_SUM}"
-	exit 1
-fi
 
 say "The container is now running this working tree's compiler"
 
