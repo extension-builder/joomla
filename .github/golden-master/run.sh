@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Compile one component twice — once with the released compiler, once with this
-# working tree — and report what changed in the component that came out.
+# Compile the same component with the selected baseline and working tree.
+# Fail on changed output or final Power identity/placement evidence.
 #
 # The released compiler comes from the octoleo/joomengine image. Its entrypoint
 # installs Joomla, installs the released JCB package, and then runs whatever
@@ -26,8 +26,10 @@
 #   REPOSITORY      GUID of the repository to fetch that component from. Set it
 #                   empty to skip the fetch, for a component the site already
 #                   has
-#   COMPILE_EXTRA   Extra options for both compiles; a Joomla version flag here
-#                   is rejected, since the target is not a choice
+#   COMPILE_EXTRA   Extra --name=value options, identical for both compiles
+#   TARGET_JOOMLA   Generated Joomla major (3, 4, 5 or 6; host remains Joomla 6)
+#   BASELINE_REF    Optional source commit installed before the baseline build
+#   RUN_SCALE       Run the installed discovery/SQL probe on emitted libraries
 #   KEEP_STACK      Leave the containers running afterwards when set to 1
 #
 set -euo pipefail
@@ -39,11 +41,17 @@ OUT_DIR="${1:-${REPO_ROOT}/.golden-master}"
 COMPONENT="${COMPONENT:-160d0efb-6bf0-48eb-8d46-55cf74729501}"
 REPOSITORY="${REPOSITORY-ca50a886-0fd9-4fd8-803f-ba2cd9f43f55}"
 KEEP_STACK="${KEEP_STACK:-0}"
+BASELINE_REF="${BASELINE_REF:-}"
+RUN_SCALE="${RUN_SCALE:-0}"
 
-# This work targets Joomla 6, and only Joomla 6. It is not a knob: a run that
-# built for anything else would be comparing output nobody here cares about, so
-# the target is fixed and every package that comes out is checked against it.
-JOOMLA_VERSION=6
+# The installed host and generated target are independent axes. Each emitted
+# archive must identify the requested generated major.
+JOOMLA_VERSION="${TARGET_JOOMLA:-6}"
+if [[ ! "${JOOMLA_VERSION}" =~ ^[3456]$ ]]
+then
+	printf 'TARGET_JOOMLA must be 3, 4, 5 or 6.\n' >&2
+	exit 2
+fi
 
 WEBROOT=/var/www/html
 INSTALL_TIMEOUT=900
@@ -56,11 +64,7 @@ INSTALL_TIMEOUT=900
 #   build-date     is stamped into what is generated, so it must not be "now",
 #                  or the two runs differ for no reason worth reading.
 #
-# One caveat on debug-line-nr, and it is not this script's to fix. The console
-# command discards a CLI value of '0', because it filters with !empty() and
-# PHP calls '0' empty (Console/Compiler.php, "Release of v6.1.4"). So this asks
-# for 0 and gets whatever the global setting says. If a comparison ever comes
-# back full of changed // line markers and nothing else, that is why.
+# The common evidence driver sets exact request values, including explicit 0.
 COMPILE_EXTRA="${COMPILE_EXTRA:---debug-line-nr=0 --add-build-date=2 --build-date=2026-01-01}"
 
 # The target is not something to pass in. Say so before adding our own, or the
@@ -72,9 +76,8 @@ then
 	exit 2
 fi
 
-# And it goes on last: Symfony takes the last value of a repeated option, so a
-# version flag that got in ahead of this one would win.
-COMPILE_EXTRA="${COMPILE_EXTRA} --joomla-version=${JOOMLA_VERSION}"
+# The evidence driver receives the target separately and retains final Power
+# state before resetting the build scope.
 
 # shellcheck source=.github/golden-master/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -114,6 +117,71 @@ wait_for_log \
 	'Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip' \
 	'the released JCB is installed'
 
+compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
+compose cp "${REPO_ROOT}/.github/golden-master/compile-evidence.php" joomla:/tmp/compile-evidence.php
+
+install_package() {
+	local package="$1" name="$2"
+	compose cp "${package}" "joomla:/tmp/jcb-${name}.zip"
+	if ! compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
+		extension:install --path "/tmp/jcb-${name}.zip" --no-interaction \
+		> "${OUT_DIR}/install-${name}.log" 2>&1
+	then
+		cat "${OUT_DIR}/install-${name}.log"
+		exit 1
+	fi
+	verify_package "${package}" "${name}"
+}
+
+# Check every installed first-party compiler/library file, including newly
+# extracted helpers. One unchanged legacy file cannot prove deployment.
+verify_package() {
+	local package="$1" name="$2"
+	local verify="${OUT_DIR}/verify-${name}"
+	mkdir -p "${verify}"
+	unzip -q "${package}" 'libraries/vendor_jcb/VDM.Joomla/src/*' -d "${verify}"
+	(
+		cd "${verify}"
+		find libraries/vendor_jcb/VDM.Joomla/src -type f -print0 \
+			| sort -z | xargs -0 sha256sum
+	) > "${OUT_DIR}/${name}-installed.sha256"
+	compose cp "${OUT_DIR}/${name}-installed.sha256" "joomla:/tmp/jcb-${name}-installed.sha256"
+	if ! compose exec -T joomla sh -c \
+		"cd ${WEBROOT} && sha256sum -c /tmp/jcb-${name}-installed.sha256" \
+		> "${OUT_DIR}/verify-${name}.log" 2>&1
+	then
+		cat "${OUT_DIR}/verify-${name}.log"
+		exit 1
+	fi
+	rm -rf "${verify}"
+}
+
+compile_evidence() {
+	local name="$1"
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla \
+		php -d memory_limit=1536M /tmp/compile-evidence.php \
+		"${COMPONENT}" "${JOOMLA_VERSION}" "/tmp/jcb-golden-${name}.json" \
+		${COMPILE_EXTRA} > "${OUT_DIR}/${name}.log" 2>&1
+	then
+		cat "${OUT_DIR}/${name}.log"
+		exit 1
+	fi
+	compose cp "joomla:/tmp/jcb-golden-${name}.json" "${OUT_DIR}/${name}-powers.json"
+	tail -20 "${OUT_DIR}/${name}.log"
+}
+
+if [[ -n "${BASELINE_REF}" ]]
+then
+	BASELINE_SHA="$(git -C "${REPO_ROOT}" rev-parse --verify "${BASELINE_REF}^{commit}")"
+	git -C "${REPO_ROOT}" archive --format=zip -o "${OUT_DIR}/baseline-source.zip" "${BASELINE_SHA}"
+	zip -dq "${OUT_DIR}/baseline-source.zip" '.github/*' 'libraries/vendor_jcb/tests/*'
+	install_package "${OUT_DIR}/baseline-source.zip" baseline
+	printf '%s\n' "${BASELINE_SHA}" > "${OUT_DIR}/baseline-source.txt"
+else
+	printf '%s\n' 'Released compiler from pinned image' > "${OUT_DIR}/baseline-source.txt"
+fi
+git -C "${REPO_ROOT}" rev-parse HEAD > "${OUT_DIR}/candidate-source.txt"
+
 # Fetch the component through the Joomla console, in a process of its own. It
 # has to be a separate process from the compile: a compile that fetches the
 # component itself does both jobs at once and runs the site out of memory.
@@ -124,10 +192,17 @@ wait_for_log \
 # what is missing and let the run go on rather than reporting nothing at all.
 if [[ -n "${PULL_COMMAND}" ]]
 then
-	run_cli fetch "Fetching the component" "${PULL_COMMAND}" optional
+	run_cli fetch "Fetching the component" "${PULL_COMMAND}"
 fi
 
-run_compile baseline "${COMPILE_COMMAND}"
+# Populate any missing public dependencies once, then pin the exact database
+# snapshot for both measured compiles. Fetching never occurs inside harvest.
+compile_evidence warmup
+take_packages warmup
+compose exec -T mariadb sh -c \
+	'MYSQL_PWD="$MARIADB_PASSWORD" mariadb-dump -u "$MARIADB_USER" "$MARIADB_DATABASE"' \
+	> "${OUT_DIR}/definitions.sql"
+compile_evidence baseline
 take_packages baseline
 
 say "Packaging this working tree"
@@ -137,7 +212,7 @@ PACKAGE="${OUT_DIR}/jcb-under-test.zip"
 	# The test suite carries its own composer vendor tree, which is enormous and
 	# is no part of what JCB installs.
 	zip -qr "${PACKAGE}" . \
-		-x '.git/*' '.github/*' '.golden-master/*' 'libraries/vendor_jcb/tests/*'
+		-x '.git/*' '.github/*' '.golden-master/*' '.gui-tests/*' 'libraries/vendor_jcb/tests/*'
 )
 say "Packaged $(du -h "${PACKAGE}" | cut -f1)"
 
@@ -154,6 +229,7 @@ then
 fi
 
 cat "${OUT_DIR}/install.log"
+verify_package "${PACKAGE}" candidate
 
 # Prove the install replaced the compiler, rather than trusting that it did.
 # If these match, the container is still running the released compiler and the
@@ -172,8 +248,13 @@ fi
 
 say "The container is now running this working tree's compiler"
 
-run_compile candidate "${COMPILE_COMMAND}"
+# Restore the measured baseline's definitions after candidate installation.
+compose exec -T mariadb sh -c \
+	'MYSQL_PWD="$MARIADB_PASSWORD" mariadb -u "$MARIADB_USER" "$MARIADB_DATABASE"' \
+	< "${OUT_DIR}/definitions.sql"
+compile_evidence candidate
 take_packages candidate
+rm -f "${OUT_DIR}/definitions.sql" "${OUT_DIR}/baseline-source.zip"
 
 compose logs joomla > "${OUT_DIR}/container.log" 2>&1
 
@@ -200,6 +281,14 @@ git -C "${GOLDEN}" add -A
 git -C "${GOLDEN}" diff --cached --stat > "${OUT_DIR}/summary.txt"
 git -C "${GOLDEN}" diff --cached > "${OUT_DIR}/full.diff"
 
+if ! diff -u "${OUT_DIR}/baseline-powers.json" "${OUT_DIR}/candidate-powers.json" \
+	> "${OUT_DIR}/powers.diff"
+then
+	cat "${OUT_DIR}/powers.diff"
+	printf 'Final compiler Power identity/placement evidence differs.\n' >&2
+	exit 1
+fi
+
 rm -f "${PACKAGE}"
 
 if [[ -s "${OUT_DIR}/summary.txt" ]]
@@ -209,8 +298,27 @@ then
 
 	# and what changed, here in the log rather than only in the artifact
 	log_diff "${OUT_DIR}/full.diff" "${DIFF_LINES_PER_FILE}" "${DIFF_LINES_TOTAL}"
+	exit 1
 else
 	say "The two compilers produced the same component"
+fi
+
+if [[ "${RUN_SCALE}" == 1 ]]
+then
+	compose cp "${REPO_ROOT}/.github/gui-tests/discovery-scale.php" joomla:/tmp/discovery-scale.php
+	compose cp "${REPO_ROOT}/.github/golden-master/scale-evidence.php" joomla:/tmp/scale-evidence.php
+	compose exec -T joomla mkdir -p /tmp/jcb-golden-output
+	compose cp "${OUT_DIR}/candidate/." joomla:/tmp/jcb-golden-output
+	if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 \
+		-e "JCB_TARGET_VERSION=${JOOMLA_VERSION}" \
+		-e JCB_COMPILER_EVIDENCE=/tmp/jcb-golden-candidate.json \
+		-e "JCB_SOURCE_REVISION=$(git -C "${REPO_ROOT}" rev-parse HEAD)" joomla \
+		php /tmp/scale-evidence.php "${COMPONENT}" \
+		> "${OUT_DIR}/discovery-scale.json" 2> "${OUT_DIR}/discovery-scale.log"
+	then
+		cat "${OUT_DIR}/discovery-scale.log"
+		exit 1
+	fi
 fi
 
 say "Everything is in ${OUT_DIR}"

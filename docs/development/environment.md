@@ -59,12 +59,38 @@ KEEP_STACK=1 bash .github/gui-tests/run.sh # keep the site up for iterating
 [gui-testing.md](gui-testing.md) is authoritative for the architecture, the
 spec-writing rules, and the rule that GUI changes ship GUI tests.
 
-### Compiler golden master (manual, heavy)
+### Compiler golden master (full compilation)
 
-`.github/golden-master/run.sh` compiles one component with the released
-compiler and with this working tree and diffs the results. It runs from the
-`Compiler golden master` workflow on demand; locally it needs docker and
-~10 minutes. Read the header of `run.sh` for its knobs.
+`.github/golden-master/run.sh` compares complete compiler output and the final
+Super Power/Joomla Power identities and placements. Compiler and extrusion PRs
+run the public Hello World blueprint on a Joomla 6 host for targets 3, 4, 5 and 6.
+The baseline is the PR base commit, installed and verified before compilation.
+Both measured builds read the same database snapshot, after one dependency
+warmup. Differences fail the workflow; they are never automatically normalized
+away. The harness records identities before and after `Compiler::run()` so late
+loads remain visible, and hashes every deployed first-party library file.
+
+The public Hello World definition is GUID
+`3745af8f-f96b-4e17-831e-eb4062cd4389`, from `joomengine/packages` repository GUID
+`562624ab-48bf-4979-9a14-6b10cf3635de`. Its native preference is Joomla 5; the
+matrix deliberately compiles that same blueprint across generated targets.
+The historical manual default, `160d0efb-6bf0-48eb-8d46-55cf74729501`, is
+**Service Directory J6**, not JCB. Neither fixture is a JCB self-compilation.
+JCB self-compilation still requires the maintainer's complete JCB definition
+package; installed JCB PHP source alone is insufficient evidence.
+
+With `RUN_SCALE=1`, the harness extracts the generated archive and passes only
+observed emitted Power library roots to the installed discovery/SQL probe.
+An empty Power workload is a failure. Timings cover CLI parsing, harvest,
+assembly, preview and serialization; HTTP/browser latency remains a separate
+GUI measurement. SQL perturbations are rolled back in the disposable database.
+
+Manual runs remain available through the `Compiler golden master` workflow;
+local execution requires Docker and Compose. `BASELINE_REF` selects an explicit
+source baseline, `TARGET_JOOMLA` selects the generated major, and `COMPONENT` /
+`REPOSITORY` select the actual blueprint. Without `BASELINE_REF`, the baseline
+is the released compiler in the pinned container image. Read `run.sh` for the
+complete environment contract.
 
 ## The gates before handoff
 
