@@ -368,7 +368,8 @@ test.describe('the extrusion view', () => {
 	});
 
 	test('never repeats an interrupted import and requires fresh approval after recovery', async ({ page, context }) => {
-		await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		const harvested = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		const consumer = harvested.powers.classes.find((candidate) => candidate.class === 'Consumer');
 		let attempts = 0;
 		page.on('request', (request) => {
 			if (request.url().includes('extrusionImport')) {
@@ -388,9 +389,11 @@ test.describe('the extrusion view', () => {
 			await context.setOffline(false);
 		}
 		const preview = responseFor(page, 'extrusionWeigh');
-		await page.locator('details[data-extrusion-kind="power"] .extrusion-row').first()
+		// Review a leaf change: ignoring Factory would correctly block its Consumer.
+		await powerRow(page, consumer.source_key)
 			.getByRole('button', { name: 'Ignore', exact: true }).click();
-		await preview;
+		const recovered = await (await preview).json();
+		expect(recovered.plan.status, JSON.stringify(recovered.plan)).toBe('preview');
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
 		expect(attempts, 'restoring the connection and previewing must not retry the import').toBe(1);
 	});
@@ -424,7 +427,7 @@ test.describe('the extrusion view', () => {
 	});
 
 	test('leaves ambiguous identities unresolved until a real manual target is selected', async ({ page }) => {
-		const payload = await harvestFixture(page, fixtures.library_b, 0);
+		const payload = await harvestFixture(page, fixtures.library_ambiguous, 0);
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
 		expect(factory.status).toBe('ambiguous');
 		expect(factory.matched_guid).toBeNull();
@@ -436,14 +439,17 @@ test.describe('the extrusion view', () => {
 		await powerRow(page, factory.source_key).getByRole('button', { name: 'Update', exact: false }).click();
 		const modal = page.locator('#extrusion-modal');
 		await expect(modal).toBeVisible();
-		await modal.locator('#extrusion-modal-search').fill('Extrusion Fixture Factory B');
+		const search = responseFor(page, 'extrusionCatalogue');
+		await modal.locator('#extrusion-modal-search').fill(fixtures.ambiguous_factory_b);
+		await search;
 		const response = responseFor(page, 'extrusionWeigh');
-		await modal.locator('[data-extrusion-target="' + fixtures.factory_b + '"]').click();
+		await modal.getByRole('button', { name: 'Factory Extrusion Ambiguous Factory B', exact: true }).click();
 		const corrected = await (await response).json();
 		const actual = corrected.powers.classes.find((candidate) => candidate.source_key === factory.source_key);
-		expect(actual.matched_guid).toBe(fixtures.factory_b);
-		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.factory_b);
+		expect(actual.matched_guid).toBe(fixtures.ambiguous_factory_b);
+		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.ambiguous_factory_b);
 		// A different unresolved source cannot be concealed by fixing only Factory.
+		expect(corrected.powers.classes.find((candidate) => candidate.class === 'Consumer').status).toBe('ambiguous');
 		expect(corrected.plan.status).toBe('blocked');
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
 	});
@@ -455,7 +461,9 @@ test.describe('the extrusion view', () => {
 		expect(catalogue.powers.map((power) => power.guid)).toContain(fixtures.factory_b);
 		expect(catalogue.powers.map((power) => power.guid)).not.toContain(fixtures.factory_a);
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
-		await powerRow(page, factory.source_key).getByRole('button', { name: 'Update', exact: false }).click();
+		// A matched row names its current target on the update button.
+		await powerRow(page, factory.source_key)
+			.getByRole('button', { name: 'Extrusion Fixture Factory B', exact: true }).click();
 		await expect(page.locator('#extrusion-power-search-hint')).toContainText('exact name');
 		const lookup = responseFor(page, 'extrusionCatalogue');
 		await page.locator('#extrusion-modal-search').fill(fixtures.factory_a);
@@ -475,7 +483,7 @@ test.describe('the extrusion view', () => {
 		expect(shared.matched_guid).toBe(fixtures.shared);
 		// Root-local discovery establishes B's use, without claiming it has
 		// scanned all other components that may share this same definition.
-		expect(shared.write_scope).toBe('unknown');
+		expect(shared.write_scope).toBe('unestablished');
 		expect(shared.namespace_proposal.value).toContain('Abstraction.Registry.Value');
 		expect(payload.plan.required_approvals).toEqual(['unknown']);
 		await expect(powerRow(page, shared.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.shared);

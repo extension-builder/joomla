@@ -155,6 +155,23 @@ try
 			'namespace' => '[[[NamespacePrefix]]]\\Joomla\\Abstraction.Registry.Value', 'type' => 'class',
 			'main_class_code' => base64_encode("\tpublic function value(): int { return 1; }\n"), 'published' => 1
 		]);
+		// Literal duplicate identities prove ambiguity without discovering the
+		// namespace aliases of every unselected component in the installation.
+		foreach (['Factory', 'Consumer'] as $name)
+		{
+			foreach (['a', 'b'] as $owner)
+			{
+				$key = 'ambiguous_' . strtolower($name) . '_' . $owner;
+				$manifest[$key] = identity($key);
+				insertRecord('power', [
+					'guid' => $manifest[$key], 'name' => $name,
+					'system_name' => 'Extrusion Ambiguous ' . $name . ' ' . strtoupper($owner),
+					'namespace' => 'ExtrusionFixture\\Ambiguous.' . $name, 'type' => 'class',
+					'main_class_code' => base64_encode("\tpublic function value(): int { return 1; }\n"),
+					'published' => 1
+				]);
+			}
+		}
 		foreach (['a', 'b'] as $owner)
 		{
 			$references = [$manifest['factory_' . $owner], $manifest['shared']];
@@ -175,6 +192,11 @@ try
 		$manifest['library_b'] = $root . '/b/ExtrusionFixture.Joomla';
 		$manifest['library_shared'] = $root . '/shared/ExtrusionFixture.Joomla';
 		$manifest['library_new'] = $root . '/new/ExtrusionFixture.Independent';
+		$manifest['library_ambiguous'] = $root . '/ambiguous/ExtrusionFixture.Ambiguous';
+		foreach (['Factory', 'Consumer'] as $name)
+		{
+			writeSource($manifest['library_ambiguous'] . '/src/' . $name . '.php', "<?php\nnamespace ExtrusionFixture\\Ambiguous;\nclass " . $name . "\n{\n\tpublic function value(): int { return 2; }\n}\n");
+		}
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 22;\n\t}\n}\n");
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nuse ExtrusionFixture\\Joomla\\Extrusionfixtureb\\Factory as Maker;\nclass Consumer\n{\n\tpublic function value(): int\n\t{\n\t\treturn (new Maker())->value();\n\t}\n}\n");
 		writeSource($manifest['library_shared'] . '/src/Abstraction/Registry/Value.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Abstraction\\Registry;\nclass Value\n{\n\tpublic function value(): int { return 2; }\n}\n");
