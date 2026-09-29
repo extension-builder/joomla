@@ -606,6 +606,103 @@ final class IdentityTest extends TestCase
 	}
 
 	/**
+	 * Distinct source vendors never rebuild or scan the selected Power set.
+	 *
+	 * @param   string  $mode  Literal, reusable template or custom alias records.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('vendorIndexModes')]
+	public function testDistinctSourceVendorsShareSelectedIndexesAndTargetOccupants(string $mode): void
+	{
+		foreach ([1, 32] as $vendors)
+		{
+			[$identity, $load, $config, $names] = $this->engine();
+			$tokens = [];
+
+			for ($number = 0; $number < 64; $number++)
+			{
+				$guid = $this->guid('selected-' . $number);
+				$namespace = ($mode === 'literal' ? 'Acme' : '[[[NamespacePrefix]]]')
+					. '\\Library\\Branch' . $number . '.SharedService';
+
+				if ($mode === 'alias')
+				{
+					$load->placeholder(100 + $number, 'BranchRoot' . $number,
+						'[[[NamespacePrefix]]]\\Library\\Branch' . $number);
+					$namespace = '###BranchRoot' . $number . '###.SharedService';
+				}
+
+				$load->record('power', 100 + $number, [
+					'guid' => $guid, 'name' => $mode === 'alias' ? '[[[HiddenName]]]' : 'SharedService',
+					'type' => 'class', 'namespace' => $namespace
+				]);
+				$tokens[] = 'Super___' . str_replace('-', '_', $guid) . '___Power';
+			}
+
+			$load->record('joomla_component', 2, array_replace($this->component('beta', 'component-b'), [
+				'php_preflight_install' => base64_encode(implode(';', $tokens))
+			]));
+
+			for ($number = 0; $number < 32; $number++)
+			{
+				$vendor = 'Vendor' . ($number % $vendors);
+				$stored = $vendor . '\\Library\\Branch' . $number . '.SharedService';
+				$result = $identity->resolve([
+					'source_key' => 'source-' . $number, 'source_unit' => $vendor . '.Library',
+					'fqn' => str_replace('.', '\\', $stored), 'stored' => $stored,
+					'placement_valid' => true, 'type' => 'class'
+				]);
+				$this->assertSame($mode === 'literal' ? null : $this->guid('selected-' . $number), $result['matched_guid']);
+				$this->assertCount($mode === 'literal' ? 0 : 1, $result['candidates']);
+				$this->assertSame([], $identity->occupants($names->output($stored)), 'A source vendor is not the target placement.');
+				$target = $names->output('Acme\\Library\\Branch' . $number . '.SharedService');
+				$this->assertSame([$this->guid('selected-' . $number)], array_keys($identity->occupants($target)));
+			}
+
+			$this->assertSame(64, $identity->work()['indexed_records']);
+			$this->assertSame($mode === 'literal' ? 0 : 32, $identity->work()['candidate_evaluations']);
+			$this->assertLessThan(3200, $identity->work()['index_steps'], 'Trie queries follow source suffixes, not all 64 records.');
+		}
+	}
+
+	/**
+	 * The three namespace storage forms exercise separate indexing branches.
+	 *
+	 * @return  array<string, array{string}>  Stored namespace forms.
+	 * @since   6.2.0
+	 */
+	public static function vendorIndexModes(): array
+	{
+		return ['literal' => ['literal'], 'template' => ['template'], 'alias' => ['alias']];
+	}
+
+	/**
+	 * Literal marker-like words remain literal even after compiler sanitization.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testSymbolicPrefixDoesNotReplaceLiteralNamespaceWords(): void
+	{
+		[$identity, $load, $config, $names] = $this->engine();
+		$namespace = '[[[NamespacePrefix]]]\\J_c_b_ExtrusionVendor\\JcbExtrusionVendorSlot.SharedService';
+		$load->record('power', 12, [
+			'guid' => $this->guid('power-b'), 'name' => '[[[HiddenName]]]', 'type' => 'class', 'namespace' => $namespace
+		]);
+		$source = [
+			'source_key' => 'marker-like-namespace', 'source_unit' => 'Vendor.Library',
+			'fqn' => 'Vendor\\JcbExtrusionVendor\\JcbExtrusionVendorSlot\\SharedService',
+			'stored' => 'Vendor\\JcbExtrusionVendor\\JcbExtrusionVendorSlot.SharedService',
+			'placement_valid' => true, 'type' => 'class'
+		];
+		$this->assertSame($this->guid('power-b'), $identity->resolve($source, null, true)['matched_guid']);
+		$this->assertSame(1, $identity->work()['indexed_records']);
+		$this->assertSame(1, $identity->work()['candidate_evaluations']);
+	}
+
+	/**
 	 * Build the actual services with a controlled database boundary.
 	 *
 	 * @param   bool  $reverse  Reverse database row order.
