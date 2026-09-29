@@ -20,6 +20,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
@@ -38,6 +39,14 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(Placeholders::class)]
 final class IdentityTest extends TestCase
 {
+	/**
+	 * Explicit audit boundary for the complete-consumer characterization cases.
+	 *
+	 * @var    References
+	 * @since  6.2.0
+	 */
+	protected References $references;
+
 	/**
 	 * Catalogue order and equal placeholder values do not erase component scope.
 	 *
@@ -66,12 +75,12 @@ final class IdentityTest extends TestCase
 		$this->assertArrayNotHasKey('context', $result['namespace']);
 
 		$config->set('component', 1);
-		$identity->refresh();
+		$this->audit($identity);
 		$a = $identity->resolve($this->source($same ? 'Same' : 'Alpha'));
 		$this->assertSame($this->guid('power-a'), $a['matched_guid']);
 		$this->assertNotSame($a['context_fingerprint'], $result['context_fingerprint']);
 		$config->set('component', 2);
-		$identity->refresh();
+		$this->audit($identity);
 		$this->assertSame($result['matched_guid'], $identity->resolve($source)['matched_guid']);
 	}
 
@@ -99,7 +108,7 @@ final class IdentityTest extends TestCase
 	{
 		[$identity, $load] = $this->engine();
 		$load->record('joomla_component', 2, $this->component('beta', 'component-b'));
-		$identity->refresh();
+		$this->audit($identity);
 		$result = $identity->resolve($this->source());
 		$this->assertSame('ambiguous', $result['status']);
 		$this->assertNull($result['matched_guid']);
@@ -120,7 +129,7 @@ final class IdentityTest extends TestCase
 		$load->record('power', 11, $this->power('power-a', $this->template(), 'Factory A') + [
 			'use_selection' => json_encode([['use' => 'unreadable-identity', 'as' => 'Unknown']])
 		]);
-		$identity->refresh();
+		$this->audit($identity);
 		$result = $identity->resolve($this->source());
 		$this->assertSame('matched', $result['status']);
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
@@ -180,7 +189,7 @@ final class IdentityTest extends TestCase
 	{
 		[$identity, $load] = $this->engine();
 		$load->record('joomla_component', 1, $this->component('alpha', 'component-a', 'power-b'));
-		$identity->refresh();
+		$this->audit($identity);
 		$result = $identity->resolve($this->source());
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
 		$this->assertSame('shared', $result['write_scope']);
@@ -200,7 +209,7 @@ final class IdentityTest extends TestCase
 		$load->overrides($this->guid('component-a'), [['target' => 'Root', 'value' => 'Acme\\Other\\Alpha']]);
 		$load->overrides($this->guid('component-b'), [['target' => 'Root', 'value' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]]']]);
 		$load->record('power', 12, $this->power('power-b', '###Root###.Factory', 'Factory B'));
-		$identity->refresh();
+		$this->audit($identity);
 		$result = $identity->resolve($this->source());
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
 		$this->assertSame('###Root###.Factory', $result['namespace']['value']);
@@ -241,7 +250,7 @@ final class IdentityTest extends TestCase
 		[$identity, $load] = $this->engine();
 		$load->record('joomla_component', 2, $this->component('registry', 'component-b', 'power-b'));
 		$load->record('power', 12, $this->power('power-b', '[[[NamespacePrefix]]]\\Joomla\\Abstraction.Registry.Factory', 'Literal Factory'));
-		$identity->refresh();
+		$this->audit($identity);
 		$source = $this->source('Registry');
 		$source['fqn'] = 'Acme\\Joomla\\Abstraction\\Registry\\Factory';
 		$source['stored'] = 'Acme\\Joomla\\Abstraction.Registry.Factory';
@@ -297,17 +306,33 @@ final class IdentityTest extends TestCase
 		$source['body'] = 'different contents';
 		$this->assertSame($a['write_guid'], $identity->resolve($source)['write_guid']);
 		$config->set('component', 1);
-		$identity->refresh();
+		$this->audit($identity);
 		$this->assertNotSame($a['write_guid'], $identity->resolve($source)['write_guid']);
 		$config->set('component', 2);
 		$load->record('power', 99, [
 			'guid' => $a['write_guid'], 'name' => 'Service', 'type' => 'class',
 			'namespace' => $a['namespace']['value']
 		]);
-		$identity->refresh();
+		$this->audit($identity);
 		$again = $identity->resolve($source, ['action' => 'create']);
 		$this->assertSame('matched', $again['status']);
 		$this->assertSame($a['write_guid'], $again['write_guid']);
+	}
+
+	/**
+	 * Reset and explicitly rebuild the complete audit used by these scope tests.
+	 *
+	 * IndexedDiscoveryTest separately forbids this audit in selected-root work.
+	 *
+	 * @param   Identity  $identity  The production resolver under test.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function audit(Identity $identity): void
+	{
+		$identity->refresh();
+		$this->references->contexts();
 	}
 
 	/**
@@ -341,6 +366,8 @@ final class IdentityTest extends TestCase
 		$container->set('Extrusion.Registry.Source', new Source(), true);
 		$container->set('Extrusion.Resolver.Guid', new Guid(), true);
 		$container->registerServiceProvider(new Powers());
+		$this->references = $container->get('Extrusion.Powers.Resolver.References');
+		$this->references->contexts();
 
 		return [$container->get('Extrusion.Powers.Resolver.Identity'), $load, $config, $container->get('Extrusion.Powers.Resolver.Namespacer')];
 	}

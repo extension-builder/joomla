@@ -86,7 +86,8 @@ final class ScopedPipelineTest extends FilesystemTestCase
 		$assembler->assemble();
 		$again = $harvest->get('classes.' . $factory['source_key']);
 		$this->assertSame($this->guid('power-a'), $again['matched_guid']);
-		$this->assertSame('foreign', $again['resolution']['write_scope']);
+		$this->assertSame('unestablished', $again['resolution']['write_scope']);
+		$this->assertFalse($again['resolution']['consumer_coverage_complete']);
 		$this->assertSame('approval', $again['resolution']['write_eligibility']);
 		$this->assertSame($this->guid('power-a'), $harvest->get('resolved.' . $consumer['source_key'])->use_selection['use_selection0']['use']);
 	}

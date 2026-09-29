@@ -158,6 +158,165 @@ final class IndexedDiscoveryTest extends TestCase
 	}
 
 	/**
+	 * Bounded matching retains conservative mutation scope without a global audit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testLimitedConsumerCoverageRequiresReviewedMutation(): void
+	{
+		[$container] = $this->engine(50);
+		$result = $container->get('Extrusion.Powers.Resolver.Identity')->resolve($this->source());
+		$this->assertSame('matched', $result['status']);
+		$this->assertSame('unestablished', $result['write_scope']);
+		$this->assertSame('approval', $result['write_eligibility']);
+		$this->assertFalse($result['consumer_coverage_complete']);
+		$this->assertSame([1], array_keys($result['consumers']));
+	}
+
+	/**
+	 * Review revalidation repeats the bounded reads without accepting a new snapshot.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFreshFingerprintDetectsNewCandidatesAndPreservesReviewedEvidence(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$identity = $container->get('Extrusion.Powers.Resolver.Identity');
+		$identity->resolve($this->source());
+		$before = $identity->fingerprint();
+		$this->assertSame($before, $identity->fingerprint(true));
+		$load->record('power', 1001, [
+			'guid' => $this->guid('new-candidate'), 'name' => 'Factory', 'type' => 'class',
+			'namespace' => 'Acme\\Joomla\\Target.Factory'
+		]);
+		$this->assertNotSame($before, $identity->fingerprint(true));
+		$this->assertSame($before, $identity->fingerprint(), 'Revalidation must not replace the approved read snapshot.');
+
+		foreach ($load->queries as $query)
+		{
+			$this->assertNotSame([], $query['where'], 'Fresh approval validation must not rebuild a global catalogue.');
+		}
+	}
+
+	/**
+	 * A previously absent identity is evidence that must be rechecked before writes.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFreshFingerprintDetectsNegativeGuidBecomingPresent(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$existing = $container->get('Extrusion.Powers.Resolver.Existing');
+		$missing = $this->guid('missing');
+		$this->assertNull($existing->power($missing));
+		$before = $existing->fingerprint();
+		$this->assertSame($before, $existing->fingerprint(true));
+		$load->power(1001, $missing, 'Other', 'Acme\\Library.Other');
+		$this->assertNotSame($before, $existing->fingerprint(true));
+		$this->assertNull($existing->power($missing));
+		$existing->refresh();
+		$this->assertSame($missing, $existing->power($missing)['guid']);
+	}
+
+	/**
+	 * The root's stored code changing invalidates all approved dependency evidence.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFreshFingerprintDetectsChangedRootReferences(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$identity = $container->get('Extrusion.Powers.Resolver.Identity');
+		$identity->resolve($this->source());
+		$before = $identity->fingerprint();
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('selected-component'), 'name_code' => 'target',
+			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Acme',
+			'php_preflight_install' => base64_encode($this->token('missing'))
+		]);
+		$this->assertNotSame($before, $identity->fingerprint(true));
+		$identity->refresh();
+		$this->assertFalse($container->get('Extrusion.Powers.Resolver.References')->context(1)['complete']);
+	}
+
+	/**
+	 * Namespace variants of an invalid duplicate GUID cannot disappear from lookup.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testDuplicateGuidAtAnotherNamespaceBlocksInsteadOfCreatingReplacement(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$load->record('power', 1001, [
+			'guid' => $this->guid('selected-power'), 'name' => 'Factory', 'type' => 'class',
+			'namespace' => 'Acme\\Joomla\\Elsewhere.Factory'
+		]);
+		$result = $container->get('Extrusion.Powers.Resolver.Identity')->resolve($this->source());
+		$this->assertSame('conflict', $result['status']);
+		$this->assertNull($result['write_guid']);
+		$this->assertArrayHasKey($this->guid('selected-power'), $result['candidates']);
+		$this->assertFalse($result['candidates'][$this->guid('selected-power')]['compatible']);
+	}
+
+	/**
+	 * A nested form value is evaluated only among the selected view's owned rows.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testNestedChildSelectionsNeverReadForeignOwners(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$load->record('component_admin_views', 10, [
+			'joomla_component' => $this->guid('selected-component'),
+			'addadmin_views' => json_encode([['adminview' => 6]])
+		]);
+		$load->record('admin_view', 6, ['guid' => $this->guid('selected-view')]);
+		$load->record('admin_fields', 7, [
+			'admin_view' => $this->guid('foreign-view'),
+			'addfields' => json_encode([['tab' => 6, 'field' => $this->guid('missing-field')]])
+		]);
+		$references = $container->get('Extrusion.Powers.Resolver.References');
+		$this->assertTrue($references->context(1)['complete']);
+		$this->assertSame([], $references->context(1)['gaps']);
+		$this->assertSame($references->fingerprint(), $references->fingerprint(true));
+
+		foreach ($load->queries as $query)
+		{
+			$this->assertNotSame([], $query['where']);
+
+			if ($query['table'] === 'admin_fields')
+			{
+				$this->assertSame(['a.admin_view' => $this->guid('selected-view')], $query['where']);
+				$this->assertSame([], $query['ids']);
+			}
+		}
+	}
+
+	/**
+	 * Repeated same-context resolution does not perform additional database work.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testWarmResolutionReusesBothMatchesAndMissingEvidence(): void
+	{
+		[$container, $load] = $this->engine(500);
+		$identity = $container->get('Extrusion.Powers.Resolver.Identity');
+		$first = $identity->resolve($this->source());
+		$count = count($load->queries);
+		$this->assertSame($first, $identity->resolve($this->source()));
+		$this->assertCount($count, $load->queries);
+		$identity->refresh();
+		$this->assertSame($first, $identity->resolve($this->source()));
+		$this->assertGreaterThan($count, count($load->queries));
+	}
+	/**
 	 * Compose real production providers above a passive database boundary.
 	 *
 	 * @param   int  $unrelated  Number of unrelated components and Powers.

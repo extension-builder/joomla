@@ -35,7 +35,7 @@ final class Identity
 	protected Config $config;
 
 	/**
-	 * The complete GUID catalogue.
+	 * The GUID-addressed definition and candidate indexes.
 	 *
 	 * @var    Existing
 	 * @since  6.2.0
@@ -75,10 +75,18 @@ final class Identity
 	protected array $contexts = [];
 
 	/**
+	 * Already primed selected-graph indexes, keyed by source namespace context.
+	 *
+	 * @var    array<string, bool>
+	 * @since  6.2.0
+	 */
+	protected array $indexed = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config      $config      The run configuration.
-	 * @param   Existing    $existing    The complete GUID catalogue.
+	 * @param   Existing    $existing    The GUID-addressed definition and candidate indexes.
 	 * @param   Namespacer  $names       The namespace and placement validator.
 	 * @param   References  $references  The reference graph.
 	 * @param   Guid        $guid        The stable identity derivation service.
@@ -103,6 +111,7 @@ final class Identity
 	public function refresh(): void
 	{
 		$this->contexts = [];
+		$this->indexed = [];
 		$this->names->forget();
 		$this->existing->refresh();
 		$this->references->refresh();
@@ -164,11 +173,50 @@ final class Identity
 		$explicit = strtolower((string) ($decision['target'] ?? ''));
 		$compatible = [];
 
-		foreach ($this->existing->records() as $guid => $record)
+		$indexContext = $this->names->sourceContext($source['stored'], $sourceContext);
+		$indexKey = hash('sha256', serialize([$target['id'], $indexContext]));
+
+		if (!isset($this->indexed[$indexKey]))
+		{
+			$powers = $usage['powers'];
+
+			if ($sourceId > 0 && $sourceId !== $target['id'])
+			{
+				$powers += $this->references->context($sourceId)['powers'];
+			}
+
+			$this->existing->prime(array_keys($powers), $indexContext);
+
+			// Only already observed consumers contribute context-specific names.
+			// This accessor never discovers or scans another installed component.
+			foreach ($this->references->observed() as $id => $observed)
+			{
+				$this->existing->prime(array_keys($observed['powers']), $indexContext, $this->context((int) $id));
+			}
+
+			$this->indexed[$indexKey] = true;
+		}
+
+		$records = $this->existing->bounded($source['stored'], $source['fqn'], $indexContext);
+
+		// Explicit identities are always validated, even outside the FQN bucket.
+		foreach (array_unique([$supplied, $explicit, $derived]) as $identity)
+		{
+			$record = $this->existing->power($identity);
+
+			if ($record !== null)
+			{
+				$records[$record['guid']] = $record;
+			}
+		}
+
+		ksort($records);
+
+		foreach ($records as $guid => $record)
 		{
 			$evidence = $this->candidate($source, $record, $sourceContext, $usage);
 
-			if (!$evidence['plausible'] && !in_array($guid, [$supplied, $explicit, $derived], true))
+			if (!$evidence['plausible'] && $record['selectable'] && !in_array($guid, [$supplied, $explicit, $derived], true))
 			{
 				continue;
 			}
@@ -297,6 +345,7 @@ final class Identity
 		$result['target'] = $record;
 		$result['reason'] = $reason;
 		$result['consumers'] = $entry['consumers'];
+		$result['consumer_coverage_complete'] = $this->references->complete();
 		$result['write_scope'] = $entry['scope'];
 		$result['write_eligibility'] = $entry['scope'] === 'component' ? 'automatic' : 'approval';
 		$result['namespace'] = $this->names->proposal($source, $record['namespace'], $sourceContext);
@@ -340,14 +389,33 @@ final class Identity
 	}
 
 	/**
-	 * Read the current reference fingerprint for plan revalidation.
+	 * Read or revalidate the exact operation evidence without a catalogue rebuild.
 	 *
-	 * @return  string  The read-set fingerprint.
+	 * @param   bool  $fresh  Re-read observed queries and applicable namespace maps.
+	 *
+	 * @return  string  The bounded read-set fingerprint.
 	 * @since   6.2.0
 	 */
-	public function fingerprint(): string
+	public function fingerprint(bool $fresh = false): string
 	{
-		return hash('sha256', $this->names->signature() . $this->references->fingerprint() . serialize($this->existing->records()));
+		$contexts = $this->contexts;
+
+		if ($fresh)
+		{
+			$this->names->forget();
+
+			foreach (array_keys($contexts) as $id)
+			{
+				$contexts[$id] = $this->names->context((int) $id);
+			}
+		}
+
+		ksort($contexts);
+
+		return hash('sha256', serialize([
+			$this->names->signature(), $contexts,
+			$this->references->fingerprint($fresh), $this->existing->fingerprint($fresh)
+		]));
 	}
 
 	/**
@@ -397,7 +465,7 @@ final class Identity
 		}
 
 		$scope = $inTarget && count($consumers) === 1 && $usage['complete'] && $this->references->complete() ? 'component'
-			: (count($consumers) > 1 || ($literal && $consumers !== []) ? 'shared'
+			: (count($consumers) > 1 || ($literal && $consumers !== [] && $this->references->complete()) ? 'shared'
 				: (!$inTarget && $generic && $consumers !== [] ? 'foreign' : 'unestablished'));
 
 		return [
