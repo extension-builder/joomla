@@ -193,7 +193,8 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 		<div class="extrusion-modal-card">
 			<h4 id="extrusion-modal-title"><?php echo Text::_('Choose the target'); ?></h4>
 			<input type="text" id="extrusion-modal-search" class="form-control"
-				placeholder="<?php echo Text::_('Type to search'); ?>" autocomplete="off" />
+				placeholder="<?php echo Text::_('Type to search'); ?>" autocomplete="off" aria-describedby="extrusion-power-search-hint" />
+			<p id="extrusion-power-search-hint" hidden><?php echo Text::_('Linked Powers are shown first. To find another Power, enter its exact name, system name, namespace, or GUID.'); ?></p>
 			<div id="extrusion-modal-list" class="extrusion-modal-list"></div>
 			<button type="button" class="btn btn-outline-secondary" id="extrusion-modal-close"><?php echo Text::_('Cancel'); ?></button>
 		</div>
@@ -240,7 +241,13 @@ window.JCBExtrusion = {
 		theSource: '<?php echo Text::_('The source', true); ?>',
 		harvestFailed: '<?php echo Text::_('The harvest failed', true); ?>',
 		importFailed: '<?php echo Text::_('The import failed', true); ?>',
-		requestFailed: '<?php echo Text::_('The request could not reach the server. Please try again.', true); ?>',
+		requestFailed: '<?php echo Text::_('The request failed. Review the current state before trying again.', true); ?>',
+		networkFailed: '<?php echo Text::_('The connection failed before a response was received. Check the connection and review the current state before trying again.', true); ?>',
+		httpFailed: '<?php echo Text::_('The server returned an unsuccessful response.', true); ?>',
+		invalidResponse: '<?php echo Text::_('The server response was not valid JSON for this operation.', true); ?>',
+		operationFailed: '<?php echo Text::_('The server could not complete this operation.', true); ?>',
+		failureReference: '<?php echo Text::_('Failure reference:', true); ?>',
+		powerSearchTruncated: '<?php echo Text::_('Showing the first 100 matches. Refine the search with an exact namespace or GUID.', true); ?>',
 		needSource: '<?php echo Text::_('Select at least an admin folder, a site folder, or a library folder to harvest.', true); ?>',
 		createNew: '<?php echo Text::_('Create new', true); ?>',
 		update: '<?php echo Text::_('Update', true); ?>',

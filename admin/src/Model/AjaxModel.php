@@ -78,6 +78,14 @@ class AjaxModel extends ListModel
 	protected CMSApplicationInterface $app;
 
 	/**
+	 * Safe diagnostics already generated for this request's backend reports.
+	 *
+	 * @var   array<string, array>
+	 * @since 6.2.1
+	 */
+	protected array $extrusionFailureReferences = [];
+
+	/**
 	 * Constructor
 	 *
 	 * @param   array                 $config   An array of configuration options (name, state, dbo, table_path, ignore_request).
@@ -7070,9 +7078,15 @@ class AjaxModel extends ListModel
 			return ['error' => Text::_('The extrusion configuration could not be read.')];
 		}
 
+		$phase = 'harvest';
+		$completed = 'validated';
+
 		try
 		{
+			$phase = 'configure';
 			[$extruder, $powers] = $this->extrusionEngines($options);
+			$completed = $phase;
+			$phase = 'harvest';
 
 			if ($extruder === null && $powers === null)
 			{
@@ -7080,6 +7094,8 @@ class AjaxModel extends ListModel
 			}
 
 			$extruder?->harvest();
+			$completed = $phase;
+			$phase = 'candidates';
 
 			$candidates = ExtrusionFactory::_('Extrusion.Resolver.Candidates');
 			$component = (int) ($options['component'] ?? 0);
@@ -7101,7 +7117,7 @@ class AjaxModel extends ListModel
 				'candidates' => $extruder !== null ? $candidates->candidates($component) : null,
 				'powers' => null,
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
-				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
+				'report' => $this->extrusionPublicReport()
 			];
 
 			// what every row of the board would change. The account of the
@@ -7109,6 +7125,9 @@ class AjaxModel extends ListModel
 			// over: it has to be the very run an import makes, or the board
 			// would answer for a run nobody is going to make -- so it is aimed
 			// at the component the board pairs against, detected or chosen
+			$completed = $phase;
+			$phase = 'preview';
+
 			try
 			{
 				$harvested['changes'] = $this->extrusionProposals(
@@ -7116,20 +7135,23 @@ class AjaxModel extends ListModel
 				) ?? [];
 				$harvested = array_replace($harvested, $this->extrusionReview());
 				$harvested['messages'] = ExtrusionFactory::_('Extruder')->messages();
-				$harvested['report'] = ExtrusionFactory::_('Extrusion.Registry.Report')->toArray();
+				$harvested['report'] = $this->extrusionPublicReport();
 			}
-			catch (\Exception $error)
+			catch (\Throwable $error)
 			{
 				// the harvest stood; only the weighing fell, and the board says so
 				$harvested['changes'] = [];
-				$harvested['weighing'] = $error->getMessage();
+				$failure = $this->extrusionFailure($error, $phase, $completed);
+				$harvested['weighing'] = $failure['error'] . ' '
+					. Text::_('Failure reference:') . ' ' . $failure['failure']['reference'];
+				$harvested['failure'] = $failure['failure'];
 			}
 
 			return $harvested;
 		}
-		catch (\Exception $error)
+		catch (\Throwable $error)
 		{
-			return ['error' => $error->getMessage()];
+			return $this->extrusionFailure($error, $phase, $completed);
 		}
 	}
 
@@ -7171,9 +7193,15 @@ class AjaxModel extends ListModel
 			return ['error' => Text::_('Review the current write plan before importing.')];
 		}
 
+		$phase = 'import';
+		$completed = 'validated';
+
 		try
 		{
+			$phase = 'configure';
 			[$extruder, $powers] = $this->extrusionEngines($options);
+			$completed = $phase;
+			$phase = 'import';
 
 			if ($extruder === null && $powers === null)
 			{
@@ -7188,6 +7216,8 @@ class AjaxModel extends ListModel
 
 			// The component engine owns the shared plan, including its libraries.
 			($extruder ?? $powers)->extrude();
+			$completed = $phase;
+			$phase = 'review';
 			$review = $this->extrusionReview();
 			$status = $review['plan']['status'] ?? 'blocked';
 
@@ -7197,12 +7227,12 @@ class AjaxModel extends ListModel
 						? Text::_('The import has run. The full report follows.')
 						: Text::_('The import was blocked or rolled back. Review the reported plan before trying again.'),
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
-				'report' => ExtrusionFactory::_('Extrusion.Registry.Report')->toArray()
+				'report' => $this->extrusionPublicReport()
 			];
 		}
-		catch (\Exception $error)
+		catch (\Throwable $error)
 		{
-			return ['error' => $error->getMessage()];
+			return $this->extrusionFailure($error, $phase, $completed);
 		}
 	}
 
@@ -7229,13 +7259,19 @@ class AjaxModel extends ListModel
 			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
 		}
 
+		$phase = 'catalogue';
+		$completed = 'validated';
+
 		try
 		{
-			return ExtrusionFactory::_('Extrusion.Resolver.Candidates')->catalogue($componentId);
+			return ExtrusionFactory::_('Extrusion.Resolver.Candidates')->catalogue(
+				$componentId,
+				trim($this->app->input->getString('power_search', ''))
+			);
 		}
-		catch (\Exception $error)
+		catch (\Throwable $error)
 		{
-			return ['error' => $error->getMessage()];
+			return $this->extrusionFailure($error, $phase, $completed);
 		}
 	}
 
@@ -7469,6 +7505,9 @@ class AjaxModel extends ListModel
 			return ['error' => Text::_('The extrusion configuration could not be read.')];
 		}
 
+		$phase = 'weigh';
+		$completed = 'validated';
+
 		try
 		{
 			if (!is_array($verdicts))
@@ -7483,11 +7522,14 @@ class AjaxModel extends ListModel
 				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
 			}
 
+			$completed = $phase;
+			$phase = 'review';
+
 			return ['changes' => $changes] + $this->extrusionReview();
 		}
-		catch (\Exception $error)
+		catch (\Throwable $error)
 		{
-			return ['error' => $error->getMessage()];
+			return $this->extrusionFailure($error, $phase, $completed);
 		}
 	}
 
@@ -7534,6 +7576,9 @@ class AjaxModel extends ListModel
 			return ['error' => Text::_('The extrusion configuration could not be read.')];
 		}
 
+		$phase = 'diff';
+		$completed = 'validated';
+
 		try
 		{
 			if ($this->extrusionProposals($options, is_array($verdicts) ? $verdicts : []) === null)
@@ -7541,15 +7586,144 @@ class AjaxModel extends ListModel
 				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
 			}
 
+			$completed = $phase;
+			$phase = 'review';
+
 			return [
 				'row' => $row,
 				'records' => $this->extrusionRecords($row)
 			] + $this->extrusionReview();
 		}
-		catch (\Exception $error)
+		catch (\Throwable $error)
 		{
-			return ['error' => $error->getMessage()];
+			return $this->extrusionFailure($error, $phase, $completed);
 		}
+	}
+
+	/**
+	 * Report a bounded operation failure without exposing exception content.
+	 *
+	 * @param   \Throwable|null  $error      The failure, or null when already captured by an engine.
+	 * @param   string           $phase      The phase which did not finish.
+	 * @param   string           $completed  The last completed phase.
+	 *
+	 * @return  array  Safe error text and a correlation reference.
+	 * @since   6.2.1
+	 */
+	protected function extrusionFailure(?\Throwable $error, string $phase, string $completed): array
+	{
+		$reference = substr(hash('sha256', uniqid('', true)), 0, 16);
+		$failure = [
+			'kind' => 'operation',
+			'reference' => $reference,
+			'phase' => $phase,
+			'last_completed_phase' => $completed
+		];
+		$counters = [];
+
+		try
+		{
+			$report = ExtrusionFactory::_('Extrusion.Registry.Report');
+
+			foreach (['new', 'existing', 'parsed', 'parse_reused', 'dependency_lookups',
+				'dependency_reused', 'binding_checks', 'binding_applications',
+				'blocked_dependency_edges'] as $key)
+			{
+				$counters['powers.' . $key] = (int) $report->get('counts.powers.' . $key, 0);
+			}
+		}
+		catch (\Throwable $reportError)
+		{
+			// The operation may have failed while constructing the container.
+		}
+
+		try
+		{
+			\Joomla\CMS\Log\Log::addLogger(
+				['text_file' => 'jcb-extrusion.php'],
+				\Joomla\CMS\Log\Log::ALL,
+				['com_componentbuilder.extrusion']
+			);
+			\Joomla\CMS\Log\Log::add(
+				json_encode($failure + [
+					'exception' => $error === null ? 'reported-by-engine' : get_class($error),
+					'counters' => $counters,
+					'peak_memory_bytes' => memory_get_peak_usage(true)
+				], JSON_UNESCAPED_SLASHES),
+				\Joomla\CMS\Log\Log::ERROR,
+				'com_componentbuilder.extrusion'
+			);
+		}
+		catch (\Throwable $loggingError)
+		{
+			// A broken logger or container must not replace the original failure.
+		}
+
+		return [
+			'error' => Text::_('The server could not complete this operation. Review the current state and use the failure reference when reporting the problem.'),
+			'failure' => $failure
+		];
+	}
+
+	/**
+	 * Remove unexpected exception content from the browser's report copy.
+	 *
+	 * Engines preserve private failure details for their callers. The browser
+	 * receives a correlation reference instead, while deliberate validation
+	 * blockers retain their useful explanations. The private registry is unchanged.
+	 *
+	 * @return  array  The safe public report.
+	 * @since   6.2.1
+	 */
+	protected function extrusionPublicReport(): array
+	{
+		$report = ExtrusionFactory::_('Extrusion.Registry.Report')->toArray();
+		$plan = (array) ($report['plan'] ?? []);
+		$preparation = [];
+
+		foreach ((array) ($plan['blockers'] ?? []) as $index => $blocker)
+		{
+			if (is_array($blocker) && in_array($blocker['key'] ?? '', ['component.prepare', 'powers.prepare'], true))
+			{
+				$preparation[] = $index;
+			}
+		}
+
+		if ($preparation === [] && !isset($plan['error']) && !isset($plan['rollback_error']))
+		{
+			return $report;
+		}
+
+		$key = hash('sha256', serialize($plan));
+
+		if (!isset($this->extrusionFailureReferences[$key]))
+		{
+			$phase = $preparation === [] ? 'commit' : 'prepare';
+			$this->extrusionFailureReferences[$key] = $this->extrusionFailure(
+				null, $phase, $phase === 'commit' ? 'prepared' : 'configured'
+			);
+		}
+
+		$failure = $this->extrusionFailureReferences[$key];
+		$message = $failure['error'] . ' ' . Text::_('Failure reference:') . ' ' . $failure['failure']['reference'];
+
+		foreach ($preparation as $index)
+		{
+			$plan['blockers'][$index]['reason'] = $message;
+		}
+
+		foreach (['error', 'rollback_error'] as $field)
+		{
+			if (isset($plan[$field]))
+			{
+				$plan[$field] = $message;
+			}
+		}
+
+		$report['plan'] = $plan;
+		$report['failure'] = $failure['failure'];
+
+		return $report;
 	}
 
 	/**
@@ -7645,7 +7819,7 @@ class AjaxModel extends ListModel
 	 */
 	protected function extrusionReview(): array
 	{
-		$plan = (array) ExtrusionFactory::_('Extrusion.Registry.Report')->get('plan', []);
+		$plan = (array) ($this->extrusionPublicReport()['plan'] ?? []);
 
 		return [
 			'plan' => array_intersect_key($plan, array_flip([

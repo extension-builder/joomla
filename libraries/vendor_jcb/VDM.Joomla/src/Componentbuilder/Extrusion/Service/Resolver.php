@@ -515,7 +515,8 @@ class Resolver implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.View'),
 			$container->get('Load'),
 			$container->get('Extrusion.Resolver.Guid'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Powers.Resolver.References')
 		);
 	}
 

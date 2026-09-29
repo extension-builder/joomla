@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
@@ -96,6 +97,14 @@ final class Candidates
 	protected Report $report;
 
 	/**
+	 * The selected-component Power graph used by the manual pairing pool.
+	 *
+	 * @var    References
+	 * @since  6.2.0
+	 */
+	protected References $references;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config         $config    The extrusion configuration.
@@ -105,6 +114,7 @@ final class Candidates
 	 * @param   LoadInterface  $load      The database loader.
 	 * @param   Guid           $guid      The identity resolver.
 	 * @param   Report         $report    The run report registry.
+	 * @param   References     $references  The selected-component Power graph.
 	 *
 	 * @since   6.1.7
 	 */
@@ -115,7 +125,8 @@ final class Candidates
 		View $view,
 		LoadInterface $load,
 		Guid $guid,
-		Report $report
+		Report $report,
+		References $references
 	)
 	{
 		$this->config = $config;
@@ -125,6 +136,7 @@ final class Candidates
 		$this->load = $load;
 		$this->guid = $guid;
 		$this->report = $report;
+		$this->references = $references;
 	}
 
 	/**
@@ -138,7 +150,7 @@ final class Candidates
 	 */
 	public function candidates(int $componentId, ?array $catalogue = null): array
 	{
-		$catalogue ??= $this->catalogue($componentId);
+		$catalogue ??= $this->catalogue($componentId, '', false);
 
 		return [
 			'admin_view' => $this->adminViews($catalogue),
@@ -151,14 +163,16 @@ final class Candidates
 	}
 
 	/**
-	 * Everything one component already links, plus the global definition pools.
+	 * Linked definitions and a selected-root or explicitly searched Power pool.
 	 *
-	 * @param   int  $componentId  The component id, or zero for none.
+	 * @param   int     $componentId   The component id, or zero for none.
+	 * @param   string  $powerSearch   An exact Power GUID, name or namespace search.
+	 * @param   bool    $includePowers  Whether the caller consumes the Power pool.
 	 *
 	 * @return  array<string, mixed>  The catalogue of existing definitions.
 	 * @since   6.1.7
 	 */
-	public function catalogue(int $componentId): array
+	public function catalogue(int $componentId, string $powerSearch = '', bool $includePowers = true): array
 	{
 		$component = $componentId > 0 ? $this->component($componentId) : null;
 		$guid = trim((string) ($component->guid ?? ''));
@@ -176,6 +190,8 @@ final class Candidates
 				$guid
 			)
 			: [];
+		$powers = $includePowers ? $this->powerPool($componentId, $powerSearch)
+			: ['items' => [], 'limit' => null, 'truncated' => false];
 
 		return [
 			'component' => $component,
@@ -200,11 +216,68 @@ final class Candidates
 				['a.guid' => 'guid', 'a.name' => 'name', 'a.system_name' => 'system'],
 				$customViews
 			),
-			'powers' => $this->rows(
-				'power',
-				['a.guid' => 'guid', 'a.system_name' => 'name', 'a.namespace' => 'namespace']
-			)
+			'powers' => $powers['items'],
+			'power_search' => ['exact' => true, 'limit' => $powers['limit'], 'truncated' => $powers['truncated']]
 		];
+	}
+
+	/**
+	 * Read linked Powers or bounded indexed matches requested by the person.
+	 *
+	 * Empty input never enumerates the global Power table. Exact search remains
+	 * available across component boundaries; selecting a row still goes through
+	 * the identity resolver and the existing mutation-scope review rules.
+	 *
+	 * @param   int     $componentId  The selected component id.
+	 * @param   string  $search       An exact GUID, class/system name or namespace.
+	 *
+	 * @return  array{items: array, limit: int|null, truncated: bool}  The display pool and its bounds.
+	 * @since   6.2.0
+	 */
+	protected function powerPool(int $componentId, string $search): array
+	{
+		$select = ['a.id' => 'id', 'a.guid' => 'guid', 'a.system_name' => 'name', 'a.namespace' => 'namespace'];
+		$search = trim($search);
+
+		if ($search === '')
+		{
+			$guids = array_keys($this->references->context($componentId)['powers']);
+			$items = [];
+
+			foreach (array_chunk($guids, 200) as $batch)
+			{
+				array_push($items, ...$this->rows('power', $select, $batch));
+			}
+
+			return ['items' => $items, 'limit' => null, 'truncated' => false];
+		}
+
+		if (strlen($search) > 1020 || mb_strlen($search, 'UTF-8') > 255)
+		{
+			return ['items' => [], 'limit' => 100, 'truncated' => false];
+		}
+
+		$columns = $this->guid->valid(strtolower($search)) ? ['guid'] : ['name', 'namespace', 'system_name'];
+		$items = [];
+		$truncated = false;
+
+		foreach ($columns as $column)
+		{
+			$rows = (array) $this->load->items($select, ['a' => 'power'],
+				['a.' . $column => $column === 'guid' ? strtolower($search) : $search], ['a.id' => 'ASC'], 101);
+			$truncated = $truncated || count($rows) > 100;
+
+			foreach ($rows as $row)
+			{
+				$row = (array) $row;
+				$items[(string) $row['id']] = $row;
+			}
+		}
+
+		ksort($items, SORT_NUMERIC);
+
+		return ['items' => array_slice(array_values($items), 0, 100), 'limit' => 100,
+			'truncated' => $truncated || count($items) > 100];
 	}
 
 	/**

@@ -14,6 +14,9 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Resolver;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Power\ExtractorInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
+use VDM\Joomla\Componentbuilder\Power\Table as PowerTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
@@ -1057,7 +1060,8 @@ final class SharingTest extends TestCase
 					new ViewRegistry(),
 					$this->database,
 					$this->guid,
-					$this->report
+					$this->report,
+					new References($this->database, new PowerTable(), $this->createStub(ExtractorInterface::class), [])
 				),
 				new Record($fieldtype, $fieldxml, new Table()),
 				$this->guid
