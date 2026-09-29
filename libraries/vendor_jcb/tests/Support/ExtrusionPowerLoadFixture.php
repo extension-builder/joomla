@@ -29,6 +29,14 @@ use VDM\Joomla\Interfaces\Database\LoadInterface;
 final class ExtrusionPowerLoadFixture implements LoadInterface
 {
 	/**
+	 * Observed database requests, without deriving any resolver decisions.
+	 *
+	 * @var    array<int, array>
+	 * @since  6.2.0
+	 */
+	public array $queries = [];
+
+	/**
 	 * The power catalogue rows to serve.
 	 *
 	 * @var    array<int, object>
@@ -249,6 +257,11 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 			$field = str_starts_with($field, 'a.') ? substr($field, 2) : $field;
 			$rows = array_filter($rows, static fn (object $row): bool => (string) ($row->{$field} ?? '') === (string) $value);
 		}
+
+		$this->queries[] = [
+			'table' => $table, 'where' => $where ?? [],
+			'ids' => array_values(array_map(static fn (object $row): int => (int) ($row->id ?? 0), $rows))
+		];
 
 		return $rows === [] ? null : array_values($rows);
 	}

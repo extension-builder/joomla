@@ -1,0 +1,239 @@
+<?php
+/**
+ * @package    Joomla.Component.Builder.Tests
+ *
+ * @created    29th September, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
+ * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers\Resolver;
+
+
+use Joomla\Database\DatabaseInterface;
+use Joomla\DI\Container;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
+use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
+use VDM\Tests\Support\ExtrusionPowerLoadFixture;
+use VDM\Tests\Support\TestCase;
+
+
+/**
+ * Selected-component work is independent of unrelated database rows.
+ *
+ * @since  6.2.0
+ */
+#[CoversClass(References::class)]
+#[CoversClass(Existing::class)]
+#[CoversClass(Identity::class)]
+final class IndexedDiscoveryTest extends TestCase
+{
+	/**
+	 * Cold matching must not fetch even one unrelated component or Power.
+	 *
+	 * @param   int  $unrelated  The unrelated catalogue size.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('catalogueSizes')]
+	public function testSelectedRootDoesNotReadUnrelatedCatalogue(int $unrelated): void
+	{
+		[$container, $load] = $this->engine($unrelated);
+		$identity = $container->get('Extrusion.Powers.Resolver.Identity');
+		$result = $identity->resolve($this->source());
+		$this->assertSame('matched', $result['status']);
+		$this->assertSame($this->guid('selected-power'), $result['matched_guid']);
+		$this->assertTrue($result['namespace']['round_trip']);
+		$this->assertSame([], $result['blockers']);
+
+		// Computing approval evidence is part of this same bounded operation.
+		$identity->fingerprint();
+		$seen = ['joomla_component' => [], 'power' => []];
+
+		foreach ($load->queries as $query)
+		{
+			if (!array_key_exists($query['table'], $seen))
+			{
+				continue;
+			}
+
+			$this->assertNotSame([], $query['where'], 'Selected-root discovery performed a full ' . $query['table'] . ' read.');
+			$seen[$query['table']] = array_merge($seen[$query['table']], $query['ids']);
+		}
+
+		$this->assertSame([1], array_values(array_unique($seen['joomla_component'])));
+		$this->assertSame([1], array_values(array_unique($seen['power'])));
+	}
+
+	/**
+	 * More unrelated rows must not change the selected work set.
+	 *
+	 * @return  array<string, array{int}>  Independent catalogue sizes.
+	 * @since   6.2.0
+	 */
+	public static function catalogueSizes(): array
+	{
+		return ['small' => [5], 'medium' => [50], 'large' => [500]];
+	}
+
+	/**
+	 * An explicitly requested missing GUID is one bounded, negative-cached read.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testMissingGuidUsesOneDirectReadAndRetainsNegativeEvidence(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$existing = $container->get('Extrusion.Powers.Resolver.Existing');
+		$missing = $this->guid('missing');
+		$this->assertNull($existing->power($missing));
+		$this->assertNull($existing->power($missing));
+		$queries = array_values(array_filter($load->queries, static fn (array $query): bool => $query['table'] === 'power'));
+		$this->assertCount(1, $queries);
+		$this->assertArrayHasKey('a.guid', $queries[0]['where']);
+		$this->assertSame([], $queries[0]['ids']);
+	}
+
+	/**
+	 * Missing consumer coverage cannot silently trigger an installation audit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testConsumerEvidenceDoesNotScanUnselectedComponents(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$references = $container->get('Extrusion.Powers.Resolver.References');
+		$references->context(1);
+		$this->assertSame([1], array_keys($references->consumers($this->guid('selected-power'))));
+		$this->assertFalse($references->complete(), 'One selected root cannot establish complete global consumer coverage.');
+
+		foreach ($load->queries as $query)
+		{
+			if ($query['table'] === 'joomla_component')
+			{
+				$this->assertNotSame([], $query['where']);
+				$this->assertSame([1], $query['ids']);
+			}
+		}
+	}
+
+	/**
+	 * Two real candidates in the same selected bucket must remain ambiguous.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testCandidateBucketsDoNotOverwriteCompetingGuids(): void
+	{
+		[$container, $load] = $this->engine(50);
+		$load->record('power', 1001, [
+			'guid' => $this->guid('competing-power'), 'name' => 'Factory', 'type' => 'class',
+			'namespace' => 'Acme\\Joomla\\Target.Factory'
+		]);
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('selected-component'), 'name_code' => 'target',
+			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Acme',
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => base64_encode($this->token('selected-power') . '\n' . $this->token('competing-power'))
+		]);
+		$result = $container->get('Extrusion.Powers.Resolver.Identity')->resolve($this->source());
+		$this->assertSame('ambiguous', $result['status']);
+		$this->assertNull($result['write_guid']);
+		$this->assertArrayHasKey($this->guid('selected-power'), $result['candidates']);
+		$this->assertArrayHasKey($this->guid('competing-power'), $result['candidates']);
+		$this->assertCount(2, $result['candidates']);
+	}
+
+	/**
+	 * Compose real production providers above a passive database boundary.
+	 *
+	 * @param   int  $unrelated  Number of unrelated components and Powers.
+	 *
+	 * @return  array{Container, ExtrusionPowerLoadFixture}  The isolated operation.
+	 * @since   6.2.0
+	 */
+	protected function engine(int $unrelated): array
+	{
+		$load = new ExtrusionPowerLoadFixture();
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('selected-component'), 'name_code' => 'target',
+			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Acme',
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => base64_encode($this->token('selected-power'))
+		]);
+		$load->power(1, $this->guid('selected-power'), 'Factory', 'Acme\\Joomla\\Target.Factory');
+
+		for ($id = 2; $id <= $unrelated + 1; $id++)
+		{
+			$load->component($id, $this->guid('component-' . $id), 'unrelated' . $id, 1, 'Other');
+			$load->power($id, $this->guid('power-' . $id), 'Other' . $id, 'Other\\Library.Other' . $id);
+		}
+
+		$db = $this->createMock(DatabaseInterface::class);
+		$db->expects($this->never())->method('getQuery');
+		$container = new Container();
+		$container->set('Load', $load, true);
+		$container->set('Joomla.Database', $db, true);
+		$container->set('Extrusion.Config', new Config(['component' => 1]), true);
+		$container->set('Extrusion.Registry.Report', new Report(), true);
+		$container->set('Extrusion.Registry.Source', new Source(), true);
+		$container->set('Extrusion.Resolver.Guid', new Guid(), true);
+		$container->registerServiceProvider(new Powers());
+
+		return [$container, $load];
+	}
+
+	/**
+	 * One declaration whose source stays fixed while the catalogue grows.
+	 *
+	 * @return  array  The source identity and placement evidence.
+	 * @since   6.2.0
+	 */
+	protected function source(): array
+	{
+		return [
+			'source_key' => 'selected_factory', 'source_unit' => 'acme_joomla',
+			'fqn' => 'Acme\\Joomla\\Target\\Factory', 'stored' => 'Acme\\Joomla\\Target.Factory',
+			'placement_valid' => true, 'placement_evidence' => 'Target/Factory.php', 'type' => 'class'
+		];
+	}
+
+	/**
+	 * Stable fixture identities, independent of array order and row ids.
+	 *
+	 * @param   string  $name  The fixture identity.
+	 *
+	 * @return  string  A valid GUID.
+	 * @since   6.2.0
+	 */
+	protected function guid(string $name): string
+	{
+		return (new Guid())->derive(['indexed-discovery', $name]);
+	}
+
+	/**
+	 * Use the real compiler token spelling in the raw stored component.
+	 *
+	 * @param   string  $name  The fixture Power identity.
+	 *
+	 * @return  string  The compiler Power token.
+	 * @since   6.2.0
+	 */
+	protected function token(string $name): string
+	{
+		return 'Super___' . str_replace('-', '_', $this->guid($name)) . '___Power';
+	}
+}
