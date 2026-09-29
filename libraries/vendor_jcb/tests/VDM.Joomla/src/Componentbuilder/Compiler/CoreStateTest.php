@@ -30,6 +30,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Joomla\Path;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder\Reverse;
 use VDM\Joomla\Componentbuilder\Compiler\Power;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Files;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
@@ -251,6 +252,7 @@ final class CoreStateTest extends CompilerDomainTestCase
 			});
 		$this->setCompilerProperty($subject, 'power', $power);
 
+		$this->setCompilerProperty($subject, 'selection', new Selection());
 		(new ReflectionMethod(Initializer::class, 'loadUtilityPowers'))->invoke($subject);
 		$this->assertSame([], $expected);
 	}

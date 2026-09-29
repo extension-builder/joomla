@@ -3668,6 +3668,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Power/PowerPipelineTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Power/Selection.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Power/SelectionTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Power/Structure.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Power/PowerPipelineTest.php'
