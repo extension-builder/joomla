@@ -39,6 +39,24 @@ mutation, merge or deployment is part of this work.
 - `Compiler/Extension/Files/Power` can discover Powers after initialization;
   an early active-set dump is not a complete compiler parity test.
 
+Discovery also includes dependencies introduced by the compiler's own output.
+The seven forced `Initializer::loadUtilityPowers()` roots are shared through
+`Compiler/Power/Selection::utilityPowers()`. The permitted-actions dependency
+is deliberately separate: Joomla 4–6 helper templates emit its token, while
+Joomla 3 emits it through the batch/list builders of selected admin views.
+`Selection::lateUtilityPowers()` describes those routes without moving the
+ordinary compiler's load to initialization. Batch/list builders share the
+token helper, and the owning contract verifies the modern templates retain
+that same token. These late roots honor normal Power enablement; forced
+initializer roots retain their independent behavior.
+
+The installed Hello World comparison exposed this distinction: the complete
+compiler emitted 65 Powers, including one late permitted-actions Power, while
+the first discovery probe found only 64. The graph now follows the generated
+route, with regressions for Joomla 3–6, selected versus absent admin views,
+disabled Power emission and first import. The installed comparison remains
+the acceptance oracle; successful unit coverage alone does not prove parity.
+
 Library changes belong under `libraries/vendor_jcb/**`. The approved interface
 scope is limited to `admin/src/Model/AjaxModel.php`,
 `admin/assets/js/extrusion.js` and `admin/tmpl/extrusion/default.php`, with a

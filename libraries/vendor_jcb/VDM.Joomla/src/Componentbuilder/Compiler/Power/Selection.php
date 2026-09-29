@@ -28,6 +28,43 @@ use VDM\Joomla\Utilities\StringHelper;
 final class Selection
 {
 	/**
+	 * Permission utility emitted by helper templates and admin-view builders.
+	 *
+	 * @var    string
+	 * @since  6.2.0
+	 */
+	private const ACTIONS_GUID = '7d95ce74-53dc-4672-bd8a-3b71cdacabea';
+
+	/**
+	 * Return utilities whose tokens are emitted after the initializer phase.
+	 *
+	 * The modern admin helper always emits Actions. Selected admin views also
+	 * emit it through the shared batch builders on every generated target.
+	 * These are ordinary tokens, so the component Power switch still applies.
+	 *
+	 * @param   int   $target     Generated Joomla major, not the installed host.
+	 * @param   bool  $adminView  Whether a selected admin view is being compiled.
+	 *
+	 * @return  array<string, int>
+	 * @since   6.2.0
+	 */
+	public function lateUtilityPowers(int $target, bool $adminView = false): array
+	{
+		return $target >= 4 || $adminView ? [self::ACTIONS_GUID => 0] : [];
+	}
+
+	/**
+	 * Build the late permission utility token without loading it prematurely.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	public static function permittedActionsToken(): string
+	{
+		return 'Super___' . str_replace('-', '_', self::ACTIONS_GUID) . '___Power';
+	}
+
+	/**
 	 * Enumerate the relationship selectors consumed by Compiler Power.
 	 *
 	 * Legacy method/property selection columns are not read by the compiler.

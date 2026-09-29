@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListItemBuilderInterface as ListItemBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListLinkInterface as ListLink;
@@ -156,7 +157,7 @@ class ListBody implements ListBodyInterface
 				. $this->permission->getGlobal($nameSingleCode, 'core.edit') . "')): ?>";
 			$allowPublishedWhen =  "<?php if (" . $guard . "\$canDo->get('"
 				. $this->permission->getGlobal($nameSingleCode, 'core.edit.state') . "')) : ?>";
-			$body .= PHP_EOL . Indent::_(2) . "\$canDo = Super__" . "_7d95ce74_53dc_4672_bd8a_3b71cdacabea___Power::get('" . $nameSingleCode . "', \$item, '" . $nameListCode . "');";
+			$body .= PHP_EOL . Indent::_(2) . "\$canDo = " . Selection::permittedActionsToken() . "::get('" . $nameSingleCode . "', \$item, '" . $nameListCode . "');";
 			$body .= PHP_EOL . Indent::_(1) . "?>";
 			$body .= PHP_EOL . Indent::_(1)
 				. '<tr class="row<?php echo $i % 2; ?>">';

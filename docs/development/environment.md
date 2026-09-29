@@ -90,7 +90,9 @@ local execution requires Docker and Compose. `BASELINE_REF` selects an explicit
 source baseline, `TARGET_JOOMLA` selects the generated major, and `COMPONENT` /
 `REPOSITORY` select the actual blueprint. Without `BASELINE_REF`, the baseline
 is the released compiler in the pinned container image. Read `run.sh` for the
-complete environment contract.
+complete environment contract. An optional `GITHUB_TOKEN` authenticates public
+fixture reads through the existing client parameter in process memory; it is
+never saved in the component definitions or uploaded evidence.
 
 ## The gates before handoff
 
@@ -132,4 +134,4 @@ Where to look before implementing, by area:
 | --- | --- | --- |
 | `vendor-jcb-tests.yml` | every pull request and push to `6.x` | style, ownership, hygiene gates and the full PHPUnit suite on PHP 8.3 and 8.4 |
 | `gui-tests.yml` | pull requests touching the interface; on demand | the installed extension drives correctly through a real browser |
-| `compiler-golden-master.yml` | on demand | this working tree's compiler produces the same components the released one does |
+| `compiler-golden-master.yml` | compiler/extrusion pull requests; on demand | full generated trees and final Power sets agree with the selected baseline, and emitted-source discovery agrees with the completed compiler |

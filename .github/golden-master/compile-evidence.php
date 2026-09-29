@@ -68,6 +68,44 @@ try
 		throw new RuntimeException('Complete compiler run failed.');
 	}
 
+	$effectiveTarget = (int) $config->get('joomla_version');
+
+	if ($effectiveTarget !== $target)
+	{
+		throw new RuntimeException('The effective compiler target differs from the requested target.');
+	}
+
+	$package = new ZipArchive();
+
+	if ($package->open(Compiler::_('FilePaths')->get('component')) !== true)
+	{
+		throw new RuntimeException('The completed compiler did not expose a readable component archive.');
+	}
+
+	$manifest = null;
+
+	for ($index = 0; $index < $package->numFiles; $index++)
+	{
+		$name = $package->getNameIndex($index);
+
+		if (!str_contains($name, '/') && str_ends_with($name, '.xml'))
+		{
+			$xml = simplexml_load_string($package->getFromIndex($index), SimpleXMLElement::class, LIBXML_NONET);
+
+			if ($xml !== false && $xml->getName() === 'extension' && (string) $xml['type'] === 'component')
+			{
+				$manifest = ['file' => $name, 'version' => (string) $xml['version']];
+			}
+		}
+	}
+
+	$package->close();
+
+	if ($manifest === null || (int) explode('.', $manifest['version'])[0] !== $effectiveTarget)
+	{
+		throw new RuntimeException('The generated manifest does not target the effective compiler Joomla major.');
+	}
+
 	$powers = [];
 	$libraryRoots = [];
 
@@ -116,7 +154,9 @@ try
 	sort($roots);
 	$evidence = [
 		'host' => Joomla\CMS\Version::MAJOR_VERSION,
-		'target' => $target,
+		'target' => $effectiveTarget,
+		'requested_target' => $target,
+		'manifest' => $manifest,
 		'add_power' => (bool) $config->get('add_power', true),
 		'component' => $componentGuid,
 		'name' => $component->system_name,

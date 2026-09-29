@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
@@ -150,7 +151,7 @@ class BatchMove implements BatchMoveInterface
 			. "\$this->table		= \$this->getTable();";
 		$batchmove[] = Indent::_(3)
 			. "\$this->tableClassName	= get_class(\$this->table);";
-		$batchmove[] = Indent::_(3) . "\$this->canDo		= Super__" . "_7d95ce74_53dc_4672_bd8a_3b71cdacabea___Power::get('" . $nameSingleCode . "');";
+		$batchmove[] = Indent::_(3) . "\$this->canDo		= " . Selection::permittedActionsToken() . "::get('" . $nameSingleCode . "');";
 		$batchmove[] = Indent::_(2) . "}";
 
 		$batchmove[] = PHP_EOL . Indent::_(2) . "if (!\$this->canDo->get('"

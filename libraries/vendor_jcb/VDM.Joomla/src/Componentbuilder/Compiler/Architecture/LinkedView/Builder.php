@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
@@ -246,7 +247,7 @@ class Builder implements BuilderInterface
 				}
 				$headerscript .= PHP_EOL . '//' . Line::_(__Line__, __Class__)
 					. ' load the action object';
-				$headerscript .= PHP_EOL . '$can = Super__' . '_7d95ce74_53dc_4672_bd8a_3b71cdacabea___Power::get(' . "'" . $name_single_code . "'" . ');';
+				$headerscript .= PHP_EOL . '$can = ' . Selection::permittedActionsToken() . '::get(' . "'" . $name_single_code . "'" . ');';
 			}
 			$this->contentmulti->set($nameSingleCode . '_' . $layoutCodeName . '|LAYOUTITEMSHEADER',
 				$headerscript

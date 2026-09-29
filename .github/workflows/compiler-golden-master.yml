@@ -109,6 +109,7 @@ jobs:
             .golden-master/*-powers.json
             .golden-master/*-source.txt
             .golden-master/powers.diff
+            .golden-master/component-inventory.json
             .golden-master/discovery-scale.json
             .golden-master/discovery-scale.log
             .golden-master/install-*.log
