@@ -75,84 +75,10 @@ pull_command() {
 	# each: pull:library, pull:power, pull:joomla_component. A component is a
 	# joomla_component there, the same way push and reset spell it.
 	#
-	# -i is the items option and -r the repository. -i takes a bare GUID. -r is
-	# documented as a repository JSON object and only accepts a bare GUID when
-	# the site already knows that repository: it looks the GUID up, and a fresh
-	# container knows none, so the lookup finds nothing and the fetch gives up.
-	# Passing the repository as JSON, through --repo-file, is what makes this
-	# work against a container built from scratch.
+	# -i takes the component GUID; -r selects a repository already configured
+	# in the disposable JCB installation.
 	printf 'componentbuilder:pull:joomla_component -i %s -r %s --no-interaction' \
 		"${component}" "${repository}"
-}
-
-# Run one Joomla CLI command inside the container and keep what it said.
-#
-# Everything this harness asks of JCB goes through here, which is the same way
-# a person would ask it: the Joomla console, in a process of its own. Both
-# compiles go through it too, so the only difference between them is which
-# compiler is installed at the time. A compile driven one way and compared
-# against one driven another way would be comparing the harness as much as the
-# compilers.
-#
-# $1  a name for this run, which is also the name of its log
-# $2  what to say we are doing, for the log
-# $3  the command, options and all
-# $4  'optional' to carry on when the console has no such command; anything
-#     else, or nothing, stops the run on any failure
-run_cli() {
-	local name="$1" what="$2" command="$3" missing="${4:-}"
-	local log="${OUT_DIR}/${name}.log"
-
-	say "${what}"
-	say "  joomla.php ${command}"
-
-	if ! compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
-		${command} > "${log}" 2>&1
-	then
-		say "${what}: failed. Its output:"
-		cat "${log}"
-
-		# A command this JCB does not have is the harness asking for something
-		# the installed compiler cannot do, which is not the same as the thing
-		# it asked for going wrong. Where the caller says so, carry on.
-		if [[ "${missing}" == optional ]] \
-			&& grep -q 'is not defined\|does not exist' "${log}"
-		then
-			say "${what}: this JCB has no such command, so carrying on without it."
-
-			return 0
-		fi
-
-		# A command the installed JCB does not have is worth more than the
-		# refusal: say what the console does have, or the next run learns
-		# nothing the failed one did not already say. Print the whole list
-		# rather than grep for a prefix, since a console that answers no
-		# componentbuilder command at all and one whose list option we asked
-		# for wrongly look exactly the same through a filter.
-		if grep -q 'is not defined\|does not exist' "${log}"
-		then
-			say "Everything this console does register:"
-			compose exec -T joomla php "${WEBROOT}/cli/joomla.php" list 2>&1 \
-				|| say "  the console could not be asked."
-
-			say "And the extensions the site has:"
-			compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
-				extension:list 2>&1 | grep -i 'componentbuilder\|jcb' \
-				|| say "  none matching componentbuilder."
-		fi
-
-		exit 1
-	fi
-
-	tail -20 "${log}"
-}
-
-# Run one compile inside the container and keep what it said.
-#
-# $1  a name for this run
-# $2  the compile command
-run_compile() {
-	run_cli "$1" "Compiling with the $1 compiler" "$2"
 }
 
 # Bring out everything the compiler just wrote.
