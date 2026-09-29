@@ -36,6 +36,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Power\Extractor as PowerExtractor;
 use VDM\Joomla\Componentbuilder\Compiler\Power\Infusion;
 use VDM\Joomla\Componentbuilder\Compiler\Power\Injector as PowerInjector;
 use VDM\Joomla\Componentbuilder\Compiler\Power\Structure as PowerStructure;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\File;
@@ -81,6 +82,11 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 		$this->setCompilerProperty($subject, 'config', $this->compilerConfig(['add_power' => false]));
 		$this->setCompilerProperty($subject, 'active', [$guid => $power]);
 		$this->setCompilerProperty($subject, 'state', [$guid => true]);
+
+		if ($subject instanceof Power)
+		{
+			$this->setCompilerProperty($subject, 'selection', new Selection());
+		}
 
 		$this->assertNull($subject->get($guid));
 		$this->assertSame($power, $subject->get($guid, 1));
