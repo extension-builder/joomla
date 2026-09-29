@@ -420,9 +420,8 @@ final class Commit
 		}
 
 		$context = (string) $this->plan->get('context');
-		$this->identity->refresh();
 
-		if (!hash_equals($context, $this->identity->fingerprint()))
+		if (!hash_equals($context, $this->identity->fingerprint(true)))
 		{
 			$this->plan->block('stale.context', 'Component references or namespace configuration changed after review.');
 		}

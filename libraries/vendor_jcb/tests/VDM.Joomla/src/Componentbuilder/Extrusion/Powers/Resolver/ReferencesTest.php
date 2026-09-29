@@ -75,6 +75,7 @@ final class ReferencesTest extends TestCase
 	{
 		$load = $this->fixture();
 		$graph = $this->graph($load);
+		$graph->contexts();
 		$before = $graph->fingerprint();
 		$this->assertSame([1], array_keys($graph->consumers($this->guid('power-a'))));
 		$load->record('admin_view', 6, [
@@ -82,6 +83,7 @@ final class ReferencesTest extends TestCase
 			'php_getitem' => base64_encode($this->token('power-a'))
 		]);
 		$graph->refresh();
+		$graph->contexts();
 		$this->assertSame([1, 2], array_keys($graph->consumers($this->guid('power-a'))));
 		$this->assertSame([], $graph->consumers($this->guid('power-b')));
 		$this->assertNotSame($before, $graph->fingerprint());
@@ -132,6 +134,8 @@ final class ReferencesTest extends TestCase
 		$graph = $this->graph($load);
 		$context = $graph->context(1);
 		$this->assertSame($complete, $context['complete']);
+		$this->assertFalse($graph->complete(), 'Selected-root completeness is not global consumer coverage.');
+		$graph->contexts();
 		$this->assertSame($complete, $graph->complete());
 		$this->assertArrayHasKey($this->guid('power-a'), $context['powers']);
 		$this->assertSame($complete ? [] : ['invalid reference'], array_values($context['gaps']));
