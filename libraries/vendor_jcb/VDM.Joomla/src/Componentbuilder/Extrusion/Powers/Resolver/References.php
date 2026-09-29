@@ -479,6 +479,14 @@ final class References
 			}
 		}
 
+		if ($component === null && $enabled)
+		{
+			foreach ($this->selection->lateUtilityPowers($this->target()) as $guid => $force)
+			{
+				$this->enqueue($queue, $context, 'power', $guid, 0, 'compiler-generated:component');
+			}
+		}
+
 		$this->traverse(array_values($queue), $context, $visited, $enabled);
 	}
 
@@ -621,6 +629,16 @@ final class References
 			$this->injected($record, $edges, $evidence, $key);
 		}
 
+		if ($enabled && in_array($entity, ['joomla_component', 'admin_view'], true))
+		{
+			// These are emitted by the compiler itself, after stored definition
+			// loading. Keep their real unforced load semantics and provenance.
+			foreach ($this->selection->lateUtilityPowers($this->target(), $entity === 'admin_view') as $guid => $force)
+			{
+				$this->enqueue($edges, $evidence, 'power', $guid, 0, $key . ':compiler-generated');
+			}
+		}
+
 		$owned = [];
 
 		foreach ($shape['children'] as $links)
@@ -741,14 +759,7 @@ final class References
 	 */
 	protected function injected(array $component, array &$edges, array &$evidence, string $via): void
 	{
-		$target = (int) $this->config?->get('joomla_version', 0);
-		$layout = (string) $this->config?->get('layout', 'auto');
-
-		if ($target === 0 && in_array($layout, ['j3', 'j4', 'j5', 'j6'], true))
-		{
-			$target = (int) substr($layout, 1);
-		}
-
+		$target = $this->target();
 		$rows = $this->query('custom_code', ['a.component' => $component['guid'], 'a.target' => 1]);
 
 		foreach ($rows as $record)
@@ -770,6 +781,25 @@ final class References
 				$edges[] = ['custom_code', $record, 0, $via . ':injected'];
 			}
 		}
+	}
+
+	/**
+	 * Read the generated Joomla target without substituting the host version.
+	 *
+	 * @return  int  The explicit target major, or zero when not established.
+	 * @since   6.2.0
+	 */
+	protected function target(): int
+	{
+		$target = (int) $this->config?->get('joomla_version', 0);
+		$layout = (string) $this->config?->get('layout', 'auto');
+
+		if ($target === 0 && in_array($layout, ['j3', 'j4', 'j5', 'j6'], true))
+		{
+			$target = (int) substr($layout, 1);
+		}
+
+		return $target;
 	}
 
 	/**

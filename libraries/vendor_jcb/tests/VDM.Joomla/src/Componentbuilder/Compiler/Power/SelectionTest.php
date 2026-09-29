@@ -28,6 +28,33 @@ use VDM\Tests\Support\TestCase;
 final class SelectionTest extends TestCase
 {
 	/**
+	 * Late utility selection follows generated templates and admin-view roles.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testLateUtilitiesRetainOrdinaryTokenEnablementAndPhase(): void
+	{
+		$subject = new Selection();
+		$expected = ['7d95ce74-53dc-4672-bd8a-3b71cdacabea' => 0];
+		$this->assertSame([], $subject->lateUtilityPowers(3));
+		$this->assertSame($expected, $subject->lateUtilityPowers(3, true));
+
+		foreach ([4, 5, 6] as $target)
+		{
+			$this->assertSame($expected, $subject->lateUtilityPowers($target));
+		}
+
+		$this->assertArrayNotHasKey(array_key_first($expected), $subject->utilityPowers());
+		$this->assertFalse($subject->enabled(false, current($expected)));
+		$root = dirname(__DIR__, 8);
+		$template = file_get_contents($root . '/admin/compiler/joomla_4/ADMIN_HELPER_CLASS.php');
+		$this->assertStringContainsString(Selection::permittedActionsToken() . '::get(', $template);
+		$this->assertStringNotContainsString(Selection::permittedActionsToken(),
+			file_get_contents($root . '/admin/compiler/joomla_3/ADMIN_HELPER_CLASS.php'));
+	}
+
+	/**
 	 * Stored selector keys, empty values and explicit custom values stay intact.
 	 *
 	 * @return  void

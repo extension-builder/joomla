@@ -61,7 +61,7 @@ final class ReferencesTest extends TestCase
 			$this->assertSame([1, 2], array_keys($graph->consumers($this->guid('shared'))));
 			$this->assertSame([2], array_keys($graph->consumers($this->guid('power-b'))));
 			$this->assertCount(10, $a['powers']);
-			$this->assertCount(10, $b['powers']);
+			$this->assertCount(11, $b['powers']);
 			$this->assertSame([], $graph->consumers($this->guid('joomla-only')));
 			$this->assertStringContainsString('admin_view:', implode(',', array_keys($b['powers'][$this->guid('power-b')]['via'])));
 		}
@@ -407,6 +407,55 @@ final class ReferencesTest extends TestCase
 	}
 
 	/**
+	 * Late compiler-generated dependencies retain their target and view gates.
+	 *
+	 * @param   int   $target     The requested generated Joomla major.
+	 * @param   bool  $adminView  Whether the selected root includes an admin view.
+	 * @param   bool  $enabled    Whether normal Power emission is enabled.
+	 * @param   bool  $expected   Whether the compiler emits its Actions token.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('lateUtilityCases')]
+	public function testLateGeneratedDependenciesFollowActualCompilerRoutes(int $target, bool $adminView, bool $enabled, bool $expected): void
+	{
+		$load = $this->fixture();
+		$graph = $this->graph($load, new Config(['joomla_version' => $target, 'powers' => (int) $enabled]));
+		$context = $graph->context($adminView ? 2 : 1);
+		$actions = '7d95ce74-53dc-4672-bd8a-3b71cdacabea';
+		$this->assertSame($expected, isset($context['powers'][$actions]));
+		$this->assertTrue($context['complete']);
+
+		if ($expected)
+		{
+			$this->assertTrue($context['powers'][$actions]['direct']);
+			$this->assertStringContainsString(':compiler-generated', implode(',', array_keys($context['powers'][$actions]['via'])));
+		}
+
+		$this->assertSame($target >= 4 && $enabled, isset($graph->context(0)['powers'][$actions]));
+	}
+
+	/**
+	 * Modern helper bridges are unconditional; Joomla 3 uses selected views.
+	 *
+	 * @return  array<string, array{int, bool, bool, bool}>  Compiler branch cases.
+	 * @since   6.2.0
+	 */
+	public static function lateUtilityCases(): array
+	{
+		return [
+			'j3-empty' => [3, false, true, false],
+			'j3-admin-view' => [3, true, true, true],
+			'j4-helper' => [4, false, true, true],
+			'j5-helper' => [5, false, true, true],
+			'j6-helper' => [6, false, true, true],
+			'j3-disabled' => [3, true, false, false],
+			'j6-disabled' => [6, true, false, false]
+		];
+	}
+
+	/**
 	 * Empty and custom selectors are valid; malformed identities are not.
 	 *
 	 * @return  array<string, array{string, bool}>  Independent selector cases.
@@ -468,6 +517,11 @@ final class ReferencesTest extends TestCase
 		foreach ((new Selection())->utilityPowers() as $guid => $force)
 		{
 			$load->record('power', ++$id, ['guid' => $guid, 'name' => 'Utility' . $id]);
+		}
+
+		foreach ((new Selection())->lateUtilityPowers(6) as $guid => $force)
+		{
+			$load->record('power', ++$id, ['guid' => $guid, 'name' => 'GeneratedUtility' . $id]);
 		}
 
 		foreach ($reverse ? [2, 1] : [1, 2] as $id)

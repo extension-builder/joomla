@@ -16,7 +16,7 @@ use Joomla\CMS\Language\Language;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Log\LogEntry;
 use Joomla\DI\Container;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use ReflectionMethod;
@@ -37,10 +37,12 @@ require_once dirname(__DIR__, 4) . '/admin/src/Model/AjaxModel.php';
  * Exercise the actual protected serialization seams without constructing an
  * installed administrator model. Only Joomla logging and the factory's report
  * dependency are isolated. Browser specs separately drive real public requests.
+ * The generated administrator model is outside this vendor suite's coverage
+ * filter; this contract therefore makes no vendor line-coverage claim.
  *
  * @since  6.2.1
  */
-#[CoversClass(AjaxModel::class)]
+#[CoversNothing]
 final class ExtrusionAjaxDiagnosticsTest extends JoomlaTestCase
 {
 	/**

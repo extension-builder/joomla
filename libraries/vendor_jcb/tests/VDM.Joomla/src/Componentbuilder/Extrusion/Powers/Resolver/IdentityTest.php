@@ -519,6 +519,93 @@ final class IdentityTest extends TestCase
 	}
 
 	/**
+	 * Selected unlinked roots expose their transitive aliases without ownership claims.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFirstImportSelectedRootExpandsAliasDependenciesAndResetsOnNewDecisions(): void
+	{
+		[$identity, $load, $config, $names, $references] = $this->engine();
+		$config->set('component', 0)->set('targetComponentGuid', $this->guid('first-import'));
+		$load->placeholder(1, 'DependencyRoot', 'Acme\\Library');
+		$load->record('power', 51, [
+			'guid' => $this->guid('root'), 'name' => 'Root', 'type' => 'class',
+			'namespace' => 'Acme\\Library.Root',
+			'use_selection' => json_encode([['use' => $this->guid('child'), 'as' => 'Child']])
+		]);
+		$load->record('power', 52, [
+			'guid' => $this->guid('child'), 'name' => '[[[HiddenName]]]', 'type' => 'class',
+			'namespace' => '###DependencyRoot###.Child',
+			'use_selection' => json_encode([['use' => $this->guid('root'), 'as' => 'Root']])
+		]);
+		$root = [
+			'source_key' => 'root', 'source_unit' => 'Acme.Library', 'type' => 'class',
+			'fqn' => 'Acme\\Library\\Root', 'stored' => 'Acme\\Library.Root', 'placement_valid' => true
+		];
+		$child = array_replace($root, [
+			'source_key' => 'child', 'fqn' => 'Acme\\Library\\Child', 'stored' => 'Acme\\Library.Child'
+		]);
+		$this->assertNotSame('matched', $identity->resolve($child)['status']);
+		$this->assertSame($this->guid('root'), $identity->resolve($root)['matched_guid']);
+		$matched = $identity->resolve($child);
+		$this->assertSame($this->guid('child'), $matched['matched_guid']);
+		$this->assertSame('effective-reference', $matched['reason']);
+		$this->assertSame('unestablished', $matched['write_scope']);
+		$this->assertFalse($matched['candidates'][$this->guid('child')]['in_target']);
+		$this->assertTrue($matched['candidates'][$this->guid('child')]['in_effective']);
+		$this->assertSame([], $references->consumers($this->guid('child')));
+		$this->assertSame(2, $identity->effectiveRevision());
+		$this->assertSame(2, $identity->work()['indexed_records']);
+		$output = $names->output('Acme\\Library.Child');
+		$this->assertSame([$this->guid('child')], array_keys($identity->occupants($output)));
+		$before = $identity->fingerprint();
+		$this->assertSame($before, $identity->fingerprint(true));
+
+		$identity->prepareDecisions(['root' => ['action' => 'ignore']]);
+		$this->assertSame('ignored', $identity->resolve($root, ['action' => 'ignore'])['status']);
+		$this->assertNotSame('matched', $identity->resolve($child)['status']);
+		$this->assertSame(0, $identity->effectiveRevision());
+		$this->assertSame([], $identity->occupants($output));
+	}
+
+	/**
+	 * Growing effective root sets append to indexes instead of rebuilding each prefix.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFirstImportRootGrowthDoesNotReindexEarlierSelectedDefinitions(): void
+	{
+		[$identity, $load, $config] = $this->engine();
+		$config->set('component', 0)->set('targetComponentGuid', $this->guid('first-import'));
+
+		for ($number = 0; $number < 48; $number++)
+		{
+			$name = 'Service' . $number;
+			$load->record('power', 100 + $number, [
+				'guid' => $this->guid($name), 'name' => $name, 'type' => 'class',
+				'namespace' => 'Acme\\Library.' . $name
+			]);
+		}
+
+		for ($number = 0; $number < 48; $number++)
+		{
+			$name = 'Service' . $number;
+			$result = $identity->resolve([
+				'source_key' => $name, 'source_unit' => 'Acme.Library', 'type' => 'class',
+				'fqn' => 'Acme\\Library\\' . $name, 'stored' => 'Acme\\Library.' . $name,
+				'placement_valid' => true
+			]);
+			$this->assertSame($this->guid($name), $result['matched_guid']);
+		}
+
+		$this->assertSame(48, $identity->effectiveRevision());
+		$this->assertSame(48, $identity->work()['indexed_records']);
+		$this->assertSame(96, $identity->work()['candidate_evaluations']);
+	}
+
+	/**
 	 * Build the actual services with a controlled database boundary.
 	 *
 	 * @param   bool  $reverse  Reverse database row order.

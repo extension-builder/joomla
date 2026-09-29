@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListItemBuilderInterface as ListItemBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListLinkInterface as ListLink;
@@ -139,7 +140,7 @@ class ListBody implements ListBodyInterface
 		$body .= PHP_EOL . Indent::_(2)
 			. "\$canCheckin = \$user->authorise('core.manage', 'com_checkin') || \$item->checked_out == \$user->id || \$item->checked_out == 0;";
 		$body .= $this->getCheckedOutUser();
-		$body .= PHP_EOL . Indent::_(2) . "\$canDo = Super__" . "_7d95ce74_53dc_4672_bd8a_3b71cdacabea___Power::get('" . $nameSingleCode . "', \$item, '" . $nameListCode . "');";
+		$body .= PHP_EOL . Indent::_(2) . "\$canDo = " . Selection::permittedActionsToken() . "::get('" . $nameSingleCode . "', \$item, '" . $nameListCode . "');";
 		$body .= PHP_EOL . Indent::_(1) . "?>";
 		$body .= PHP_EOL . Indent::_(1) . '<tr>';
 		// check if this view has fields that should not be escaped

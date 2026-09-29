@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
@@ -217,7 +218,7 @@ class BatchCopy implements BatchCopyInterface
 			. "\$this->table 		= \$this->getTable();";
 		$batchcopy[] = Indent::_(3)
 			. "\$this->tableClassName	= get_class(\$this->table);";
-		$batchcopy[] = Indent::_(3) . "\$this->canDo		= Super__" . "_7d95ce74_53dc_4672_bd8a_3b71cdacabea___Power::get('" . $nameSingleCode . "');";
+		$batchcopy[] = Indent::_(3) . "\$this->canDo		= " . Selection::permittedActionsToken() . "::get('" . $nameSingleCode . "');";
 		$batchcopy[] = Indent::_(2) . "}";
 		$batchcopy[] = PHP_EOL . Indent::_(2) . "if (!\$this->canDo->get('"
 			. $this->permission->getGlobal($nameSingleCode, 'core.create') . "') && !\$this->canDo->get('"

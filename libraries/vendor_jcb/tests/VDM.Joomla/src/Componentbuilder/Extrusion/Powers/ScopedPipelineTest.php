@@ -357,6 +357,65 @@ final class ScopedPipelineTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Earlier alias sources see a later reviewed root's complete dependency graph.
+	 *
+	 * @param   bool  $reverse  Reverse source library discovery order.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('orders')]
+	public function testFirstImportAliasChildResolvesBeforeItsReviewedRootInEitherDiscoveryOrder(bool $reverse): void
+	{
+		[$container, $load, $item] = $this->engine();
+		$load->placeholder(1, 'DependencyRoot', 'Acme\\Library\\Branch');
+		$load->record('power', 51, [
+			'guid' => $this->guid('first-root'), 'name' => 'Root', 'type' => 'class',
+			'namespace' => 'Acme\\Library\\Branch.Root',
+			'use_selection' => json_encode([['use' => $this->guid('first-child'), 'as' => 'LinkedChild']])
+		]);
+		$load->record('power', 52, [
+			'guid' => $this->guid('first-child'), 'name' => '[[[HiddenName]]]', 'type' => 'class',
+			'namespace' => '###DependencyRoot###.ChildA',
+			'use_selection' => json_encode([['use' => $this->guid('first-root'), 'as' => 'Root']])
+		]);
+		$this->writeTemporaryFile('child/Acme.Library/src/Branch/ChildA.php', "<?php\nnamespace Acme\\Library\\Branch;\nclass ChildA {}\n");
+		$this->writeTemporaryFile('root/Acme.Library/src/Branch/Root.php', "<?php\nnamespace Acme\\Library\\Branch;\nuse Acme\\Library\\Branch\\ChildA as LinkedChild;\nclass Root extends LinkedChild {}\n");
+		$libraries = [$this->temporaryPath('child'), $this->temporaryPath('root')];
+		$container->get('Extrusion.Config')->set('component', 0)->set('sourceComponent', 0)
+			->set('targetComponentGuid', $this->guid('first-import'))
+			->set('libraries', $reverse ? array_reverse($libraries) : $libraries);
+		$this->assertSame(2, $container->get('Extrusion.Powers.Harvester')->harvest());
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$child = $this->source($harvest->get('classes'), 'ChildA');
+		$root = $this->source($harvest->get('classes'), 'Root');
+		$this->assertLessThan(0, strcmp($child['source_key'], $root['source_key']), 'The alias source must resolve before the reviewed root.');
+
+		// A new verdict discards the harvest's effective closure. The first
+		// assembly pass therefore encounters the alias before selecting its root.
+		$container->get('Extrusion.Resolver.Pairing')->load(['power' => [
+			$root['source_key'] => ['action' => 'update', 'target' => $this->guid('first-root')]
+		]]);
+		$assembler = $container->get('Extrusion.Powers.Assembler');
+		$this->assertSame(2, $assembler->assemble());
+		$child = $harvest->get('classes.' . $child['source_key']);
+		$this->assertSame($this->guid('first-child'), $child['matched_guid']);
+		$this->assertSame('effective-reference', $child['resolution']['reason']);
+		$this->assertSame('###DependencyRoot###.ChildA', $child['placeholder']);
+		$this->assertObjectNotHasProperty('namespace', $harvest->get('resolved.' . $child['source_key']), 'A matched alias keeps its stored representation.');
+		$this->assertSame('unestablished', $child['resolution']['write_scope']);
+		$this->assertSame('approval', $child['resolution']['write_eligibility']);
+		$this->assertFalse($child['resolution']['candidates'][$this->guid('first-child')]['in_target']);
+		$this->assertTrue($child['resolution']['candidates'][$this->guid('first-child')]['in_effective']);
+		$definition = $harvest->get('resolved.' . $root['source_key']);
+		$this->assertSame($this->guid('first-child'), $definition->use_selection['use_selection0']['use']);
+		$this->assertSame('LinkedChild', $definition->use_selection['use_selection0']['as']);
+		$this->assertSame(2, $assembler->assemble(), 'An unchanged review keeps the same settled graph.');
+		$this->assertSame($this->guid('first-child'), $harvest->get('classes.' . $child['source_key'])['matched_guid']);
+		$this->assertSame([], $item->records());
+	}
+
+	/**
 	 * Both deterministic database orders.
 	 *
 	 * @return  array  Named order cases.

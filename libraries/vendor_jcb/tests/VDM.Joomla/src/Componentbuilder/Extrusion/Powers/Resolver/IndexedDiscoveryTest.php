@@ -341,6 +341,12 @@ final class IndexedDiscoveryTest extends TestCase
 			$load->power($id, $guid, 'Utility' . $id, 'Compiler\\Utility.Utility' . $id);
 		}
 
+		foreach ((new Selection())->lateUtilityPowers(6) as $guid => $force)
+		{
+			$id++;
+			$load->power($id, $guid, 'GeneratedUtility' . $id, 'Compiler\\Utility.GeneratedUtility' . $id);
+		}
+
 		$load->record('joomla_component', 1, [
 			'guid' => $this->guid('selected-component'), 'name_code' => 'target',
 			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Acme',

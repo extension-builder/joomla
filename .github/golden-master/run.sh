@@ -186,6 +186,11 @@ else
 fi
 git -C "${REPO_ROOT}" rev-parse HEAD > "${OUT_DIR}/candidate-source.txt"
 
+# Record what definitions the installed image actually provides, before fetch.
+compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php /tmp/cli.php --component-inventory \
+	> "${OUT_DIR}/component-inventory.json"
+cat "${OUT_DIR}/component-inventory.json"
+
 # Fetch the component through the Joomla console, in a process of its own. It
 # has to be a separate process from the compile: a compile that fetches the
 # component itself does both jobs at once and runs the site out of memory.
