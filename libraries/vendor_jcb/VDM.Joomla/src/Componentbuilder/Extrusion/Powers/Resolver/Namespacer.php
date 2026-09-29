@@ -63,6 +63,17 @@ final class Namespacer
 	}
 
 	/**
+	 * Isolate mutable placeholder caches when revalidating a reviewed snapshot.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function __clone()
+	{
+		$this->placeholders = clone $this->placeholders;
+	}
+
+	/**
 	 * Fold a class's declared namespace and location into the stored dot form.
 	 *
 	 * The library's own folder name is the first authority: a dotted name such

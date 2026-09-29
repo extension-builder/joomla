@@ -16,6 +16,8 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
@@ -58,8 +60,8 @@ final class ReferencesTest extends TestCase
 			$this->assertFalse($b['powers'][$this->guid('leaf')]['direct']);
 			$this->assertSame([1, 2], array_keys($graph->consumers($this->guid('shared'))));
 			$this->assertSame([2], array_keys($graph->consumers($this->guid('power-b'))));
-			$this->assertCount(3, $a['powers']);
-			$this->assertCount(3, $b['powers']);
+			$this->assertCount(10, $a['powers']);
+			$this->assertCount(10, $b['powers']);
 			$this->assertSame([], $graph->consumers($this->guid('joomla-only')));
 			$this->assertStringContainsString('admin_view:', implode(',', array_keys($b['powers'][$this->guid('power-b')]['via'])));
 		}
@@ -75,7 +77,8 @@ final class ReferencesTest extends TestCase
 	{
 		$load = $this->fixture();
 		$graph = $this->graph($load);
-		$graph->contexts();
+		$graph->context(1);
+		$graph->context(2);
 		$before = $graph->fingerprint();
 		$this->assertSame([1], array_keys($graph->consumers($this->guid('power-a'))));
 		$load->record('admin_view', 6, [
@@ -83,7 +86,9 @@ final class ReferencesTest extends TestCase
 			'php_getitem' => base64_encode($this->token('power-a'))
 		]);
 		$graph->refresh();
-		$graph->contexts();
+		$this->assertSame([], $graph->consumers($this->guid('power-a')));
+		$graph->context(1);
+		$graph->context(2);
 		$this->assertSame([1, 2], array_keys($graph->consumers($this->guid('power-a'))));
 		$this->assertSame([], $graph->consumers($this->guid('power-b')));
 		$this->assertNotSame($before, $graph->fingerprint());
@@ -134,12 +139,271 @@ final class ReferencesTest extends TestCase
 		$graph = $this->graph($load);
 		$context = $graph->context(1);
 		$this->assertSame($complete, $context['complete']);
-		$this->assertFalse($graph->complete(), 'Selected-root completeness is not global consumer coverage.');
+		$this->assertFalse($graph->complete(), 'Selected-root evidence is never complete installation-wide consumer coverage.');
 		$graph->contexts();
 		$this->assertSame($complete, $graph->complete());
 		$this->assertArrayHasKey($this->guid('power-a'), $context['powers']);
 		$this->assertSame($complete ? [] : ['invalid reference'], array_values($context['gaps']));
 		$this->assertTrue($graph->context(2)['complete']);
+	}
+
+	/**
+	 * Consumers and approval evidence never bootstrap an installation audit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testColdFingerprintAndConsumersOnlyUseExplicitlyRequestedRoots(): void
+	{
+		$load = $this->fixture();
+		$graph = $this->graph($load);
+		$empty = $graph->fingerprint();
+		$this->assertSame([], $graph->observed());
+		$this->assertSame([], $graph->consumers($this->guid('shared')));
+		$this->assertFalse($graph->complete());
+		$this->assertSame([], $load->queries);
+		$graph->context(2);
+		$this->assertSame([2], array_keys($graph->observed()));
+		$this->assertSame([2], array_keys($graph->consumers($this->guid('shared'))));
+		$this->assertNotSame($empty, $graph->fingerprint());
+		$queries = $load->queries;
+		$this->assertSame($graph->context(2), $graph->context(2));
+		$this->assertSame($graph->fingerprint(), $graph->fingerprint());
+		$this->assertSame($queries, $load->queries);
+
+		foreach ($queries as $query)
+		{
+			$this->assertNotSame([], $query['where']);
+
+			if ($query['table'] === 'joomla_component')
+			{
+				$this->assertSame([2], $query['ids']);
+			}
+		}
+	}
+
+	/**
+	 * Shared dependency edges, cycles and misses do not multiply node work.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testDiamondEdgesReuseDecodedNodesAndNegativeGuidReads(): void
+	{
+		$load = $this->fixture();
+		$roots = [];
+
+		for ($id = 20; $id < 60; $id++)
+		{
+			$roots[] = $this->token('parent-' . $id);
+			$load->record('power', $id, [
+				'guid' => $this->guid('parent-' . $id),
+				'use_selection' => json_encode([
+					['use' => $this->guid('shared')],
+					['use' => $this->guid('missing')]
+				])
+			]);
+		}
+
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('component-a'),
+			'php_preflight_install' => base64_encode(implode('\n', $roots))
+		]);
+		$graph = $this->graph($load);
+		$context = $graph->context(1);
+		$this->assertCount(49, $context['powers']);
+		$this->assertCount(40, $context['gaps']);
+		$this->assertCount(41, $context['powers'][$this->guid('shared')]['via']);
+		$this->assertFalse($context['powers'][$this->guid('shared')]['direct']);
+		$this->assertSame(50, $graph->diagnostics()['records']);
+		$this->assertSame(82, $graph->diagnostics()['edges']);
+		$powerReads = array_values(array_filter($load->queries, static fn (array $query): bool => $query['table'] === 'power'));
+		$this->assertCount(50, $powerReads);
+		$misses = array_values(array_filter($powerReads, static fn (array $query): bool => $query['ids'] === []));
+		$this->assertCount(1, $misses);
+		$this->assertSame(['a.guid' => $this->guid('missing')], $misses[0]['where']);
+		$before = $graph->diagnostics();
+		$this->assertSame($context, $graph->context(1));
+		$this->assertSame($before, $graph->diagnostics());
+	}
+
+	/**
+	 * Core custom-code and nested template routes resolve by their local keys.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testNestedCoreCodeRoutesRemainBoundedAndExposeAliasCoverage(): void
+	{
+		$load = $this->fixture();
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('component-a'),
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => base64_encode('[CUSTOMCODE=shared_function+example]'),
+			'add_php_postflight_install' => 0,
+			'php_postflight_install' => base64_encode($this->token('inactive'))
+		]);
+		$load->record('custom_code', 80, [
+			'target' => 2, 'published' => 1, 'function_name' => 'shared_function',
+			'code' => base64_encode('[CUSTOMCODE=81]')
+		]);
+		$load->record('custom_code', 81, [
+			'target' => 2, 'published' => 1,
+			'code' => base64_encode('$this->loadTemplate(\'details\')')
+		]);
+		$load->record('template', 90, [
+			'guid' => $this->guid('details-template'), 'alias' => 'details',
+			'template' => base64_encode($this->token('power-a'))
+		]);
+		$graph = $this->graph($load);
+		$context = $graph->context(1);
+		$this->assertArrayHasKey($this->guid('power-a'), $context['powers']);
+		$this->assertArrayNotHasKey($this->guid('inactive'), $context['powers']);
+		$this->assertSame(['normalized alias index unavailable'], array_values($context['gaps']));
+		$this->assertFalse($context['complete']);
+
+		foreach ($load->queries as $query)
+		{
+			$this->assertNotSame([], $query['where']);
+		}
+	}
+
+	/**
+	 * Generated-target changes replace injected-code evidence and approval data.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testLateComponentInjectionUsesGeneratedTargetAndInvalidatesOnChange(): void
+	{
+		$load = $this->fixture();
+		$load->record('custom_code', 80, [
+			'component' => $this->guid('component-a'), 'target' => 1,
+			'published' => 1, 'joomla_version' => 5,
+			'code' => base64_encode($this->token('power-b'))
+		]);
+		$config = new Config(['layout' => 'j5']);
+		$graph = $this->graph($load, $config);
+		$this->assertArrayHasKey($this->guid('power-b'), $graph->context(1)['powers']);
+		$before = $graph->fingerprint();
+		$config->set('layout', 'j6');
+		$this->assertArrayNotHasKey($this->guid('power-b'), $graph->context(1)['powers']);
+		$this->assertNotSame($before, $graph->fingerprint());
+		$config->set('layout', 'auto');
+		$this->assertFalse($graph->context(1)['complete']);
+		$this->assertContains('generated Joomla target unavailable', $graph->context(1)['gaps']);
+	}
+
+	/**
+	 * Disabled component Powers stay unloaded until an explicit build override.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testComponentPowerSwitchAndExplicitOverrideUseTheCompilerGate(): void
+	{
+		$load = $this->fixture();
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('component-a'), 'add_powers' => 0,
+			'php_preflight_install' => base64_encode($this->token('power-a'))
+		]);
+		$config = new Config(['powers' => 2]);
+		$graph = $this->graph($load, $config);
+		$this->assertSame(array_keys((new Selection())->utilityPowers()), array_keys(array_intersect_key((new Selection())->utilityPowers(), $graph->context(1)['powers'])));
+		$this->assertCount(7, array_values(array_filter($load->queries, static fn (array $query): bool => $query['table'] === 'power')));
+		$config->set('powers', 1);
+		$this->assertArrayHasKey($this->guid('power-a'), $graph->context(1)['powers']);
+		$config->set('powers', 0);
+		$this->assertCount(7, $graph->context(1)['powers']);
+	}
+
+	/**
+	 * Active inheritance and short custom fields follow the compiler branches.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testPowerInheritanceAndShortCodeFieldsUseSharedSelection(): void
+	{
+		$load = $this->fixture();
+		$load->record('power', 11, [
+			'guid' => $this->guid('power-a'), 'type' => 'class',
+			'extends' => '-1', 'extends_custom' => $this->token('power-b'),
+			'extendsinterfaces' => json_encode([$this->guid('inactive')]),
+			'add_head' => 0, 'head' => base64_encode($this->token('inactive'))
+		]);
+		$graph = $this->graph($load);
+		$this->assertArrayHasKey($this->guid('power-b'), $graph->context(1)['powers']);
+		$this->assertArrayNotHasKey($this->guid('inactive'), $graph->context(1)['powers']);
+		$this->assertTrue($graph->context(1)['complete']);
+		$load->record('power', 11, [
+			'guid' => $this->guid('power-a'), 'type' => 'interface',
+			'extends' => $this->guid('inactive'),
+			'extendsinterfaces' => json_encode([$this->guid('power-b')]),
+			'implements' => json_encode(['-1']), 'implements_custom' => $this->token('shared')
+		]);
+		$graph->refresh();
+		$this->assertArrayHasKey($this->guid('power-b'), $graph->context(1)['powers']);
+		$this->assertArrayHasKey($this->guid('shared'), $graph->context(1)['powers']);
+		$this->assertArrayNotHasKey($this->guid('inactive'), $graph->context(1)['powers']);
+		$this->assertTrue($graph->context(1)['complete']);
+	}
+
+	/**
+	 * First import still loads forced compiler utilities without a saved root.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFirstImportIncludesForcedUtilityRootsWithoutConsumerClaims(): void
+	{
+		$load = $this->fixture();
+		$graph = $this->graph($load, new Config(['powers' => 0]));
+		$context = $graph->context(0);
+		$this->assertTrue($context['complete']);
+		$this->assertCount(7, $context['powers']);
+
+		foreach ((new Selection())->utilityPowers() as $guid => $force)
+		{
+			$this->assertTrue($context['powers'][$guid]['direct']);
+			$this->assertSame(['compiler:utility' => true], $context['powers'][$guid]['via']);
+			$this->assertSame([], $graph->consumers($guid));
+		}
+
+		foreach ($load->queries as $query)
+		{
+			$this->assertSame('power', $query['table']);
+			$this->assertNotSame([], $query['where']);
+		}
+	}
+
+	/**
+	 * Explicit binding closures share work without inventing stored ownership.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testExplicitBindingClosureIsIncrementalAndPreservesMissingEvidence(): void
+	{
+		$load = $this->fixture();
+		$graph = $this->graph($load);
+		$first = $graph->power($this->guid('power-b'));
+		$this->assertCount(3, $first['powers']);
+		$this->assertTrue($first['complete']);
+		$this->assertSame([], $graph->observed());
+		$this->assertSame([], $graph->consumers($this->guid('power-b')));
+		$before = $graph->diagnostics();
+		$this->assertSame([], $graph->power($this->guid('shared'))['powers']);
+		$this->assertSame($before, $graph->diagnostics());
+		$missing = $graph->power($this->guid('missing'));
+		$this->assertFalse($missing['complete']);
+		$this->assertContains('missing', $missing['gaps']);
+		$this->assertFalse($graph->power($this->guid('power-b'))['complete']);
+		$fingerprint = $graph->fingerprint();
+		$this->assertSame($fingerprint, $graph->fingerprint(true));
+		$load->power(99, $this->guid('missing'), 'Missing', 'Acme\\Library.Missing');
+		$this->assertNotSame($fingerprint, $graph->fingerprint(true));
+		$this->assertSame($fingerprint, $graph->fingerprint());
 	}
 
 	/**
@@ -165,11 +429,12 @@ final class ReferencesTest extends TestCase
 	 * Build the real provider's graph with only its external database mocked.
 	 *
 	 * @param   ExtrusionPowerLoadFixture  $load  The declared raw records.
+	 * @param   Config|null  $config  Optional generated-target context.
 	 *
 	 * @return  References  The actual production graph.
 	 * @since   6.2.0
 	 */
-	protected function graph(ExtrusionPowerLoadFixture $load): References
+	protected function graph(ExtrusionPowerLoadFixture $load, ?Config $config = null): References
 	{
 		$db = $this->createMock(DatabaseInterface::class);
 		$db->expects($this->never())->method('getQuery');
@@ -177,6 +442,11 @@ final class ReferencesTest extends TestCase
 		$container->set('Table', new Table());
 		$container->set('Load', $load, true);
 		$container->set('Joomla.Database', $db, true);
+
+		if ($config !== null)
+		{
+			$container->set('Extrusion.Config', $config, true);
+		}
 		$container->registerServiceProvider(new Powers());
 
 		return $container->get('Extrusion.Powers.Resolver.References');
@@ -193,6 +463,12 @@ final class ReferencesTest extends TestCase
 	protected function fixture(bool $reverse = false): ExtrusionPowerLoadFixture
 	{
 		$load = new ExtrusionPowerLoadFixture();
+		$id = 10000;
+
+		foreach ((new Selection())->utilityPowers() as $guid => $force)
+		{
+			$load->record('power', ++$id, ['guid' => $guid, 'name' => 'Utility' . $id]);
+		}
 
 		foreach ($reverse ? [2, 1] : [1, 2] as $id)
 		{

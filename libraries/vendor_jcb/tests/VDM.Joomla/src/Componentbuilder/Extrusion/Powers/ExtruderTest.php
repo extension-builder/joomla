@@ -342,10 +342,14 @@ final class ExtruderTest extends FilesystemTestCase
 	public function testExtrudeWritesTheWholeSetLinkedByIdentity(): void
 	{
 		$this->item->identity('power', self::EXISTING_GUID, 7);
-		$report = $this->extruder()->reset()
+		$engine = $this->extruder()->reset()
 			->library($this->library)
-			->component(3)
-			->extrude();
+			->component(3);
+		$unapproved = $engine->extrude();
+		$this->assertSame('blocked', $unapproved->get('plan.status'));
+		$this->assertContains('unknown', $unapproved->get('plan.required_approvals'));
+		$this->assertSame([], $this->item->records(), 'Unreviewed usage must never permit a partial write.');
+		$report = $this->reviewAndExtrude($engine);
 
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame(['power', 'power', 'power'], $this->item->sequence());
@@ -444,7 +448,7 @@ final class ExtruderTest extends FilesystemTestCase
 			$loader => ['action' => 'ignore'],
 			$fetch => ['action' => 'update', 'target' => $other]
 		]]);
-		$report = $extruder->extrude();
+		$report = $this->reviewAndExtrude($extruder);
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$guids = array_map(static fn (object $definition): string => $definition->guid, $this->item->definitions('power'));
 		$this->assertContains($other, $guids);
@@ -465,11 +469,11 @@ final class ExtruderTest extends FilesystemTestCase
 	public function testTheSkipPolicyMentionsAnExistingPowerWithoutTouchingIt(): void
 	{
 		$this->item->identity('power', self::EXISTING_GUID, 7);
-		$report = $this->extruder()->reset()
+		$engine = $this->extruder()->reset()
 			->library($this->library)
 			->component(3)
-			->onExisting('skip')
-			->extrude();
+			->onExisting('skip');
+		$report = $this->reviewAndExtrude($engine);
 
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertNull(
@@ -527,11 +531,11 @@ final class ExtruderTest extends FilesystemTestCase
 	 */
 	public function testTheIncludeFilterNarrowsTheWriteToTheApproved(): void
 	{
-		$report = $this->extruder()->reset()
+		$engine = $this->extruder()->reset()
 			->library($this->library)
 			->component(3)
-			->include(['Demo\Joomla\Data\Action\Fetch'])
-			->extrude();
+			->include(['Demo\Joomla\Data\Action\Fetch']);
+		$report = $this->reviewAndExtrude($engine);
 
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertCount(1, $this->item->records('power'));
@@ -594,9 +598,13 @@ final class ExtruderTest extends FilesystemTestCase
 		$engine = $this->extruder()->reset()->library($this->temporaryPath('vend/Acme.Joomla'))->component(3);
 		$report = $engine->dryRun()->extrude();
 		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
-		$this->assertSame(['remapping'], $report->get('plan.required_approvals'));
+		$this->assertSame(['remapping', 'unknown'], $report->get('plan.required_approvals'));
+		$this->assertContains('component_placeholders', array_column($this->container->get('Extrusion.Registry.Plan')->writes(), 'table'));
 		$this->assertSame([], $this->item->records());
 		$this->config()->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeRemapping', true);
+		$this->assertSame('blocked', $engine->dryRun(false)->extrude()->get('plan.status'));
+		$this->assertSame([], $this->item->records(), 'Remapping approval does not acknowledge unestablished usage.');
+		$this->config()->set('acknowledgeUnknown', true);
 		$this->assertSame('committed', $engine->dryRun(false)->extrude()->get('plan.status'), json_encode($report->get('plan')));
 		$this->assertNotNull($this->item->definition('power', self::TEAM_GUID));
 		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Helper', $this->candidate('Acme\\Joomla\\DeMo\\Helper')['placeholder']);
@@ -606,6 +614,37 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertCount(1, $rows);
 		$this->assertSame('dddddddd-4444-4444-8444-444444444444', $rows[0]->joomla_component);
 		$this->assertSame(['target' => '[[[ComponentNamespace]]]', 'value' => 'DeMo'], $rows[0]->addplaceholders['addplaceholders0']);
+	}
+
+	/**
+	 * An approved unlinked Power cannot infer the selected component's local roles.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUnlinkedManualPairingCannotProposeComponentNamespaceValues(): void
+	{
+		$this->load->power(9, self::TEAM_GUID, 'Helper', '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Helper');
+		$this->item->identity('power', self::TEAM_GUID, 9);
+		$this->writeTemporaryFile('unlinked/Acme.Joomla/src/DeMo/Helper.php',
+			"<?php\nnamespace Acme\\Joomla\\DeMo;\nfinal class Helper { public function go(): bool { return true; } }\n");
+		$engine = $this->extruder()->reset()->library($this->temporaryPath('unlinked/Acme.Joomla'))->component(3);
+		$engine->harvest();
+		$source = $this->candidate('Acme\\Joomla\\DeMo\\Helper');
+		$this->container->get('Extrusion.Resolver.Pairing')->load(['power' => [
+			$source['source_key'] => ['action' => 'update', 'target' => self::TEAM_GUID]
+		]]);
+		$report = $engine->dryRun()->extrude();
+		$this->assertSame('preview', $report->get('plan.status'));
+		$this->assertContains('unknown', $report->get('plan.required_approvals'));
+		$this->assertNotContains('component_placeholders', array_column($this->container->get('Extrusion.Registry.Plan')->writes(), 'table'));
+		$this->config()->set('approvedPlan', $report->get('plan.fingerprint'))
+			->set('acknowledgeUnknown', true)->set('acknowledgeRemapping', true);
+		$this->assertSame('committed', $engine->dryRun(false)->extrude()->get('plan.status'));
+		$this->assertNotNull($this->item->definition('power', self::TEAM_GUID));
+		$this->assertSame([], $this->item->records('component_placeholders'));
+		$this->assertSame([], $this->item->records('joomla_component'));
+		$this->assertSame([], $this->item->records('placeholder'));
 	}
 
 	/**
@@ -619,8 +658,9 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->load->params(['namespace_prefix' => 'Acme']);
 		$this->writeTemporaryFile('named/Acme.Joomla/src/DeMo/Helper.php',
 			"<?php\nnamespace Acme\\Joomla\\DeMo;\nfinal class Helper { public function go(): bool { return true; } }\n");
-		$report = $this->extruder()->reset()->library($this->temporaryPath('named/Acme.Joomla'))
-			->component(0)->componentCode('com_demo')->extrude();
+		$engine = $this->extruder()->reset()->library($this->temporaryPath('named/Acme.Joomla'))
+			->component(0)->componentCode('com_demo');
+		$report = $this->reviewAndExtrude($engine);
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$power = $this->item->definition('power', $this->guid('Acme\\Joomla\\DeMo\\Helper'));
 		$this->assertNotNull($power);
@@ -671,10 +711,10 @@ final class ExtruderTest extends FilesystemTestCase
 			. ($class ?? "final class Team\n{\n\tpublic function play(): bool\n\t{\n\t\treturn true;\n\t}\n}\n")
 		);
 
-		$this->extruder()->reset()
+		$extruder = $this->extruder()->reset()
 			->library($this->temporaryPath($engine))
-			->component(3)
-			->extrude();
+			->component(3);
+		$this->reviewAndExtrude($extruder);
 
 		$written = $this->item->definition('power', self::TEAM_GUID);
 
@@ -825,10 +865,10 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 
 		$extruder = $this->extruder();
-		$report = $extruder->reset()
+		$extruder->reset()
 			->library($this->temporaryPath($engine))
-			->component(3)
-			->extrude();
+			->component(3);
+		$report = $this->reviewAndExtrude($extruder);
 
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$this->assertSame(2, $report->get('counts.powers.classes'));
@@ -909,10 +949,10 @@ final class ExtruderTest extends FilesystemTestCase
 		);
 
 		$extruder = $this->extruder();
-		$report = $extruder->reset()
+		$extruder->reset()
 			->library($this->temporaryPath($source))
-			->component(3)
-			->extrude();
+			->component(3);
+		$report = $this->reviewAndExtrude($extruder);
 
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 
@@ -939,6 +979,45 @@ final class ExtruderTest extends FilesystemTestCase
 			. 'really sits.',
 			$this->extruderMessages('notice')
 		);
+	}
+
+	/**
+	 * Execute the explicit preview/approval flow for a test intending real writes.
+	 *
+	 * The preview must leave the recorded database unchanged. A fresh operation
+	 * receives only its actual fingerprint and the exact scopes it requested.
+	 * No approval is installed by the shared fixture or by ordinary harvesting.
+	 *
+	 * @param   Extruder  $extruder  The configured operation to review.
+	 *
+	 * @return  Report  The committed operation's report.
+	 * @since   6.2.1
+	 */
+	private function reviewAndExtrude(Extruder $extruder): Report
+	{
+		$config = $this->config()->toArray();
+		$decisions = $this->container->get('Extrusion.Registry.Decision')->toArray();
+		$before = $this->item->records();
+		$report = $extruder->dryRun()->extrude();
+		$plan = $report->get('plan');
+		$this->assertSame('preview', $plan['status'], json_encode($plan));
+		$this->assertSame($before, $this->item->records(), 'Reviewing a plan must not write definitions.');
+		$this->assertNotEmpty($plan['required_approvals'], 'These fixture writes require reviewed usage scope.');
+
+		$extruder->reset();
+		$this->config()->loadArray($config)->set('approvedPlan', $plan['fingerprint']);
+		$this->container->get('Extrusion.Resolver.Pairing')->load($decisions);
+
+		foreach ($plan['required_approvals'] as $scope)
+		{
+			$this->config()->set('acknowledge' . ucfirst($scope), true);
+		}
+
+		$report = $extruder->dryRun(false)->extrude();
+		$this->assertSame('committed', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame($plan['fingerprint'], $report->get('plan.fingerprint'));
+
+		return $report;
 	}
 
 	/**

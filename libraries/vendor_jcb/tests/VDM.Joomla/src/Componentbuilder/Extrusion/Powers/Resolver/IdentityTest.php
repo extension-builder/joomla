@@ -20,7 +20,6 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
-use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
@@ -40,14 +39,6 @@ use VDM\Tests\Support\TestCase;
 final class IdentityTest extends TestCase
 {
 	/**
-	 * Explicit audit boundary for the complete-consumer characterization cases.
-	 *
-	 * @var    References
-	 * @since  6.2.0
-	 */
-	protected References $references;
-
-	/**
 	 * Catalogue order and equal placeholder values do not erase component scope.
 	 *
 	 * @param   bool  $reverse  Reverse catalogue declaration order.
@@ -65,7 +56,8 @@ final class IdentityTest extends TestCase
 		$this->assertSame('matched', $result['status']);
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
 		$this->assertSame('component-reference', $result['reason']);
-		$this->assertSame('automatic', $result['write_eligibility']);
+		$this->assertSame('approval', $result['write_eligibility']);
+		$this->assertSame('unestablished', $result['write_scope'], 'A selected root does not prove exclusive ownership.');
 		$this->assertSame(2, count($result['candidates']));
 		$this->assertTrue($result['namespace']['round_trip']);
 		$this->assertTrue($result['namespace']['preserved']);
@@ -75,12 +67,12 @@ final class IdentityTest extends TestCase
 		$this->assertArrayNotHasKey('context', $result['namespace']);
 
 		$config->set('component', 1);
-		$this->audit($identity);
+		$identity->refresh();
 		$a = $identity->resolve($this->source($same ? 'Same' : 'Alpha'));
 		$this->assertSame($this->guid('power-a'), $a['matched_guid']);
 		$this->assertNotSame($a['context_fingerprint'], $result['context_fingerprint']);
 		$config->set('component', 2);
-		$this->audit($identity);
+		$identity->refresh();
 		$this->assertSame($result['matched_guid'], $identity->resolve($source)['matched_guid']);
 	}
 
@@ -108,7 +100,7 @@ final class IdentityTest extends TestCase
 	{
 		[$identity, $load] = $this->engine();
 		$load->record('joomla_component', 2, $this->component('beta', 'component-b'));
-		$this->audit($identity);
+		$identity->refresh();
 		$result = $identity->resolve($this->source());
 		$this->assertSame('ambiguous', $result['status']);
 		$this->assertNull($result['matched_guid']);
@@ -129,7 +121,7 @@ final class IdentityTest extends TestCase
 		$load->record('power', 11, $this->power('power-a', $this->template(), 'Factory A') + [
 			'use_selection' => json_encode([['use' => 'unreadable-identity', 'as' => 'Unknown']])
 		]);
-		$this->audit($identity);
+		$identity->refresh();
 		$result = $identity->resolve($this->source());
 		$this->assertSame('matched', $result['status']);
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
@@ -165,7 +157,8 @@ final class IdentityTest extends TestCase
 	 */
 	public function testExplicitForeignPairingCarriesItsScopeAndNeverHidesTheActualTarget(): void
 	{
-		[$identity] = $this->engine();
+		[$identity, $load, $config, $names, $references] = $this->engine();
+		$references->context(1);
 		$result = $identity->resolve($this->source(), ['action' => 'update', 'target' => $this->guid('power-a')]);
 		$this->assertSame('matched', $result['status']);
 		$this->assertSame($this->guid('power-a'), $result['target']['guid']);
@@ -187,9 +180,10 @@ final class IdentityTest extends TestCase
 	 */
 	public function testSharedDefinitionIsNotClonedPerComponent(): void
 	{
-		[$identity, $load] = $this->engine();
+		[$identity, $load, $config, $names, $references] = $this->engine();
 		$load->record('joomla_component', 1, $this->component('alpha', 'component-a', 'power-b'));
-		$this->audit($identity);
+		$identity->refresh();
+		$references->context(1);
 		$result = $identity->resolve($this->source());
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
 		$this->assertSame('shared', $result['write_scope']);
@@ -209,7 +203,7 @@ final class IdentityTest extends TestCase
 		$load->overrides($this->guid('component-a'), [['target' => 'Root', 'value' => 'Acme\\Other\\Alpha']]);
 		$load->overrides($this->guid('component-b'), [['target' => 'Root', 'value' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]]']]);
 		$load->record('power', 12, $this->power('power-b', '###Root###.Factory', 'Factory B'));
-		$this->audit($identity);
+		$identity->refresh();
 		$result = $identity->resolve($this->source());
 		$this->assertSame($this->guid('power-b'), $result['matched_guid']);
 		$this->assertSame('###Root###.Factory', $result['namespace']['value']);
@@ -250,7 +244,7 @@ final class IdentityTest extends TestCase
 		[$identity, $load] = $this->engine();
 		$load->record('joomla_component', 2, $this->component('registry', 'component-b', 'power-b'));
 		$load->record('power', 12, $this->power('power-b', '[[[NamespacePrefix]]]\\Joomla\\Abstraction.Registry.Factory', 'Literal Factory'));
-		$this->audit($identity);
+		$identity->refresh();
 		$source = $this->source('Registry');
 		$source['fqn'] = 'Acme\\Joomla\\Abstraction\\Registry\\Factory';
 		$source['stored'] = 'Acme\\Joomla\\Abstraction.Registry.Factory';
@@ -306,33 +300,222 @@ final class IdentityTest extends TestCase
 		$source['body'] = 'different contents';
 		$this->assertSame($a['write_guid'], $identity->resolve($source)['write_guid']);
 		$config->set('component', 1);
-		$this->audit($identity);
+		$identity->refresh();
 		$this->assertNotSame($a['write_guid'], $identity->resolve($source)['write_guid']);
 		$config->set('component', 2);
 		$load->record('power', 99, [
 			'guid' => $a['write_guid'], 'name' => 'Service', 'type' => 'class',
 			'namespace' => $a['namespace']['value']
 		]);
-		$this->audit($identity);
+		$identity->refresh();
 		$again = $identity->resolve($source, ['action' => 'create']);
 		$this->assertSame('matched', $again['status']);
 		$this->assertSame($a['write_guid'], $again['write_guid']);
 	}
 
 	/**
-	 * Reset and explicitly rebuild the complete audit used by these scope tests.
-	 *
-	 * IndexedDiscoveryTest separately forbids this audit in selected-root work.
-	 *
-	 * @param   Identity  $identity  The production resolver under test.
+	 * Same-name sources use FQN buckets rather than rescanning their dependency set.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	protected function audit(Identity $identity): void
+	public function testCandidateWorkTracksReachableRecordsWithoutSourceCrossProducts(): void
 	{
-		$identity->refresh();
-		$this->references->contexts();
+		$counts = [];
+
+		foreach ([0, 400] as $unrelated)
+		{
+			[$identity, $load] = $this->engine();
+			$tokens = [];
+			$sources = [];
+
+			for ($number = 0; $number < 64; $number++)
+			{
+				$guid = $this->guid('worker-' . $number);
+				$namespace = 'Acme\\Joomla\\Area' . $number . '.Worker';
+				$load->record('power', 100 + $number, [
+					'guid' => $guid, 'name' => 'Worker', 'type' => 'class', 'namespace' => $namespace
+				]);
+				$tokens[] = 'Super___' . str_replace('-', '_', $guid) . '___Power';
+				$sources[] = [
+					'source_key' => 'worker-' . $number, 'source_unit' => 'Acme.Joomla',
+					'fqn' => str_replace('.', '\\', $namespace), 'stored' => $namespace,
+					'placement_valid' => true, 'type' => 'class'
+				];
+			}
+
+			$component = $this->component('beta', 'component-b');
+			$component['php_preflight_install'] = base64_encode(implode(';', $tokens));
+			$load->record('joomla_component', 2, $component);
+
+			for ($number = 0; $number < $unrelated; $number++)
+			{
+				$load->record('power', 1000 + $number, [
+					'guid' => $this->guid('unrelated-' . $number), 'name' => 'Unrelated' . $number,
+					'type' => 'class', 'namespace' => 'Other\\Library.Unrelated' . $number
+				]);
+				$load->record('joomla_component', 1000 + $number, $this->component('other' . $number, 'other-' . $number));
+			}
+
+			foreach ($sources as $number => $source)
+			{
+				$result = $identity->resolve($source);
+				$this->assertSame($this->guid('worker-' . $number), $result['matched_guid']);
+				$this->assertSame($result, $identity->resolve($source + ['action' => 'update', 'resolution' => $result]));
+			}
+
+			$this->assertSame(64, $identity->work()['indexed_records']);
+			$this->assertSame(64, $identity->work()['candidate_evaluations']);
+			$this->assertSame(64, $identity->work()['resolution_cache_hits']);
+			$counts[] = count($load->queries);
+
+			foreach ($load->queries as $query)
+			{
+				if (in_array($query['table'], ['power', 'joomla_component'], true))
+				{
+					$this->assertNotSame([], $query['where'], 'A cold lookup cannot scan either catalogue.');
+				}
+			}
+		}
+
+		$this->assertSame($counts[0], $counts[1], 'Unrelated records add no resolver queries.');
+	}
+
+	/**
+	 * Missing fallback indexes require review and negative lookups remain fresh.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUnknownAliasCoverageRequiresReviewAndNewCandidatesInvalidateFingerprint(): void
+	{
+		[$identity, $load] = $this->engine();
+		$source = $this->source();
+		$source['source_key'] = 'unlinked';
+		$source['fqn'] = 'Acme\\Joomla\\Beta\\NewService';
+		$source['stored'] = 'Acme\\Joomla\\Beta.NewService';
+		$load->record('power', 55, [
+			'guid' => $this->guid('opaque-alias'), 'name' => '[[[HiddenName]]]',
+			'namespace' => '[[[HiddenRoot]]].[[[HiddenName]]]', 'type' => 'class'
+		]);
+		$result = $identity->resolve($source);
+		$this->assertSame('new', $result['status']);
+		$this->assertSame('approval', $result['write_eligibility']);
+		$this->assertSame('unestablished', $result['write_scope']);
+		$this->assertSame('selected-context-and-indexed-fallback', $result['candidate_coverage']);
+		$before = $identity->fingerprint();
+		$this->assertSame($before, $identity->revalidateFingerprint());
+		$load->record('power', 57, [
+			'guid' => $this->guid('unrelated-after-review'), 'name' => 'Unrelated',
+			'namespace' => 'Other\\Library.Unrelated', 'type' => 'class'
+		]);
+		$this->assertSame($before, $identity->revalidateFingerprint(), 'Unrelated records are outside the approved read set.');
+
+		$load->record('power', 56, [
+			'guid' => $this->guid('new-collision'), 'name' => 'NewService',
+			'namespace' => $source['stored'], 'type' => 'class'
+		]);
+		$this->assertNotSame($before, $identity->revalidateFingerprint());
+		$this->assertSame($this->guid('new-collision'), $identity->resolve($source)['matched_guid']);
+	}
+
+	/**
+	 * Only relevant template occupants and conventional literal records collide.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testOccupantBucketsRetainSelectedGuidWithoutForeignTemplateFalseCollision(): void
+	{
+		[$identity, $load, $config, $names] = $this->engine();
+		$output = $names->output($this->template());
+		$this->assertSame([$this->guid('power-b')], array_keys($identity->occupants($output)));
+		$before = $identity->fingerprint();
+		$this->assertSame($before, $identity->revalidateFingerprint());
+		$load->record('power', 56, [
+			'guid' => $this->guid('literal-collision'), 'name' => 'Factory',
+			'namespace' => 'Acme\\Joomla\\Beta.Factory', 'type' => 'class'
+		]);
+		$this->assertNotSame($before, $identity->revalidateFingerprint());
+		$this->assertCount(2, $identity->occupants($output));
+	}
+
+	/**
+	 * Different namespaces under a corrupt duplicate GUID cannot look absent.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testDuplicateGuidVariantsRemainVisibleToIndexedNameLookups(): void
+	{
+		foreach ([false, true] as $reverse)
+		{
+			[$identity, $load] = $this->engine();
+			$guid = $this->guid('duplicate');
+			$rows = [
+				['guid' => $guid, 'name' => 'Elsewhere', 'namespace' => 'Other\\Library.Elsewhere', 'type' => 'class'],
+				['guid' => $guid, 'name' => 'Service', 'namespace' => 'Acme\\Joomla\\Beta.Service', 'type' => 'class']
+			];
+
+			foreach ($reverse ? array_reverse($rows) : $rows as $number => $row)
+			{
+				$load->record('power', 50 + $number, $row);
+			}
+
+			$source = $this->source();
+			$source['source_key'] = 'service';
+			$source['fqn'] = 'Acme\\Joomla\\Beta\\Service';
+			$source['stored'] = 'Acme\\Joomla\\Beta.Service';
+			$result = $identity->resolve($source);
+			$this->assertSame('conflict', $result['status']);
+			$this->assertFalse($result['candidates'][$guid]['compatible']);
+			$this->assertNull($result['write_guid']);
+		}
+	}
+
+	/**
+	 * A newly assigned component identity invalidates an unsaved creation cache.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUnsavedComponentGuidIsPartOfCreationIdentityAndReview(): void
+	{
+		[$identity, $load, $config] = $this->engine();
+		$config->set('component', 0)->set('targetComponentGuid', $this->guid('unsaved-first'));
+		$source = $this->source();
+		$source['source_key'] = 'new';
+		$source['fqn'] = 'Acme\\Library\\NewService';
+		$source['stored'] = 'Acme\\Library.NewService';
+		$first = $identity->resolve($source);
+		$fingerprint = $identity->fingerprint();
+		$config->set('targetComponentGuid', $this->guid('unsaved-second'));
+		$second = $identity->resolve($source);
+		$this->assertSame('new', $first['status']);
+		$this->assertSame('new', $second['status']);
+		$this->assertNotSame($first['write_guid'], $second['write_guid']);
+		$this->assertNotSame($fingerprint, $identity->fingerprint());
+	}
+
+	/**
+	 * Another component's unobserved alias cannot silently become a local alias.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUnobservedCustomAliasRequiresExplicitPairing(): void
+	{
+		[$identity, $load] = $this->engine();
+		$load->record('joomla_component', 2, $this->component('beta', 'component-b'));
+		$load->overrides($this->guid('component-b'), [['target' => 'Root', 'value' => 'Acme\\Joomla\\Beta']]);
+		$load->record('power', 11, $this->power('power-a', '###Root###.Factory', 'Unknown alias owner'));
+		$load->record('power', 12, ['guid' => $this->guid('power-b'), 'name' => 'Other', 'namespace' => 'Other\\Library.Other']);
+		$result = $identity->resolve($this->source());
+		$this->assertSame('conflict', $result['status']);
+		$this->assertSame('custom-alias-context-not-established', $result['candidates'][$this->guid('power-a')]['reason']);
+		$reviewed = $identity->resolve($this->source(), ['action' => 'update', 'target' => $this->guid('power-a')]);
+		$this->assertSame('matched', $reviewed['status']);
+		$this->assertSame('approval', $reviewed['write_eligibility']);
 	}
 
 	/**
@@ -366,10 +549,9 @@ final class IdentityTest extends TestCase
 		$container->set('Extrusion.Registry.Source', new Source(), true);
 		$container->set('Extrusion.Resolver.Guid', new Guid(), true);
 		$container->registerServiceProvider(new Powers());
-		$this->references = $container->get('Extrusion.Powers.Resolver.References');
-		$this->references->contexts();
 
-		return [$container->get('Extrusion.Powers.Resolver.Identity'), $load, $config, $container->get('Extrusion.Powers.Resolver.Namespacer')];
+		return [$container->get('Extrusion.Powers.Resolver.Identity'), $load, $config,
+			$container->get('Extrusion.Powers.Resolver.Namespacer'), $container->get('Extrusion.Powers.Resolver.References')];
 	}
 
 	/**

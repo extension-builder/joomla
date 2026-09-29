@@ -139,6 +139,14 @@ final class Assembler
 	protected array $dependencies = [];
 
 	/**
+	 * Dependency evidence reused only within one assembled source/context map.
+	 *
+	 * @var    array<string, array<string, array>>
+	 * @since  6.2.0
+	 */
+	protected array $resolvedDependencies = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config     $config     The extrusion configuration.
@@ -188,13 +196,35 @@ final class Assembler
 		$this->harvest->remove('rows');
 		$this->report->remove('powers.blocked');
 		$this->local = [];
+		$this->resolvedDependencies = [];
+		$this->report->set('counts.powers.dependency_lookups', 0);
+		$this->report->set('counts.powers.dependency_reused', 0);
 		$candidates = (array) $this->harvest->get('classes', []);
 		ksort($candidates);
+		$decisions = [];
+
+		foreach (array_keys($candidates) as $key)
+		{
+			$decision = $this->pairing->verdict('power', (string) $key);
+
+			if ($decision !== null)
+			{
+				$decisions[$key] = $decision;
+			}
+		}
+
+		// A changed manual selection must drop dependency closures introduced
+		// by the previous verdict before any current source is resolved.
+		$this->resolver->prepareDecisions($decisions);
+		$revision = $this->resolver->effectiveRevision();
 
 		foreach ($candidates as $key => &$candidate)
 		{
 			$candidate = (array) $candidate;
-			$decision = $this->pairing->verdict('power', (string) $key);
+			// Bindings inferred or supplied during an earlier assembly do not
+			// survive a changed decision or removal of an explicit binding.
+			unset($candidate['binding']);
+			$decision = $decisions[$key] ?? null;
 			$binding = $this->config->get('sourceBindings', [])[$candidate['source_unit']] ?? null;
 
 			if (is_array($binding))
@@ -203,6 +233,30 @@ final class Assembler
 			}
 
 			$this->resolve($candidate, $decision);
+		}
+		unset($candidate);
+
+		// Each selected root contributes its entire transitive closure. A
+		// second pass gives earlier sources the same union as later sources.
+		if ($this->resolver->effectiveRevision() !== $revision)
+		{
+			$revision = $this->resolver->effectiveRevision();
+
+			foreach ($candidates as $key => &$candidate)
+			{
+				$this->resolve($candidate, $decisions[$key] ?? null);
+			}
+			unset($candidate);
+		}
+
+		$unstable = $this->resolver->effectiveRevision() !== $revision;
+
+		foreach ($candidates as $key => &$candidate)
+		{
+			if ($unstable)
+			{
+				$this->block($candidate, 'The selected Power dependency graph did not settle under the reviewed source identities.');
+			}
 
 			if (!$this->selected($candidate))
 			{
@@ -232,59 +286,60 @@ final class Assembler
 
 		$resolved = [];
 
-		foreach ($candidates as $key => &$candidate)
+		// Referenced unlinked Powers may add another complete closure. Delay
+		// blockers until all definitions have seen that same dependency union.
+		for ($pass = 0; $pass < 2; $pass++)
 		{
-			if (!$this->writable($candidate))
-			{
-				continue;
-			}
+			$revision = $this->resolver->effectiveRevision();
+			$resolved = [];
 
-			$this->active = $candidate;
-			$this->dependencies = [];
-			$definition = $this->definition($candidate);
-			$candidate['resolution']['dependencies'] = $this->dependencies;
-
-			foreach ($this->dependencies as $dependency)
-			{
-				if (!in_array($dependency['status'], ['matched', 'new', 'external'], true))
-				{
-					$this->block($candidate, 'Unresolved Power dependency: ' . $dependency['fqn']);
-				}
-			}
-
-			$resolved[$key] = $definition;
-		}
-		unset($candidate);
-
-		$this->conflicts($candidates, $resolved);
-
-		// Propagate dependencies to a fixed point, including cycles. Each pass
-		// can block only previously eligible sources, so the loop terminates.
-		do
-		{
-			$changed = false;
-
-			foreach ($candidates as &$candidate)
+			foreach ($candidates as $key => &$candidate)
 			{
 				if (!$this->writable($candidate))
 				{
 					continue;
 				}
 
-				foreach ($candidate['resolution']['dependencies'] as $dependency)
-				{
-					foreach ($dependency['source_keys'] ?? [] as $key)
-					{
-						if (!empty($candidates[$key]['resolution']['blockers']))
-						{
-							$this->block($candidate, 'Dependency source is blocked: ' . $key);
-							$changed = true;
-						}
-					}
-				}
+				$this->active = $candidate;
+				$this->dependencies = [];
+				$resolved[$key] = $this->definition($candidate);
+				$candidate['resolution']['dependencies'] = $this->dependencies;
 			}
 			unset($candidate);
-		} while ($changed);
+
+			if ($this->resolver->effectiveRevision() === $revision)
+			{
+				break;
+			}
+		}
+
+		$unstable = $this->resolver->effectiveRevision() !== $revision;
+
+		foreach ($candidates as $key => &$candidate)
+		{
+			if (!isset($resolved[$key]))
+			{
+				continue;
+			}
+
+			if ($unstable)
+			{
+				$this->block($candidate, 'The Power dependency graph did not settle while resolving source relationships.');
+			}
+
+			foreach ($candidate['resolution']['dependencies'] as $dependency)
+			{
+				if (!in_array($dependency['status'], ['matched', 'new', 'external'], true))
+				{
+					$this->block($candidate, 'Unresolved Power dependency: ' . $dependency['fqn']);
+				}
+			}
+		}
+		unset($candidate);
+
+		$this->conflicts($candidates, $resolved);
+
+		$this->propagate($candidates);
 
 		$states = [];
 		$skipped = 0;
@@ -365,9 +420,25 @@ final class Assembler
 	protected function bindings(array &$candidates): void
 	{
 		$bindings = [];
+		$standing = [];
+		$contexts = [];
+		$canonical = [];
+		$checks = 0;
+		$applied = 0;
 
-		foreach ($candidates as $candidate)
+		foreach ($candidates as $key => $candidate)
 		{
+			if ($candidate['exists'])
+			{
+				$contexts[$key] = $this->resolver->sourceContext($candidate);
+				$canonical[$key] = $this->namespacer->canonical($candidate['standing'], $contexts[$key]);
+
+				foreach ($this->roots($candidate['fqn']) as $root)
+				{
+					$standing[$candidate['source_unit']][$root][$key] = true;
+				}
+			}
+
 			if ($candidate['resolution']['status'] !== 'matched'
 				|| in_array($candidate['action'], ['ignored', 'filtered'], true))
 			{
@@ -375,13 +446,41 @@ final class Assembler
 			}
 
 			$binding = $this->namespacer->binding($candidate, $candidate['standing'],
-				$this->resolver->sourceContext($candidate), $candidate['matched_guid']);
+				$contexts[$key], $candidate['matched_guid']);
 
 			if ($binding !== null)
 			{
-				$bindings[$candidate['source_unit']][] = $binding;
+				// Different proving GUIDs can establish one identical root role.
+				// Keep a deterministic witness and validate that role just once.
+				$root = strtolower(trim($binding['root'], '\\'));
+				$identity = hash('sha256', serialize([$binding['template'], $binding['component']]));
+				$bindings[$candidate['source_unit']][$root][$identity] ??= $binding;
 			}
 		}
+
+		foreach ($bindings as $unit => &$roots)
+		{
+			foreach ($roots as $root => &$roles)
+			{
+				foreach ($roles as $identity => $binding)
+				{
+					foreach ($standing[$unit][$root] ?? [] as $key => $_)
+					{
+						$checks++;
+						$check = $this->namespacer->bind($candidates[$key], $binding, $contexts[$key]);
+
+						if ($check !== null && $this->namespacer->canonical($check, $contexts[$key]) !== $canonical[$key])
+						{
+							unset($roles[$identity]);
+
+							break;
+						}
+					}
+				}
+			}
+			unset($roles);
+		}
+		unset($roots);
 
 		foreach ($candidates as $key => &$candidate)
 		{
@@ -392,34 +491,20 @@ final class Assembler
 			}
 
 			$possible = [];
+			$context = $this->resolver->sourceContext($candidate);
 
-			foreach ($bindings[$candidate['source_unit']] ?? [] as $binding)
+			foreach ($this->roots($candidate['fqn']) as $root)
 			{
-				$bound = $this->namespacer->bind($candidate, $binding, $this->resolver->sourceContext($candidate));
-
-				if ($bound === null)
+				foreach ($bindings[$candidate['source_unit']][$root] ?? [] as $binding)
 				{
-					continue;
-				}
+					$applied++;
+					$bound = $this->namespacer->bind($candidate, $binding, $context);
 
-				foreach ($candidates as $standing)
-				{
-					if ($standing['source_unit'] !== $candidate['source_unit'] || !$standing['exists'])
+					if ($bound !== null)
 					{
-						continue;
-					}
-
-					$context = $this->resolver->sourceContext($standing);
-					$check = $this->namespacer->bind($standing, $binding, $context);
-
-					if ($check !== null && $this->namespacer->canonical($check, $context)
-						!== $this->namespacer->canonical($standing['standing'], $context))
-					{
-						continue 2;
+						$possible[$bound] = $binding;
 					}
 				}
-
-				$possible[$bound] = $binding;
 			}
 
 			if (count($possible) === 1)
@@ -433,6 +518,90 @@ final class Assembler
 			}
 		}
 		unset($candidate);
+		$this->report->set('counts.powers.binding_checks', $checks);
+		$this->report->set('counts.powers.binding_applications', $applied);
+	}
+
+	/**
+	 * Index only namespace ancestors that could bind one concrete declaration.
+	 *
+	 * @param   string  $fqn  The concrete class name.
+	 *
+	 * @return  array<string>  Case-normalized strict ancestor names.
+	 * @since   6.2.0
+	 */
+	protected function roots(string $fqn): array
+	{
+		$parts = explode('\\', strtolower(trim($fqn, '\\')));
+		array_pop($parts);
+		$roots = [];
+		$prefix = '';
+
+		foreach ($parts as $part)
+		{
+			$prefix .= ($prefix === '' ? '' : '\\') . $part;
+			$roots[] = $prefix;
+		}
+
+		return $roots;
+	}
+
+	/**
+	 * Propagate blocked sources through reverse dependency edges exactly once.
+	 *
+	 * @param   array  $candidates  Source candidates updated with transitive blockers.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function propagate(array &$candidates): void
+	{
+		$dependants = [];
+		$queue = [];
+		$queued = [];
+		$edges = 0;
+
+		foreach ($candidates as $key => $candidate)
+		{
+			if ($candidate['resolution']['blockers'] !== [])
+			{
+				$queue[] = $key;
+				$queued[$key] = true;
+			}
+
+			foreach ($candidate['resolution']['dependencies'] as $dependency)
+			{
+				foreach ($dependency['source_keys'] ?? [] as $source)
+				{
+					$dependants[$source][$key] = true;
+				}
+			}
+		}
+
+		for ($cursor = 0; $cursor < count($queue); $cursor++)
+		{
+			$source = $queue[$cursor];
+
+			foreach ($dependants[$source] ?? [] as $key => $_)
+			{
+				$edges++;
+
+				if (!$this->writable($candidates[$key]))
+				{
+					continue;
+				}
+
+				$this->block($candidates[$key], 'Dependency source is blocked: ' . $source);
+
+				if (!isset($queued[$key]))
+				{
+					$queue[] = $key;
+					$queued[$key] = true;
+				}
+			}
+		}
+
+		$this->report->set('counts.powers.blocked_dependency_edges', $edges);
 	}
 
 	/**
@@ -474,6 +643,14 @@ final class Assembler
 			$candidates[$key]['resolution']['namespace']['target_path'] = $output['path'];
 			$fqn = strtolower($output['fqn']);
 			$path = strtolower($output['path']);
+
+			foreach ($this->resolver->occupants($output) as $occupant)
+			{
+				if ($occupant['guid'] !== $guid)
+				{
+					$this->block($candidates[$key], 'An existing Power occupies the compiled class or file path: ' . $occupant['guid']);
+				}
+			}
 
 			if (isset($targets[$guid], $definitions[$key], $definitions[$targets[$guid]])
 				&& $definitions[$key] != $definitions[$targets[$guid]])
@@ -1022,6 +1199,18 @@ final class Assembler
 	protected function find(string $fqn): ?string
 	{
 		$key = strtolower(trim($fqn, '\\'));
+		$scope = $this->active['source_unit'] . ':' . (string) ($this->active['source_component_id'] ?? '')
+			. ':' . $this->resolver->effectiveRevision();
+
+		if (isset($this->resolvedDependencies[$scope][$key]))
+		{
+			$this->dependencies[$key] = ['fqn' => $fqn] + $this->resolvedDependencies[$scope][$key];
+			$this->report->set('counts.powers.dependency_reused', (int) $this->report->get('counts.powers.dependency_reused', 0) + 1);
+
+			return $this->dependencies[$key]['guid'];
+		}
+
+		$this->report->set('counts.powers.dependency_lookups', (int) $this->report->get('counts.powers.dependency_lookups', 0) + 1);
 		$local = $this->local[$key] ?? [];
 
 		if ($local !== [])
@@ -1051,6 +1240,7 @@ final class Assembler
 				'fqn' => $fqn, 'status' => $guid !== null ? 'matched' : 'ambiguous',
 				'guid' => $guid, 'source_keys' => array_keys($local)
 			];
+			$this->resolvedDependencies[$scope][$key] = $this->dependencies[$key];
 
 			return $guid;
 		}
@@ -1069,6 +1259,7 @@ final class Assembler
 			'fqn' => $fqn, 'status' => $result['status'], 'guid' => $result['matched_guid'],
 			'candidates' => array_keys($result['candidates']), 'source_keys' => []
 		];
+		$this->resolvedDependencies[$scope][$key] = $this->dependencies[$key];
 
 		return $result['matched_guid'];
 	}

@@ -35,7 +35,7 @@ final class Identity
 	protected Config $config;
 
 	/**
-	 * The GUID-addressed definition and candidate indexes.
+	 * The bounded GUID and indexed fallback reader.
 	 *
 	 * @var    Existing
 	 * @since  6.2.0
@@ -75,18 +75,82 @@ final class Identity
 	protected array $contexts = [];
 
 	/**
-	 * Already primed selected-graph indexes, keyed by source namespace context.
+	 * Context-specific FQN and destination buckets, retaining all candidate GUIDs.
 	 *
-	 * @var    array<string, bool>
+	 * @var    array<string, array>
 	 * @since  6.2.0
 	 */
-	protected array $indexed = [];
+	protected array $indexes = [];
+
+	/**
+	 * Semantic resolution results within the current evidence snapshot.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $resolved = [];
+
+	/**
+	 * Bounded requests replayed before persistence, including negative lookups.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $requests = [];
+
+	/**
+	 * Output requests whose occupant evidence also participates in review.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $placements = [];
+
+	/**
+	 * Deterministic work counters for operation diagnostics and scale contracts.
+	 *
+	 * @var    array<string, int>
+	 * @since  6.2.0
+	 */
+	protected array $counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0];
+
+	/**
+	 * Independent operation inputs, including runs which contain no Power files.
+	 *
+	 * @var    string|null
+	 * @since  6.2.0
+	 */
+	protected ?string $operation = null;
+
+	/**
+	 * Effective dependencies introduced by actually selected unlinked Powers.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $effective = [];
+
+	/**
+	 * Append-only dependency identities for incremental per-context indexing.
+	 *
+	 * @var    array<string>
+	 * @since  6.2.0
+	 */
+	protected array $effectiveOrder = [];
+
+	/**
+	 * Current active source pairing decisions, independent of source bindings.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $decisions = [];
 
 	/**
 	 * Constructor.
 	 *
 	 * @param   Config      $config      The run configuration.
-	 * @param   Existing    $existing    The GUID-addressed definition and candidate indexes.
+	 * @param   Existing    $existing    The bounded definition reader.
 	 * @param   Namespacer  $names       The namespace and placement validator.
 	 * @param   References  $references  The reference graph.
 	 * @param   Guid        $guid        The stable identity derivation service.
@@ -111,7 +175,15 @@ final class Identity
 	public function refresh(): void
 	{
 		$this->contexts = [];
-		$this->indexed = [];
+		$this->indexes = [];
+		$this->resolved = [];
+		$this->requests = [];
+		$this->placements = [];
+		$this->operation = null;
+		$this->effective = [];
+		$this->effectiveOrder = [];
+		$this->decisions = [];
+		$this->counters = ['indexed_records' => 0, 'candidate_evaluations' => 0, 'resolution_cache_hits' => 0];
 		$this->names->forget();
 		$this->existing->refresh();
 		$this->references->refresh();
@@ -128,6 +200,181 @@ final class Identity
 	 * @since   6.2.0
 	 */
 	public function resolve(array $source, ?array $decision = null, bool $reference = false): array
+	{
+		$this->scope();
+		// Do not include assembler output such as action/guid/resolution in a
+		// source key. Include every observed input used by identity and placement.
+		$source = array_intersect_key($source, array_flip([
+			'source_key', 'source_unit', 'source_component_id', 'source_guid',
+			'fqn', 'stored', 'type', 'source_error', 'binding', 'placement_valid', 'placement_evidence'
+		]));
+		$target = $this->names->context();
+		$this->contexts[(int) $target['id']] = $target;
+		$context = $this->sourceContext($source);
+		$this->references->context((int) $target['id']);
+
+		if ((int) $context['id'] > 0 && $context['id'] !== $target['id'])
+		{
+			$this->references->context((int) $context['id']);
+		}
+		$request = [$source, $decision, $reference];
+		$key = hash('sha256', serialize([$request, $target, $context, $this->references->fingerprint()]));
+		$this->requests[hash('sha256', serialize($request))] = $request;
+
+		if (isset($this->resolved[$key]))
+		{
+			$this->counters['resolution_cache_hits']++;
+
+			return $this->resolved[$key];
+		}
+
+		$result = $this->evaluate($source, $decision, $reference);
+		$usage = $this->references->context((int) $target['id']);
+
+		if ($result['status'] === 'matched' && !isset($usage['powers'][$result['matched_guid']]))
+		{
+			$revision = $this->effectiveRevision();
+			$closure = $this->references->power($result['matched_guid']);
+
+			foreach ($closure['powers'] as $guid => $provenance)
+			{
+				if (!isset($this->effective[$guid]))
+				{
+					$this->effective[$guid] = $provenance;
+					$this->effectiveOrder[] = $guid;
+				}
+			}
+
+			if ($revision !== $this->effectiveRevision())
+			{
+				// The complete transitive closure can reveal a conflicting class
+				// for this very source. Evaluate that bucket before caching it.
+				$result = $this->evaluate($source, $decision, $reference);
+			}
+
+			$result['dependency_coverage_complete'] = $closure['complete'];
+			$result['dependency_gaps'] = $closure['gaps'];
+		}
+
+		$result['context_fingerprint'] = hash('sha256', serialize([$context, $target, $this->references->fingerprint()]));
+		// A selected unlinked root may expand the effective graph. Cache under
+		// that resulting revision so an unchanged repeat remains a true cache hit.
+		$key = hash('sha256', serialize([$request, $target, $context, $this->references->fingerprint()]));
+
+		return $this->resolved[$key] = $result;
+	}
+
+	/**
+	 * Start a new effective selection snapshot when reviewed pairings change.
+	 *
+	 * @param   array<string, array>  $decisions  Current source-keyed pairing verdicts.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function prepareDecisions(array $decisions): void
+	{
+		ksort($decisions);
+
+		if ($this->decisions !== $decisions)
+		{
+			$this->refresh();
+			$this->decisions = $decisions;
+		}
+	}
+
+	/**
+	 * Observe whether one source-selection pass added dependency evidence.
+	 *
+	 * @return  int  The number of effective dependency identities reached.
+	 * @since   6.2.0
+	 */
+	public function effectiveRevision(): int
+	{
+		return count($this->effective);
+	}
+
+	/**
+	 * Rebuild the same bounded evidence queries immediately before persistence.
+	 *
+	 * Replaying negative name/GUID lookups detects new competing rows without a
+	 * catalogue scan. Fresh graph traversal detects newly linked dependencies.
+	 *
+	 * @return  string  The freshly revalidated semantic fingerprint.
+	 * @since   6.2.0
+	 */
+	public function revalidateFingerprint(): string
+	{
+		$requests = $this->requests;
+		$placements = $this->placements;
+		$roots = array_keys($this->references->observed());
+		$this->refresh();
+
+		foreach ($roots as $component)
+		{
+			$this->references->context((int) $component);
+		}
+
+		foreach ($requests as [$source, $decision, $reference])
+		{
+			$this->resolve($source, $decision, $reference);
+		}
+
+		foreach ($placements as $output)
+		{
+			$this->occupants($output);
+		}
+
+		return $this->fingerprint();
+	}
+
+	/**
+	 * Read bounded occupants of a compiled class or physical destination.
+	 *
+	 * Selected dependencies are indexed once, including ignored source files.
+	 * The indexed name fallback retains unlinked conventional occupants as well.
+	 *
+	 * @param   array{fqn: string, path: string}  $output  The proposed destination.
+	 *
+	 * @return  array<string, array{guid: string, fqn: string, path: string}>  Occupants.
+	 * @since   6.2.0
+	 */
+	public function occupants(array $output): array
+	{
+		$this->scope();
+		$this->placements[hash('sha256', serialize($output))] = $output;
+		$context = $this->names->context();
+		$usage = $this->references->context((int) $context['id']);
+		$source = ['fqn' => $output['fqn'], 'stored' => $output['fqn']];
+		$key = $this->index($source, $context, $usage);
+		$index = $this->indexes[$key];
+
+		return ($index['outputs'][$this->names->key($output['fqn'])] ?? [])
+			+ ($index['paths'][strtolower($output['path'])] ?? []);
+	}
+
+	/**
+	 * Expose work counts without source code or private placeholder values.
+	 *
+	 * @return  array<string, int>  Counts within the current operation.
+	 * @since   6.2.0
+	 */
+	public function work(): array
+	{
+		return $this->counters;
+	}
+
+	/**
+	 * Evaluate one uncached semantic source identity.
+	 *
+	 * @param   array       $source     Stable source identity and raw observations.
+	 * @param   array|null  $decision   An explicit pairing verdict.
+	 * @param   bool        $reference  Resolve without granting write scope.
+	 *
+	 * @return  array  The common resolution and blocker contract.
+	 * @since   6.2.0
+	 */
+	protected function evaluate(array $source, ?array $decision, bool $reference): array
 	{
 		$target = $this->names->context();
 		$sourceId = (int) ($source['source_component_id'] ?? $this->config->get('sourceComponent', $target['id']));
@@ -173,40 +420,14 @@ final class Identity
 		$explicit = strtolower((string) ($decision['target'] ?? ''));
 		$compatible = [];
 
-		$indexContext = $this->names->sourceContext($source['stored'], $sourceContext);
-		$indexKey = hash('sha256', serialize([$target['id'], $indexContext]));
+		$index = $this->index($source, $sourceContext, $usage);
+		$records = $this->indexes[$index]['classes'][$this->names->key($source['fqn'])] ?? [];
 
-		if (!isset($this->indexed[$indexKey]))
+		foreach (array_unique([$supplied, $explicit, $derived]) as $guid)
 		{
-			$powers = $usage['powers'];
-
-			if ($sourceId > 0 && $sourceId !== $target['id'])
+			if (($record = $this->existing->power($guid)) !== null)
 			{
-				$powers += $this->references->context($sourceId)['powers'];
-			}
-
-			$this->existing->prime(array_keys($powers), $indexContext);
-
-			// Only already observed consumers contribute context-specific names.
-			// This accessor never discovers or scans another installed component.
-			foreach ($this->references->observed() as $id => $observed)
-			{
-				$this->existing->prime(array_keys($observed['powers']), $indexContext, $this->context((int) $id));
-			}
-
-			$this->indexed[$indexKey] = true;
-		}
-
-		$records = $this->existing->bounded($source['stored'], $source['fqn'], $indexContext);
-
-		// Explicit identities are always validated, even outside the FQN bucket.
-		foreach (array_unique([$supplied, $explicit, $derived]) as $identity)
-		{
-			$record = $this->existing->power($identity);
-
-			if ($record !== null)
-			{
-				$records[$record['guid']] = $record;
+				$records[$guid] = $record;
 			}
 		}
 
@@ -214,9 +435,11 @@ final class Identity
 
 		foreach ($records as $guid => $record)
 		{
-			$evidence = $this->candidate($source, $record, $sourceContext, $usage);
+			$this->counters['candidate_evaluations']++;
+			$evidence = $this->candidate($source, $record, $sourceContext, $usage,
+				($decision['action'] ?? '') === 'update' && $explicit === $guid);
 
-			if (!$evidence['plausible'] && $record['selectable'] && !in_array($guid, [$supplied, $explicit, $derived], true))
+			if (!$evidence['plausible'] && !in_array($guid, [$supplied, $explicit, $derived], true))
 			{
 				continue;
 			}
@@ -229,7 +452,7 @@ final class Identity
 			}
 		}
 
-		$scoped = array_filter($compatible, static fn (array $entry): bool => $entry['in_target']);
+		$scoped = array_filter($compatible, static fn (array $entry): bool => $entry['in_target'] || $entry['in_effective']);
 		$literal = array_filter($compatible, static fn (array $entry): bool => $entry['literal']);
 		$chosen = null;
 		$reason = '';
@@ -276,7 +499,7 @@ final class Identity
 		elseif (count($scoped) === 1)
 		{
 			$chosen = (string) array_key_first($scoped);
-			$reason = 'component-reference';
+			$reason = $compatible[$chosen]['in_target'] ? 'component-reference' : 'effective-reference';
 		}
 		elseif (count($scoped) > 1)
 		{
@@ -331,8 +554,12 @@ final class Identity
 
 			$result['status'] = 'new';
 			$result['write_guid'] = $supplied !== '' && $this->guid->valid($supplied) ? $supplied : $derived;
-			$result['write_eligibility'] = 'automatic';
-			$result['write_scope'] = 'new';
+			// Equality fallbacks cannot prove the absence of arbitrary unlinked
+			// custom-name/alias definitions. Preserve creation, but bind the
+			// acknowledged uncertainty to the reviewed plan before writing.
+			$result['write_eligibility'] = $action === 'create' ? 'automatic' : 'approval';
+			$result['write_scope'] = $action === 'create' ? 'new' : 'unestablished';
+			$result['candidate_coverage'] = 'selected-context-and-indexed-fallback';
 
 			return $this->remapping($result, $sourceId, $target['id']);
 		}
@@ -383,55 +610,262 @@ final class Identity
 	 */
 	public function sourceContext(array $source): array
 	{
+		$this->scope();
 		$id = (int) ($source['source_component_id'] ?? $this->config->get('sourceComponent', $this->config->get('component', 0)));
 
 		return $id === (int) $this->config->get('component', 0) ? $this->names->context() : $this->context($id);
 	}
 
 	/**
-	 * Read or revalidate the exact operation evidence without a catalogue rebuild.
+	 * Read the current reference fingerprint for plan revalidation.
 	 *
-	 * @param   bool  $fresh  Re-read observed queries and applicable namespace maps.
+	 * @param   bool  $fresh  Revalidate without replacing this approved snapshot.
 	 *
-	 * @return  string  The bounded read-set fingerprint.
+	 * @return  string  The read-set fingerprint.
 	 * @since   6.2.0
 	 */
 	public function fingerprint(bool $fresh = false): string
 	{
-		$contexts = $this->contexts;
-
 		if ($fresh)
 		{
-			$this->names->forget();
+			$check = clone $this;
+			$check->names = clone $this->names;
+			$check->existing = clone $this->existing;
+			$check->references = clone $this->references;
 
-			foreach (array_keys($contexts) as $id)
+			return $check->revalidateFingerprint();
+		}
+
+		$this->scope();
+		$target = $this->names->context();
+		$this->contexts[(int) $target['id']] = $target;
+		$this->references->context((int) $target['id']);
+		$contexts = $this->contexts;
+		ksort($contexts);
+
+		return hash('sha256', serialize([$contexts, $this->config->get('targetComponentGuid')])
+			. $this->references->fingerprint() . $this->existing->fingerprint());
+	}
+
+	/**
+	 * Keep cached contexts out of subsequent runs which skip Power harvesting.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function scope(): void
+	{
+		$inputs = [];
+
+		foreach (['component', 'sourceComponent', 'componentCode', 'targetComponentGuid', 'path', 'libraries', 'layout', 'joomla_version'] as $key)
+		{
+			$inputs[$key] = $this->config->get($key);
+		}
+
+		$signature = hash('sha256', serialize($inputs));
+
+		if ($this->operation !== null && $this->operation !== $signature)
+		{
+			$this->refresh();
+		}
+
+		$this->operation = $signature;
+	}
+
+	/**
+	 * Index relevant records once per effective source context and name bucket.
+	 *
+	 * The database predicates use existing GUID/name/namespace indexes. Namespace
+	 * compatibility is evaluated only after a direct FQN bucket has been found.
+	 *
+	 * @param   array  $source   The concrete source identity.
+	 * @param   array  $context  Its component context.
+	 * @param   array  $usage    The selected component's reachable Power set.
+	 *
+	 * @return  string  The effective context index key.
+	 * @since   6.2.0
+	 */
+	protected function index(array $source, array $context, array $usage): string
+	{
+		$context = $this->names->sourceContext((string) $source['stored'], $context);
+		$key = hash('sha256', serialize([$context, $usage['id'] ?? $this->config->get('component', 0), count($this->references->observed())]));
+
+		if (!isset($this->indexes[$key]))
+		{
+			$this->indexes[$key] = ['classes' => [], 'outputs' => [], 'paths' => [], 'records' => [], 'names' => [], 'stored' => [], 'effective_cursor' => 0];
+
+			foreach ($this->references->observed() as $observed)
 			{
-				$contexts[$id] = $this->names->context((int) $id);
+				foreach (array_keys($observed['powers']) as $guid)
+				{
+					if (($record = $this->existing->power($guid)) !== null)
+					{
+						$this->indexRecord($key, $record, $context);
+					}
+				}
 			}
 		}
 
-		ksort($contexts);
+		for ($cursor = $this->indexes[$key]['effective_cursor']; $cursor < count($this->effectiveOrder); $cursor++)
+		{
+			if (($record = $this->existing->power($this->effectiveOrder[$cursor])) !== null)
+			{
+				$this->indexRecord($key, $record, $context);
+				// A fallback candidate may already have been indexed before a
+				// reviewed root established that it is an effective occupant.
+				$this->indexOutput($key, $record);
+			}
+		}
 
-		return hash('sha256', serialize([
-			$this->names->signature(), $contexts,
-			$this->references->fingerprint($fresh), $this->existing->fingerprint($fresh)
-		]));
+		$this->indexes[$key]['effective_cursor'] = count($this->effectiveOrder);
+
+		$parts = explode('\\', trim((string) $source['fqn'], '\\'));
+		$name = (string) array_pop($parts);
+
+		if (!isset($this->indexes[$key]['names'][$name]))
+		{
+			$this->indexes[$key]['names'][$name] = true;
+
+			foreach ($this->existing->named($name) as $record)
+			{
+				$this->indexRecord($key, $record, $context);
+			}
+		}
+
+		// Exact written representations also recover legacy records whose name
+		// metadata is not the concrete declaration name. No suffix/LIKE scan.
+		$forms = [(string) $source['stored'], $this->names->express((string) $source['stored'], $context)];
+
+		foreach (array_unique($forms) as $form)
+		{
+			if (isset($this->indexes[$key]['stored'][$form]))
+			{
+				continue;
+			}
+
+			$this->indexes[$key]['stored'][$form] = true;
+
+			foreach ($this->existing->stored($form) as $record)
+			{
+				$this->indexRecord($key, $record, $context);
+			}
+		}
+
+		return $key;
+	}
+
+	/**
+	 * Add all contextual FQNs and target destinations of one relevant record.
+	 *
+	 * @param   string  $key      The effective source context index key.
+	 * @param   array   $record   One retained Power definition.
+	 * @param   array   $context  The effective source namespace context.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function indexRecord(string $key, array $record, array $context): void
+	{
+		$guid = $record['guid'];
+
+		if (isset($this->indexes[$key]['records'][$guid]))
+		{
+			return;
+		}
+
+		// A name bucket can contain only one of several corrupt duplicate-GUID
+		// rows. Validate the full GUID bucket before allowing it to be selected.
+		$record = $this->existing->power($guid) ?? $record;
+		$this->indexes[$key]['records'][$guid] = true;
+
+		foreach (array_merge([$record], $record['duplicates'] ?? []) as $variant)
+		{
+			$this->indexDefinition($key, $variant, $context);
+		}
+	}
+
+	/**
+	 * Keep duplicate-GUID namespace variants visible as unselectable evidence.
+	 *
+	 * @param   string  $key      The effective source context index key.
+	 * @param   array   $record   One physical database row.
+	 * @param   array   $context  The effective source namespace context.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function indexDefinition(string $key, array $record, array $context): void
+	{
+		$guid = $record['guid'];
+		$this->counters['indexed_records']++;
+		$consumers = $this->references->consumers($guid);
+		$scopes = $consumers === [] ? [$context] : [];
+
+		foreach ($consumers as $id => $consumer)
+		{
+			$scopes[] = $this->context((int) $id);
+		}
+
+		foreach ($scopes as $scope)
+		{
+			$canonical = $this->names->canonical($record['namespace'], $scope);
+
+			foreach ([$this->names->resolve($canonical, $context), $this->names->resolve($record['namespace'], $scope)] as $fqn)
+			{
+				if ($fqn !== '')
+				{
+					$this->indexes[$key]['classes'][$this->names->key($fqn)][$guid] = $record;
+				}
+			}
+		}
+
+		$this->indexOutput($key, $record);
+	}
+
+	/**
+	 * Retain the target placement once usage or a selected root establishes it.
+	 *
+	 * @param   string  $key     The effective source context index key.
+	 * @param   array   $record  One relevant Power row.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function indexOutput(string $key, array $record): void
+	{
+		$guid = $record['guid'];
+		$target = $this->names->context();
+		$usage = $this->references->context((int) $target['id']);
+		$canonical = $this->names->canonical($record['namespace'], $target);
+		$output = isset($usage['powers'][$guid]) || isset($this->effective[$guid])
+			|| (!$this->names->componentVariable($canonical, $target) && !$this->customAlias($record['namespace']))
+			? $this->names->output($record['namespace']) : null;
+
+		if ($output !== null)
+		{
+			$output['guid'] = $guid;
+			$this->indexes[$key]['outputs'][$this->names->key($output['fqn'])][$guid] = $output;
+			$this->indexes[$key]['paths'][strtolower($output['path'])][$guid] = $output;
+		}
 	}
 
 	/**
 	 * Evaluate a record in its own applicable custom-placeholder contexts.
 	 *
-	 * @param   array  $source   The source descriptor.
-	 * @param   array  $record   One existing Power.
-	 * @param   array  $context  Verified source component context.
-	 * @param   array  $usage    Selected component usage.
+	 * @param   array  $source    The source descriptor.
+	 * @param   array  $record    One existing Power.
+	 * @param   array  $context   Verified source component context.
+	 * @param   array  $usage     Selected component usage.
+	 * @param   bool   $reviewed  Explicit pairing acknowledges an unknown alias context.
 	 *
 	 * @return  array  Bounded candidate evidence, not stored code or placeholder maps.
 	 * @since   6.2.0
 	 */
-	protected function candidate(array $source, array $record, array $context, array $usage): array
+	protected function candidate(array $source, array $record, array $context, array $usage, bool $reviewed = false): array
 	{
 		$consumers = $this->references->consumers($record['guid']);
+		$inEffective = isset($this->effective[$record['guid']]);
+		$unknownAlias = $consumers === [] && !$inEffective && $this->customAlias($record['namespace']);
 		$inTarget = isset($usage['powers'][$record['guid']]);
 		$scopes = $consumers === [] ? [$context] : [];
 
@@ -472,13 +906,30 @@ final class Identity
 			'guid' => $record['guid'], 'id' => $record['id'],
 			'system_name' => $record['system_name'], 'namespace' => $record['namespace'], 'type' => $record['type'],
 			'plausible' => $compatible,
-			'compatible' => $kindFits && $compatible && $record['selectable'],
-			'in_target' => $inTarget, 'literal' => $literal, 'concrete' => $concrete,
+			'compatible' => $kindFits && $compatible && $record['selectable'] && (!$unknownAlias || $reviewed),
+			'in_target' => $inTarget, 'literal' => $literal && !$unknownAlias, 'concrete' => $concrete && !$unknownAlias,
+			'in_effective' => $inEffective,
 			'generic' => $generic, 'scope' => $scope, 'consumers' => $consumers,
 			'provenance' => $usage['powers'][$record['guid']] ?? [],
-			'reason' => !$kindFits ? 'declaration-kind-conflict'
+			'reason' => $unknownAlias ? 'custom-alias-context-not-established' : (!$kindFits ? 'declaration-kind-conflict'
 				: ($inTarget ? 'referenced-by-target' : ($consumers !== [] ? 'other-known-consumers' : 'usage-not-established'))
+			)
 		];
+	}
+
+	/**
+	 * Whether a representation needs a custom alias's owning component context.
+	 *
+	 * @param   string  $namespace  The unchanged stored namespace representation.
+	 *
+	 * @return  bool  True for a placeholder outside the compiler's core set.
+	 * @since   6.2.0
+	 */
+	protected function customAlias(string $namespace): bool
+	{
+		preg_match_all('/(?:\[\[\[|###)([A-Za-z0-9_]+)(?:\]\]\]|###)/', $namespace, $matches);
+
+		return array_diff($matches[1], Placeholders::CORE) !== [];
 	}
 
 	/**

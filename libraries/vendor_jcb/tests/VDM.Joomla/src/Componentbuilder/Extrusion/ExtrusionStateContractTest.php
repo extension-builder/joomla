@@ -24,6 +24,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Decision;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Parsed;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
@@ -58,7 +59,7 @@ final class ExtrusionStateContractTest extends TestCase
 	 */
 	private const LEAVES = [
 		'Source', 'Inventory', 'Table', 'Schema', 'Form',
-		'Language', 'View', 'Resolved', 'Harvest', 'Decision', 'Report'
+		'Language', 'View', 'Resolved', 'Harvest', 'Decision', 'Report', 'Parsed'
 	];
 
 	/**
@@ -536,24 +537,24 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * The scope must expose exactly the thirteen state registries, keyed by name.
+	 * The scope must expose exactly the fifteen state registries, keyed by name.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testScopeExposesExactlyTheFourteenStateRegistriesByName(): void
+	public function testScopeExposesExactlyTheFifteenStateRegistriesByName(): void
 	{
 		$config = new Config();
 		$registries = $this->stateRegistries();
 		$scope = new Scope($config, ...array_values($registries));
 		$exposed = $scope->registries();
 
-		$this->assertCount(14, $exposed);
+		$this->assertCount(15, $exposed);
 		$this->assertSame(
 			[
 				'source', 'inventory', 'table', 'schema', 'form',
 				'language', 'view', 'resolved', 'harvest', 'decision', 'report',
-				'message', 'proposal', 'plan'
+				'message', 'proposal', 'plan', 'parsed'
 			],
 			array_keys($exposed)
 		);
@@ -712,7 +713,7 @@ final class ExtrusionStateContractTest extends TestCase
 	}
 
 	/**
-	 * A fresh set of the thirteen state registries, in constructor order.
+	 * A fresh set of the fifteen state registries, in constructor order.
 	 *
 	 * @return  array<string, Registry>  The registries keyed by scope name.
 	 * @since   6.1.6
@@ -733,7 +734,8 @@ final class ExtrusionStateContractTest extends TestCase
 			'report' => new Report(),
 			'message' => new Message(),
 			'proposal' => new Proposal(),
-			'plan' => new Plan()
+			'plan' => new Plan(),
+			'parsed' => new Parsed()
 		];
 	}
 

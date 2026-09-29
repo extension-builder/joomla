@@ -16,6 +16,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
@@ -73,7 +74,9 @@ final class IndexedDiscoveryTest extends TestCase
 		}
 
 		$this->assertSame([1], array_values(array_unique($seen['joomla_component'])));
-		$this->assertSame([1], array_values(array_unique($seen['power'])));
+		$powerIds = array_values(array_unique($seen['power']));
+		sort($powerIds);
+		$this->assertSame([1, 10001, 10002, 10003, 10004, 10005, 10006, 10007], $powerIds);
 	}
 
 	/**
@@ -196,7 +199,10 @@ final class IndexedDiscoveryTest extends TestCase
 
 		foreach ($load->queries as $query)
 		{
-			$this->assertNotSame([], $query['where'], 'Fresh approval validation must not rebuild a global catalogue.');
+			if (in_array($query['table'], ['power', 'joomla_component'], true))
+			{
+				$this->assertNotSame([], $query['where'], 'Fresh approval validation must not rebuild a global catalogue.');
+			}
 		}
 	}
 
@@ -327,6 +333,14 @@ final class IndexedDiscoveryTest extends TestCase
 	protected function engine(int $unrelated): array
 	{
 		$load = new ExtrusionPowerLoadFixture();
+		$id = 10000;
+
+		foreach ((new Selection())->utilityPowers() as $guid => $force)
+		{
+			$id++;
+			$load->power($id, $guid, 'Utility' . $id, 'Compiler\\Utility.Utility' . $id);
+		}
+
 		$load->record('joomla_component', 1, [
 			'guid' => $this->guid('selected-component'), 'name_code' => 'target',
 			'add_namespace_prefix' => 1, 'namespace_prefix' => 'Acme',

@@ -66,7 +66,8 @@ final class CommitTest extends FilesystemTestCase
 		$expected = $container->get('Extrusion.Registry.Plan')->writes();
 		$this->assertCount(2, $expected);
 		$config = $container->get('Extrusion.Config');
-		$config->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeUnknown', true);
+		$config->set('approvedPlan', $report->get('plan.fingerprint'));
+		$config->set('acknowledgeUnknown', true);
 		$report = $engine->dryRun(false)->extrude();
 		$this->assertSame('committed', $report->get('plan.status'), json_encode($report->get('plan')));
 		$this->assertCount(2, $item->records());
@@ -102,7 +103,7 @@ final class CommitTest extends FilesystemTestCase
 	}
 
 	/**
-	 * Shared mutation requires one acknowledgement bound to the actual preview.
+	 * Unobserved shared mutation still requires a fingerprint-bound acknowledgement.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -117,7 +118,7 @@ final class CommitTest extends FilesystemTestCase
 		$engine = $container->get('Extrusion.Powers.Extruder');
 		$report = $engine->dryRun()->extrude();
 		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
-		$this->assertSame(['unknown'], $report->get('plan.required_approvals'), 'An unselected consumer is not discovered by a hidden global audit.');
+		$this->assertSame(['unknown'], $report->get('plan.required_approvals'));
 		$fingerprint = $report->get('plan.fingerprint');
 		$config->set('approvedPlan', $fingerprint);
 		$this->assertSame('blocked', $engine->dryRun(false)->extrude()->get('plan.status'));
@@ -141,7 +142,7 @@ final class CommitTest extends FilesystemTestCase
 		$engine = $container->get('Extrusion.Powers.Extruder');
 		$fingerprint = $engine->dryRun()->extrude()->get('plan.fingerprint');
 		$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/Factory.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass Factory { public function value(): int { return 3; } }\n");
-		$container->get('Extrusion.Config')->set('approvedPlan', $fingerprint)->set('acknowledgeUnknown', true);
+		$container->get('Extrusion.Config')->set('approvedPlan', $fingerprint);
 		$report = $engine->dryRun(false)->extrude();
 		$this->assertSame('blocked', $report->get('plan.status'), json_encode($report->get('plan')));
 		$this->assertNotSame($fingerprint, $report->get('plan.fingerprint'));
@@ -160,18 +161,47 @@ final class CommitTest extends FilesystemTestCase
 		$db->expects($this->once())->method('transactionStart');
 		$db->expects($this->once())->method('transactionRollback');
 		$db->expects($this->never())->method('transactionCommit');
-		$engine = $container->get('Extrusion.Powers.Extruder');
-		$fingerprint = $engine->dryRun()->extrude()->get('plan.fingerprint');
-		$container->get('Extrusion.Config')->set('approvedPlan', $fingerprint)->set('acknowledgeUnknown', true);
 		$plan = $container->get('Extrusion.Registry.Plan');
 		$plan->begin();
-		$engine->dryRun(false)->extrude();
+		$container->get('Extrusion.Powers.Extruder')->extrude();
+		$config = $container->get('Extrusion.Config');
+		$config->set('dryRun', true);
+		$this->assertTrue($container->get('Extrusion.Resolver.Commit')->apply());
+		$config->set('approvedPlan', $container->get('Extrusion.Registry.Report')->get('plan.fingerprint'));
+		$config->set('acknowledgeUnknown', true)->set('dryRun', false);
 		$row = clone $item->table('power')->get($this->guid('power-b'));
 		$row->main_class_code = 'An intervening developer edit';
 		$item->serve('power', $this->guid('power-b'), $row);
 		$this->assertFalse($container->get('Extrusion.Resolver.Commit')->apply());
 		$this->assertSame([], $item->records());
 		$this->assertSame('blocked', $container->get('Extrusion.Registry.Report')->get('plan.status'));
+	}
+
+	/**
+	 * New indexed candidates invalidate approval inside the transaction boundary.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testInterveningCandidateInsertRollsBackBeforeTheFirstWrite(): void
+	{
+		[$container, $load, $item, $db] = $this->prepared();
+		$db->expects($this->once())->method('transactionStart')->willReturnCallback(function () use ($load): void
+		{
+			$load->record('power', 99, [
+				'guid' => $this->guid('intervening'), 'name' => 'Factory', 'type' => 'class',
+				'namespace' => 'Acme\\Joomla\\Beta.Factory'
+			]);
+		});
+		$db->expects($this->once())->method('transactionRollback');
+		$db->expects($this->never())->method('transactionCommit');
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$report = $engine->dryRun()->extrude();
+		$container->get('Extrusion.Config')->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeUnknown', true);
+		$report = $engine->dryRun(false)->extrude();
+		$this->assertSame('blocked', $report->get('plan.status'));
+		$this->assertContains('stale.context', array_column($report->get('plan.blockers'), 'key'));
+		$this->assertSame([], $item->records());
 	}
 
 	/**
@@ -186,10 +216,10 @@ final class CommitTest extends FilesystemTestCase
 		$db->expects($this->once())->method('transactionStart');
 		$db->expects($this->once())->method('transactionRollback');
 		$db->expects($this->never())->method('transactionCommit');
-		$engine = $container->get('Extrusion.Powers.Extruder');
-		$fingerprint = $engine->dryRun()->extrude()->get('plan.fingerprint');
-		$container->get('Extrusion.Config')->set('approvedPlan', $fingerprint)->set('acknowledgeUnknown', true);
 		$item->refuse('power', $this->guid('power-b'));
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$report = $engine->dryRun()->extrude();
+		$container->get('Extrusion.Config')->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeUnknown', true);
 		$report = $engine->dryRun(false)->extrude();
 		$this->assertSame('rolled-back', $report->get('plan.status'), json_encode($report->get('plan')));
 		$this->assertSame([], $report->get('plan.writes'));

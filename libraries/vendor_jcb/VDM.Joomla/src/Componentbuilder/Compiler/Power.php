@@ -1218,4 +1218,3 @@ class Power implements PowerInterface
 		$this->active[$guid]->approved = null;
 	}
 }
-

@@ -421,7 +421,7 @@ final class Commit
 
 		$context = (string) $this->plan->get('context');
 
-		if (!hash_equals($context, $this->identity->fingerprint(true)))
+		if (!hash_equals($context, $this->identity->revalidateFingerprint()))
 		{
 			$this->plan->block('stale.context', 'Component references or namespace configuration changed after review.');
 		}
