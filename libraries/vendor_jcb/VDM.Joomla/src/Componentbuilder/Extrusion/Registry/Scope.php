@@ -148,6 +148,14 @@ final class Scope
 	protected Plan $plan;
 
 	/**
+	 * Context-independent lexical observations from this operation.
+	 *
+	 * @var    Parsed
+	 * @since  6.2.0
+	 */
+	protected Parsed $parsed;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config     $config     The extrusion configuration.
@@ -165,6 +173,7 @@ final class Scope
 	 * @param   Message    $message    The message bus.
 	 * @param   Proposal   $proposal   The proposal registry.
 	 * @param   Plan       $plan       The complete operation write plan.
+	 * @param   Parsed     $parsed     The source-content parsing cache.
 	 *
 	 * @since   6.1.6
 	 */
@@ -183,7 +192,8 @@ final class Scope
 		Report $report,
 		Message $message,
 		Proposal $proposal,
-		Plan $plan
+		Plan $plan,
+		Parsed $parsed
 	)
 	{
 		$this->config = $config;
@@ -201,6 +211,7 @@ final class Scope
 		$this->message = $message;
 		$this->proposal = $proposal;
 		$this->plan = $plan;
+		$this->parsed = $parsed;
 	}
 
 	/**
@@ -244,7 +255,8 @@ final class Scope
 			'report' => $this->report,
 			'message' => $this->message,
 			'proposal' => $this->proposal,
-			'plan' => $this->plan
+			'plan' => $this->plan,
+			'parsed' => $this->parsed
 		];
 	}
 }

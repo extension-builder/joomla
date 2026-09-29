@@ -69,15 +69,7 @@ final class Existing
 	protected ?string $under = null;
 
 	/**
-	 * Positive and negative GUID reads within this operation.
-	 *
-	 * @var    array<string, array|null>
-	 * @since  6.2.0
-	 */
-	protected array $direct = [];
-
-	/**
-	 * Bounded query results and their approval digests, including missing rows.
+	 * Indexed equality reads in the current operation, including missing rows.
 	 *
 	 * @var    array<string, array>
 	 * @since  6.2.0
@@ -85,20 +77,20 @@ final class Existing
 	protected array $reads = [];
 
 	/**
-	 * Context-specific concrete-name buckets for reached and queried records.
+	 * GUID-addressed records read without materialising the catalogue.
 	 *
-	 * @var    array<string, array<string, array>>
+	 * @var    array<string, array|null>
 	 * @since  6.2.0
 	 */
-	protected array $buckets = [];
+	protected array $loaded = [];
 
 	/**
-	 * Record and query indexing guards; a shared record is normalized once.
+	 * Cached deterministic fingerprint of the bounded query results.
 	 *
-	 * @var    array<string, array<string, bool>>
+	 * @var    string|null
 	 * @since  6.2.0
 	 */
-	protected array $prepared = [];
+	protected ?string $snapshot = null;
 
 	/**
 	 * Constructor.
@@ -159,19 +151,77 @@ final class Existing
 			return null;
 		}
 
-		if (!array_key_exists($guid, $this->direct))
+		if (!array_key_exists($guid, $this->loaded))
 		{
-			$rows = $this->query(['a.guid' => $guid]);
-			$this->direct[$guid] = $rows === [] ? null : $this->definition($rows[0]);
-
-			if (count($rows) > 1)
-			{
-				$this->direct[$guid]['selectable'] = false;
-				$this->report->set('powers.duplicate.guid.' . $this->key($guid), true);
-			}
+			$records = $this->read(['a.guid' => $guid]);
+			$this->loaded[$guid] = $records[$guid] ?? null;
 		}
 
-		return $this->direct[$guid];
+		return $this->loaded[$guid];
+	}
+
+	/**
+	 * Load a declaration-name bucket through the existing database name index.
+	 *
+	 * This is fallback evidence, not proof that custom names outside the selected
+	 * dependency graph cannot expand to the same declaration.
+	 *
+	 * @param   string  $name  The concrete declaration name.
+	 *
+	 * @return  array<string, array>  Every record in the indexed name bucket.
+	 * @since   6.2.0
+	 */
+	public function named(string $name): array
+	{
+		return $name === '' ? [] : $this->read(['a.name' => $name]);
+	}
+
+	/**
+	 * Load an exact stored namespace using its database index.
+	 *
+	 * @param   string  $namespace  The written namespace or placeholder template.
+	 *
+	 * @return  array<string, array>  All competing GUIDs for this representation.
+	 * @since   6.2.0
+	 */
+	public function stored(string $namespace): array
+	{
+		return $namespace === '' ? [] : $this->read(['a.namespace' => $namespace]);
+	}
+
+	/**
+	 * Fingerprint only the equality queries used by this operation.
+	 *
+	 * Empty results are retained so a newly inserted candidate invalidates review.
+	 *
+	 * @param   bool  $fresh  Re-read the same predicates without replacing the snapshot.
+	 *
+	 * @return  string  The bounded read-set fingerprint.
+	 * @since   6.2.0
+	 */
+	public function fingerprint(bool $fresh = false): string
+	{
+		if ($fresh)
+		{
+			$check = clone $this;
+			$check->refresh();
+
+			foreach ($this->reads as $read)
+			{
+				$check->read($read['where']);
+			}
+
+			return $check->fingerprint();
+		}
+
+		if ($this->snapshot === null)
+		{
+			$reads = array_map(static fn (array $read): string => $read['snapshot'], $this->reads);
+			ksort($reads);
+			$this->snapshot = hash('sha256', serialize($reads));
+		}
+
+		return $this->snapshot;
 	}
 
 	/**
@@ -282,224 +332,82 @@ final class Existing
 	{
 		$this->index = null;
 		$this->under = null;
-		$this->direct = [];
 		$this->reads = [];
-		$this->buckets = [];
-		$this->prepared = [];
+		$this->loaded = [];
+		$this->snapshot = null;
 
 		return $this;
 	}
 
 	/**
-	 * Index the selected graph once, using the same namespace conversion as lookup.
+	 * Retain all rows under a bounded indexed equality lookup.
 	 *
-	 * @param   array<string>  $guids    Reached Power identities, not a catalogue.
-	 * @param   array          $context  The applicable source namespace context.
-	 * @param   array|null     $origin   A separately established consumer namespace context.
+	 * Duplicate GUIDs are integrity failures even when both rows share a name.
+	 * Every selected row participates in the fingerprint, including invalid GUIDs.
 	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	public function prime(array $guids, array $context, ?array $origin = null): void
-	{
-		$scope = hash('sha256', serialize($context));
-
-		foreach ($guids as $guid)
-		{
-			$this->indexRecord((string) $guid, $context, $scope, $origin);
-		}
-	}
-
-	/**
-	 * Read only the concrete-name bucket and indexed fallback queries for one class.
+	 * @param   array<string, string>  $where  Indexed equality predicates.
 	 *
-	 * The installed schema indexes both name and namespace. Name reads are cached
-	 * once and distributed into FQN buckets, so two unrelated namespaces sharing
-	 * a short class name do not cause a repeated candidate walk for every source.
-	 * GUID-directed priming also covers renamed or placeholder-derived class names.
-	 *
-	 * @param   string  $namespace  Source-observed stored placement.
-	 * @param   string  $fqn        The concrete PHP class name.
-	 * @param   array       $context    The source namespace context.
-	 *
-	 * @return  array<string, array>  All competing GUIDs in the relevant bucket.
-	 * @since   6.2.0
-	 */
-	public function bounded(string $namespace, string $fqn, array $context): array
-	{
-		$scope = hash('sha256', serialize($context));
-		$parts = explode('\\', trim($fqn, '\\'));
-		$name = (string) end($parts);
-		$filters = [['a.name' => $name]];
-
-		foreach (array_unique([$namespace, $this->namespacer->placeholderize($namespace, false)]) as $stored)
-		{
-			if ($stored !== '')
-			{
-				$filters[] = ['a.namespace' => $stored];
-			}
-		}
-
-		foreach ($filters as $where)
-		{
-			$key = 'query:' . serialize($where);
-
-			if (isset($this->prepared[$scope][$key]))
-			{
-				continue;
-			}
-
-			$this->prepared[$scope][$key] = true;
-
-			foreach ($this->query($where) as $row)
-			{
-				$this->indexRecord((string) ($row['guid'] ?? ''), $context, $scope);
-			}
-		}
-
-		$candidates = $this->buckets[$scope][$this->namespacer->key($fqn)] ?? [];
-		ksort($candidates);
-
-		return $candidates;
-	}
-
-	/**
-	 * Hash the exact bounded query set, optionally repeating it for approval checks.
-	 *
-	 * @param   bool  $fresh  Whether to re-read each recorded query.
-	 *
-	 * @return  string  A private snapshot digest, including negative lookups.
-	 * @since   6.2.0
-	 */
-	public function fingerprint(bool $fresh = false): string
-	{
-		$digests = [];
-
-		foreach ($this->reads as $key => $read)
-		{
-			$digests[$key] = $fresh
-				? hash('sha256', serialize($this->read($read['where'])))
-				: $read['digest'];
-		}
-
-		ksort($digests);
-
-		return hash('sha256', serialize($digests));
-	}
-
-	/**
-	 * Index one definition at most once per applicable namespace context.
-	 *
-	 * @param   string      $guid     A reached or indexed-query Power identity.
-	 * @param   array       $context  The source namespace context.
-	 * @param   string      $scope    Its stable operation-local index key.
-	 * @param   array|null  $origin   A separately established consumer context.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	protected function indexRecord(string $guid, array $context, string $scope, ?array $origin = null): void
-	{
-		$guid = strtolower(trim($guid));
-		$origin ??= $context;
-		$key = 'guid:' . $guid . ':' . hash('sha256', serialize($origin));
-
-		if (isset($this->prepared[$scope][$key]))
-		{
-			return;
-		}
-
-		$this->prepared[$scope][$key] = true;
-		$record = $this->power($guid);
-
-		if ($record === null)
-		{
-			return;
-		}
-
-		// Every duplicate row contributes its occupied name, while the GUID remains
-		// unselectable. Choosing the first namespace could hide a conflicting row.
-		foreach ($this->query(['a.guid' => $guid]) as $row)
-		{
-			$namespace = trim((string) ($row['namespace'] ?? ''));
-			$canonical = $this->namespacer->canonical($namespace, $origin);
-			$names = [
-				$this->namespacer->resolve($canonical, $context),
-				$this->namespacer->resolve($namespace, $origin)
-			];
-
-			foreach (array_unique($names) as $fqn)
-			{
-				if ($fqn !== '')
-				{
-					$this->buckets[$scope][$this->namespacer->key($fqn)][$guid] = $record;
-				}
-			}
-		}
-	}
-
-	/**
-	 * Reuse a bounded, parameterised query, retaining both positive and negative reads.
-	 *
-	 * @param   array  $where  Indexed equality conditions.
-	 *
-	 * @return  array<int, array>  Raw lookup rows, deterministically ordered.
-	 * @since   6.2.0
-	 */
-	protected function query(array $where): array
-	{
-		$key = serialize($where);
-
-		if (!isset($this->reads[$key]))
-		{
-			$rows = $this->read($where);
-			$this->reads[$key] = [
-				'where' => $where, 'rows' => $rows,
-				'digest' => hash('sha256', serialize($rows))
-			];
-		}
-
-		return $this->reads[$key]['rows'];
-	}
-
-	/**
-	 * Execute an indexed lookup without invoking the compatibility catalogue API.
-	 *
-	 * @param   array  $where  Indexed equality conditions.
-	 *
-	 * @return  array<int, array>  The identity and namespace lookup columns.
+	 * @return  array<string, array>  Normalised records keyed by GUID.
 	 * @since   6.2.0
 	 */
 	protected function read(array $where): array
 	{
-		$rows = array_map(static fn ($row): array => (array) $row, (array) $this->load->items([
+		$key = serialize($where);
+
+		if (isset($this->reads[$key]))
+		{
+			return $this->reads[$key]['records'];
+		}
+
+		$rows = (array) $this->load->items([
 			'a.id' => 'id', 'a.guid' => 'guid', 'a.name' => 'name',
 			'a.namespace' => 'namespace', 'a.type' => 'type', 'a.system_name' => 'system_name'
-		], ['a' => 'power'], $where));
-		usort($rows, static fn (array $a, array $b): int => strcmp(serialize($a), serialize($b)));
+		], ['a' => 'power'], $where);
+		$records = [];
+		$digests = [];
 
-		return $rows;
-	}
+		foreach ($rows as $row)
+		{
+			$row = (array) $row;
+			ksort($row);
+			$digests[] = hash('sha256', serialize($row));
+			$guid = strtolower(trim((string) ($row['guid'] ?? '')));
 
-	/**
-	 * Normalize the shared public record shape without changing stored representation.
-	 *
-	 * @param   array  $row  A raw lookup record.
-	 *
-	 * @return  array  The compact definition and its initial eligibility.
-	 * @since   6.2.0
-	 */
-	protected function definition(array $row): array
-	{
-		return [
-			'guid' => strtolower(trim((string) ($row['guid'] ?? ''))),
-			'id' => (int) ($row['id'] ?? 0),
-			'name' => trim((string) ($row['name'] ?? '')),
-			'system_name' => trim((string) ($row['system_name'] ?? '')),
-			'type' => trim((string) ($row['type'] ?? '')),
-			'namespace' => trim((string) ($row['namespace'] ?? '')),
-			'selectable' => trim((string) ($row['namespace'] ?? '')) !== ''
-		];
+			if (!GuidHelper::valid($guid))
+			{
+				$this->report->set('powers.invalid.guid.' . (int) ($row['id'] ?? 0), true);
+
+				continue;
+			}
+
+			$record = [
+				'guid' => $guid, 'id' => (int) ($row['id'] ?? 0),
+				'name' => trim((string) ($row['name'] ?? '')),
+				'system_name' => trim((string) ($row['system_name'] ?? '')),
+				'type' => trim((string) ($row['type'] ?? '')),
+				'namespace' => trim((string) ($row['namespace'] ?? '')),
+				'selectable' => trim((string) ($row['namespace'] ?? '')) !== ''
+			];
+
+			if (isset($records[$guid]))
+			{
+				$records[$guid]['selectable'] = false;
+				$record['selectable'] = false;
+				$records[$guid]['duplicates'][] = $record;
+				$this->report->set('powers.duplicate.guid.' . $this->key($guid), true);
+			}
+			else
+			{
+				$records[$guid] = $record;
+			}
+		}
+
+		ksort($records);
+		sort($digests);
+		$this->reads[$key] = ['where' => $where, 'records' => $records, 'snapshot' => hash('sha256', serialize($digests))];
+		$this->snapshot = null;
+
+		return $records;
 	}
 
 	/**
@@ -544,7 +452,15 @@ final class Existing
 				continue;
 			}
 
-			$this->index['guid'][$guid] = $this->definition($row);
+			$this->index['guid'][$guid] = [
+				'guid' => $guid,
+				'id' => (int) ($row['id'] ?? 0),
+				'name' => trim((string) ($row['name'] ?? '')),
+				'system_name' => trim((string) ($row['system_name'] ?? '')),
+				'type' => trim((string) ($row['type'] ?? '')),
+				'namespace' => trim((string) ($row['namespace'] ?? '')),
+				'selectable' => trim((string) ($row['namespace'] ?? '')) !== ''
+			];
 		}
 
 		ksort($this->index['guid']);

@@ -13,6 +13,8 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Power\ExtractorInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
+use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Power\Table;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Utilities\GuidHelper;
@@ -54,6 +56,22 @@ final class References
 	protected ExtractorInterface $tokens;
 
 	/**
+	 * Pure selection rules shared with the ordinary compiler.
+	 *
+	 * @var    Selection
+	 * @since  6.2.0
+	 */
+	protected Selection $selection;
+
+	/**
+	 * Effective generated-target options, when supplied by the operation.
+	 *
+	 * @var    Config|null
+	 * @since  6.2.0
+	 */
+	protected ?Config $config;
+
+	/**
 	 * Direct child lists read from the existing Package configuration classes.
 	 *
 	 * @var    array<string, array>
@@ -78,6 +96,22 @@ final class References
 	protected array $contexts = [];
 
 	/**
+	 * Consumer observations indexed by Power GUID, limited to requested roots.
+	 *
+	 * @var    array<string, array<int, array>>
+	 * @since  6.2.0
+	 */
+	protected array $consumers = [];
+
+	/**
+	 * Decoded records and extracted outgoing edges, shared across root visits.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $nodes = [];
+
+	/**
 	 * Cached metadata shapes, independent of record snapshots.
 	 *
 	 * @var    array<string, array>
@@ -94,15 +128,15 @@ final class References
 	protected ?string $snapshot = null;
 
 	/**
-	 * Whether every catalogue component could be identified for usage scanning.
+	 * Context options for the currently cached read set.
 	 *
-	 * @var    bool
+	 * @var    string|null
 	 * @since  6.2.0
 	 */
-	protected bool $identified = true;
+	protected ?string $scope = null;
 
 	/**
-	 * Whether an installation-wide audit was explicitly requested this run.
+	 * Whether complete catalogue discovery was explicitly requested.
 	 *
 	 * @var    bool
 	 * @since  6.2.0
@@ -110,15 +144,15 @@ final class References
 	protected bool $audited = false;
 
 	/**
-	 * Reverse edges for already observed roots, never inferred global coverage.
+	 * Whether every explicitly audited component had a valid identity.
 	 *
-	 * @var    array<string, array<int, array>>
+	 * @var    bool
 	 * @since  6.2.0
 	 */
-	protected array $consumers = [];
+	protected bool $identified = true;
 
 	/**
-	 * Exact read descriptors and their digests, including empty result sets.
+	 * Bounded query descriptors retained for non-mutating fresh validation.
 	 *
 	 * @var    array<string, array>
 	 * @since  6.2.0
@@ -126,12 +160,28 @@ final class References
 	protected array $requests = [];
 
 	/**
-	 * Decoded records within the immutable operation snapshot.
+	 * Nodes already expanded for explicitly selected existing Power bindings.
 	 *
-	 * @var    array<string, array>
+	 * @var    array<string, int>
 	 * @since  6.2.0
 	 */
-	protected array $decoded = [];
+	protected array $effectiveVisited = [];
+
+	/**
+	 * Effective dependency identities already delivered to the binding resolver.
+	 *
+	 * @var    array<string, bool>
+	 * @since  6.2.0
+	 */
+	protected array $effectivePowers = [];
+
+	/**
+	 * Coverage gaps retained across incremental effective dependency visits.
+	 *
+	 * @var    array<string, string>
+	 * @since  6.2.0
+	 */
+	protected array $effectiveGaps = [];
 
 	/**
 	 * Constructor.
@@ -140,15 +190,26 @@ final class References
 	 * @param   Table               $table     The Power relationship metadata.
 	 * @param   ExtractorInterface  $tokens    The pure compiler token reader.
 	 * @param   array               $children  Package-owned direct child lists.
+	 * @param   Selection|null      $selection Pure compiler selection rules.
+	 * @param   Config|null         $config    Effective generated-target options.
 	 *
 	 * @since   6.2.0
 	 */
-	public function __construct(LoadInterface $load, Table $table, ExtractorInterface $tokens, array $children)
+	public function __construct(
+		LoadInterface $load,
+		Table $table,
+		ExtractorInterface $tokens,
+		array $children,
+		?Selection $selection = null,
+		?Config $config = null
+	)
 	{
 		$this->load = $load;
 		$this->table = $table;
 		$this->tokens = $tokens;
 		$this->children = $children;
+		$this->selection = $selection ?? new Selection();
+		$this->config = $config;
 	}
 
 	/**
@@ -160,84 +221,54 @@ final class References
 	public function refresh(): void
 	{
 		$this->snapshot = null;
-		$this->identified = true;
 		$this->reads = [];
 		$this->contexts = [];
 		$this->consumers = [];
-		$this->requests = [];
-		$this->decoded = [];
+		$this->nodes = [];
+		$this->scope = null;
 		$this->audited = false;
+		$this->identified = true;
+		$this->requests = [];
+		$this->effectiveVisited = [];
+		$this->effectivePowers = [];
+		$this->effectiveGaps = [];
 	}
 
 	/**
-	 * Explicitly audit the installation; ordinary selected-root reads never call this.
+	 * Explicitly audit all components outside the selected-root operation.
 	 *
-	 * @return  array<int, array>  Audited contexts with reference provenance.
+	 * @return  array<int, array>  Contexts with direct/transitive usage and gaps.
 	 * @since   6.2.0
 	 */
 	public function contexts(): array
 	{
 		if (!$this->audited)
 		{
-			foreach ($this->query('joomla_component') as $component)
+			foreach ($this->query('joomla_component', []) as $component)
 			{
 				$id = (int) ($component['id'] ?? 0);
 
-				if ($id < 1 || !GuidHelper::valid($component['guid'] ?? ''))
+				if ($id < 1 || !GuidHelper::valid((string) ($component['guid'] ?? '')))
 				{
 					$this->identified = false;
 
 					continue;
 				}
 
-				if (!isset($this->contexts[$id]))
-				{
-					$this->remember($this->walk($component));
-				}
+				$this->context($id);
 			}
 
 			$this->audited = true;
 			$this->snapshot = null;
 		}
 
-		ksort($this->contexts);
-
 		return $this->contexts;
 	}
 
 	/**
-	 * Read only the selected component and the records reachable from its root.
+	 * Read observed roots without requesting additional component records.
 	 *
-	 * @param   int  $component  The selected component id; zero is a new component.
-	 *
-	 * @return  array  The context, or an explicitly unestablished context.
-	 * @since   6.2.0
-	 */
-	public function context(int $component): array
-	{
-		if (isset($this->contexts[$component]))
-		{
-			return $this->contexts[$component];
-		}
-
-		$rows = $component > 0 ? $this->query('joomla_component', ['a.id' => $component]) : [];
-
-		if (count($rows) === 1 && GuidHelper::valid($rows[0]['guid'] ?? ''))
-		{
-			return $this->remember($this->walk($rows[0]));
-		}
-
-		return $this->remember([
-			'id' => $component, 'guid' => '', 'name' => '', 'powers' => [],
-			'gaps' => $component === 0 ? [] : ['component:' . $component => 'missing or invalid root'],
-			'complete' => $component === 0
-		]);
-	}
-
-	/**
-	 * Return already observed roots without requesting additional components.
-	 *
-	 * @return  array<int, array>  The current selected or explicitly audited contexts.
+	 * @return  array<int, array>  Contexts already requested in this operation.
 	 * @since   6.2.0
 	 */
 	public function observed(): array
@@ -246,11 +277,117 @@ final class References
 	}
 
 	/**
-	 * Return known consumers in constant-time bucket access without an implicit audit.
+	 * Read one context without treating missing information as ownership proof.
+	 *
+	 * @param   int  $component  The selected component id.
+	 *
+	 * @return  array  The context, or an explicitly unestablished context.
+	 * @since   6.2.0
+	 */
+	public function context(int $component): array
+	{
+		$scope = serialize([
+			$this->config?->get('joomla_version'),
+			$this->config?->get('layout'),
+			$this->config?->get('powers'),
+			$this->config?->get('add_power')
+		]);
+
+		if ($this->scope !== null && $this->scope !== $scope)
+		{
+			$this->refresh();
+		}
+
+		if ($this->scope !== $scope)
+		{
+			$this->snapshot = null;
+			$this->scope = $scope;
+		}
+
+		if (isset($this->contexts[$component]))
+		{
+			return $this->contexts[$component];
+		}
+
+		$context = [
+			'id' => $component, 'guid' => '', 'name' => '', 'powers' => [],
+			'gaps' => [], 'complete' => $component === 0
+		];
+
+		if ($component > 0)
+		{
+			$rows = $this->query('joomla_component', ['a.id' => $component]);
+
+			if (count($rows) === 1 && GuidHelper::valid((string) ($rows[0]['guid'] ?? '')))
+			{
+				$record = $rows[0];
+				$context['guid'] = strtolower($record['guid']);
+				$context['name'] = (string) ($record['name_code'] ?? '');
+				$this->walk($record, $context);
+				$context['complete'] = $context['gaps'] === [];
+			}
+			else
+			{
+				$context['gaps']['component:' . $component] = count($rows) > 1 ? 'duplicate' : 'missing or invalid identity';
+			}
+		}
+		elseif ($component === 0)
+		{
+			$this->walk(null, $context);
+			$context['complete'] = $context['gaps'] === [];
+		}
+
+		ksort($context['powers']);
+		ksort($context['gaps']);
+		$this->contexts[$component] = $context;
+		ksort($this->contexts);
+
+		foreach ($context['powers'] as $guid => $edge)
+		{
+			if ($component > 0)
+			{
+				$this->consumers[$guid][$component] = array_intersect_key($context, array_flip(['id', 'guid', 'name', 'complete'])) + $edge;
+				ksort($this->consumers[$guid]);
+			}
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Expand a selected existing Power's effective dependencies once per run.
+	 *
+	 * The result is incremental: only newly observed Power identities are
+	 * returned. Effective bindings never become stored consumer or ownership
+	 * evidence. Missing records stay in the approval read set and are reported.
+	 *
+	 * @param   string  $guid  The explicitly selected existing Power GUID.
+	 *
+	 * @return  array{powers: array, gaps: array, complete: bool}  New dependencies.
+	 * @since   6.2.0
+	 */
+	public function power(string $guid): array
+	{
+		$context = ['powers' => [], 'gaps' => []];
+		$queue = [];
+		$this->enqueue($queue, $context, 'power', $guid, 0, 'effective:' . strtolower($guid));
+		$this->traverse(array_values($queue), $context, $this->effectiveVisited, true);
+		$context['powers'] = array_diff_key($context['powers'], $this->effectivePowers);
+		$this->effectivePowers += array_fill_keys(array_keys($context['powers']), true);
+		$this->effectiveGaps += $context['gaps'];
+		ksort($context['powers']);
+		ksort($context['gaps']);
+		$context['complete'] = $this->effectiveGaps === [];
+
+		return $context;
+	}
+
+	/**
+	 * Return known consumers without asserting exclusive ownership.
 	 *
 	 * @param   string  $guid  The Power GUID.
 	 *
-	 * @return  array<int, array>  Observed identities and edge provenance only.
+	 * @return  array<int, array>  Public component identities and edge provenance.
 	 * @since   6.2.0
 	 */
 	public function consumers(string $guid): array
@@ -259,11 +396,9 @@ final class References
 	}
 
 	/**
-	 * Whether explicit global consumer discovery has no known omissions.
+	 * Only an explicit complete audit establishes stored consumer coverage.
 	 *
-	 * A complete selected graph is not evidence of complete consumer coverage.
-	 *
-	 * @return  bool  True only after a complete, explicitly requested audit.
+	 * @return  bool  False for ordinary selected-root discovery.
 	 * @since   6.2.0
 	 */
 	public function complete(): bool
@@ -273,14 +408,11 @@ final class References
 	}
 
 	/**
-	 * Fingerprint exactly the observed queries, including negative relationships.
+	 * Fingerprint the exact read set, including empty relationship queries.
 	 *
-	 * Revalidation repeats this bounded read set. A newly added dependency changes
-	 * its referring record or an empty child query, so no global rebuild is needed.
+	 * @param   bool  $fresh  Whether to re-read the same bounded queries.
 	 *
-	 * @param   bool  $fresh  Whether to re-read the recorded queries before hashing.
-	 *
-	 * @return  string  Private approval evidence, not stored record contents.
+	 * @return  string  The private approval fingerprint, not record contents.
 	 * @since   6.2.0
 	 */
 	public function fingerprint(bool $fresh = false): string
@@ -290,85 +422,90 @@ final class References
 			return $this->snapshot;
 		}
 
-		$digests = [];
+		$reads = $this->reads;
 
-		foreach ($this->requests as $key => $request)
+		if ($fresh)
 		{
-			$digests[$key] = $fresh
-				? hash('sha256', serialize($this->read($request['entity'], $request['where'])))
-				: $request['digest'];
+			foreach ($this->requests as $key => [$entity, $where])
+			{
+				$reads[$key] = $this->read($entity, $where);
+			}
 		}
 
-		ksort($digests);
-		$digest = hash('sha256', serialize([$digests, $this->audited, $this->identified]));
+		ksort($reads);
+		$fingerprint = hash('sha256', serialize([$this->scope, $reads, $this->audited, $this->identified]));
 
-		if (!$fresh)
-		{
-			$this->snapshot = $digest;
-		}
-
-		return $digest;
+		return $fresh ? $fingerprint : ($this->snapshot = $fingerprint);
 	}
 
 	/**
-	 * Retain one root and reverse-index only its actual Power edges.
+	 * Expose bounded work counters without returning private record contents.
 	 *
-	 * @param   array  $context  The resolved root context.
-	 *
-	 * @return  array  The retained context.
+	 * @return  array<string, int>  The operation-local graph work.
 	 * @since   6.2.0
 	 */
-	protected function remember(array $context): array
+	public function diagnostics(): array
 	{
-		$id = $context['id'];
-		$this->contexts[$id] = $context;
-		$this->snapshot = null;
-
-		foreach ($context['powers'] as $guid => $edge)
-		{
-			$this->consumers[$guid][$id] = array_intersect_key($context, array_flip(['id', 'guid', 'name', 'complete'])) + $edge;
-			ksort($this->consumers[$guid]);
-		}
-
-		return $context;
-	}
-
-	/**
-	 * Traverse one root in zero/one Power-edge order, retaining bounded edge reasons.
-	 *
-	 * Zero-cost definition/child edges go to the front; Power edges go to the
-	 * back. A record is expanded at its minimum Power depth, even across cycles.
-	 * Incoming reasons are retained without enumerating root-to-node paths.
-	 *
-	 * @param   array  $component  The verified raw component record.
-	 *
-	 * @return  array  Reachable Powers, directness, provenance and gaps.
-	 * @since   6.2.0
-	 */
-	protected function walk(array $component): array
-	{
-		$id = (int) $component['id'];
-		$guid = strtolower((string) $component['guid']);
-		$context = [
-			'id' => $id, 'guid' => $guid,
-			'name' => (string) ($component['name_code'] ?? ''),
-			'powers' => [], 'gaps' => []
+		return [
+			'contexts' => count($this->contexts),
+			'queries' => count($this->reads),
+			'records' => count($this->nodes),
+			'edges' => array_sum(array_map(static fn (array $node): int => count($node['edges']), $this->nodes))
 		];
-		$queue = new \SplDoublyLinkedList();
-		$queue->push(['joomla_component', $component, 0, 'component:' . $guid]);
+	}
+
+	/**
+	 * Traverse one root with compact direct/transitive state and incoming edges.
+	 *
+	 * @param   array|null  $component  The selected raw component, or first import.
+	 * @param   array  $context    The accumulated root-specific evidence.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function walk(?array $component, array &$context): void
+	{
+		$override = (int) $this->config?->get('add_power', $this->config?->get('powers', 2));
+		$enabled = $this->selection->enabled($override > 1 || $this->config === null
+			? (bool) ($component['add_powers'] ?? true) : $override);
+		$queue = $component === null ? [] : [['joomla_component', $component, 0, 'component:' . $context['guid']]];
 		$visited = [];
 
-		while (!$queue->isEmpty())
+		foreach ($this->selection->utilityPowers() as $guid => $force)
 		{
-			[$entity, $record, $depth, $via] = $queue->shift();
-			$identity = (string) ($record['guid'] ?? $record['id'] ?? hash('sha256', serialize($record)));
+			if ($this->selection->enabled($enabled, $force))
+			{
+				$this->enqueue($queue, $context, 'power', $guid, 0, 'compiler:utility');
+			}
+		}
+
+		$this->traverse(array_values($queue), $context, $visited, $enabled);
+	}
+
+	/**
+	 * Expand bounded edges while retaining minimum direct/transitive evidence.
+	 *
+	 * @param   array  $queue    Initial bounded root records.
+	 * @param   array  $context  Root-specific Power and gap observations.
+	 * @param   array  $visited  Minimum expansion depth, shared for effective roots.
+	 * @param   bool   $enabled Whether unforced code-token loads are enabled.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function traverse(array $queue, array &$context, array &$visited, bool $enabled): void
+	{
+		for ($cursor = 0; $cursor < count($queue); $cursor++)
+		{
+			[$entity, $record, $depth, $via] = $queue[$cursor];
+			$guid = (string) ($record['guid'] ?? '');
+			$identity = GuidHelper::valid($guid) ? strtolower($guid) : 'id:' . (int) $record['id'];
 			$key = $entity . ':' . $identity;
 
 			if ($entity === 'power')
 			{
-				$power = strtolower($identity);
-				$context['powers'][$power]['direct'] = ($context['powers'][$power]['direct'] ?? false) || $depth === 1;
-				$context['powers'][$power]['via'][$via] = true;
+				$context['powers'][$identity]['direct'] = ($context['powers'][$identity]['direct'] ?? false) || $depth === 1;
+				$context['powers'][$identity]['via'][$via] = true;
 			}
 
 			if (isset($visited[$key]) && $visited[$key] <= $depth)
@@ -376,127 +513,269 @@ final class References
 				continue;
 			}
 
+			// Depth 2 represents every transitive route. A shorter route can
+			// improve directness at most twice, without reparsing the node.
 			$visited[$key] = $depth;
-			$record = $this->decode($entity, $record);
+			$node = $this->node($entity, $record, $key, $enabled);
+			$context['gaps'] += $node['gaps'];
 
-			foreach ($record['_reference_errors'] ?? [] as $field)
+			foreach ($node['edges'] as [$target, $destination, $cost, $reason])
 			{
-				$context['gaps'][$key . '.' . $field] = 'invalid storage';
+				$queue[] = [$target, $destination, min(2, $depth + $cost), $reason];
+			}
+		}
+
+		foreach ($context['powers'] as &$power)
+		{
+			ksort($power['via']);
+		}
+		unset($power);
+	}
+
+	/**
+	 * Load, decode and extract each reached record's outgoing edges only once.
+	 *
+	 * @param   string  $entity  The metadata-selected entity.
+	 * @param   array   $record  The raw record from a bounded read.
+	 * @param   string  $key     The stable entity and record identity.
+	 * @param   bool    $enabled Whether this root enables unforced Power loads.
+	 *
+	 * @return  array  Outgoing edges and explicit coverage gaps.
+	 * @since   6.2.0
+	 */
+	protected function node(string $entity, array $record, string $key, bool $enabled): array
+	{
+		$cache = $key . ':' . (int) $enabled;
+
+		if (isset($this->nodes[$cache]))
+		{
+			return $this->nodes[$cache];
+		}
+
+		$record = $this->decode($entity, $record);
+		$shape = $this->shape($entity);
+		$edges = [];
+		$evidence = ['gaps' => []];
+
+		foreach ($record['_reference_errors'] ?? [] as $field)
+		{
+			$evidence['gaps'][$key . '.' . $field] = 'invalid storage';
+		}
+
+		foreach ($shape['parents'] as $path => $link)
+		{
+			$target = $link['entity'];
+
+			// Component ownership is a root boundary; Joomla Powers have a
+			// separate catalogue and compiler token contract.
+			if ($target === 'joomla_component' || $target === 'joomla_power')
+			{
+				continue;
 			}
 
-			$shape = $this->shape($entity);
-
-			foreach ($shape['parents'] as $path => $link)
+			if ($target === 'power' && !$enabled && $entity !== 'power')
 			{
-				$target = $link['entity'];
-
-				// The graph never walks backwards into a different component.
-				if ($target === 'joomla_component' || $target === 'joomla_power')
-				{
-					continue;
-				}
-
-				foreach ($this->values($record, explode('|', $path)) as $value)
-				{
-					$this->enqueue($queue, $context, $target, $value, $depth, $key . '.' . $path);
-				}
+				continue;
 			}
 
-			foreach ($shape['code'] as $field)
+			if ($entity === 'power' && in_array($path, ['extends', 'extendsinterfaces'], true)
+				&& $path !== $this->selection->inheritanceField((string) ($record['type'] ?? 'class')))
 			{
-				if (!is_string($record[$field] ?? null))
-				{
-					continue;
-				}
-
-				foreach ((array) $this->tokens->get($record[$field]) as $power)
-				{
-					$this->enqueue($queue, $context, 'power', $power, $depth, $key . '.' . $field);
-				}
+				continue;
 			}
 
-			foreach ($shape['children'] as $field => $links)
+			foreach ($this->values($record, explode('|', $path)) as $value)
 			{
-				foreach ($links as $link)
+				$this->enqueue($edges, $evidence, $target, $value, 0, $key . '.' . $path);
+			}
+		}
+
+		foreach ($shape['code'] as $field)
+		{
+			if (!is_string($record[$field] ?? null) || $record[$field] === '')
+			{
+				continue;
+			}
+
+			if ($entity === 'power' && !$this->selection->codeEnabled($record, $field))
+			{
+				continue;
+			}
+
+			if ($entity !== 'power' && array_key_exists('add_' . $field, $record)
+				&& (int) $record['add_' . $field] !== 1)
+			{
+				continue;
+			}
+
+			foreach ($enabled ? (array) $this->tokens->get($record[$field]) : [] as $power)
+			{
+				$this->enqueue($edges, $evidence, 'power', $power, 0, $key . '.' . $field);
+			}
+
+			$this->code($record[$field], $edges, $evidence, $key . '.' . $field);
+		}
+
+		if ($entity === 'joomla_component')
+		{
+			$this->injected($record, $edges, $evidence, $key);
+		}
+
+		$owned = [];
+
+		foreach ($shape['children'] as $links)
+		{
+			foreach ($links as $link)
+			{
+				if (!str_contains($link['key'], '|'))
 				{
-					$path = explode('|', $link['key']);
-					$value = $record[$field] ?? null;
-
-					if ($value === null || $value === '')
-					{
-						continue;
-					}
-
-					$where = count($path) === 1
-						? ['a.' . $path[0] => $value]
-						: $this->ownerFilter($shape['children'], $link['entity'], $record);
-
-					if ($where === [])
-					{
-						$context['gaps'][$key . '->' . $link['key']] = 'unbounded relationship';
-
-						continue;
-					}
-
-					foreach ($this->query($link['entity'], $where) as $child)
-					{
-						$decoded = $this->decode($link['entity'], $child);
-
-						if (in_array((string) $value, array_map('strval', $this->values($decoded, $path)), true))
-						{
-							$queue->unshift([$link['entity'], $child, $depth, $key . '->' . $link['key']]);
-						}
-					}
+					$owned[$link['entity']] = true;
 				}
 			}
 		}
 
-		ksort($context['powers']);
-		ksort($context['gaps']);
-		$context['complete'] = $context['gaps'] === [];
-
-		return $context;
-	}
-
-	/**
-	 * Constrain nested child selections to a metadata-established direct owner.
-	 *
-	 * Nested form values, such as tab numbers, are not installation-wide ownership
-	 * keys. The direct child relationship bounds the rows before decoding them.
-	 * An unsupported relationship remains a gap rather than a full table scan.
-	 *
-	 * @param   array   $children  The current entity's approved child relationships.
-	 * @param   string  $entity    The nested child entity.
-	 * @param   array   $record    The current root-owned record.
-	 *
-	 * @return  array  An indexed owner condition, or no established bound.
-	 * @since   6.2.0
-	 */
-	protected function ownerFilter(array $children, string $entity, array $record): array
-	{
-		foreach ($children as $field => $links)
+		foreach ($shape['children'] as $field => $links)
 		{
-			if (!isset($record[$field]) || $record[$field] === '')
+			$value = $record[$field] ?? null;
+
+			if (!is_scalar($value) || (string) $value === '')
 			{
 				continue;
 			}
 
 			foreach ($links as $link)
 			{
-				if ($link['entity'] === $entity && !str_contains($link['key'], '|'))
+				$path = explode('|', $link['key']);
+				$reason = $key . '->' . $link['entity'] . '.' . $link['key'];
+
+				if (count($path) !== 1)
 				{
-					return ['a.' . $link['key'] => $record[$field]];
+					// A direct owner column selects this child's complete local
+					// row set. Nested references describe its content, not
+					// additional ownership across unrelated components.
+					if (!isset($owned[$link['entity']]))
+					{
+						$evidence['gaps'][$reason] = 'reverse relationship index unavailable';
+					}
+
+					continue;
+				}
+
+				foreach ($this->query($link['entity'], ['a.' . $path[0] => $value]) as $child)
+				{
+					$edges[] = [$link['entity'], $child, 0, $reason];
 				}
 			}
 		}
 
-		return [];
+		return $this->nodes[$cache] = ['edges' => $edges, 'gaps' => $evidence['gaps']];
+	}
+
+	/**
+	 * Follow the compiler's nested stored-code selectors through bounded reads.
+	 *
+	 * @param   string  $code      The enabled, decoded code field.
+	 * @param   array   $edges     The outgoing record edges.
+	 * @param   array   $evidence  Accumulated unresolved route evidence.
+	 * @param   string  $via       The record and code field provenance.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function code(string $code, array &$edges, array &$evidence, string $via): void
+	{
+		foreach ($this->selection->codeReferences($code) as $entity => $selectors)
+		{
+			foreach (array_unique($selectors) as $selector)
+			{
+				if ($entity === 'custom_code')
+				{
+					$selector = trim(explode('+', $selector, 2)[0]);
+					$where = [is_numeric($selector) ? 'a.id' : 'a.function_name' => is_numeric($selector) ? (int) $selector : $selector];
+					$where['a.target'] = 2;
+				}
+				else
+				{
+					$where = ['a.alias' => $selector];
+					// The compiler's aliases also include historical normalized
+					// spellings. Exact local evidence cannot prove that broader
+					// index complete and must never trigger a hidden table scan.
+					$evidence['gaps'][$via . '->' . $entity . ':' . $selector . ':aliases'] = 'normalized alias index unavailable';
+				}
+
+				$rows = $this->query($entity, $where);
+				$reason = $via . '->' . $entity . ':' . $selector;
+
+				if (count($rows) !== 1)
+				{
+					$evidence['gaps'][$reason] = $rows === [] ? 'missing' : 'duplicate';
+
+					continue;
+				}
+
+				if ($entity === 'custom_code' && (int) ($rows[0]['published'] ?? 0) < 1)
+				{
+					continue;
+				}
+
+				$edges[$reason] = [$entity, $rows[0], 0, $reason];
+			}
+		}
+
+		if (str_contains($code, '[EXTERNALCODE='))
+		{
+			$evidence['gaps'][$via . ':external'] = 'external code unavailable during read-only discovery';
+		}
+	}
+
+	/**
+	 * Read component-scoped late code injection without loading other roots.
+	 *
+	 * @param   array   $component  The selected raw component.
+	 * @param   array   $edges      The outgoing code edges.
+	 * @param   array   $evidence   Missing target-context evidence.
+	 * @param   string  $via        Component identity provenance.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	protected function injected(array $component, array &$edges, array &$evidence, string $via): void
+	{
+		$target = (int) $this->config?->get('joomla_version', 0);
+		$layout = (string) $this->config?->get('layout', 'auto');
+
+		if ($target === 0 && in_array($layout, ['j3', 'j4', 'j5', 'j6'], true))
+		{
+			$target = (int) substr($layout, 1);
+		}
+
+		$rows = $this->query('custom_code', ['a.component' => $component['guid'], 'a.target' => 1]);
+
+		foreach ($rows as $record)
+		{
+			if ((int) ($record['published'] ?? 0) < 1)
+			{
+				continue;
+			}
+
+			if (!in_array($target, [3, 4, 5, 6], true))
+			{
+				$evidence['gaps'][$via . ':injected-target'] = 'generated Joomla target unavailable';
+
+				continue;
+			}
+
+			if ((int) ($record['joomla_version'] ?? 0) === $target)
+			{
+				$edges[] = ['custom_code', $record, 0, $via . ':injected'];
+			}
+		}
 	}
 
 	/**
 	 * Add one validated forward reference and record unavailable destinations.
 	 *
-	 * @param   \SplDoublyLinkedList  $queue    The pending records.
+	 * @param   array   $queue    The pending records.
 	 * @param   array   $context  The component provenance.
 	 * @param   string  $entity   The metadata-selected entity.
 	 * @param   mixed   $value    The referenced GUID or legacy numeric id.
@@ -506,7 +785,7 @@ final class References
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	protected function enqueue(\SplDoublyLinkedList $queue, array &$context, string $entity, $value, int $depth, string $via): void
+	protected function enqueue(array &$queue, array &$context, string $entity, $value, int $depth, string $via): void
 	{
 		if (!$this->table->exist($entity) || !is_scalar($value))
 		{
@@ -515,6 +794,11 @@ final class References
 
 		$value = (string) $value;
 		$key = GuidHelper::valid($value) ? 'guid' : (ctype_digit($value) && (int) $value > 0 ? 'id' : null);
+
+		if ($key === 'guid')
+		{
+			$value = strtolower($value);
+		}
 
 		if ($key === null)
 		{
@@ -538,14 +822,14 @@ final class References
 			return;
 		}
 
-		if ($entity === 'power')
+		if ($entity === 'power' && !GuidHelper::valid((string) ($rows[0]['guid'] ?? '')))
 		{
-			$queue->push([$entity, reset($rows), $depth + 1, $via]);
+			$context['gaps'][$via . '->power:' . $value] = 'invalid identity';
+
+			return;
 		}
-		else
-		{
-			$queue->unshift([$entity, reset($rows), $depth, $via]);
-		}
+
+		$queue[$entity . ':' . $value . ':' . $via] = [$entity, reset($rows), $depth + ($entity === 'power' ? 1 : 0), $via];
 	}
 
 	/**
@@ -557,28 +841,25 @@ final class References
 	 * @return  array<int, array>  Deterministically ordered raw records.
 	 * @since   6.2.0
 	 */
-	protected function query(string $entity, array $where = []): array
+	protected function query(string $entity, array $where): array
 	{
 		$key = $entity . ':' . serialize($where);
 
 		if (!array_key_exists($key, $this->reads))
 		{
-			$this->reads[$key] = $this->read($entity, $where);
-			$this->requests[$key] = [
-				'entity' => $entity, 'where' => $where,
-				'digest' => hash('sha256', serialize($this->reads[$key]))
-			];
 			$this->snapshot = null;
+			$this->reads[$key] = $this->read($entity, $where);
+			$this->requests[$key] = [$entity, $where];
 		}
 
 		return $this->reads[$key];
 	}
 
 	/**
-	 * Execute one recorded read through the existing database boundary.
+	 * Execute one recorded read without replacing the reviewed snapshot.
 	 *
-	 * @param   string  $entity  The metadata-approved table.
-	 * @param   array   $where   Parameterised equality conditions.
+	 * @param   string  $entity  The known entity.
+	 * @param   array   $where   Parameterized equality conditions.
 	 *
 	 * @return  array<int, array>  Deterministically ordered raw records.
 	 * @since   6.2.0
@@ -603,9 +884,11 @@ final class References
 	protected function shape(string $entity): array
 	{
 		return $this->shapes[$entity] ??= [
-			'parents' => $this->table->parents($entity),
+			'parents' => $entity === 'power'
+				? array_intersect_key($this->table->parents($entity), array_flip($this->selection->relationshipFields()))
+				: $this->table->parents($entity),
 			'children' => $this->table->children($entity, $this->children[$entity] ?? []),
-			'code' => $this->table->search($entity, 'code'),
+			'code' => $entity === 'power' ? $this->selection->codeFields() : $this->table->search($entity, 'code'),
 			'fields' => $this->table->get($entity) ?? []
 		];
 	}
@@ -621,13 +904,6 @@ final class References
 	 */
 	protected function decode(string $entity, array $record): array
 	{
-		$key = $entity . ':' . ($record['id'] ?? $record['guid'] ?? hash('sha256', serialize($record)));
-
-		if (isset($this->decoded[$key]))
-		{
-			return $this->decoded[$key];
-		}
-
 		foreach ($this->shape($entity)['fields'] as $name => $field)
 		{
 			if (!is_string($record[$name] ?? null))
@@ -657,7 +933,7 @@ final class References
 			}
 		}
 
-		return $this->decoded[$key] = $record;
+		return $record;
 	}
 
 	/**

@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Reader\ClassFile;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Parsed;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 
@@ -105,6 +106,14 @@ final class Harvester
 	protected Report $report;
 
 	/**
+	 * Lexical declarations from unchanged source content in this run.
+	 *
+	 * @var    Parsed
+	 * @since  6.2.0
+	 */
+	protected Parsed $parsed;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param   Config      $config      The extrusion configuration.
@@ -115,6 +124,7 @@ final class Harvester
 	 * @param   Guid        $guid        The identity resolver.
 	 * @param   Harvest     $harvest     The harvest registry.
 	 * @param   Report      $report      The run report registry.
+	 * @param   Parsed      $parsed      The content-addressed lexical observations.
 	 *
 	 * @since   6.1.7
 	 */
@@ -126,7 +136,8 @@ final class Harvester
 		Identity $identity,
 		Guid $guid,
 		Harvest $harvest,
-		Report $report
+		Report $report,
+		Parsed $parsed
 	)
 	{
 		$this->config = $config;
@@ -137,6 +148,7 @@ final class Harvester
 		$this->guid = $guid;
 		$this->harvest = $harvest;
 		$this->report = $report;
+		$this->parsed = $parsed;
 	}
 
 	/**
@@ -157,6 +169,8 @@ final class Harvester
 		$this->harvest->clear();
 		$this->identity->refresh();
 		$signature = $this->namespacer->signature();
+		$this->report->set('counts.powers.parsed', 0);
+		$this->report->set('counts.powers.parse_reused', 0);
 
 		$found = 0;
 		$existing = 0;
@@ -352,7 +366,20 @@ final class Harvester
 			return null;
 		}
 
-		$parts = $this->reader->read($code);
+		$snapshot = hash('sha256', $code);
+		$observation = $this->parsed->get($snapshot);
+
+		if (is_array($observation))
+		{
+			$parts = $observation['parts'];
+			$this->report->set('counts.powers.parse_reused', (int) $this->report->get('counts.powers.parse_reused', 0) + 1);
+		}
+		else
+		{
+			$parts = $this->reader->read($code);
+			$this->parsed->set($snapshot, ['parts' => $parts]);
+			$this->report->set('counts.powers.parsed', (int) $this->report->get('counts.powers.parsed', 0) + 1);
+		}
 
 		if ($parts === null)
 		{
@@ -440,7 +467,7 @@ final class Harvester
 		}
 
 		$key = 'source_' . hash('sha256', serialize([$unit, strtolower($fqn), $location, $parts['type']]));
-		$occurrence = ['file' => $file, 'relative' => $relative, 'snapshot' => hash('sha256', $code)];
+		$occurrence = ['file' => $file, 'relative' => $relative, 'snapshot' => $snapshot];
 		$candidate = [
 			'source_key' => $key,
 			'source_unit' => $unit,
@@ -488,6 +515,22 @@ final class Harvester
 			}
 
 			$previous['occurrences'][] = $occurrence;
+			$previous['metadata_files'] = array_merge($previous['metadata_files'], $candidate['metadata_files']);
+
+			if (isset($candidate['source_error']))
+			{
+				$previous['source_error'] = $candidate['source_error'];
+			}
+			elseif ($candidate['source_guid'] !== '' && $previous['source_guid'] !== ''
+				&& $candidate['source_guid'] !== $previous['source_guid'])
+			{
+				$previous['source_error'] = 'Duplicate source declarations contain conflicting Power GUID metadata.';
+			}
+			elseif ($previous['source_guid'] === '')
+			{
+				$previous['source_guid'] = $candidate['source_guid'];
+			}
+
 			$this->harvest->set('classes.' . $key, $previous);
 			$this->report->set('powers.duplicate.sources.' . $key, array_column($previous['occurrences'], 'file'));
 

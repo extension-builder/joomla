@@ -88,6 +88,20 @@ final class ScopedPipelineTest extends FilesystemTestCase
 		$this->assertSame($this->guid('power-a'), $again['matched_guid']);
 		$this->assertSame('unestablished', $again['resolution']['write_scope']);
 		$this->assertFalse($again['resolution']['consumer_coverage_complete']);
+		$this->assertSame('blocked', $again['resolution']['write_eligibility']);
+		$this->assertContains(
+			'An existing Power occupies the compiled class or file path: ' . $this->guid('power-b'),
+			$again['resolution']['blockers']
+		);
+		$this->assertSame([], $harvest->get('resolved', []), 'The still-selected B definition occupies this destination.');
+
+		// Removing the standing dependency is separate evidence; a manual GUID
+		// must never implicitly erase an existing compiled occupant.
+		$load->record('joomla_component', 2, $this->component('beta', 'component-b', []));
+		$harvester->harvest();
+		$assembler->assemble();
+		$again = $harvest->get('classes.' . $factory['source_key']);
+		$this->assertSame($this->guid('power-a'), $again['matched_guid']);
 		$this->assertSame('approval', $again['resolution']['write_eligibility']);
 		$this->assertSame($this->guid('power-a'), $harvest->get('resolved.' . $consumer['source_key'])->use_selection['use_selection0']['use']);
 	}
@@ -191,6 +205,155 @@ final class ScopedPipelineTest extends FilesystemTestCase
 		}
 
 		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * Fresh byte reads reuse lexical work without retaining contextual decisions.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParsingReuseTracksContentAndTheExplicitRunBoundary(): void
+	{
+		[$container] = $this->engine();
+		$this->sources();
+		$config = $container->get('Extrusion.Config');
+		$config->set('libraries', [$this->temporaryPath('lib')]);
+		$harvester = $container->get('Extrusion.Powers.Harvester');
+		$report = $container->get('Extrusion.Registry.Report');
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$this->assertSame(2, $harvester->harvest());
+		$this->assertSame(2, $report->get('counts.powers.parsed'));
+		$this->assertSame(0, $report->get('counts.powers.parse_reused'));
+		$first = $this->source($harvest->get('classes'), 'Factory');
+
+		$config->set('component', 1)->set('sourceComponent', 1);
+		$this->assertSame(2, $harvester->harvest());
+		$this->assertSame(0, $report->get('counts.powers.parsed'));
+		$this->assertSame(2, $report->get('counts.powers.parse_reused'));
+		$this->assertSame(1, $this->source($harvest->get('classes'), 'Factory')['source_component_id']);
+
+		$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/Factory.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass Factory { public function revised() {} }\n");
+		$this->assertSame(2, $harvester->harvest());
+		$this->assertSame(1, $report->get('counts.powers.parsed'));
+		$this->assertSame(1, $report->get('counts.powers.parse_reused'));
+		$changed = $this->source($harvest->get('classes'), 'Factory');
+		$this->assertSame($first['source_key'], $changed['source_key']);
+		$this->assertStringContainsString('revised', $changed['body']);
+		$this->assertNotSame($first['occurrences'][0]['snapshot'], $changed['occurrences'][0]['snapshot']);
+
+		$container->get('Extrusion.Scope')->reset();
+		$this->assertSame([], $container->get('Extrusion.Registry.Parsed')->toArray());
+		$config->set('libraries', [$this->temporaryPath('lib')])->set('component', 2)->set('sourceComponent', 2);
+		$this->assertSame(2, $harvester->harvest());
+		$this->assertSame(2, $report->get('counts.powers.parsed'));
+		$this->assertSame(0, $report->get('counts.powers.parse_reused'));
+	}
+
+	/**
+	 * Identical PHP bytes never suppress metadata evidence from a second copy.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testReusedParsingRetainsConflictingMetadataAndEveryObservedFile(): void
+	{
+		[$container] = $this->engine();
+		$roots = [];
+
+		foreach (['power-b', 'power-a'] as $index => $power)
+		{
+			$root = 'metadata' . $index;
+			$this->writeTemporaryFile($root . '/code.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass Factory {}\n");
+			$this->writeTemporaryFile($root . '/settings.json', json_encode([
+				'guid' => $this->guid($power), 'name' => 'Factory', 'type' => 'class',
+				'namespace' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory'
+			], JSON_THROW_ON_ERROR));
+			$roots[] = $this->temporaryPath($root);
+		}
+
+		$container->get('Extrusion.Config')->set('libraries', $roots);
+		$container->get('Extrusion.Powers.Harvester')->harvest();
+		$this->assertSame(0, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$factory = $this->source($container->get('Extrusion.Registry.Harvest')->get('classes'), 'Factory');
+		$this->assertCount(2, $factory['occurrences']);
+		$this->assertCount(2, $factory['metadata_files']);
+		$this->assertContains('Duplicate source declarations contain conflicting Power GUID metadata.', $factory['resolution']['blockers']);
+		$this->assertSame(1, $container->get('Extrusion.Registry.Report')->get('counts.powers.parsed'));
+		$this->assertSame(1, $container->get('Extrusion.Registry.Report')->get('counts.powers.parse_reused'));
+	}
+
+	/**
+	 * Equivalent independently proved bindings require one validation per witness.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testEquivalentRootBindingsAndSharedDependenciesHaveBoundedWork(): void
+	{
+		[$container, $load, $item] = $this->engine();
+		$this->sources();
+		$powers = ['power-b'];
+
+		for ($index = 0; $index < 40; $index++)
+		{
+			$name = 'Existing' . $index;
+			$powers[] = $name;
+			$load->record('power', 100 + $index, [
+				'guid' => $this->guid($name), 'name' => $name, 'type' => 'class',
+				'namespace' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].' . $name
+			]);
+			$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/' . $name . '.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass " . $name . " {}\n");
+		}
+
+		for ($index = 0; $index < 30; $index++)
+		{
+			$name = 'Fresh' . $index;
+			$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/' . $name . '.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nuse Acme\\Joomla\\Beta\\Factory;\nclass " . $name . " extends Factory {}\n");
+		}
+
+		$load->record('joomla_component', 2, $this->component('beta', 'component-b', $powers));
+		$container->get('Extrusion.Config')->set('libraries', [$this->temporaryPath('lib')]);
+		$this->assertSame(72, $container->get('Extrusion.Powers.Harvester')->harvest());
+		$this->assertSame(72, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$report = $container->get('Extrusion.Registry.Report');
+		$this->assertSame(41, $report->get('counts.powers.binding_checks'));
+		$this->assertSame(31, $report->get('counts.powers.binding_applications'));
+		$this->assertSame(1, $report->get('counts.powers.dependency_lookups'));
+		$this->assertGreaterThanOrEqual(30, $report->get('counts.powers.dependency_reused'));
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$source = $this->source($harvest->get('classes'), 'Fresh29');
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Fresh29', $source['placeholder']);
+		$this->assertSame($this->guid('power-b'), $harvest->get('resolved.' . $source['source_key'])->extends);
+		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * A blocked node invalidates a cyclic dependent graph with bounded edge visits.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testBlockedSourcesPropagateThroughCyclesWithoutRepeatedGraphScans(): void
+	{
+		[$container] = $this->engine();
+		$this->sources();
+		$this->writeTemporaryFile('copy/Acme.Joomla/src/Beta/Factory.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass Factory { public function contradiction() {} }\n");
+
+		for ($index = 0; $index < 30; $index++)
+		{
+			$name = 'Cycle' . $index;
+			$next = 'Cycle' . (($index + 1) % 30);
+			$imports = 'use Acme\\Joomla\\Beta\\' . $next . ";\n"
+				. ($index === 0 ? "use Acme\\Joomla\\Beta\\Factory;\n" : '');
+			$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/' . $name . '.php', "<?php\nnamespace Acme\\Joomla\\Beta;\n" . $imports . 'class ' . $name . " {}\n");
+		}
+
+		$container->get('Extrusion.Config')->set('libraries', [$this->temporaryPath('lib'), $this->temporaryPath('copy')]);
+		$container->get('Extrusion.Powers.Harvester')->harvest();
+		$this->assertSame(0, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$this->assertCount(32, $container->get('Extrusion.Registry.Report')->get('powers.blocked'));
+		$this->assertLessThanOrEqual(32, $container->get('Extrusion.Registry.Report')->get('counts.powers.blocked_dependency_edges'));
 	}
 
 	/**

@@ -370,7 +370,7 @@ final class ExtruderTest extends FilesystemTestCase
 			->mode('update')
 			->extrude();
 
-		$this->assertTrue($first->get('completed'));
+		$this->assertTrue($first->get('completed'), json_encode($first->get('plan')));
 		$this->assertSame(
 			'update',
 			$first->get('mode'),
@@ -393,7 +393,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$written = count($this->item->records());
 		$second = $extruder->path($this->legacy())->component(3)->extrude();
 
-		$this->assertTrue($second->get('completed'));
+		$this->assertTrue($second->get('completed'), json_encode($second->get('plan')));
 		$this->assertSame('create', $second->get('mode'));
 		$this->assertSame(2, $second->get('counts.views'));
 		$this->assertSame(4, $second->get('counts.artifacts'));
@@ -1104,7 +1104,7 @@ SQL);
 			->codeName('com_thin')
 			->extrude();
 
-		$this->assertTrue($report->get('completed'));
+		$this->assertTrue($report->get('completed'), json_encode($report->get('plan')));
 		$this->assertSame(['gadget'], $this->resolved()->get('views'));
 
 		$notices = array_column($this->messages()->level('notice'), 'message', 'subject');

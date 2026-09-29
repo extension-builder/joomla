@@ -13,27 +13,29 @@ The live `main` baseline on 29 September 2026 is
 branch is `fix/extrusion-compiler-power-discovery`; no production definition
 mutation, merge or deployment is part of this work.
 
-## Confirmed call and ownership boundaries
+## Implemented discovery and matching boundaries
 
-- `Extrusion/Powers/Resolver/References::context()` currently enters the full
-  component catalogue. Its `consumers()`, `complete()` and `fingerprint()` also
-  enter that path. Selected-root discovery and global consumer coverage must
-  become separate operations.
-- `Powers/Resolver/Existing::power()` currently initializes a full catalogue
-  before looking up one GUID. The installed schema already has non-unique
-  `idx_guid` and `idx_namespace` indexes; indexed equality reads can retain
-  duplicates without inventing a uniqueness constraint.
-- `Powers/Resolver/Identity::resolve()` currently evaluates every stored Power
-  before rejecting unrelated namespaces. `fingerprint()` also serializes the
-  entire catalogue. Both are part of the repair, not only the matching loop.
+- `Extrusion/Powers/Resolver/References::context()` reads the selected component
+  directly and follows its supported relationships. GUID-addressed record and
+  edge caches bound cycles and shared subgraphs. Consumers are an index of
+  observed roots, and global consumer completeness is explicitly false.
+- `Powers/Resolver/Existing::power()` uses a GUID equality lookup and retains
+  negative results. Name and stored-namespace fallback use the existing
+  non-unique `idx_name`, `idx_namespace` and `idx_guid` indexes. Duplicate GUID
+  rows remain integrity failures; no new uniqueness constraint repairs history.
+- `Powers/Resolver/Identity` indexes relevant definitions by contextual FQN and
+  output destination. Candidate buckets retain competing GUIDs. Matching and
+  collision checks use these buckets, including skipped existing occupants.
+  Approval fingerprints cover the bounded read set, including negative queries,
+  and replay that evidence before persistence to detect new competitors.
 - `Powers/Harvester`, `Powers/Assembler`, `Resolver/Commit` and `Registry/Plan`
   share responsibility for source observations, contextual decisions, effective
   writes and stale-approval protection. Reuse must retain these boundaries.
-- `Compiler/Power` has GUID-addressed state and recursion guards, but can import
-  missing definitions and processes build state. It is not a read-only loader.
-  `Compiler/Power/Extractor::get()` is the existing pure token contract.
-  Shared extraction must keep compiler events, output and target-version
-  behavior unchanged.
+- `Compiler/Power/Selection` shares pure enablement, selectors, inheritance,
+  enabled code fields and literal custom-code/template/layout references with
+  existing compiler callers. `Compiler/Power/Extractor::get()` remains the
+  Super Power token contract. Discovery does not construct the compiler, fetch
+  remote definitions, execute custom code or generate files.
 - `Compiler/Extension/Files/Power` can discover Powers after initialization;
   an early active-set dump is not a complete compiler parity test.
 
@@ -57,6 +59,26 @@ candidate must not weaken the catalogue-isolation assertions or move failures
 into the known-defect group. Real SQL plans, full compiler comparisons and
 installed HTTP/browser evidence remain additional acceptance gates.
 
+## Operation scope and repeated work
+
+`Registry/Parsed` holds content-addressed lexical Power observations for one
+operation. Source bytes are reread and hashed, so an edit invalidates parsing
+even when filesystem timestamps are unchanged. Independent `Scope::reset()`
+calls clear this cache. Each new harvest refreshes database evidence; parsing
+can be reused while matching is reevaluated under current target, source,
+binding and manual-decision inputs.
+
+Assembler bindings are deduplicated and validated once per source unit.
+Dependency lookup is memoized per effective source context, and blocked
+dependency propagation uses reverse edges rather than repeated full passes.
+Metadata from duplicate physical source copies participates in preflight;
+contradictory source identities block the operation instead of being discarded.
+
+The administrator's preliminary component harvest and target-aware preview
+remain separate semantic passes. Power parsing happens in the preview for that
+HTTP flow. The parse cache does not claim cross-request persistence or complete
+reuse of every component/XML/schema reader.
+
 ## Safety contract
 
 A correct selected-component match does not prove exclusive ownership.
@@ -67,11 +89,40 @@ write. Literal namespace segments, custom aliases, manual pairing, source keys,
 all competing GUIDs, skipped collision occupants and transaction preflight
 remain protected.
 
+Without a complete reverse-consumer index, a selected component's Power can be
+identified correctly while its write scope remains unknown. Changed definitions
+then need the existing fingerprint-bound acknowledgement. A true no-op needs
+neither a new approval nor auxiliary writes. An explicit create decision remains
+available for first import; it does not bypass observed destination collisions.
+Unknown unlinked template aliases are not fabricated into proof of absence.
+
+## Coverage and fixture limits
+
+Discovery exposes missing, malformed and duplicate references and unsupported
+effective-input routes. Unavailable normalized template-alias indexes, external
+code and unobserved integrations are uncertainty, not proof of exclusive Power
+ownership. The separately deferred local plugin is not an acceptance gate.
+
+The historical golden-master default component is **Service Directory**, not
+JCB. The public Hello World definition is separately identified in the new
+comparison harness. The current authoritative JCB self-compilation blueprint
+has not been identified in the repository or recovered handover. Installed JCB
+source, synthetic A/B records and complete Hello World compilation must not be
+reported as a full JCB self-compilation comparison.
+
 ## Verification status
 
-The source tree above was recovered through the existing GUI workflow's source
-provenance bundle and verified locally by Git tree hash. The local runtime has
-PHP 8.4.23. Baseline probes use the historical in-memory loader and measure only
-identity resolution after graph loading, not production SQL or HTTP. Final
-acceptance requires evidence from the follow-up head, not those baseline probes
-or PR #53's historical green checks.
+The initial failing PR commit is `74826acd544162440244fd123db4d59dfbfe7070`.
+Both PHP 8.3 and 8.4 reported five failures among 4,222 tests. The independent
+CI cache correction is `7e88d2b855eb948bbd47fbd74b4b4ba52e26ea02`.
+Implementation verification uses PHP 8.3, the locked dependencies and the pinned
+Joomla 6.1.2 test runtime. Final-head CI and installed evidence are tracked on
+PR #54; historical PR #53 results do not satisfy this acceptance boundary.
+
+`.github/gui-tests/discovery-scale.php` measures actual installed CLI Power
+harvest, repeated harvest and dry-run preview over emitted sources. It records
+SQL and work counts, parsing, memory, timings and real equality-query plans
+while adding 0/100/1,000 unrelated component/Power records in a rolled-back
+transaction. These CLI measurements exclude HTTP and browser rendering. The
+GUI workflow separately tests actual transport and persistence, including
+denial before scope acknowledgement, preview/write equality and stale approval.

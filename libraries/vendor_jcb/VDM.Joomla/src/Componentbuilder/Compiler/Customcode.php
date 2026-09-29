@@ -694,4 +694,3 @@ class Customcode implements CustomcodeInterface
 		return false;
 	}
 }
-

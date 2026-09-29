@@ -172,9 +172,16 @@ final class Vendor
 				$key = str_starts_with($origin, 'power|') ? substr($origin, 6) : '';
 				$source = $this->harvest->get('classes.' . $key);
 				$result = $source['resolution'] ?? [];
+				// Selected-root evidence proves which namespace roles this
+				// component uses, without proving exclusive global ownership.
+				// The unknown-scope acknowledgement still protects the complete
+				// changed plan, including these component-local proposals.
+				$selected = ($result['status'] ?? '') === 'matched'
+					&& ($result['write_scope'] ?? '') === 'unestablished'
+					&& !empty($result['candidates'][$result['matched_guid']]['in_target']);
 
 				if (!in_array($result['status'] ?? '', ['matched', 'new'], true)
-					|| !in_array($result['write_scope'] ?? '', ['component', 'new'], true)
+					|| (!$selected && !in_array($result['write_scope'] ?? '', ['component', 'new'], true))
 					|| in_array($source['action'] ?? '', ['ignored', 'filtered', 'skip'], true)
 					|| !empty($result['remapping']) || empty($result['namespace']['round_trip']))
 				{

@@ -23,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Proposal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
+use VDM\Joomla\Componentbuilder\Extrusion\Registry\Parsed;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
@@ -91,6 +92,9 @@ class Registry implements ServiceProviderInterface
 		$container->alias(Harvest::class, 'Extrusion.Registry.Harvest')
 			->share('Extrusion.Registry.Harvest', [$this, 'getHarvest'], true);
 
+		$container->alias(Parsed::class, 'Extrusion.Registry.Parsed')
+			->share('Extrusion.Registry.Parsed', [$this, 'getParsed'], true);
+
 		$container->alias(Decision::class, 'Extrusion.Registry.Decision')
 			->share('Extrusion.Registry.Decision', [$this, 'getDecision'], true);
 
@@ -139,7 +143,8 @@ class Registry implements ServiceProviderInterface
 			$container->get('Extrusion.Registry.Report'),
 			$container->get('Extrusion.Registry.Message'),
 			$container->get('Extrusion.Registry.Proposal'),
-			$container->get('Extrusion.Registry.Plan')
+			$container->get('Extrusion.Registry.Plan'),
+			$container->get('Extrusion.Registry.Parsed')
 		);
 	}
 
@@ -258,6 +263,19 @@ class Registry implements ServiceProviderInterface
 	public function getHarvest(Container $container): Harvest
 	{
 		return new Harvest();
+	}
+
+	/**
+	 * Get the operation-scoped lexical source cache.
+	 *
+	 * @param   Container  $container  The service container.
+	 *
+	 * @return  Parsed  The shared source observations.
+	 * @since   6.2.0
+	 */
+	public function getParsed(Container $container): Parsed
+	{
+		return new Parsed();
 	}
 
 	/**

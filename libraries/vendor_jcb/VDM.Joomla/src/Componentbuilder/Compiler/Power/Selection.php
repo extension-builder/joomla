@@ -28,6 +28,20 @@ use VDM\Joomla\Utilities\StringHelper;
 final class Selection
 {
 	/**
+	 * Enumerate the relationship selectors consumed by Compiler Power.
+	 *
+	 * Legacy method/property selection columns are not read by the compiler.
+	 * Inheritance selectors are narrowed further by inheritanceField.
+	 *
+	 * @return  list<string>
+	 * @since   6.2.0
+	 */
+	public function relationshipFields(): array
+	{
+		return ['load_selection|load', 'use_selection|use', 'implements', 'extends', 'extendsinterfaces'];
+	}
+
+	/**
 	 * Return the compiler initializer's required utility roots in build order.
 	 *
 	 * Each entry is forced independently of the component's Power switch.

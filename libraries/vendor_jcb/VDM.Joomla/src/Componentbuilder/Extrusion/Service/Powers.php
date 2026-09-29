@@ -28,6 +28,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Identity;
 use VDM\Joomla\Componentbuilder\Compiler\Power\Extractor;
+use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Factory as EntityFactory;
 use VDM\Joomla\Componentbuilder\Power\Table as PowerTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
@@ -223,7 +224,8 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Powers.Resolver.Identity'),
 			$container->get('Extrusion.Resolver.Guid'),
 			$container->get('Extrusion.Registry.Harvest'),
-			$container->get('Extrusion.Registry.Report')
+			$container->get('Extrusion.Registry.Report'),
+			$container->get('Extrusion.Registry.Parsed')
 		);
 	}
 
@@ -352,7 +354,9 @@ class Powers implements ServiceProviderInterface
 			$container->get('Load'),
 			$core,
 			new Extractor($container->get('Joomla.Database')),
-			$children
+			$children,
+			new Selection(),
+			$container->has('Extrusion.Config') ? $container->get('Extrusion.Config') : null
 		);
 	}
 
