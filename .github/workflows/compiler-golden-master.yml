@@ -1,11 +1,17 @@
 name: Compiler golden master
 
-# Compiles a component twice, once with the last released compiler and once
-# with this branch, and reports what changed in the component that came out.
+# Compare full output against the PR base, or the pinned release for a manual
+# run. Final post-run Power identities and emitted-source discovery also gate.
 #
-# Manual only. It pulls two images and installs Joomla, so it is far too heavy
-# to run on every push, and the answer only matters when someone wants it.
+# Compiler and extrusion changes require a complete-compilation comparison.
 on:
+  pull_request:
+    paths:
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Extrusion/**'
+      - '.github/golden-master/**'
+      - '.github/gui-tests/discovery-scale.php'
+      - '.github/workflows/compiler-golden-master.yml'
   workflow_dispatch:
     inputs:
       component:
@@ -18,24 +24,38 @@ on:
           for a component the site already has.
         required: false
         default: ca50a886-0fd9-4fd8-803f-ba2cd9f43f55
+      target:
+        description: Generated Joomla target major
+        type: choice
+        options: ['3', '4', '5', '6']
+        default: '6'
 
 permissions:
   contents: read
 
 jobs:
   compare:
-    name: Compile with both compilers and compare
+    name: Full compiler comparison (Joomla ${{ matrix.target }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ github.event_name == 'pull_request' && fromJSON('[3,4,5,6]') || fromJSON(format('[{0}]', inputs.target || '6')) }}
 
     steps:
       - name: Check out this branch
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
 
       - name: Compile with both compilers
         env:
-          COMPONENT: ${{ inputs.component }}
-          REPOSITORY: ${{ inputs.repository }}
+          COMPONENT: ${{ github.event_name == 'pull_request' && '3745af8f-f96b-4e17-831e-eb4062cd4389' || inputs.component }}
+          REPOSITORY: ${{ github.event_name == 'pull_request' && '562624ab-48bf-4979-9a14-6b10cf3635de' || inputs.repository }}
+          TARGET_JOOMLA: ${{ matrix.target }}
+          BASELINE_REF: ${{ github.event.pull_request.base.sha || '' }}
+          RUN_SCALE: '1'
         run: bash .github/golden-master/run.sh "${GITHUB_WORKSPACE}/.golden-master"
 
       - name: Report what changed
@@ -46,7 +66,8 @@ jobs:
           {
             echo "### Compiler golden master"
             echo
-            echo "Component \`${{ inputs.component }}\`, compiled for Joomla 6."
+            echo "Host Joomla 6; generated target Joomla ${{ matrix.target }}."
+            echo "PR runs use the public Hello World blueprint and compare the PR base with the candidate."
 
             if [[ -n "${{ inputs.repository }}" ]]; then
               echo "Fetched first from repository \`${{ inputs.repository }}\`."
@@ -74,7 +95,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: golden-master
+          name: golden-master-j${{ matrix.target }}
           path: |
             .golden-master/summary.txt
             .golden-master/full.diff
@@ -83,5 +104,14 @@ jobs:
             .golden-master/container.log
             .golden-master/baseline
             .golden-master/candidate
+            .golden-master/*-powers.json
+            .golden-master/*-source.txt
+            .golden-master/powers.diff
+            .golden-master/discovery-scale.json
+            .golden-master/discovery-scale.log
+            .golden-master/install-*.log
+            .golden-master/fetch.log
+            .golden-master/*-installed.sha256
+            .golden-master/verify-*.log
           if-no-files-found: warn
           retention-days: 30
