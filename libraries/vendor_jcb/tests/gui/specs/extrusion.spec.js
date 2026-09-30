@@ -198,7 +198,7 @@ test.describe('the extrusion view', () => {
 		await expect(modal).toBeHidden();
 
 		// the import runs the whole pipeline and reports on the page
-		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		await importReviewed(page);
 		const results = page.locator('#extrusion-pane-results');
 		await expect(results).toBeVisible({ timeout: 120_000 });
 		await expect(page.locator('#extrusion-tab-results')).toBeEnabled();
@@ -269,9 +269,9 @@ test.describe('the extrusion view', () => {
 
 
 	/** A response is observed, never mocked: assertions inspect the real contract. */
-	function responseFor(page, task) {
+	function responseFor(page, task, timeout = 120_000) {
 		return page.waitForResponse((response) => response.url().includes(task)
-			&& response.request().method() === 'POST', { timeout: 120_000 });
+			&& response.request().method() === 'POST', { timeout });
 	}
 
 	async function harvestFixture(page, library, target, dry = true) {
@@ -285,6 +285,22 @@ test.describe('the extrusion view', () => {
 		expect(payload.error, JSON.stringify(payload)).toBeUndefined();
 		await expect(page.locator('#extrusion-pane-pairing')).toBeVisible();
 		return payload;
+	}
+
+	/** Accept only the review shown by the real page, including dry-run scope reviews. */
+	async function importReviewed(page) {
+		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		const confirmation = page.getByRole('dialog', { name: 'Confirm import', exact: true });
+		if (await confirmation.isVisible()) {
+			await confirmation.getByRole('button', { name: 'Acknowledge and import', exact: true }).click();
+		}
+	}
+
+	/** Read a string field from the actual browser's multipart form request. */
+	function postedJson(request, name) {
+		const match = (request.postData() || '').match(new RegExp('name="' + name + '"\\r?\\n\\r?\\n([^\\r\\n]+)'));
+		expect(match, 'the browser posts the reviewed ' + name + ' field').not.toBeNull();
+		return JSON.parse(match[1]);
 	}
 
 	function powerRow(page, key) {
@@ -378,7 +394,7 @@ test.describe('the extrusion view', () => {
 		});
 		try {
 			await context.setOffline(true);
-			await page.getByRole('button', { name: 'Import into JCB' }).click();
+			await importReviewed(page);
 			await expect(page.locator('#extrusion-pane-results')).toBeVisible();
 			await expect(page.locator('#extrusion-results .alert-danger'))
 				.toContainText('connection failed before a response');
@@ -421,7 +437,7 @@ test.describe('the extrusion view', () => {
 			const wanted = target === fixtures.component_b_id ? fixtures.factory_b : fixtures.factory_a;
 			expect(row.matched_guid).toBe(wanted);
 			await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveText(wanted);
-			await expect(page.locator('#extrusion-acknowledge-scopes')).not.toBeChecked();
+			await expect(page.getByRole('dialog', { name: 'Confirm import', exact: true })).toBeHidden();
 		}
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
 	});
@@ -431,7 +447,10 @@ test.describe('the extrusion view', () => {
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
 		expect(factory.status).toBe('ambiguous');
 		expect(factory.matched_guid).toBeNull();
-		await expect(page.locator('#extrusion-review-notice')).toContainText(payload.plan.blockers[0].reason);
+		await expect(page.locator('#extrusion-ambiguity-notice')).toContainText(/ambiguous/i);
+		await expect(page.locator('#extrusion-show-ambiguous')).toBeVisible();
+		await page.locator('#extrusion-show-ambiguous').click();
+		await expect(page.getByLabel('Matching status', { exact: true })).toHaveValue('ambiguous');
 		await expect(page.locator('#extrusion-review-notice')).not.toContainText('[object Object]');
 		await expect(powerRow(page, factory.source_key).locator('.extrusion-target-guid')).toHaveCount(0);
 		await expect(powerRow(page, factory.source_key).locator('.extrusion-match-status')).toContainText('Ambiguous');
@@ -452,6 +471,144 @@ test.describe('the extrusion view', () => {
 		expect(corrected.powers.classes.find((candidate) => candidate.class === 'Consumer').status).toBe('ambiguous');
 		expect(corrected.plan.status).toBe('blocked');
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
+	});
+
+	test('keeps compact status badges inline and actions below each row at desktop and narrow widths', async ({ page }, testInfo) => {
+		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
+		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
+		const row = powerRow(page, factory.source_key);
+		for (const viewport of [{ name: 'desktop', width: 1366, height: 1000 }, { name: 'narrow', width: 390, height: 844 }]) {
+			await page.setViewportSize({ width: viewport.width, height: viewport.height });
+			await row.scrollIntoViewIfNeeded();
+			const title = row.locator('.extrusion-row-heading b');
+			const badge = row.locator('.extrusion-row-heading .extrusion-match-status');
+			await expect(title).toHaveText('Factory');
+			await expect(badge).toHaveText('Matched');
+			const titleBox = await title.boundingBox();
+			const badgeBox = await badge.boundingBox();
+			const identityBox = await row.locator('.extrusion-identity').boundingBox();
+			const actionsBox = await row.locator('.extrusion-actions').boundingBox();
+			expect(badgeBox.x, viewport.name + ': status follows the title on the same line').toBeGreaterThanOrEqual(titleBox.x + titleBox.width - 1);
+			expect(Math.abs(badgeBox.y - titleBox.y), viewport.name + ': status stays inline').toBeLessThanOrEqual(8);
+			expect(badgeBox.height, viewport.name + ': status remains a compact badge').toBeLessThanOrEqual(titleBox.height + 8);
+			expect(actionsBox.y, viewport.name + ': actions follow the entire row identity').toBeGreaterThanOrEqual(identityBox.y + identityBox.height - 1);
+			expect(await row.evaluate((element) => element.scrollWidth <= element.clientWidth + 1), viewport.name + ': the row does not overflow horizontally').toBe(true);
+			await testInfo.attach('pairing-' + viewport.name + '.png', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+		}
+	});
+
+	test('intersects all filters and selects only matching group rows for bulk decisions', async ({ page }) => {
+		const payload = await harvestFixture(page, LIBRARY + '\n' + fixtures.library_b, fixtures.component_b_id);
+		const powers = page.locator('details[data-extrusion-kind="power"]');
+		const selectAll = powers.locator('> summary [data-extrusion-group]');
+		const classes = payload.powers.classes;
+		const report = classes.find((candidate) => candidate.class === 'Report');
+		const factory = classes.find((candidate) => candidate.class === 'Factory');
+		const total = classes.length;
+		const newCount = classes.filter((candidate) => candidate.status === 'new').length;
+		expect(newCount).toBeGreaterThan(1);
+		expect(newCount).toBeLessThan(total);
+		await expect(page.locator('#extrusion-total-count')).toHaveText(String(total));
+		await expect(page.locator('#extrusion-visible-count')).toHaveText(String(total));
+		await powerRow(page, factory.source_key).locator('[data-extrusion-check]').check();
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('1');
+		await expect(selectAll).toHaveJSProperty('indeterminate', true);
+
+		await page.getByLabel('Entity type', { exact: true }).selectOption('power');
+		await page.getByLabel('Matching status', { exact: true }).selectOption('new');
+		await page.getByLabel('Planned change', { exact: true }).selectOption('create');
+		await expect(page.locator('#extrusion-visible-count')).toHaveText(String(newCount));
+		await expect(powerRow(page, factory.source_key)).toBeHidden();
+		await expect(powerRow(page, factory.source_key).locator('[data-extrusion-check]')).not.toBeChecked();
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('0');
+		await page.locator('#extrusion-filter').fill('Report');
+		await expect(page.locator('#extrusion-visible-count')).toHaveText('1');
+		await expect(powerRow(page, report.source_key)).toBeVisible();
+		await selectAll.check();
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('1');
+		await expect(powerRow(page, report.source_key).locator('[data-extrusion-check]')).toBeChecked();
+		await expect(selectAll).toBeChecked();
+
+		// Reset all four filter axes. The one retained choice becomes a
+		// partial group selection; newly revealed rows are not silently ticked.
+		await page.locator('#extrusion-filter').fill('');
+		for (const label of ['Entity type', 'Matching status', 'Planned change']) {
+			await page.getByLabel(label, { exact: true }).selectOption('');
+		}
+		await expect(page.locator('#extrusion-visible-count')).toHaveText(String(total));
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('1');
+		await expect(selectAll).toHaveJSProperty('indeterminate', true);
+		const library = powers.locator('details.extrusion-library').filter({ has: powerRow(page, report.source_key) });
+		const libraryAll = library.locator('> summary [data-extrusion-group]');
+		await expect(libraryAll).toHaveJSProperty('indeterminate', true);
+		await library.locator('> summary').click();
+		await expect(library).not.toHaveAttribute('open', '');
+		await libraryAll.check();
+		await expect(library).not.toHaveAttribute('open', '');
+		await expect(page.locator('#extrusion-selected-count')).toHaveText(String(newCount));
+		await expect(libraryAll).toBeChecked();
+		await expect(selectAll).toHaveJSProperty('indeterminate', true);
+		await library.locator('> summary').click();
+		await powerRow(page, report.source_key).locator('[data-extrusion-check]').uncheck();
+		await expect(libraryAll).toHaveJSProperty('indeterminate', true);
+		await expect(page.locator('#extrusion-selected-count')).toHaveText(String(newCount - 1));
+
+		// Filtering away an entire selected library removes those selections.
+		// The real request proves bulk Ignore cannot act on the hidden rows.
+		await page.locator('#extrusion-filter').fill('Factory');
+		await expect(page.locator('#extrusion-visible-count')).toHaveText('1');
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('0');
+		await selectAll.check();
+		const preview = responseFor(page, 'extrusionWeigh');
+		await page.locator('[data-extrusion-bulk="ignore"]').click();
+		const weighed = await preview;
+		expect(postedJson(weighed.request(), 'decisions')).toEqual({ power: { [factory.source_key]: { action: 'ignore' } } });
+		await expect(powerRow(page, factory.source_key).locator('[data-extrusion-act="ignore"]')).toHaveClass(/active/);
+		await page.locator('#extrusion-filter').fill('');
+		await expect(powers.locator('.extrusion-row.explicit')).toHaveCount(1);
+		await expect(powerRow(page, report.source_key)).not.toHaveClass(/explicit/);
+		await page.getByLabel('Planned change', { exact: true }).selectOption('ignore');
+		await expect(page.locator('#extrusion-visible-count')).toHaveText('1');
+		await page.getByLabel('Matching status', { exact: true }).selectOption('new');
+		await expect(page.locator('#extrusion-visible-count')).toHaveText('0');
+		await expect(selectAll).toBeDisabled();
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('0');
+		for (const label of ['Matching status', 'Planned change']) {
+			await page.getByLabel(label, { exact: true }).selectOption('');
+		}
+		await expect(page.locator('#extrusion-visible-count')).toHaveText(String(total));
+		await expect(selectAll).not.toHaveJSProperty('indeterminate', true);
+		await expect(powers.locator('.extrusion-row.explicit')).toHaveCount(1);
+	});
+
+	test('separates matched updates from matched definitions with no effective changes', async ({ page }) => {
+		for (const sample of [{ library: fixtures.library_b, change: 'update' }, { library: fixtures.library_noop, change: 'nochange' }]) {
+			await page.locator('#extrusion-tab-setup').click();
+			const payload = await harvestFixture(page, sample.library, fixtures.component_b_id);
+			const classes = payload.powers.classes;
+			expect(classes).toHaveLength(2);
+			for (const candidate of classes) {
+				expect(candidate.status).toBe('matched');
+				const weight = payload.changes['power|' + candidate.source_key];
+				expect(weight, candidate.class + ' has an authoritative effective proposal').toBeDefined();
+				expect(weight.changed, candidate.class + ' reflects its actual stored values').toBe(sample.change === 'update');
+				if (sample.change === 'update') {
+					expect(weight.action).toBe('update');
+				}
+			}
+			await page.getByLabel('Entity type', { exact: true }).selectOption('power');
+			await page.getByLabel('Matching status', { exact: true }).selectOption('matched');
+			await page.getByLabel('Planned change', { exact: true }).selectOption(sample.change);
+			await expect(page.locator('#extrusion-visible-count')).toHaveText('2');
+			await expect(page.locator('#extrusion-board .extrusion-row:visible')).toHaveCount(2);
+			await page.getByLabel('Planned change', { exact: true }).selectOption(sample.change === 'update' ? 'nochange' : 'update');
+			await expect(page.locator('#extrusion-visible-count')).toHaveText('0');
+			await expect(page.locator('#extrusion-board .extrusion-row:visible')).toHaveCount(0);
+			for (const label of ['Entity type', 'Matching status', 'Planned change']) {
+				await page.getByLabel(label, { exact: true }).selectOption('');
+			}
+			await expect(page.locator('#extrusion-visible-count')).toHaveText('2');
+		}
 	});
 
 	test('loads only linked Powers until an exact manual target is requested', async ({ page }) => {
@@ -477,34 +634,65 @@ test.describe('the extrusion view', () => {
 		// Reading choices never approves a target or writes its definition.
 	});
 
-	test('keeps a shared GUID and requires acknowledgement of the reported usage scope', async ({ page }) => {
-		const payload = await harvestFixture(page, fixtures.library_shared, fixtures.component_b_id, false);
+	test('confirms scoped imports only after the current plan is reviewed, and cancellation sends nothing', async ({ page }) => {
+		const payload = await harvestFixture(page, fixtures.library_shared, fixtures.component_b_id);
 		const shared = payload.powers.classes[0];
 		expect(shared.matched_guid).toBe(fixtures.shared);
-		// Root-local discovery establishes B's use, without claiming it has
-		// scanned all other components that may share this same definition.
 		expect(shared.write_scope).toBe('unestablished');
 		expect(shared.namespace_proposal.value).toContain('Abstraction.Registry.Value');
 		expect(payload.plan.required_approvals).toEqual(['unknown']);
 		await expect(powerRow(page, shared.source_key).locator('.extrusion-target-guid')).toHaveText(fixtures.shared);
-		await expect(page.locator('#extrusion-scope-approval')).toBeVisible();
-		await expect(page.locator('#extrusion-required-scopes')).toHaveText('Usage not fully established');
-		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
-		await page.locator('#extrusion-acknowledge-scopes').check();
+		await expect(page.locator('#extrusion-acknowledge-scopes')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
-		const response = responseFor(page, 'extrusionWeigh');
+		const requests = [];
+		page.on('request', (request) => {
+			if (request.url().includes('extrusionImport')) {
+				requests.push(request);
+			}
+		});
+		const confirmation = page.getByRole('dialog', { name: 'Confirm import', exact: true });
+		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		await expect(confirmation).toBeVisible();
+		await expect(confirmation).toContainText('I acknowledge that these changes can affect the system.');
+		await expect(confirmation).not.toContainText('Usage not fully established');
+		expect(requests, 'opening the review popup does not import').toHaveLength(0);
+		await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await expect(confirmation).toBeHidden();
+		expect(requests, 'cancelling leaves all fixture definitions untouched').toHaveLength(0);
+
+		const preview = responseFor(page, 'extrusionWeigh');
 		await page.locator('#extrusion-component-select').selectOption(String(fixtures.component_a_id));
-		await response;
-		await expect(page.locator('#extrusion-acknowledge-scopes')).not.toBeChecked();
 		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeDisabled();
-		// Deliberately do not click Import: browser tests leave every seeded row intact.
+		const changed = await (await preview).json();
+		expect(changed.plan.status, JSON.stringify(changed.plan)).toBe('preview');
+		expect(changed.plan.fingerprint).not.toBe(payload.plan.fingerprint);
+		await expect(confirmation).toBeHidden();
+		expect(requests).toHaveLength(0);
+		await expect(page.getByRole('button', { name: 'Import into JCB' })).toBeEnabled();
+		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		await expect(confirmation).toBeVisible();
+		await expect(confirmation).toContainText('I acknowledge that these changes can affect the system.');
+		await expect(confirmation).not.toContainText('Usage not fully established');
+		const response = responseFor(page, 'extrusionImport');
+		await confirmation.getByRole('button', { name: 'Acknowledge and import', exact: true }).click();
+		const imported = await response;
+		const config = postedJson(imported.request(), 'config');
+		expect(config.approved_plan).toBe(changed.plan.fingerprint);
+		expect(config.acknowledged_scopes).toEqual(Object.fromEntries(changed.plan.required_approvals.map((scope) => [scope, true])));
+		expect(String(config.dry_run)).toBe('1');
+		const result = await imported.json();
+		expect(result.error, JSON.stringify(result)).toBeUndefined();
+		expect(result.plan.fingerprint).toBe(changed.plan.fingerprint);
+		expect(result.plan.writes || []).toEqual([]);
+		expect(requests).toHaveLength(1);
+		await expect(page.locator('#extrusion-pane-results .alert-success').first()).toBeVisible();
 	});
 
 	test('imports the exact reviewed B plan in dry-run mode and retains aliased dependencies', async ({ page }) => {
 		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
 		expect(payload.plan.status).toBe('preview');
 		const response = responseFor(page, 'extrusionImport');
-		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		await importReviewed(page);
 		const result = await (await response).json();
 		expect(result.error, JSON.stringify(result)).toBeUndefined();
 		expect(result.plan.fingerprint).toBe(payload.plan.fingerprint);
@@ -554,6 +742,28 @@ test.describe('the extrusion view', () => {
 		expect(await sharedRows.count(),
 			'A real component states the same field in many views, so the '
 			+ 'board must show shared members').toBeGreaterThan(0);
+		// A nested group selects its eligible fields even while collapsed,
+		// without selecting attached shared members or unrelated parent rows.
+		const groups = views.locator('details.extrusion-fields');
+		const groupIndex = await groups.evaluateAll((elements) => elements.findIndex((element) => element.querySelectorAll('[data-extrusion-check]').length > 1));
+		expect(groupIndex, 'a real view has multiple selectable field rows').toBeGreaterThanOrEqual(0);
+		const nested = groups.nth(groupIndex);
+		const fieldCount = await nested.locator('[data-extrusion-check]').count();
+		const nestedAll = nested.locator('> summary [data-extrusion-group]');
+		const viewsAll = views.locator('> summary [data-extrusion-group]');
+		await nestedAll.check();
+		await expect(page.locator('#extrusion-selected-count')).toHaveText(String(fieldCount));
+		await expect(nestedAll).toBeChecked();
+		await expect(viewsAll).toHaveJSProperty('indeterminate', true);
+		await expect(sharedRows.locator('[data-extrusion-check]')).toHaveCount(0);
+		await page.getByLabel('Entity type', { exact: true }).selectOption('admin_view');
+		await expect(page.locator('#extrusion-selected-count')).toHaveText('0');
+		const viewCount = await views.locator('> .extrusion-rows > .extrusion-row').count();
+		await expect(page.locator('#extrusion-visible-count')).toHaveText(String(viewCount));
+		await expect(nestedAll).toBeDisabled();
+		await page.getByLabel('Entity type', { exact: true }).selectOption('');
+		await expect(viewsAll).not.toHaveJSProperty('indeterminate', true);
+
 		// the field groups render collapsed, so open them before interacting
 		await page.evaluate(() => {
 			document.querySelectorAll('details.extrusion-fields')
@@ -620,7 +830,7 @@ test.describe('the extrusion view', () => {
 		// The installed component is weighed against the live schema without
 		// durable mutations. The harness separately verifies actual Power writes
 		// and compiler output, restoring its isolated fixtures afterwards.
-		await page.getByRole('button', { name: 'Import into JCB' }).click();
+		await importReviewed(page);
 		const results = page.locator('#extrusion-pane-results');
 		await expect(results).toBeVisible({ timeout: 300_000 });
 

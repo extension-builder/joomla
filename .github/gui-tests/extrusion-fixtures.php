@@ -190,6 +190,7 @@ try
 			]);
 		}
 		$manifest['library_b'] = $root . '/b/ExtrusionFixture.Joomla';
+		$manifest['library_noop'] = $root . '/noop/ExtrusionFixture.Joomla';
 		$manifest['library_shared'] = $root . '/shared/ExtrusionFixture.Joomla';
 		$manifest['library_new'] = $root . '/new/ExtrusionFixture.Independent';
 		$manifest['library_ambiguous'] = $root . '/ambiguous/ExtrusionFixture.Ambiguous';
@@ -199,6 +200,10 @@ try
 		}
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 22;\n\t}\n}\n");
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nuse ExtrusionFixture\\Joomla\\Extrusionfixtureb\\Factory as Maker;\nclass Consumer\n{\n\tpublic function value(): int\n\t{\n\t\treturn (new Maker())->value();\n\t}\n}\n");
+		// These independent source copies match the seeded bodies exactly;
+		// browser filters can distinguish a matched no-op without any writes.
+		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}\n}\n");
+		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Consumer\n{\n\tpublic function value(): int { return 1; }\n}\n");
 		writeSource($manifest['library_shared'] . '/src/Abstraction/Registry/Value.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Abstraction\\Registry;\nclass Value\n{\n\tpublic function value(): int { return 2; }\n}\n");
 		foreach (['Alpha', 'Beta', 'Delta', 'Entry', 'Load', 'Report', 'Source', 'Write'] as $name)
 		{

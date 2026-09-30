@@ -48,11 +48,11 @@
 	background: none;
 }
 .extrusion-row {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-	padding: 0.15rem 0.6rem;
+	display: grid;
+	grid-template-columns: 1.25rem minmax(0, 1fr);
+	align-items: start;
+	gap: 0.35rem 0.5rem;
+	padding: 0.55rem 0.6rem;
 	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 .extrusion-row.explicit {
@@ -63,21 +63,53 @@
 }
 .extrusion-tick {
 	margin: 0;
+	grid-column: 1;
+	grid-row: 1;
+	padding-top: 0.15rem;
 }
 .extrusion-identity {
-	flex: 1 1 auto;
+	grid-column: 2;
+	grid-row: 1;
 	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	overflow-wrap: anywhere;
 }
 .extrusion-identity small {
 	opacity: 0.6;
 }
-.extrusion-actions {
-	flex: 0 0 auto;
+.extrusion-row-heading {
 	display: flex;
-	gap: 0.25rem;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.2rem 0.35rem;
+}
+.extrusion-row-heading small {
+	min-width: 0;
+}
+.extrusion-row-heading .extrusion-match-status {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: auto;
+	max-width: 100%;
+	align-self: center;
+}
+.extrusion-power-evidence {
+	display: block;
+	overflow-wrap: anywhere;
+	margin-top: 0.25rem;
+}
+.extrusion-power-evidence > span,
+.extrusion-power-evidence > code,
+.extrusion-power-evidence details > span,
+.extrusion-power-evidence details > code {
+	display: block;
+}
+.extrusion-actions {
+	grid-column: 2;
+	grid-row: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem;
 }
 .extrusion-act {
 	border: 1px solid rgba(0, 0, 0, 0.2);
@@ -108,6 +140,50 @@
 	z-index: 5;
 	background: var(--body-bg, #fff);
 	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+.extrusion-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: 0.6rem;
+}
+.extrusion-filters label {
+	flex: 1 1 11rem;
+	min-width: 0;
+	font-size: 0.85rem;
+	margin: 0;
+}
+.extrusion-filters select,
+.extrusion-filters input {
+	width: 100%;
+	margin-top: 0.2rem;
+}
+.extrusion-bulk-actions,
+.extrusion-confirm-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 0.5rem;
+}
+.extrusion-filter-count {
+	margin-right: 0.5rem;
+}
+.extrusion-bulk-actions small {
+	flex-basis: 100%;
+	color: var(--body-color, #495057);
+}
+.extrusion-group-check {
+	margin-right: 0.25rem;
+	vertical-align: middle;
+}
+.extrusion-review-details {
+	margin-top: 0.3rem;
+}
+.extrusion-review-details ul {
+	margin-bottom: 0;
+}
+#extrusion-ambiguity-notice {
+	margin: 0.5rem 0;
 }
 
 /* the shared target picker */
@@ -212,7 +288,7 @@ button.extrusion-change.open {
 	color: #b42318;
 }
 .extrusion-diff {
-	flex: 1 0 100%;
+	grid-column: 1 / -1;
 	margin: 0.35rem 0 0.5rem;
 	border: 1px solid rgba(0, 0, 0, 0.12);
 	border-radius: 0.25rem;
