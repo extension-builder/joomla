@@ -488,6 +488,10 @@ test.describe('the extrusion view', () => {
 			const badgeBox = await badge.boundingBox();
 			const identityBox = await row.locator('.extrusion-identity').boundingBox();
 			const actionsBox = await row.locator('.extrusion-actions').boundingBox();
+			if (viewport.name === 'narrow') {
+				const toolbarBox = await page.locator('#extrusion-bulk-bar').boundingBox();
+				expect(toolbarBox.y + toolbarBox.height, 'the narrow toolbar does not cover the row title').toBeLessThanOrEqual(titleBox.y);
+			}
 			expect(badgeBox.x, viewport.name + ': status follows the title on the same line').toBeGreaterThanOrEqual(titleBox.x + titleBox.width - 1);
 			expect(Math.abs(badgeBox.y - titleBox.y), viewport.name + ': status stays inline').toBeLessThanOrEqual(8);
 			expect(badgeBox.height, viewport.name + ': status remains a compact badge').toBeLessThanOrEqual(titleBox.height + 8);

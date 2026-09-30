@@ -137,7 +137,7 @@ try
 			insertRecord('power', [
 				'guid' => $guid, 'name' => 'Factory', 'system_name' => 'Extrusion Fixture Factory ' . strtoupper($owner),
 				'namespace' => $template, 'type' => 'class',
-				'main_class_code' => base64_encode("\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}\n"),
+				'main_class_code' => base64_encode("\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}"),
 				'licensing_template' => base64_encode('A curated licence.'), 'add_licensing_template' => 2,
 				'power_version' => '1.0.0', 'published' => 1
 			]);
@@ -146,7 +146,7 @@ try
 		insertRecord('power', [
 			'guid' => $manifest['consumer_b'], 'name' => 'Consumer', 'system_name' => 'Extrusion Fixture Consumer B',
 			'namespace' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Consumer', 'type' => 'class',
-			'main_class_code' => base64_encode("\tpublic function value(): int { return 1; }\n"),
+			'main_class_code' => base64_encode("\tpublic function value(): int { return 1; }"),
 			'power_version' => '1.0.0', 'published' => 1
 		]);
 		$manifest['shared'] = identity('shared');
@@ -200,8 +200,9 @@ try
 		}
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 22;\n\t}\n}\n");
 		writeSource($manifest['library_b'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nuse ExtrusionFixture\\Joomla\\Extrusionfixtureb\\Factory as Maker;\nclass Consumer\n{\n\tpublic function value(): int\n\t{\n\t\treturn (new Maker())->value();\n\t}\n}\n");
-		// These independent source copies match the seeded bodies exactly;
-		// browser filters can distinguish a matched no-op without any writes.
+		// The reader removes the newline before the class closing brace. The
+		// seeded bodies use that stored form, so these independent source
+		// copies give the browser a matched no-op without any writes.
 		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}\n}\n");
 		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Consumer\n{\n\tpublic function value(): int { return 1; }\n}\n");
 		writeSource($manifest['library_shared'] . '/src/Abstraction/Registry/Value.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Abstraction\\Registry;\nclass Value\n{\n\tpublic function value(): int { return 2; }\n}\n");

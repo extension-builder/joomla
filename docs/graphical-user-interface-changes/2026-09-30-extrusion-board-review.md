@@ -88,7 +88,9 @@ to the extrusion engine would not deliver the requested interface.
   beneath it at every width. Inline badges do not stretch; source and target
   namespaces wrap. Filters and buttons wrap at narrow widths, and diff panels
   still span the whole row. Evidence styles move out of the template into the
-  view stylesheet.
+  view stylesheet. Below 768px, the filter toolbar stays in document flow and
+  the board uses its natural height, preventing stacked filters from obscuring
+  rows inside a short scrolling panel.
 - **Why:** Preserve a readable hierarchy at both wide and narrow viewports.
 - **Related paths/symbols:** `row` and group/toolbar markup.
 
@@ -133,14 +135,24 @@ to the extrusion engine would not deliver the requested interface.
 | --- | --- | --- |
 | `node --check admin/assets/js/extrusion.js`, GUI spec syntax, `php -l admin/tmpl/extrusion/default.php`, `git diff --check` | Local Node.js/PHP 8.3.6 | Pass |
 | `composer test` | PHP 8.3.6, restored required GD extension, locked dependencies | Pass — 4,280 tests / 47,011 assertions |
-| Installed extrusion browser suite | GitHub Actions, Joomla, Chromium | First checkpoint exposed wrapped dropdown labels; corrected explicit labels awaiting rerun |
+| Unit and quality workflow [36718963656](https://github.com/extension-builder/joomla/actions/runs/36718963656) | PHP 8.3.35 and 8.4.26 | Pass — 4,280 tests / 47,011 assertions each; locked security audit, style, ownership, platform and cleanup gates pass |
+| Compiler matrix [36718963670](https://github.com/extension-builder/joomla/actions/runs/36718963670) | Actual Joomla targets 3/4/5/6 | Pass — all four comparisons |
+| Compiled API [36718963635](https://github.com/extension-builder/joomla/actions/runs/36718963635) | Installed Joomla and compiled fixture | Pass |
+| Installed extrusion browser suite [36718963748](https://github.com/extension-builder/joomla/actions/runs/36718963748) | GitHub Actions, Joomla, Chromium, `39d23a9f` | 20 passed / 1 failed; only the no-op fixture assertion remains under correction |
 | Installed Playwright label-resolution probe | Local selector helpers | Pass after separating labels from dropdown option text |
+
+The no-op fixture's manually seeded Power bodies included a final newline that
+the actual class reader removes. Its zero-addition/one-deletion response was a
+real normalization change. The fixture now seeds the canonical stored bodies;
+the browser assertion still requires `changed: false` and both matched records
+under No change. No production comparison or assertion was relaxed.
 
 ### Manual scenarios
 
 | Scenario | Environment | Result |
 | --- | --- | --- |
 | Five supplied screenshot review | Maintainer's installed extrusion view | Reviewed; layout requirements identified |
+| Desktop/narrow browser screenshots | Chromium, 1366px and 390px, run 36718963748 | Desktop badge/actions verified; narrow sticky-toolbar overlap identified and corrected, awaiting rerun |
 
 ### GUI test coverage
 
@@ -148,7 +160,8 @@ to the extrusion engine would not deliver the requested interface.
   `libraries/vendor_jcb/tests/gui/specs/extrusion.spec.js`.
 - Coverage accompanies the implementation for wide/narrow layout, combined
   filters, nested/partial group selection, hidden-row batch protection,
-  ambiguity filtering and import confirmation/cancellation. Tests inspect real
+  matched update versus effective no-op, ambiguity filtering and import
+  confirmation/cancellation. Tests inspect real
   AJAX payloads and leave fixture definitions unchanged through dry runs.
 
 ### Checks not performed

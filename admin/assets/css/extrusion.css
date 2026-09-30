@@ -189,6 +189,17 @@
 	margin: 0.5rem 0;
 }
 
+/* A stacked toolbar must not cover the rows in a narrow viewport. */
+@media (max-width: 767.98px) {
+	#extrusion-bulk-bar {
+		position: static;
+	}
+	#extrusion-board {
+		max-height: none;
+		overflow: visible;
+	}
+}
+
 /* the shared target picker */
 .extrusion-modal {
 	position: fixed;
