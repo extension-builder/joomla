@@ -136,7 +136,8 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 		</div>
 		<div id="extrusion-bulk-bar" class="p-md-2">
 			<div class="extrusion-filters">
-				<label for="extrusion-filter-type"><?php echo Text::_('Entity type'); ?>
+				<div class="extrusion-filter-field">
+					<label for="extrusion-filter-type"><?php echo Text::_('Entity type'); ?></label>
 					<select id="extrusion-filter-type" class="form-select form-select-sm">
 						<option value=""><?php echo Text::_('All types'); ?></option>
 						<option value="power"><?php echo Text::_('Powers'); ?></option>
@@ -147,8 +148,9 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 						<option value="layout"><?php echo Text::_('Layouts'); ?></option>
 						<option value="template"><?php echo Text::_('Templates'); ?></option>
 					</select>
-				</label>
-				<label for="extrusion-filter-status"><?php echo Text::_('Matching status'); ?>
+				</div>
+				<div class="extrusion-filter-field">
+					<label for="extrusion-filter-status"><?php echo Text::_('Matching status'); ?></label>
 					<select id="extrusion-filter-status" class="form-select form-select-sm">
 						<option value=""><?php echo Text::_('All statuses'); ?></option>
 						<option value="matched"><?php echo Text::_('Matched'); ?></option>
@@ -162,8 +164,9 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 						<option value="ignored"><?php echo Text::_('Ignored'); ?></option>
 						<option value="filtered"><?php echo Text::_('Filtered'); ?></option>
 					</select>
-				</label>
-				<label for="extrusion-filter-change"><?php echo Text::_('Planned change'); ?>
+				</div>
+				<div class="extrusion-filter-field">
+					<label for="extrusion-filter-change"><?php echo Text::_('Planned change'); ?></label>
 					<select id="extrusion-filter-change" class="form-select form-select-sm">
 						<option value=""><?php echo Text::_('All changes'); ?></option>
 						<option value="create"><?php echo Text::_('Create new'); ?></option>
@@ -173,11 +176,12 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 						<option value="blocked"><?php echo Text::_('Blocked'); ?></option>
 						<option value="pending"><?php echo Text::_('Pending review'); ?></option>
 					</select>
-				</label>
-				<label for="extrusion-filter"><?php echo Text::_('Search the tree'); ?>
+				</div>
+				<div class="extrusion-filter-field">
+					<label for="extrusion-filter"><?php echo Text::_('Search the tree'); ?></label>
 					<input type="text" id="extrusion-filter" class="form-control form-control-sm"
 						placeholder="<?php echo Text::_('Filter the tree'); ?>" />
-				</label>
+				</div>
 			</div>
 			<div class="extrusion-bulk-actions">
 			<span class="extrusion-filter-count"><span id="extrusion-visible-count">0</span> / <span id="extrusion-total-count">0</span> <?php echo Text::_('items shown'); ?></span>

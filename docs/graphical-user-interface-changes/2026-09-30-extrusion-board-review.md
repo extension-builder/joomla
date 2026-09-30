@@ -102,6 +102,8 @@ to the extrusion engine would not deliver the requested interface.
   and add a Show ambiguous items button. Replace the persistent scope checkbox
   with a labelled confirmation dialog using short system-impact wording and a
   separate dry-run notice. Visible strings remain natural `Text::_()` inputs.
+  Filter labels explicitly reference sibling controls so option text is not
+  included in their accessible names.
 - **Why:** Keep visible labels accessible and ready for JCB's language import.
 - **Related paths/symbols:** Extrusion JavaScript filter and review helpers.
 
@@ -131,7 +133,8 @@ to the extrusion engine would not deliver the requested interface.
 | --- | --- | --- |
 | `node --check admin/assets/js/extrusion.js`, GUI spec syntax, `php -l admin/tmpl/extrusion/default.php`, `git diff --check` | Local Node.js/PHP 8.3.6 | Pass |
 | `composer test` | PHP 8.3.6, restored required GD extension, locked dependencies | Pass — 4,280 tests / 47,011 assertions |
-| Installed extrusion browser suite | GitHub Actions, Joomla, Chromium | Pending first implementation checkpoint |
+| Installed extrusion browser suite | GitHub Actions, Joomla, Chromium | First checkpoint exposed wrapped dropdown labels; corrected explicit labels awaiting rerun |
+| Installed Playwright label-resolution probe | Local selector helpers | Pass after separating labels from dropdown option text |
 
 ### Manual scenarios
 
@@ -150,7 +153,7 @@ to the extrusion engine would not deliver the requested interface.
 
 ### Checks not performed
 
-- Installed browser execution awaits the coherent implementation checkpoint;
+- Installed browser execution awaits the corrected-label checkpoint;
   Docker is unavailable in the local workspace, so the existing CI harness is
   the authoritative runtime check.
 - Rebuilding the authoritative custom administrator view is the maintainer's
