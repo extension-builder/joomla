@@ -135,23 +135,67 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 			</div>
 		</div>
 		<div id="extrusion-bulk-bar" class="p-md-2">
-			<span id="extrusion-selected-count">0</span> <?php echo Text::_('selected'); ?>:
+			<div class="extrusion-filters">
+				<label for="extrusion-filter-type"><?php echo Text::_('Entity type'); ?>
+					<select id="extrusion-filter-type" class="form-select form-select-sm">
+						<option value=""><?php echo Text::_('All types'); ?></option>
+						<option value="power"><?php echo Text::_('Powers'); ?></option>
+						<option value="admin_view"><?php echo Text::_('Admin views'); ?></option>
+						<option value="field"><?php echo Text::_('Fields'); ?></option>
+						<option value="site_view"><?php echo Text::_('Site views'); ?></option>
+						<option value="custom_admin_view"><?php echo Text::_('Custom admin views'); ?></option>
+						<option value="layout"><?php echo Text::_('Layouts'); ?></option>
+						<option value="template"><?php echo Text::_('Templates'); ?></option>
+					</select>
+				</label>
+				<label for="extrusion-filter-status"><?php echo Text::_('Matching status'); ?>
+					<select id="extrusion-filter-status" class="form-select form-select-sm">
+						<option value=""><?php echo Text::_('All statuses'); ?></option>
+						<option value="matched"><?php echo Text::_('Matched'); ?></option>
+						<option value="ambiguous"><?php echo Text::_('Ambiguous'); ?></option>
+						<option value="conflict"><?php echo Text::_('Conflict'); ?></option>
+						<option value="unresolved"><?php echo Text::_('Unresolved'); ?></option>
+						<option value="unmatched"><?php echo Text::_('Unmatched'); ?></option>
+						<option value="new"><?php echo Text::_('New'); ?></option>
+						<option value="similar"><?php echo Text::_('Similar'); ?></option>
+						<option value="shared"><?php echo Text::_('Shared'); ?></option>
+						<option value="ignored"><?php echo Text::_('Ignored'); ?></option>
+						<option value="filtered"><?php echo Text::_('Filtered'); ?></option>
+					</select>
+				</label>
+				<label for="extrusion-filter-change"><?php echo Text::_('Planned change'); ?>
+					<select id="extrusion-filter-change" class="form-select form-select-sm">
+						<option value=""><?php echo Text::_('All changes'); ?></option>
+						<option value="create"><?php echo Text::_('Create new'); ?></option>
+						<option value="update"><?php echo Text::_('Update'); ?></option>
+						<option value="nochange"><?php echo Text::_('No change'); ?></option>
+						<option value="ignore"><?php echo Text::_('Ignore'); ?></option>
+						<option value="blocked"><?php echo Text::_('Blocked'); ?></option>
+						<option value="pending"><?php echo Text::_('Pending review'); ?></option>
+					</select>
+				</label>
+				<label for="extrusion-filter"><?php echo Text::_('Search the tree'); ?>
+					<input type="text" id="extrusion-filter" class="form-control form-control-sm"
+						placeholder="<?php echo Text::_('Filter the tree'); ?>" />
+				</label>
+			</div>
+			<div class="extrusion-bulk-actions">
+			<span class="extrusion-filter-count"><span id="extrusion-visible-count">0</span> / <span id="extrusion-total-count">0</span> <?php echo Text::_('items shown'); ?></span>
+			<span><span id="extrusion-selected-count">0</span> <?php echo Text::_('selected in this view'); ?>:</span>
 			<button type="button" class="btn btn-sm btn-outline-primary" data-extrusion-bulk="create"><?php echo Text::_('Create new'); ?></button>
 			<button type="button" class="btn btn-sm btn-outline-secondary" data-extrusion-bulk="ignore"><?php echo Text::_('Ignore'); ?></button>
 			<button type="button" class="btn btn-sm btn-outline-secondary" data-extrusion-bulk="reset"><?php echo Text::_('Back to proposed'); ?></button>
-			<span style="float:right;">
-				<input type="text" id="extrusion-filter" class="form-control form-control-sm" style="display:inline-block; width: 260px;"
-					placeholder="<?php echo Text::_('Filter the tree'); ?>" />
-			</span>
+			<small><?php echo Text::_('Group selection includes nested items matching these filters.'); ?></small>
+			</div>
+		</div>
+		<div id="extrusion-ambiguity-notice" class="alert alert-warning" hidden>
+			<?php echo Text::_('Some items have more than one possible target. Filter them and choose the correct record.'); ?>
+			<button type="button" class="btn btn-sm btn-outline-secondary" id="extrusion-show-ambiguous"><?php echo Text::_('Show ambiguous items'); ?></button>
 		</div>
 		<div id="extrusion-board" class="p-md-2"></div>
+		<p id="extrusion-filter-empty" class="p-md-2" role="status" hidden><?php echo Text::_('No items match these filters.'); ?></p>
 		<div class="p-md-2">
 			<div id="extrusion-review-notice" role="status" aria-live="polite"></div>
-			<div id="extrusion-scope-approval" class="alert alert-warning" hidden>
-				<p><?php echo Text::_('The reviewed changes affect these scopes:'); ?> <strong id="extrusion-required-scopes"></strong></p>
-				<label for="extrusion-acknowledge-scopes"><input type="checkbox" id="extrusion-acknowledge-scopes" />
-					<?php echo Text::_('I acknowledge the scope of these reviewed changes.'); ?></label>
-			</div>
 		</div>
 		<div class="p-md-3">
 			<?php if ($this->canDo->get('extrusion.import')): ?>
@@ -199,12 +243,20 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 			<button type="button" class="btn btn-outline-secondary" id="extrusion-modal-close"><?php echo Text::_('Cancel'); ?></button>
 		</div>
 	</div>
+	<div id="extrusion-confirm-modal" class="extrusion-modal" role="dialog" aria-modal="true"
+		aria-labelledby="extrusion-confirm-title" aria-describedby="extrusion-confirm-description" style="display:none;">
+		<div class="extrusion-modal-card">
+			<h4 id="extrusion-confirm-title"><?php echo Text::_('Confirm import'); ?></h4>
+			<p id="extrusion-confirm-description"><?php echo Text::_('I acknowledge that these changes can affect the system.'); ?></p>
+			<p id="extrusion-confirm-dry-run" hidden><?php echo Text::_('This is a dry run. No records will be written.'); ?></p>
+			<div class="extrusion-confirm-actions">
+				<button type="button" class="btn btn-success" id="extrusion-confirm-import"><?php echo Text::_('Acknowledge and import'); ?></button>
+				<button type="button" class="btn btn-outline-secondary" id="extrusion-confirm-cancel"><?php echo Text::_('Cancel'); ?></button>
+			</div>
+		</div>
+	</div>
 </div>
 
-<style>
-.extrusion-power-evidence { display: block; overflow-wrap: anywhere; margin-top: .35rem; }
-.extrusion-power-evidence > span, .extrusion-power-evidence > code, .extrusion-power-evidence details > span, .extrusion-power-evidence details > code { display: block; }
-</style>
 <script type="text/javascript">
 // the extrusion page bootstrap
 window.JCBExtrusion = {
@@ -212,12 +264,14 @@ window.JCBExtrusion = {
 	canImport: <?php echo $this->canDo->get('extrusion.import') ? 'true' : 'false'; ?>,
 	text: {
 		reviewPending: '<?php echo Text::_('Resolving the current targets and write plan...', true); ?>',
-		reviewBlocked: '<?php echo Text::_('Import is blocked until the following conflicts are resolved:', true); ?>',
+		reviewBlocked: '<?php echo Text::_('Resolve the blocked items before importing.', true); ?>',
+		blockerDetails: '<?php echo Text::_('Review conflict details', true); ?>',
+		ambiguousHint: '<?php echo Text::_('Choose the correct target from the candidates.', true); ?>',
+		selectGroup: '<?php echo Text::_('Select group:', true); ?>',
+		selectItem: '<?php echo Text::_('Select item:', true); ?>',
 		reviewReady: '<?php echo Text::_('The current targets and effective changes have been validated.', true); ?>',
 		actualTarget: '<?php echo Text::_('Actual target', true); ?>',
 		newIdentity: '<?php echo Text::_('New Power identity', true); ?>',
-		knownConsumers: '<?php echo Text::_('Known component usage', true); ?>',
-		writeScope: '<?php echo Text::_('Write scope', true); ?>',
 		otherCandidates: '<?php echo Text::_('Other candidates', true); ?>',
 		relocation: '<?php echo Text::_('Validated namespace relocation', true); ?>',
 		skippedExisting: '<?php echo Text::_('Skipped existing (available to dependencies)', true); ?>',
@@ -229,13 +283,9 @@ window.JCBExtrusion = {
 		status_unresolved: '<?php echo Text::_('Unresolved', true); ?>',
 		status_ignored: '<?php echo Text::_('Ignored', true); ?>',
 		status_filtered: '<?php echo Text::_('Filtered', true); ?>',
-		scope_component: '<?php echo Text::_('Selected component', true); ?>',
-		scope_new: '<?php echo Text::_('New definition', true); ?>',
-		scope_shared: '<?php echo Text::_('Shared definition', true); ?>',
-		scope_foreign: '<?php echo Text::_('Other component', true); ?>',
-		scope_unknown: '<?php echo Text::_('Usage not fully established', true); ?>',
-		scope_unestablished: '<?php echo Text::_('Usage not fully established', true); ?>',
-		scope_remapping: '<?php echo Text::_('Source-to-target namespace remapping', true); ?>',
+		status_unmatched: '<?php echo Text::_('Unmatched', true); ?>',
+		status_similar: '<?php echo Text::_('Similar', true); ?>',
+		status_shared: '<?php echo Text::_('Shared', true); ?>',
 		harvesting: '<?php echo Text::_('is being harvested', true); ?>',
 		importing: '<?php echo Text::_('is being imported', true); ?>',
 		theSource: '<?php echo Text::_('The source', true); ?>',

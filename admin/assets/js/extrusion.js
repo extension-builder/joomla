@@ -42,6 +42,8 @@
 		catalogueFailed: '',
 		decisions: {},
 		selected: new Set(),
+		candidateIndex: new Map(),
+		confirmation: null,
 		modal: null,
 		modalPowers: null,
 		modalPowersTruncated: false,
@@ -65,6 +67,7 @@
 	let weighingRun = 0;
 	let powerSearchTimer = null;
 	let powerSearchRun = 0;
+	let batchingDecisions = false;
 
 	const $ = (id) => document.getElementById(id);
 	const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
@@ -463,7 +466,7 @@
 	 * aimed at the component the board pairs against -- detected or chosen --
 	 * so a weighing, a diff and the import are all the same run.
 	 */
-	function runConfig(importing = false) {
+	function runConfig(importing = false, scopes = []) {
 		const config = Object.assign({}, state.config);
 		const select = $('extrusion-component-select');
 		config.component = parseInt(select.value, 10) || 0;
@@ -473,11 +476,7 @@
 		if (importing && state.plan) {
 			config.approved_plan = state.plan.fingerprint;
 			config.acknowledged_scopes = {};
-			if ($('extrusion-acknowledge-scopes').checked) {
-				(state.plan.required_approvals || []).forEach((scope) => {
-					config.acknowledged_scopes[scope] = true;
-				});
-			}
+			scopes.forEach((scope) => { config.acknowledged_scopes[scope] = true; });
 		}
 		return config;
 	}
@@ -487,10 +486,7 @@
 		weighingRun++;
 		state.reviewPending = true;
 		state.plan = null;
-		const acknowledgement = $('extrusion-acknowledge-scopes');
-		if (acknowledgement) {
-			acknowledgement.checked = false;
-		}
+		closeConfirmation();
 		renderReview();
 	}
 
@@ -510,7 +506,7 @@
 		state.plan = plan && /^[a-f0-9]{64}$/.test(plan.fingerprint || '') ? plan : null;
 		state.reviewPending = false;
 		if (!same) {
-			$('extrusion-acknowledge-scopes').checked = false;
+			closeConfirmation();
 		}
 	}
 
@@ -519,9 +515,7 @@
 			|| state.plan.status !== 'preview' || Object.keys(state.plan.blockers || {}).length) {
 			return false;
 		}
-		const scopes = state.plan.required_approvals || [];
-		return String((state.config || {}).dry_run) === '1' || !scopes.length
-			|| $('extrusion-acknowledge-scopes').checked;
+		return true;
 	}
 
 	/** Public plans carry blocker records; display their explanations. */
@@ -538,11 +532,19 @@
 		const blockers = planBlockers(state.plan);
 		const pending = state.reviewPending || !state.plan;
 		notice.className = 'alert ' + (pending ? 'alert-info' : (blockers.length ? 'alert-warning' : 'alert-success'));
-		notice.textContent = state.weighingFailed || (pending ? T.reviewPending
-			: (blockers.length ? T.reviewBlocked + ' ' + blockers.join(' ') : T.reviewReady));
-		const scopes = (state.plan || {}).required_approvals || [];
-		$('extrusion-scope-approval').hidden = !scopes.length;
-		$('extrusion-required-scopes').textContent = scopes.map((scope) => T['scope_' + scope] || scope).join(', ');
+		const ambiguous = pending ? [] : (((state.data || {}).powers || {}).classes || []);
+		$('extrusion-ambiguity-notice').hidden = !ambiguous.some((candidate) => candidate.status === 'ambiguous');
+		const ambiguousKeys = new Set(ambiguous.filter((candidate) => candidate.status === 'ambiguous')
+			.map((candidate) => candidate.source_key));
+		const reasons = [...new Set(Object.values((state.plan || {}).blockers || {})
+			.filter((entry) => !entry || typeof entry !== 'object'
+				|| !ambiguousKeys.has(String(entry.key || '').split('.')[1]))
+			.map((entry) => entry && typeof entry === 'object' ? entry.reason : String(entry)))];
+		notice.innerHTML = esc(state.weighingFailed || (pending ? T.reviewPending
+			: (blockers.length ? T.reviewBlocked : T.reviewReady)))
+			+ (!pending && reasons.length ? '<details class="extrusion-review-details"><summary>'
+				+ esc(T.blockerDetails) + '</summary><ul>'
+				+ reasons.map((reason) => '<li>' + esc(reason) + '</li>').join('') + '</ul></details>' : '');
 		const button = $('extrusion-import-button');
 		if (button) {
 			button.disabled = !reviewReady();
@@ -555,8 +557,7 @@
 			return '<span class="extrusion-power-evidence">' + esc(T.reviewPending) + '</span>';
 		}
 		const target = candidate.target;
-		let html = '<span class="extrusion-power-evidence"><span class="badge bg-secondary extrusion-match-status">'
-			+ esc(T['status_' + candidate.status] || candidate.status) + '</span> ';
+		let html = '<span class="extrusion-power-evidence">';
 		if (candidate.action === 'skip') {
 			html += '<span>' + esc(T.skippedExisting) + '</span> ';
 		}
@@ -568,13 +569,7 @@
 		} else if (candidate.status === 'new') {
 			html += '<span>' + esc(T.newIdentity) + ': <code>' + esc(candidate.write_guid) + '</code></span>';
 		}
-		const consumers = Object.values(candidate.consumers || {});
-		if (consumers.length) {
-			html += '<span>' + esc(T.knownConsumers) + ': '
-				+ consumers.map((consumer) => esc(consumer.code || consumer.guid || consumer.id)).join(', ') + '</span>';
-		}
-		html += '<span>' + esc(T.writeScope) + ': ' + esc(T['scope_' + candidate.write_scope] || candidate.write_scope) + '</span>';
-		(candidate.blockers || []).forEach((reason) => {
+		(candidate.status === 'ambiguous' ? [T.ambiguousHint] : (candidate.blockers || [])).forEach((reason) => {
 			html += '<span class="text-danger">' + esc(reason) + '</span>';
 		});
 		const alternatives = (candidate.alternatives || []).filter((entry) => !target || entry.guid !== target.guid);
@@ -582,7 +577,7 @@
 			html += '<details><summary>' + esc(T.otherCandidates) + ' (' + alternatives.length + ')</summary>';
 			alternatives.forEach((entry) => {
 				html += '<span><code>' + esc(entry.guid) + '</code> ' + esc(entry.system_name)
-					+ ' — ' + esc(entry.reason) + '</span><code>' + esc(entry.namespace) + '</code>';
+					+ '</span><code>' + esc(entry.namespace) + '</code>';
 			});
 			html += '</details>';
 		}
@@ -621,6 +616,9 @@
 	}
 
 	function scheduleWeighing() {
+		if (batchingDecisions) {
+			return;
+		}
 		invalidateReview();
 		window.clearTimeout(weighingTimer);
 		weighingTimer = window.setTimeout(reweigh, 400);
@@ -867,6 +865,8 @@
 	 */
 	function renderBoard() {
 		const board = $('extrusion-board');
+		state.candidateIndex = new Map(allCandidates().map((candidate) =>
+			[candidate.kind + '|' + candidate.key, candidate]));
 		const data = state.data || {};
 		const candidates = data.candidates || {};
 		let html = '';
@@ -897,7 +897,6 @@
 		}
 		board.innerHTML = html;
 		renderReview();
-		refreshBulkBar();
 		applyFilter($('extrusion-filter').value);
 		$$('#extrusion-board [data-extrusion-open]').forEach((node) => {
 			node.addEventListener('toggle', () => {
@@ -909,6 +908,57 @@
 				}
 			});
 		});
+	}
+
+	/** One compact status, independent of the effective change underneath it. */
+	function matchingStatus(candidate) {
+		if (candidate.kind === 'power') {
+			return candidate.status || 'unresolved';
+		}
+		if (candidate.shared && !candidate.detached) {
+			return 'shared';
+		}
+		const current = decision(candidate);
+		if (current.action === 'ignore') {
+			return 'ignored';
+		}
+		if (current.action === 'update' && current.target) {
+			return 'matched';
+		}
+		return candidate.match ? 'similar' : 'unmatched';
+	}
+
+	/** Classify only the current validated proposal, never an old update label. */
+	function plannedChange(candidate) {
+		if (state.reviewPending) {
+			return 'pending';
+		}
+		const current = decision(candidate);
+		if (['ignore', 'ignored', 'filtered'].includes(current.action)) {
+			return 'ignore';
+		}
+		if (current.action === 'blocked' || ['ambiguous', 'conflict', 'unresolved'].includes(candidate.status)) {
+			return 'blocked';
+		}
+		if (current.action === 'skip' || (candidate.shared && !candidate.detached)) {
+			return 'nochange';
+		}
+		const proposal = weight(candidate);
+		return proposal ? (proposal.changed ? proposal.action : 'nochange') : 'pending';
+	}
+
+	function rowHeading(candidate) {
+		const status = matchingStatus(candidate);
+		return '<span class="extrusion-row-heading"><b>' + esc(candidate.label) + '</b>'
+			+ ' <span class="badge bg-secondary extrusion-match-status" data-extrusion-status="'
+			+ esc(status) + '">' + esc(T['status_' + status] || status) + '</span>'
+			+ (candidate.detail && candidate.detail !== candidate.label
+				? ' <small>' + esc(candidate.detail) + '</small>' : '') + '</span>';
+	}
+
+	function groupCheck(label) {
+		return '<input type="checkbox" class="extrusion-group-check" data-extrusion-group'
+			+ ' aria-label="' + esc(T.selectGroup + ' ' + label) + '" /> ';
 	}
 
 	function counts(list) {
@@ -937,17 +987,17 @@
 	}
 
 	function kindSection(kind, label, list, withFields) {
-		let html = '<details class="extrusion-kind" open data-extrusion-kind="' + kind + '">'
-			+ '<summary>' + esc(label) + counts(list) + '</summary>'
+		let html = '<details class="extrusion-kind" open data-extrusion-group-container data-extrusion-kind="' + kind + '">'
+			+ '<summary>' + groupCheck(label) + esc(label) + counts(list) + '</summary>'
 			+ '<div class="extrusion-rows">';
 		list.forEach((candidate) => {
 			html += row(candidate);
 			if (withFields && (candidate.fields || []).length) {
 				const fieldsKey = 'fields:' + candidate.kind + '|' + candidate.key;
-				html += '<details class="extrusion-fields" data-extrusion-open="'
+				html += '<details class="extrusion-fields" data-extrusion-group-container data-extrusion-open="'
 					+ esc(fieldsKey) + '"' + (state.opened.has(fieldsKey) ? ' open' : '')
 					+ '><summary>'
-					+ esc(T.fields) + counts(candidate.fields) + '</summary>'
+					+ groupCheck(T.fields + ': ' + candidate.label) + esc(T.fields) + counts(candidate.fields) + '</summary>'
 					+ '<div class="extrusion-rows">';
 				candidate.fields.forEach((field) => {
 					html += row(field);
@@ -966,14 +1016,16 @@
 			byLibrary[candidate.library][bundle] = byLibrary[candidate.library][bundle] || [];
 			byLibrary[candidate.library][bundle].push(candidate);
 		});
-		let html = '<details class="extrusion-kind" open data-extrusion-kind="power">'
-			+ '<summary>' + esc(T.powers) + counts(powers.classes) + '</summary>'
+		let html = '<details class="extrusion-kind" open data-extrusion-group-container data-extrusion-kind="power">'
+			+ '<summary>' + groupCheck(T.powers) + esc(T.powers) + counts(powers.classes) + '</summary>'
 			+ '<div class="extrusion-rows">';
 		Object.keys(byLibrary).sort().forEach((library) => {
-			html += '<details class="extrusion-library" open><summary>' + esc(library) + '</summary>';
+			html += '<details class="extrusion-library" open data-extrusion-group-container><summary>'
+				+ groupCheck(library) + esc(library) + '</summary>';
 			Object.keys(byLibrary[library]).sort().forEach((bundle) => {
 				const list = byLibrary[library][bundle];
-				html += '<details class="extrusion-bundle" open><summary>' + esc(bundle)
+				html += '<details class="extrusion-bundle" open data-extrusion-group-container><summary>'
+					+ groupCheck(bundle) + esc(bundle)
 					+ counts(list) + '</summary><div class="extrusion-rows">';
 				list.forEach((candidate) => {
 					html += row(candidate);
@@ -1000,9 +1052,7 @@
 			return '<div class="extrusion-row extrusion-shared" data-extrusion-row="'
 				+ esc(id) + '">'
 				+ '<span class="extrusion-tick"></span>'
-				+ '<span class="extrusion-identity"><b>' + esc(candidate.label) + '</b>'
-				+ (candidate.detail && candidate.detail !== candidate.label
-					? ' <small>' + esc(candidate.detail) + '</small>' : '')
+				+ '<span class="extrusion-identity">' + rowHeading(candidate)
 				+ ' <span class="badge bg-info extrusion-shared-note">'
 				+ esc(T.sharedWith) + ' ' + esc(candidate.shared.owner) + '</span>'
 				+ '</span>'
@@ -1021,10 +1071,9 @@
 		return '<div class="extrusion-row' + (isExplicit ? ' explicit' : '')
 			+ '" data-extrusion-row="' + esc(id) + '">'
 			+ '<label class="extrusion-tick"><input type="checkbox" data-extrusion-check="'
-			+ esc(id) + '"' + (state.selected.has(id) ? ' checked' : '') + ' /></label>'
-			+ '<span class="extrusion-identity"><b>' + esc(candidate.label) + '</b>'
-			+ (candidate.detail && candidate.detail !== candidate.label
-				? ' <small>' + esc(candidate.detail) + '</small>' : '')
+			+ esc(id) + '" aria-label="' + esc(T.selectItem + ' ' + candidate.label) + '"'
+			+ (state.selected.has(id) ? ' checked' : '') + ' /></label>'
+			+ '<span class="extrusion-identity">' + rowHeading(candidate)
 			+ (isGroup
 				? ' <span class="badge bg-success extrusion-shared-note">'
 					+ esc(T.oneField) + ' ' + (candidate.shared_by.length + 1) + ' '
@@ -1053,14 +1102,26 @@
 	}
 
 	function findCandidate(id) {
-		const [kind, key] = id.split('|');
-		return allCandidates().find(
-			(candidate) => candidate.kind === kind && candidate.key === key
-		) || null;
+		return state.candidateIndex.get(id) || null;
 	}
 
 	function wireBoard() {
 		$('extrusion-board').addEventListener('click', (event) => {
+			const group = event.target.closest('[data-extrusion-group]');
+			if (group) {
+				event.stopPropagation();
+				selectableRows(group.closest('[data-extrusion-group-container]')).forEach((rowElement) => {
+					const id = rowElement.dataset.extrusionRow;
+					if (group.checked) {
+						state.selected.add(id);
+					} else {
+						state.selected.delete(id);
+					}
+					rowElement.querySelector('[data-extrusion-check]').checked = group.checked;
+				});
+				refreshBulkBar();
+				return;
+			}
 			const button = event.target.closest('[data-extrusion-act]');
 			if (button) {
 				const rowElement = button.closest('[data-extrusion-row]');
@@ -1219,7 +1280,12 @@
 	 * Bulk work over the ticked rows.
 	 */
 	function bulk(action) {
+		const visible = new Set(selectableRows($('extrusion-board')).map((rowElement) => rowElement.dataset.extrusionRow));
+		batchingDecisions = true;
 		state.selected.forEach((id) => {
+			if (!visible.has(id)) {
+				return;
+			}
 			const candidate = findCandidate(id);
 			if (!candidate) {
 				return;
@@ -1240,11 +1306,30 @@
 				decide(candidate, { action: action });
 			}
 		});
+		batchingDecisions = false;
+		scheduleWeighing();
 		renderBoard();
 	}
 
 	function refreshBulkBar() {
 		$('extrusion-selected-count').textContent = String(state.selected.size);
+		$$('#extrusion-bulk-bar [data-extrusion-bulk]').forEach((button) => {
+			button.disabled = state.selected.size === 0 || state.busy;
+		});
+		$$('#extrusion-board [data-extrusion-group-container]').forEach((container) => {
+			const checkbox = container.querySelector(':scope > summary > [data-extrusion-group]');
+			const rows = selectableRows(container);
+			const count = rows.filter((rowElement) => state.selected.has(rowElement.dataset.extrusionRow)).length;
+			checkbox.checked = rows.length > 0 && count === rows.length;
+			checkbox.indeterminate = count > 0 && count < rows.length;
+			checkbox.disabled = rows.length === 0;
+		});
+	}
+
+	/** Collapsed descendants remain selectable; filtered or shared members do not. */
+	function selectableRows(container) {
+		return $$('.extrusion-row[data-extrusion-visible="true"]', container)
+			.filter((rowElement) => rowElement.querySelector('[data-extrusion-check]'));
 	}
 
 	/**
@@ -1253,11 +1338,29 @@
 	 */
 	function applyFilter(value) {
 		const wanted = value.trim().toLowerCase();
+		const kind = $('extrusion-filter-type').value;
+		const status = $('extrusion-filter-status').value;
+		const change = $('extrusion-filter-change').value;
+		const active = wanted !== '' || kind !== '' || status !== '' || change !== '';
+		let visible = 0;
 		$$('#extrusion-board .extrusion-row').forEach((rowElement) => {
-			const match = wanted === ''
-				|| rowElement.textContent.toLowerCase().indexOf(wanted) !== -1;
+			const candidate = findCandidate(rowElement.dataset.extrusionRow);
+			const match = candidate && (wanted === '' || rowElement.textContent.toLowerCase().includes(wanted))
+				&& (kind === '' || candidate.kind === kind)
+				&& (status === '' || matchingStatus(candidate) === status)
+				&& (change === '' || plannedChange(candidate) === change);
+			rowElement.dataset.extrusionVisible = match ? 'true' : 'false';
 			rowElement.style.display = match ? '' : 'none';
-			if (match && wanted !== '') {
+			if (match) {
+				visible++;
+			} else {
+				state.selected.delete(rowElement.dataset.extrusionRow);
+				const check = rowElement.querySelector('[data-extrusion-check]');
+				if (check) {
+					check.checked = false;
+				}
+			}
+			if (match && active) {
 				let group = rowElement.closest('details');
 				while (group) {
 					group.open = true;
@@ -1266,6 +1369,13 @@
 				}
 			}
 		});
+		$$('#extrusion-board [data-extrusion-group-container]').forEach((group) => {
+			group.hidden = !group.querySelector('.extrusion-row[data-extrusion-visible="true"]');
+		});
+		$('extrusion-visible-count').textContent = String(visible);
+		$('extrusion-total-count').textContent = String(state.candidateIndex.size);
+		$('extrusion-filter-empty').hidden = visible > 0;
+		refreshBulkBar();
 	}
 
 	/**
@@ -1303,14 +1413,56 @@
 	}
 
 	/**
+	 * Approval exists only for the exact plan shown when this dialog opened.
+	 */
+	function openConfirmation() {
+		state.confirmation = {
+			fingerprint: state.plan.fingerprint,
+			scopes: [...(state.plan.required_approvals || [])]
+		};
+		$('extrusion-confirm-dry-run').hidden = String((state.config || {}).dry_run) !== '1';
+		$('extrusion-confirm-modal').style.display = 'flex';
+		$('extrusion-confirm-cancel').focus();
+	}
+
+	function closeConfirmation() {
+		const opened = state.confirmation !== null;
+		state.confirmation = null;
+		const dialog = $('extrusion-confirm-modal');
+		if (dialog) {
+			dialog.style.display = 'none';
+		}
+		if (opened && $('extrusion-import-button')) {
+			$('extrusion-import-button').focus();
+		}
+	}
+
+	function confirmImport() {
+		const approval = state.confirmation;
+		closeConfirmation();
+		if (!approval || !reviewReady() || approval.fingerprint !== state.plan.fingerprint
+			|| JSON.stringify(approval.scopes) !== JSON.stringify(state.plan.required_approvals || [])) {
+			return;
+		}
+		runImport(approval);
+	}
+
+	/**
 	 * Run the import under the decisions of the board.
 	 */
-	async function runImport() {
+	async function runImport(approval = null) {
 		if (!reviewReady()) {
 			renderReview();
 			return;
 		}
-		const config = runConfig(true);
+		const scopes = state.plan.required_approvals || [];
+		if (scopes.length && (!approval || approval.fingerprint !== state.plan.fingerprint
+			|| JSON.stringify(approval.scopes) !== JSON.stringify(scopes))) {
+			openConfirmation();
+			return;
+		}
+		const config = runConfig(true, approval ? approval.scopes : []);
+		const decisions = buildDecisions();
 		const finishRun = beginRun();
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
 		$('extrusion-running-verb').textContent = T.importing;
@@ -1319,7 +1471,7 @@
 		try {
 			payload = await post('extrusionImport', {
 				config: JSON.stringify(config),
-				decisions: JSON.stringify(buildDecisions())
+				decisions: JSON.stringify(decisions)
 			});
 		} catch (error) {
 			payload = { error: error.message || T.requestFailed };
@@ -1549,7 +1701,7 @@
 		$('extrusion-back-button').addEventListener('click', () => showPane('setup'));
 		const importButton = $('extrusion-import-button');
 		if (importButton) {
-			importButton.addEventListener('click', runImport);
+			importButton.addEventListener('click', () => runImport());
 		}
 		$$('#extrusion-tabs .nav-link').forEach((tab) => {
 			tab.addEventListener('click', () => {
@@ -1558,7 +1710,29 @@
 				}
 			});
 		});
-		$('extrusion-acknowledge-scopes').addEventListener('change', renderReview);
+		$('extrusion-confirm-import').addEventListener('click', confirmImport);
+		$('extrusion-confirm-cancel').addEventListener('click', closeConfirmation);
+		$('extrusion-confirm-modal').addEventListener('click', (event) => {
+			if (event.target === $('extrusion-confirm-modal')) {
+				closeConfirmation();
+			}
+		});
+		$('extrusion-confirm-modal').addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				closeConfirmation();
+			} else if (event.key === 'Tab') {
+				const first = $('extrusion-confirm-import');
+				const last = $('extrusion-confirm-cancel');
+				if (event.shiftKey && document.activeElement === first) {
+					event.preventDefault();
+					last.focus();
+				} else if (!event.shiftKey && document.activeElement === last) {
+					event.preventDefault();
+					first.focus();
+				}
+			}
+		});
 		$('extrusion-component-select').addEventListener('change', async (event) => {
 			invalidateReview();
 			state.decisions = {};
@@ -1580,6 +1754,17 @@
 			button.addEventListener('click', () => bulk(button.dataset.extrusionBulk));
 		});
 		$('extrusion-filter').addEventListener('input', (event) => applyFilter(event.target.value));
+		['type', 'status', 'change'].forEach((filter) => {
+			$('extrusion-filter-' + filter).addEventListener('change', () => applyFilter($('extrusion-filter').value));
+		});
+		$('extrusion-show-ambiguous').addEventListener('click', () => {
+			$('extrusion-filter-type').value = 'power';
+			$('extrusion-filter-status').value = 'ambiguous';
+			$('extrusion-filter-change').value = '';
+			$('extrusion-filter').value = '';
+			applyFilter('');
+			$('extrusion-filter-status').focus();
+		});
 		$('extrusion-modal-close').addEventListener('click', closeModal);
 		$('extrusion-modal-search').addEventListener('input',
 			(event) => searchModal(event.target.value));
