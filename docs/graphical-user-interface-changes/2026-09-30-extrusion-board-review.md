@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-09-30
 - **Author/implementer:** Codex
 - **Task/issue/PR:** https://github.com/extension-builder/joomla/pull/54
-- **Change record status:** Draft
+- **Change record status:** Ready for review
 
 ## Explicit permission
 
@@ -136,9 +136,10 @@ to the extrusion engine would not deliver the requested interface.
 | `node --check admin/assets/js/extrusion.js`, GUI spec syntax, `php -l admin/tmpl/extrusion/default.php`, `git diff --check` | Local Node.js/PHP 8.3.6 | Pass |
 | `composer test` | PHP 8.3.6, restored required GD extension, locked dependencies | Pass — 4,280 tests / 47,011 assertions |
 | Unit and quality workflow [36718963656](https://github.com/extension-builder/joomla/actions/runs/36718963656) | PHP 8.3.35 and 8.4.26 | Pass — 4,280 tests / 47,011 assertions each; locked security audit, style, ownership, platform and cleanup gates pass |
-| Compiler matrix [36718963670](https://github.com/extension-builder/joomla/actions/runs/36718963670) | Actual Joomla targets 3/4/5/6 | Pass — all four comparisons |
-| Compiled API [36718963635](https://github.com/extension-builder/joomla/actions/runs/36718963635) | Installed Joomla and compiled fixture | Pass |
-| Installed extrusion browser suite [36718963748](https://github.com/extension-builder/joomla/actions/runs/36718963748) | GitHub Actions, Joomla, Chromium, `39d23a9f` | 20 passed / 1 failed; only the no-op fixture assertion remains under correction |
+| Unit and quality rerun [36720027890](https://github.com/extension-builder/joomla/actions/runs/36720027890) | PHP 8.3 and 8.4, `d652612e` | Pass — unchanged unit source and dependency lock |
+| Compiler matrix [36720027667](https://github.com/extension-builder/joomla/actions/runs/36720027667) | Actual Joomla targets 3/4/5/6, `d652612e` | Pass — all four comparisons |
+| Compiled API [36720027670](https://github.com/extension-builder/joomla/actions/runs/36720027670) | Installed Joomla and compiled fixture, `d652612e` | Pass |
+| Installed extrusion browser suite [36720027686](https://github.com/extension-builder/joomla/actions/runs/36720027686) | GitHub Actions, Joomla, Chromium, `d652612e` | Pass — 21 cases, 53.0 seconds, zero retries/skips; corrected no-op and narrow-toolbar assertions pass |
 | Installed Playwright label-resolution probe | Local selector helpers | Pass after separating labels from dropdown option text |
 
 The no-op fixture's manually seeded Power bodies included a final newline that
@@ -147,12 +148,18 @@ real normalization change. The fixture now seeds the canonical stored bodies;
 the browser assertion still requires `changed: false` and both matched records
 under No change. No production comparison or assertion was relaxed.
 
+The preceding `39d23a9f` browser run passed 20 cases and exposed this fixture
+normalization difference. The corrected run above passes every case. Its
+[evidence artifact](https://github.com/extension-builder/joomla/actions/runs/36720027686/artifacts/11098880242)
+includes desktop/narrow screenshots, actual AJAX journeys and persistence
+verification. This record-only follow-up changes no implementation or tests.
+
 ### Manual scenarios
 
 | Scenario | Environment | Result |
 | --- | --- | --- |
 | Five supplied screenshot review | Maintainer's installed extrusion view | Reviewed; layout requirements identified |
-| Desktop/narrow browser screenshots | Chromium, 1366px and 390px, run 36718963748 | Desktop badge/actions verified; narrow sticky-toolbar overlap identified and corrected, awaiting rerun |
+| Desktop/narrow browser screenshots | Chromium, 1366px and 390px, runs 36718963748 and 36720027686 | Verified compact inline badges, actions below details, target evidence and wrapping filters; corrected narrow toolbar now leaves full rows visible |
 
 ### GUI test coverage
 
@@ -166,9 +173,8 @@ under No change. No production comparison or assertion was relaxed.
 
 ### Checks not performed
 
-- Installed browser execution awaits the corrected-label checkpoint;
-  Docker is unavailable in the local workspace, so the existing CI harness is
-  the authoritative runtime check.
+- Docker is unavailable in the local workspace; installed browser execution
+  was performed by the existing CI harness instead.
 - Rebuilding the authoritative custom administrator view is the maintainer's
   stated next step after this UI refinement; it has not been performed here.
 
@@ -192,8 +198,8 @@ under No change. No production comparison or assertion was relaxed.
 ## Final consistency check
 
 - [x] Affected paths and stable locations match the protected diff.
-- [ ] Behavioral, visual and accessibility impact verified.
-- [ ] Verification reports actual outcomes and skipped checks.
+- [x] Behavioral, visual and accessibility impact verified.
+- [x] Verification reports actual outcomes and skipped checks.
 - [x] Every protected path has a source mapping and honest transfer status.
-- [ ] Changed behavior has passing browser coverage.
+- [x] Changed behavior has passing browser coverage.
 - [x] Implementation scope follows the maintainer's explicit UI request.
