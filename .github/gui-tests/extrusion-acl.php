@@ -34,6 +34,11 @@ $container->alias('session', 'session.cli')
 	->alias(Joomla\Session\SessionInterface::class, 'session.cli');
 $app = $container->get(Joomla\Console\Application::class);
 Factory::$application = $app;
+$app->createExtensionNamespaceMap();
+// Native console execution provides an origin before user plugins can boot MVC.
+$_SERVER['HTTP_HOST'] = 'joomla.invalid';
+$_SERVER['REQUEST_URI'] = '/set/by/extrusion/acl/fixture';
+$_SERVER['HTTPS'] = 'on';
 $users = $container->get(UserFactoryInterface::class);
 $app->loadIdentity($users->loadUserByUsername(getenv('JCB_ADMIN_USER') ?: 'jcbgui'));
 $db = $container->get(DatabaseInterface::class);
@@ -123,7 +128,10 @@ if ($mode === '--seed')
 				'groups' => [$groupId],
 				'block' => 0,
 			];
-			$check($user->bind($userData) && $user->save(), 'Create an isolated native Joomla ACL user');
+			$check($user->bind($userData), 'Bind the isolated native Joomla ACL user');
+			$saved = $user->save();
+			$error = str_replace([$user->password, $user->password_clear], '[redacted]', (string) $user->getError());
+			$check($saved, 'Create an isolated native Joomla ACL user: ' . substr($error, 0, 400));
 			$state['users'][] = ['id' => (int) $user->id, 'username' => $username];
 			$save($state);
 			Access::clearStatics();

@@ -81,7 +81,8 @@ test.describe('Extrusion view access permissions', () => {
 		const { context, page } = await session(browser, 'denied');
 		try {
 			await openView(page, 'extrusion');
-			await expect(page.getByRole('heading', { name: 'No access granted!', exact: true })).toBeVisible();
+			await expect(page).toHaveURL(/\/administrator\/index\.php\?option=com_componentbuilder$/);
+			await expect(page.getByText('Not authorised!', { exact: true })).toBeVisible();
 			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toHaveCount(0);
 			expect(await page.evaluate(() => typeof /** @type {any} */ (window).JCBExtrusion)).toBe('undefined');
 			const token = await page.evaluate(() => {
