@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-10-02
 - **Author/implementer:** Codex, under repository-owner direction
 - **Task/issue/PR:** Current owner request to carry the confirmed Extrusion migration corrections into `extension-builder/joomla`; branch `fix/generated-api-contracts-and-extrusion`.
-- **Change record status:** Ready for review; installed browser verification pending CI
+- **Change record status:** Ready for review; installed browser verification passed
 
 ## Explicit permission
 
@@ -110,7 +110,8 @@ JCB's linked custom admin view permission generates `extrusion.access`. Requirin
 | `composer test` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 source runtime | Passed: 4,399 tests, 47,730 assertions |
 | `php bin/check-php-style.php` | Local test runtime, complete style scan | Passed: 534 files, including the new contract test |
 | JavaScript and shell syntax; `git diff --check` | Local Node, Bash and Git | Passed |
-| Playwright Extrusion permission journeys | Disposable installed Joomla/JCB GUI harness | Pending |
+| Playwright Extrusion permission journeys at `b9987e2`, [CI run `37043968500`](https://github.com/extension-builder/joomla/actions/runs/37043968500) | Disposable installed Joomla/JCB GUI harness, Chromium | Passed: all 23 tests, including real access-only harvest/dry-run import and denied view/direct-AJAX checks. Native owned-account/group cleanup and original ACL restoration completed successfully. |
+| PHP 8.3/8.4 unit matrix at `b9987e2`, [CI run `37043968515`](https://github.com/extension-builder/joomla/actions/runs/37043968515) | GitHub Actions | Both jobs passed all required gates and the full suite. |
 
 ### Manual scenarios
 
@@ -123,7 +124,6 @@ JCB's linked custom admin view permission generates `extrusion.access`. Requirin
 
 ### Checks not performed
 
-- Installed browser execution and the PHP 8.4 CI matrix remain pending the branch's CI run.
 - JCB self-regeneration is unavailable: the maintainer's authoritative custom-view/AJAX definition package is not present in this checkout.
 
 ## Risks, limitations, and rollback
@@ -147,7 +147,7 @@ JCB's linked custom admin view permission generates `extrusion.access`. Requirin
 - [x] The affected paths name the scoped implementation and tests.
 - [x] Protected paths have stable locations and exact what/why details.
 - [x] Behavioral and visual impact are explicit.
-- [x] Verification records executed results; installed browser checks remain explicitly pending.
+- [x] Verification records executed local and installed browser results.
 - [x] Every protected path has a reconciliation status and concrete transfer step.
 - [x] Transfer remains required until authoritative definitions are verified.
 - [x] Changed behavior ships GUI coverage.

@@ -91,7 +91,7 @@ The generated administrator item model also serves API requests. Its existing ed
 | `composer test` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 source runtime | Pass — 4,399 tests, 47,730 assertions, including the native exception follow-up. |
 | `bash -n .github/api-tests/run.sh`, PHP lint on all three API seed/permission scripts, `git diff --check` | Local checkout | Pass. |
 | `.github/api-tests/run.sh` at `9c708f`, CI run `37038740696` | Real Joomla API harness | Original Demo CRUD passed 50 checks; read-only numeric/GUID reads and mapped-access denials passed. Native view-level denial returned 500 rather than the required 403. Corrected the compiler exception type and added a native boundary regression; the subsequent installed acceptance passed below. |
-| `.github/api-tests/run.sh` at `25f453d`, [CI run `37041259754`](https://github.com/extension-builder/joomla/actions/runs/37041259754) | Real compiled/installed Joomla API and MySQL | Passed: both `looks` and `libraries_config` complete 50 CRUD/GUID/cleanup checks and 11 permission checks each (122 checks total). Read-only and denied ID/GUID reads, denied PATCH without mutation and native view-level denial all returned their expected HTTP responses. |
+| `.github/api-tests/run.sh` at `b9987e2`, [CI run `37043968495`](https://github.com/extension-builder/joomla/actions/runs/37043968495) | Real compiled/installed Joomla API and MySQL | Passed: both `looks` and `libraries_config` complete 50 CRUD/GUID/cleanup checks and 11 permission checks each (122 checks total). Read-only and denied ID/GUID reads, denied PATCH without mutation and native view-level denial all returned their expected HTTP responses. |
 
 ### Manual scenarios
 

@@ -92,12 +92,16 @@ sufficient: Joomla renders it as HTTP 500, so the guard emits its native
 access exception. The
 complete API-disabled template was materialized and matched the base
 template's bytes without weakening golden comparisons. Installed compiled
-API acceptance at `25f453d` passed [run `37041259754`](https://github.com/extension-builder/joomla/actions/runs/37041259754):
+API acceptance at `b9987e2` passed [run `37043968495`](https://github.com/extension-builder/joomla/actions/runs/37043968495):
 50 CRUD/GUID/cleanup checks and 11 permission checks for each of the native
 `looks` and renamed `libraries_config` Demo fixtures (122 checks total).
 This demonstrates explicit model roles and read policy in compiled/installed
-APIs; it does not recreate all historical JCB resources. The installed GUI
-journeys remain pending and must record their executed results before handoff.
+APIs; it does not recreate all historical JCB resources. Installed GUI [run `37043968500`](https://github.com/extension-builder/joomla/actions/runs/37043968500)
+passed all 23 browser tests, including access-only harvest/dry-run import,
+native denied-view redirect and direct authenticated AJAX denial. Native
+owned-user/group cleanup restored the original asset rules. All eight checks
+on that head passed: these API/GUI jobs, PHP 8.3/8.4 and compiler golden
+comparisons for Joomla 3/4/5/6; no golden expectations were weakened.
 
 The complete local `composer test` passed 4,399 tests with 47,730
 assertions on PHP 8.3.6 and PHPUnit 12.5.33 against Joomla 6.1.2 source.
