@@ -48,7 +48,7 @@ test.describe('Extrusion view access permissions', () => {
 		try {
 			await openView(page, 'extrusion');
 			await expect(page.getByRole('button', { name: 'Harvest the source' })).toBeVisible();
-			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toBeAttached();
+			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true, includeHidden: true })).toBeAttached();
 			expect(await page.evaluate(() => /** @type {any} */ (window).JCBExtrusion.canImport)).toBe(true);
 			await setRadio(page, 'show_advanced_options', '1');
 			await setRadio(page, 'dry_run', '1');
@@ -83,7 +83,7 @@ test.describe('Extrusion view access permissions', () => {
 			await openView(page, 'extrusion');
 			await expect(page).toHaveURL(/\/administrator\/index\.php\?option=com_componentbuilder$/);
 			await expect(page.getByText('Not authorised!', { exact: true })).toBeVisible();
-			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toHaveCount(0);
+			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true, includeHidden: true })).toHaveCount(0);
 			expect(await page.evaluate(() => typeof /** @type {any} */ (window).JCBExtrusion)).toBe('undefined');
 			const token = await page.evaluate(() => {
 				const joomla = /** @type {any} */ (window).Joomla;
