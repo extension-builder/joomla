@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowView;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
@@ -143,10 +145,12 @@ final class EditViewTest extends ArchitectureTestCase
 
 		$written = $this->multi->get('demo');
 
-		$this->assertStringContainsString("\$name = 'demos';", $written['###API_VIEW_CONTROLLER_GETMODEL###']);
+		$this->assertStringContainsString("\$name = 'demo';", $written['###API_VIEW_CONTROLLER_GETMODEL###']);
+		$this->assertStringNotContainsString("\$name = 'demos';", $written['###API_VIEW_CONTROLLER_GETMODEL###']);
 		$this->assertStringContainsString('return parent::getModel($name, $prefix, $config);', $written['###API_VIEW_CONTROLLER_GETMODEL###']);
 		$this->assertStringContainsString("\$id = \$this->input->getInt('id', 0);", $written['###API_VIEW_CONTROLLER_RECORDID###']);
 		$this->assertStringContainsString('return true;', $written['###API_VIEW_CONTROLLER_ALLOWVIEW###']);
+		$this->assertStringContainsString('if (!empty($item->id) && !$this->allowEdit((array) $item))', $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
 		$this->assertStringContainsString("return \$user->authorise('core.delete', \$this->option);", $written['###API_VIEW_CONTROLLER_ALLOWDELETE###']);
 		$this->assertStringContainsString("\t\t'id',", $written['###API_VIEW_JSON_FIELDS###']);
 		$this->assertSame('', $written['###API_VIEW_JSON_PERMISSIONS###']);
@@ -154,6 +158,56 @@ final class EditViewTest extends ArchitectureTestCase
 		$this->assertStringContainsString("\t\t'created_by',", $written['###API_VIEW_JSON_RELATIONSHIP###']);
 		$this->assertStringContainsString('public function createdBy($item)', $written['###API_VIEW_SERIALIZER_RELATIONS###']);
 		$this->assertArrayHasKey('###API_VIEW_SERIALIZER_HEADER###', $written);
+	}
+
+	/**
+	 * The shared admin model gets its native guard even without generated routes.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAnAdminViewWithoutApiRoutesStillReceivesItsModelReadGuard(): void
+	{
+		$view = $this->view('demo');
+		$view['add_api'] = 0;
+		$access = new AccessSwitch();
+		$access->set('demo', true);
+		$this->build($view, [
+			'apiallowview' => $this->renderer(AllowView::class, [
+				'accessswitch' => $access,
+				'permission' => $this->permissionWith(['demo|core.access' => 'demo.access'], ['demo.access|demo' => 'demo']),
+			]),
+		]);
+		$written = $this->multi->get('demo');
+
+		$this->assertStringContainsString('if (!empty($item->id) && !$this->allowEdit((array) $item))', $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+		$this->assertStringNotContainsString("isClient('api')", $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+		$this->assertStringNotContainsString('getAuthorisedViewLevels()', $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+	}
+
+	/**
+	 * Only API-enabled views receive the native read/client branch.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testAnApiEnabledViewReceivesItsModelReadGuard(): void
+	{
+		$view = $this->view('demo');
+		$view['add_api'] = 2;
+		$access = new AccessSwitch();
+		$access->set('demo', true);
+		$this->build($view, [
+			'apiallowview' => $this->renderer(AllowView::class, [
+				'accessswitch' => $access,
+				'permission' => $this->permissionWith(['demo|core.access' => 'demo.access'], ['demo.access|demo' => 'demo']),
+			]),
+		]);
+		$written = $this->multi->get('demo');
+
+		$this->assertStringContainsString("\$user->authorise('demo.access', 'com_demo.demo.' . \$item->id)", $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+		$this->assertStringContainsString('getAuthorisedViewLevels()', $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+		$this->assertStringContainsString("'JERROR_ALERTNOAUTHOR'), 403)", $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
 	}
 
 	/**

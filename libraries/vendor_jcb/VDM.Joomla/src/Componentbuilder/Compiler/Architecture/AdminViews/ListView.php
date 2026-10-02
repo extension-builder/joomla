@@ -940,7 +940,7 @@ final class ListView
 			// API_VIEWS_CONTROLLER_GETMODEL <<<DYNAMIC>>> add the explicit model mapping to the api controller
 			$this->contentmulti->set($nameListCode . '|API_VIEWS_CONTROLLER_GETMODEL',
 				$this->apigetmodel->get(
-					$nameSingleCode, $nameListCode
+					$nameSingleCode, $nameListCode, true
 				)
 			);
 

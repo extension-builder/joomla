@@ -305,7 +305,7 @@ Builder registries; none resolves a factory.
 | --- | --- |
 | `Api\Controller\GetModel` | the two view names |
 | `Api\Controller\RecordId` | `DatabaseUniqueKeys`, `DatabaseUniqueGuid`, `FieldNames` |
-| `Api\Controller\AllowView` | `Creator\Permission` (`core.access`), `AccessSwitch`, `FieldNames` |
+| `Api\Controller\AllowView` | `Creator\Permission` (`core.access`), `AccessSwitch` |
 | `Api\Controller\AllowDelete` | `Creator\Permission` (`core.access`, `core.delete`) |
 | `Api\Controller\DisplayList` | `Filter`, `Sort`, `Search`, `Category`, `AccessSwitch`, `FieldNames` |
 | `Api\View\Fields` | `ComponentFields`, `Config->default_fields`, `AccessSwitch`, `MetaData`, `FieldNames` |
@@ -780,8 +780,10 @@ not from the templates. None of it fails the scenarios the harness runs.
   API reads and redirected permitted readers without edit permission with
   HTTP 303. Its API branch now applies the existing mapped entity/component
   access action and native viewing-access-level policy, with HTTP 403 on
-  denial. An unrelated custom string field named `access` does not become a
-  viewing-access-level field. Non-API clients retain their edit check,
+  denial. `AccessSwitch` selects the native viewing-access-level policy,
+  including customized access fields, exactly as it does in the list model.
+  A plain custom column named `access` remains data when that policy is
+  disabled. Non-API clients retain their edit check,
   message, redirect and false return; mutation controller checks remain
   active. Installed compiled API acceptance is required before declaring
   the shipped distribution repaired. See the

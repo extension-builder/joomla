@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Config;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
@@ -45,17 +46,28 @@ final class AllowView
 	protected Permission $permission;
 
 	/**
+	 * The native access-level field configuration.
+	 *
+	 * @var   AccessSwitch
+	 * @since 6.1.7
+	 */
+	protected AccessSwitch $accessswitch;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Config       $config       The Config Class.
 	 * @param Permission   $permission   The Permission Class.
+	 * @param AccessSwitch $accessswitch The Access Switch Builder Class.
 	 *
 	 * @since 6.1.7
 	 */
-	public function __construct(Config $config, Permission $permission)
+	public function __construct(Config $config, Permission $permission,
+		AccessSwitch $accessswitch)
 	{
 		$this->component = $config->component_code_name;
 		$this->permission = $permission;
+		$this->accessswitch = $accessswitch;
 	}
 
 	/**
@@ -72,17 +84,13 @@ final class AllowView
 
 		if ($this->permission->actionExist($nameSingleCode, 'core.access'))
 		{
-			$action = $this->permission->getAction($nameSingleCode, 'core.access');
-
 			$allow[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
 				. " Get user object.";
 			$allow[] = Indent::_(2) . "\$user = \$this->app->getIdentity();";
 			$allow[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
 				. " Access check.";
-			$allow[] = Indent::_(2) . "return (\$user->authorise('" . $action
-				. "', 'com_" . $this->component . "." . $nameSingleCode
-				. ".' . \$id) && \$user->authorise('" . $action . "', 'com_"
-				. $this->component . "'));";
+			$allow[] = Indent::_(2) . "return "
+				. $this->accessCondition($nameSingleCode, '$id') . ";";
 		}
 		else
 		{
@@ -92,5 +100,105 @@ final class AllowView
 		}
 
 		return implode(PHP_EOL, $allow);
+	}
+
+	/**
+	 * Build the API read guard of the shared administrator item model.
+	 *
+	 * Keep the controller's mapped access action and the list model's native
+	 * view-level policy. Views without a configured access action remain open
+	 * to authenticated callers; no edit permission is implied by a read.
+	 *
+	 * @param   string  $nameSingleCode  The single code name of the view.
+	 *
+	 * @return  string  The guard within the API branch of getItem().
+	 * @since   6.1.7
+	 */
+	public function getModelGuard(string $nameSingleCode): string
+	{
+		$denied = [];
+
+		if ($this->permission->actionExist($nameSingleCode, 'core.access'))
+		{
+			$denied[] = '!' . $this->accessCondition($nameSingleCode, '$item->id');
+		}
+
+		if ($this->accessswitch->exists($nameSingleCode))
+		{
+			$denied[] = "(!\$user->authorise('core.options', 'com_" . $this->component
+				. "') && !in_array((int) \$item->access, \$user->getAuthorisedViewLevels()))";
+		}
+
+		if ($denied === [])
+		{
+			return '';
+		}
+
+		return PHP_EOL . Indent::_(5) . '$user = $app->getIdentity();'
+			. PHP_EOL . Indent::_(5) . 'if (' . implode(' || ', $denied) . ')'
+			. PHP_EOL . Indent::_(5) . '{'
+			. PHP_EOL . Indent::_(6) . "throw new \\RuntimeException(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('JERROR_ALERTNOAUTHOR'), 403);"
+			. PHP_EOL . Indent::_(5) . '}';
+	}
+
+	/**
+	 * Materialize the complete shared item authorization block.
+	 *
+	 * Preserve the original template bytes for views without generated API
+	 * resources. API-enabled views distinguish read permission from editing.
+	 *
+	 * @param   string  $nameSingleCode  The single code name of the view.
+	 * @param   bool    $apiEnabled      Whether the view requests API resources.
+	 *
+	 * @return  string  The complete getItem authorization block.
+	 * @since   6.1.7
+	 */
+	public function getItemGuard(string $nameSingleCode, bool $apiEnabled): string
+	{
+		if (!$apiEnabled)
+		{
+			// The leading spaces on the two application lines are existing template bytes.
+			return PHP_EOL . Indent::_(3) . '// check edit access permissions'
+				. PHP_EOL . Indent::_(3) . 'if (!empty($item->id) && !$this->allowEdit((array) $item))'
+				. PHP_EOL . Indent::_(3) . '{'
+				. PHP_EOL . ' ' . Indent::_(4) . '$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
+				. PHP_EOL . '  ' . Indent::_(4) . "\$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');"
+				. PHP_EOL . Indent::_(4) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
+				. PHP_EOL . Indent::_(4) . 'return false;'
+				. PHP_EOL . Indent::_(3) . '}';
+		}
+
+		return PHP_EOL . Indent::_(3) . '// API reads use read permissions; administrator editing keeps its edit guard.'
+			. PHP_EOL . Indent::_(3) . 'if (!empty($item->id))'
+			. PHP_EOL . Indent::_(3) . '{'
+			. PHP_EOL . Indent::_(4) . '$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
+			. PHP_EOL . PHP_EOL . Indent::_(4) . "if (\$app->isClient('api'))"
+			. PHP_EOL . Indent::_(4) . '{' . $this->getModelGuard($nameSingleCode)
+			. PHP_EOL . Indent::_(4) . '}'
+			. PHP_EOL . Indent::_(4) . 'elseif (!$this->allowEdit((array) $item))'
+			. PHP_EOL . Indent::_(4) . '{'
+			. PHP_EOL . Indent::_(5) . "\$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');"
+			. PHP_EOL . Indent::_(5) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
+			. PHP_EOL . Indent::_(5) . 'return false;'
+			. PHP_EOL . Indent::_(4) . '}'
+			. PHP_EOL . Indent::_(3) . '}';
+	}
+
+	/**
+	 * Build one mapped entity/component access condition for both read guards.
+	 *
+	 * @param   string  $nameSingleCode  The single code name of the view.
+	 * @param   string  $id              The generated record-id expression.
+	 *
+	 * @return  string  The mapped access expression.
+	 * @since   6.1.7
+	 */
+	private function accessCondition(string $nameSingleCode, string $id): string
+	{
+		$action = $this->permission->getAction($nameSingleCode, 'core.access');
+
+		return "(\$user->authorise('" . $action . "', 'com_" . $this->component
+			. "." . $nameSingleCode . ".' . " . $id . ") && \$user->authorise('"
+			. $action . "', 'com_" . $this->component . "'))";
 	}
 }

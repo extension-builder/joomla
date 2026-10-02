@@ -51,6 +51,8 @@ $endpoint = $base . '/api/index.php/' . $resource;
 $guidPattern = '/^[a-f\d]{8}(-[a-f\d]{4}){4}[a-f\d]{8}$/i';
 $failures = 0;
 $passes = 0;
+$createdIds = [];
+$cleanupRan = false;
 
 /**
  * One request against the API.
@@ -112,6 +114,74 @@ $check = static function (string $name, bool $ok, string $note = '') use (&$fail
 	printf("  [%s] %s%s\n", $ok ? 'pass' : 'FAIL', $name, $note !== '' ? ' - ' . $note : '');
 };
 
+/**
+ * Remember a record created through this run's real API requests.
+ *
+ * @param   array  $response  Decoded JSON:API response.
+ *
+ * @return  void
+ * @since   6.2.0
+ */
+$remember = static function (array $response) use (&$createdIds): void
+{
+	$id = (int) ($response['body']['data']['id'] ?? 0);
+
+	if ($id > 0)
+	{
+		$createdIds[$id] = true;
+	}
+};
+
+/**
+ * Trash and delete every surviving create over HTTP, including concurrent records.
+ *
+ * Shutdown registration also cleans known records when an unexpected exception
+ * interrupts the scenario before its normal completion.
+ *
+ * @return  void
+ * @since   6.2.0
+ */
+$cleanup = static function () use (&$createdIds, &$cleanupRan, $request, $check, $endpoint): void
+{
+	if ($cleanupRan)
+	{
+		return;
+	}
+
+	$cleanupRan = true;
+
+	if ($createdIds !== [])
+	{
+		echo "\n10. Cleaning every remaining created record through the API\n";
+	}
+
+	foreach (array_keys($createdIds) as $id)
+	{
+		try
+		{
+			$trashed = $request('PATCH', $endpoint . '/' . $id, ['published' => -2]);
+			$deleted = $request('DELETE', $endpoint . '/' . $id);
+			$gone = $request('GET', $endpoint . '/' . $id);
+			$ok = $trashed['status'] === 200 && $deleted['status'] === 204 && $gone['status'] === 404;
+			$check(
+				'created record ' . $id . ' is trashed, deleted and absent',
+				$ok,
+				'trash ' . $trashed['status'] . ', delete ' . $deleted['status'] . ', read ' . $gone['status']
+			);
+
+			if ($ok)
+			{
+				unset($createdIds[$id]);
+			}
+		}
+		catch (Throwable $error)
+		{
+			$check('cleanup record ' . $id, false, $error->getMessage());
+		}
+	}
+};
+register_shutdown_function($cleanup);
+
 $name = 'JCB API GUID Test ' . bin2hex(random_bytes(3));
 $createBody = ['name' => $name, 'description' => 'Temporary API create regression record.'];
 
@@ -121,6 +191,7 @@ if ($reproduce)
 {
 	echo "\nReproduction: the create fails before the fix\n";
 	$response = $request('POST', $endpoint, $createBody);
+	$remember($response);
 	$detail = (string) ($response['body']['errors'][0]['detail'] ?? $response['raw']);
 	$check('create answers 500', $response['status'] === 500, 'status ' . $response['status']);
 	$check(
@@ -134,6 +205,7 @@ if ($reproduce)
 
 echo "\n1. POST with no id and no guid\n";
 $created = $request('POST', $endpoint, $createBody);
+$remember($created);
 $id = (int) ($created['body']['data']['id'] ?? 0);
 $guid = (string) ($created['body']['data']['attributes']['guid'] ?? '');
 $check('answers 200 or 201', in_array($created['status'], [200, 201], true), 'status ' . $created['status'] . ' ' . substr($created['raw'], 0, 200));
@@ -143,6 +215,7 @@ $check('the alias was built from the name', ($created['body']['data']['attribute
 
 echo "\n2. POST with body id 0 and a client guid\n";
 $second = $request('POST', $endpoint, $createBody + ['id' => 0, 'guid' => $guid]);
+$remember($second);
 $secondId = (int) ($second['body']['data']['id'] ?? 0);
 $secondGuid = (string) ($second['body']['data']['attributes']['guid'] ?? '');
 $check('still creates', in_array($second['status'], [200, 201], true) && $secondId > 0 && $secondId !== $id, 'status ' . $second['status'] . ' id ' . $secondId);
@@ -150,6 +223,7 @@ $check('ignores the client guid and generates its own', preg_match($guidPattern,
 
 echo "\n3. POST with a body id of an existing record\n";
 $third = $request('POST', $endpoint, $createBody + ['id' => $id]);
+$remember($third);
 $thirdId = (int) ($third['body']['data']['id'] ?? 0);
 $check('creates a new record instead of updating the named one', in_array($third['status'], [200, 201], true) && $thirdId > 0 && $thirdId !== $id, 'status ' . $third['status'] . ' id ' . $thirdId);
 
@@ -215,6 +289,7 @@ if ($hammer > 0)
 	foreach ($handles as $curl)
 	{
 		$body = json_decode((string) curl_multi_getcontent($curl), true);
+		$remember(['body' => $body]);
 		$statuses[] = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
 		$hammered[] = (string) ($body['data']['attributes']['guid'] ?? '');
 		curl_multi_remove_handle($multi, $curl);
@@ -237,5 +312,11 @@ $check('the trashed record can be deleted', $deleted['status'] === 204, 'status 
 $gone = $request('GET', $endpoint . '/' . $id);
 $check('the deleted record answers 404', $gone['status'] === 404, 'status ' . $gone['status']);
 
+if ($deleted['status'] === 204 && $gone['status'] === 404)
+{
+	unset($createdIds[$id]);
+}
+
+$cleanup();
 printf("\n%d passed, %d failed\n", $passes, $failures);
 exit($failures === 0 ? 0 : 1);
