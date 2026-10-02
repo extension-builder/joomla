@@ -88,7 +88,7 @@ JCB's linked custom admin view permission generates `extrusion.access`. Requirin
 
 ### Test and harness paths
 
-`ExtrusionImportAccessTest` exercises the real AJAX model without its installed constructor and isolates only the native User ACL boundary. The Extrusion browser spec uses two real non-super-user accounts, one granted view access and one denied. `.github/gui-tests/extrusion-acl.php` initializes the native extension namespaces and console HTTP origin before user plugins, creates and removes those isolated accounts/groups and restores asset ACL rules; group cleanup verifies each owned group remains a leaf with no remaining user memberships before native deletion. `run.sh` invokes cleanup even when setup or browser assertions fail.
+`ExtrusionImportAccessTest` exercises the real AJAX model without its installed constructor and isolates only the native User ACL boundary. The Extrusion browser spec uses two real non-super-user accounts, one granted view access and one denied. `.github/gui-tests/extrusion-acl.php` initializes the native extension namespaces and console HTTP origin before user plugins, creates and removes those isolated accounts/groups with their native `allowTourAutoStart` preference disabled, and restores asset ACL rules; group cleanup verifies each owned group remains a leaf with no remaining user memberships before native deletion. `run.sh` invokes cleanup even when setup or browser assertions fail.
 
 ## Impact
 

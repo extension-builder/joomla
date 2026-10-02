@@ -90,7 +90,8 @@ The generated administrator item model also serves API requests. Its existing ed
 | `php bin/check-test-ownership.php --base=22bbe87` | PHP 8.3.6 | Pass — 1,487 production declarations, 1,487 owned, no baseline debt. |
 | `composer test` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 source runtime | Pass — 4,399 tests, 47,730 assertions, including the native exception follow-up. |
 | `bash -n .github/api-tests/run.sh`, PHP lint on all three API seed/permission scripts, `git diff --check` | Local checkout | Pass. |
-| `.github/api-tests/run.sh` at `9c708f`, CI run `37038740696` | Real Joomla API harness | Original Demo CRUD passed 50 assertions; read-only numeric/GUID reads and mapped-access denials passed. Native view-level denial returned 500 rather than the required 403. Corrected the compiler exception type and added a native boundary regression; installed acceptance rerun pending. |
+| `.github/api-tests/run.sh` at `9c708f`, CI run `37038740696` | Real Joomla API harness | Original Demo CRUD passed 50 checks; read-only numeric/GUID reads and mapped-access denials passed. Native view-level denial returned 500 rather than the required 403. Corrected the compiler exception type and added a native boundary regression; the subsequent installed acceptance passed below. |
+| `.github/api-tests/run.sh` at `25f453d`, [CI run `37041259754`](https://github.com/extension-builder/joomla/actions/runs/37041259754) | Real compiled/installed Joomla API and MySQL | Passed: both `looks` and `libraries_config` complete 50 CRUD/GUID/cleanup checks and 11 permission checks each (122 checks total). Read-only and denied ID/GUID reads, denied PATCH without mutation and native view-level denial all returned their expected HTTP responses. |
 
 ### Manual scenarios
 
@@ -104,7 +105,7 @@ The generated administrator item model also serves API requests. Its existing ed
 
 ### Checks not performed
 
-- The installed API harness requires a real Joomla installation and MySQL service; its final CI result will be recorded before handoff. Browser GUI tests are not relevant to this model/client change and no browser selector changed.
+- The installed acceptance above uses native Demo definitions, including the irregular `libraries_config` name; it does not recompile the maintainer's absent JCB blueprint or reproduce all four historical JCB failures. Browser GUI tests are not relevant to this model/client change and no browser selector changed.
 
 ## Risks, limitations, and rollback
 
@@ -123,7 +124,7 @@ The generated administrator item model also serves API requests. Its existing ed
 - [x] The affected-path lists match the final diff exactly.
 - [x] Every path has a stable location and exact what/why details.
 - [x] Behavioral and visual impact are explicit.
-- [x] Verification records actual results and identifies pending installed API checks.
+- [x] Verification records actual local and installed API results and their scope.
 - [x] Every path has an authoritative-source mapping and reconciliation status.
 - [x] `Transfer required` is `Yes` until source reconciliation is confirmed.
 - [x] The record explains why there is no browser GUI spec.
