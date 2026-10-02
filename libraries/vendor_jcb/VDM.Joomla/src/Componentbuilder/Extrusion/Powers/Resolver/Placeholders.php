@@ -37,19 +37,21 @@ final class Placeholders
 {
 	/**
 	 * The placeholder that defers the vendor prefix.
+	 * Concatenation preserves the token when this resolver is itself compiled.
 	 *
 	 * @var    string
 	 * @since  6.1.7
 	 */
-	public const PREFIX = '[[[NamespacePrefix]]]';
+	public const PREFIX = '[[[' . 'NamespacePrefix' . ']]]';
 
 	/**
 	 * The placeholder that defers the component segment.
+	 * Concatenation preserves the token when this resolver is itself compiled.
 	 *
 	 * @var    string
 	 * @since  6.1.7
 	 */
-	public const COMPONENT = '[[[ComponentNamespace]]]';
+	public const COMPONENT = '[[[' . 'ComponentNamespace' . ']]]';
 
 	/**
 	 * The placeholder targets the compiler sets from the component itself.

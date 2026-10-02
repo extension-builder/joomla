@@ -14,8 +14,13 @@ namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers;
 
 use Joomla\DI\Container;
 use Joomla\Database\DatabaseInterface;
+use Joomla\Input\Input;
+use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionClass;
+use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Assembler;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Extruder;
@@ -58,6 +63,7 @@ use VDM\Tests\Support\FilesystemTestCase;
 #[CoversClass(PowerWriter::class)]
 #[CoversClass(VendorWriter::class)]
 #[UsesClass(Config::class)]
+#[UsesClass(CompilerPlaceholder::class)]
 #[UsesClass(Harvest::class)]
 #[UsesClass(Report::class)]
 #[UsesClass(Message::class)]
@@ -126,6 +132,23 @@ final class ExtruderTest extends FilesystemTestCase
 	 * @since  6.1.7
 	 */
 	private string $library;
+
+	/**
+	 * Compiling the writer keeps its projected namespace keys reusable at runtime.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCompilerPlaceholderPassPreservesTheVendorProjectionKeys(): void
+	{
+		$compiler = new CompilerPlaceholder(new CompilerConfig(new Input(), new JoomlaRegistry(), new JoomlaRegistry()));
+		$compiler->set('NamespacePrefix', 'HostVendor');
+		$compiler->set('ComponentNamespace', 'HostComponent');
+		$this->assertSame('HostVendor\\Joomla\\HostComponent', $compiler->update_('###NamespacePrefix###\\Joomla\\###ComponentNamespace###'));
+		$source = file_get_contents((new ReflectionClass(VendorWriter::class))->getFileName());
+		$this->assertIsString($source);
+		$this->assertSame($source, $compiler->update_($source), 'Host placeholders cannot replace the keys for a later approved component plan.');
+	}
 
 	/**
 	 * Compose the real graph over the two faked boundaries.
@@ -599,6 +622,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$report = $engine->dryRun()->extrude();
 		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
 		$this->assertSame(['remapping', 'unknown'], $report->get('plan.required_approvals'));
+		$this->assertSame('Demo\\Joomla\\DeMo\\Helper', $this->candidate('Acme\\Joomla\\DeMo\\Helper')['resolution']['namespace']['target_fqn']);
 		$this->assertContains('component_placeholders', array_column($this->container->get('Extrusion.Registry.Plan')->writes(), 'table'));
 		$this->assertSame([], $this->item->records());
 		$this->config()->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeRemapping', true);

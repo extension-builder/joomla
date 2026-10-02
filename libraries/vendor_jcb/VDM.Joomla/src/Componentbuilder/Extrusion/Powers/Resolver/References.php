@@ -740,7 +740,8 @@ final class References
 			}
 		}
 
-		if (str_contains($code, '[EXTERNALCODE='))
+		// Keep this runtime detector out of the compiler's external-code pass.
+		if (str_contains($code, '[EXTERNA' . 'LCODE='))
 		{
 			$evidence['gaps'][$via . ':external'] = 'external code unavailable during read-only discovery';
 		}

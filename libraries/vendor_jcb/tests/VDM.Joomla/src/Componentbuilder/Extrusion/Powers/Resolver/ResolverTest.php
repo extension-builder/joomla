@@ -12,8 +12,13 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers\Resolver;
 
 
+use Joomla\Input\Input;
+use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionClass;
+use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Existing;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Namespacer;
@@ -40,6 +45,7 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(Namespacer::class)]
 #[CoversClass(Placeholders::class)]
 #[UsesClass(Config::class)]
+#[UsesClass(CompilerPlaceholder::class)]
 #[UsesClass(Report::class)]
 final class ResolverTest extends TestCase
 {
@@ -80,6 +86,25 @@ final class ResolverTest extends TestCase
 		$this->config = new Config();
 		$this->load = new ExtrusionPowerLoadFixture();
 		$this->report = new Report();
+	}
+
+	/**
+	 * A host compilation preserves namespace tokens that extrusion must emit later.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCompilerPlaceholderPassPreservesTheRuntimeNamespaceTokens(): void
+	{
+		$compiler = new CompilerPlaceholder(new CompilerConfig(new Input(), new JoomlaRegistry(), new JoomlaRegistry()));
+		$compiler->set('NamespacePrefix', 'HostVendor');
+		$compiler->set('ComponentNamespace', 'HostComponent');
+		$this->assertSame('HostVendor\\Joomla\\HostComponent', $compiler->update_('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]]'));
+		$source = file_get_contents((new ReflectionClass(Placeholders::class))->getFileName());
+		$this->assertIsString($source);
+		$this->assertSame($source, $compiler->update_($source), 'Compiling the engine must not bind future components to its host namespace.');
+		$this->assertSame('[[[NamespacePrefix]]]', Placeholders::PREFIX);
+		$this->assertSame('[[[ComponentNamespace]]]', Placeholders::COMPONENT);
 	}
 
 	/**

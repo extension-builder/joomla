@@ -12,10 +12,19 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Extrusion\Powers\Resolver;
 
 
+use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseInterface;
 use Joomla\DI\Container;
+use Joomla\Input\Input;
+use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionClass;
+use VDM\Joomla\Componentbuilder\Compiler\Config as CompilerConfig;
+use VDM\Joomla\Componentbuilder\Compiler\Customcode\External;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder as CompilerPlaceholder;
 use VDM\Joomla\Componentbuilder\Compiler\Power\Selection;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\References;
@@ -23,7 +32,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Powers;
 use VDM\Joomla\Componentbuilder\Table;
 use VDM\Tests\Support\ExtrusionPowerLoadFixture;
-use VDM\Tests\Support\TestCase;
+use VDM\Tests\Support\JoomlaTestCase;
 
 
 /**
@@ -33,8 +42,55 @@ use VDM\Tests\Support\TestCase;
  */
 #[CoversClass(References::class)]
 #[CoversClass(Powers::class)]
-final class ReferencesTest extends TestCase
+#[UsesClass(External::class)]
+#[UsesClass(CompilerPlaceholder::class)]
+final class ReferencesTest extends JoomlaTestCase
 {
+	/**
+	 * Stored external code remains missing evidence without being fetched.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testExternalCodeIsReportedWithoutResolvingItsRemoteContents(): void
+	{
+		$load = $this->fixture();
+		$load->record('joomla_component', 1, [
+			'guid' => $this->guid('component-a'),
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => base64_encode('[EXTERNALCODE=https://example.invalid/private.php]')
+		]);
+		$context = $this->graph($load)->context(1);
+		$this->assertFalse($context['complete']);
+		$this->assertSame(['external code unavailable during read-only discovery'], array_values($context['gaps']));
+		$this->assertArrayNotHasKey($this->guid('power-a'), $context['powers']);
+	}
+
+	/**
+	 * Compiling the resolver's own source must not consume its runtime detector.
+	 *
+	 * The real external-code pass scans plain stored PHP before PHP evaluates
+	 * its concatenations. Its detector belongs to extrusion's runtime graph.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCompilerExternalPassPreservesTheResolverSource(): void
+	{
+		$application = $this->createMock(CMSApplicationInterface::class);
+		$application->method('getIdentity')->willReturn($this->createStub(User::class));
+		$application->expects($this->never())->method('enqueueMessage');
+		$this->setJoomlaApplication($application);
+		$database = $this->createMock(DatabaseInterface::class);
+		$database->expects($this->never())->method('getQuery');
+		$placeholder = new CompilerPlaceholder(new CompilerConfig(new Input(), new JoomlaRegistry(), new JoomlaRegistry()));
+		$external = new External($placeholder, $database);
+		$source = file_get_contents((new ReflectionClass(References::class))->getFileName());
+		$this->assertIsString($source);
+		$this->assertSame($source, $external->set($source));
+		$this->assertSame(0, $external->count(), 'Extrusion marker detection never becomes a compiler external-code request.');
+	}
+
 	/**
 	 * Real metadata traverses owned children, token references and Power cycles.
 	 *
