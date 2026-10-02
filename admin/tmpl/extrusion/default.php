@@ -202,14 +202,10 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 			<div id="extrusion-review-notice" role="status" aria-live="polite"></div>
 		</div>
 		<div class="p-md-3">
-			<?php if ($this->canDo->get('extrusion.import')): ?>
-				<button type="button" class="btn btn-success btn-lg px-4" id="extrusion-import-button" disabled>
-					<span class="icon-download icon-white" aria-hidden="true"></span>
-					<?php echo Text::_('Import into JCB'); ?>
-				</button>
-			<?php else: ?>
-				<div class="alert alert-info"><?php echo Text::_('You may review this harvest, but you do not have permission to import it.'); ?></div>
-			<?php endif; ?>
+			<button type="button" class="btn btn-success btn-lg px-4" id="extrusion-import-button" disabled>
+				<span class="icon-download icon-white" aria-hidden="true"></span>
+				<?php echo Text::_('Import into JCB'); ?>
+			</button>
 			<button type="button" class="btn btn-outline-secondary btn-lg px-4" id="extrusion-back-button">
 				<?php echo Text::_('Back to setup'); ?>
 			</button>
@@ -265,7 +261,7 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 // the extrusion page bootstrap
 window.JCBExtrusion = {
 	url: '<?php echo $urlAjax; ?>',
-	canImport: <?php echo $this->canDo->get('extrusion.import') ? 'true' : 'false'; ?>,
+	canImport: true,
 	text: {
 		reviewPending: '<?php echo Text::_('Resolving the current targets and write plan...', true); ?>',
 		reviewBlocked: '<?php echo Text::_('Resolve the blocked items before importing.', true); ?>',

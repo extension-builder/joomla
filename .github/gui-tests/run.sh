@@ -47,6 +47,15 @@ compose() { docker compose -f "${COMPOSE_FILE}" "$@"; }
 cleanup() {
 	local status=$?
 	trap - EXIT
+	if [[ "${ACL_FIXTURES_STARTED:-0}" == "1" ]]
+	then
+		if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
+			joomla php /tmp/extrusion-acl.php --cleanup > "${OUT_DIR}/extrusion-acl-cleanup.log" 2>&1
+		then
+			cat "${OUT_DIR}/extrusion-acl-cleanup.log" >&2
+			status=1
+		fi
+	fi
 	# Preserve setup/integration failures too, before their container is removed.
 	# Failure of evidence collection must never hide the original failing step.
 	if [[ -d "${OUT_DIR}" ]]
@@ -235,6 +244,16 @@ do
 done
 compose cp "joomla:${WEBROOT}/tmp/jcb-extrusion-fixtures/manifest.json" "${OUT_DIR}/extrusion-fixtures.json"
 compose cp "joomla:${WEBROOT}/tmp/jcb-extrusion-fixtures/compiler-evidence.json" "${OUT_DIR}/extrusion-compiler.json"
+
+say "Preparing isolated Extrusion access-only and denied users"
+compose cp "${REPO_ROOT}/.github/gui-tests/extrusion-acl.php" "joomla:/tmp/extrusion-acl.php"
+ACL_FIXTURES_STARTED=1
+if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
+	joomla php /tmp/extrusion-acl.php --seed > "${OUT_DIR}/extrusion-acl-seed.log" 2>&1
+then
+	cat "${OUT_DIR}/extrusion-acl-seed.log" >&2
+	exit 1
+fi
 
 say "Running the GUI suite"
 (

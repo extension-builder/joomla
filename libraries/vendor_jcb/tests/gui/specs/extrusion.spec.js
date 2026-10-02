@@ -27,6 +27,82 @@ const LIBRARY = fixtures.library_new;
 const COMPONENT_ADMIN = WEBROOT + '/administrator/components/com_componentbuilder';
 const COMPONENT_SITE = WEBROOT + '/components/com_componentbuilder';
 
+test.describe('Extrusion view access permissions', () => {
+	/** Open an isolated native session, independent of the Super User state. */
+	async function session(browser, role) {
+		const context = await browser.newContext({
+			baseURL: process.env.JCB_BASE_URL || 'http://localhost:8080',
+			storageState: { cookies: [], origins: [] }
+		});
+		const page = await context.newPage();
+		await page.goto('/administrator/index.php');
+		await page.locator('input[name="username"]').fill('jcb_gui_extrusion_' + role);
+		await page.locator('input[name="passwd"]').fill('Jcb-Gui-Acl-2026!');
+		await page.locator('#btn-login-submit, button[type="submit"]').first().click();
+		await expect(page.locator('input[name="passwd"]')).toHaveCount(0);
+		return { context, page };
+	}
+
+	test('view access alone exposes import and completes a real dry run', async ({ browser }) => {
+		const { context, page } = await session(browser, 'access');
+		try {
+			await openView(page, 'extrusion');
+			await expect(page.getByRole('button', { name: 'Harvest the source' })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toBeAttached();
+			expect(await page.evaluate(() => /** @type {any} */ (window).JCBExtrusion.canImport)).toBe(true);
+			await setRadio(page, 'show_advanced_options', '1');
+			await setRadio(page, 'dry_run', '1');
+			await page.locator('[name="libraries"]').fill(LIBRARY);
+			await page.getByRole('button', { name: 'Harvest the source' }).click();
+			await expect(page.locator('#extrusion-pane-pairing')).toBeVisible({ timeout: 120_000 });
+			const button = page.getByRole('button', { name: 'Import into JCB', exact: true });
+			await expect(button).toBeEnabled({ timeout: 120_000 });
+			const response = page.waitForResponse((result) => result.url().includes('extrusionImport')
+				&& result.request().method() === 'POST');
+			await button.click();
+			const confirmation = page.getByRole('dialog', { name: 'Confirm import', exact: true });
+			if (await confirmation.isVisible()) {
+				await confirmation.getByRole('button', { name: 'Acknowledge and import', exact: true }).click();
+			}
+			const imported = await response;
+			expect(imported.status()).toBe(200);
+			const result = await imported.json();
+			expect(result.error, JSON.stringify(result)).toBeUndefined();
+			expect(result.plan.status).toBe('preview');
+			expect(result.plan.writes || []).toEqual([]);
+			await expect(page.locator('#extrusion-pane-results .alert-success').first()).toBeVisible();
+			await expect(page.getByText('nothing was written', { exact: false }).first()).toBeVisible();
+		} finally {
+			await context.close();
+		}
+	});
+
+	test('denied view access hides import and blocks a direct authenticated AJAX attempt', async ({ browser }) => {
+		const { context, page } = await session(browser, 'denied');
+		try {
+			await openView(page, 'extrusion');
+			await expect(page.getByRole('heading', { name: 'No access granted!', exact: true })).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toHaveCount(0);
+			expect(await page.evaluate(() => typeof /** @type {any} */ (window).JCBExtrusion)).toBe('undefined');
+			const token = await page.evaluate(() => {
+				const joomla = /** @type {any} */ (window).Joomla;
+				return joomla && joomla.getOptions('csrf.token') || Array.from(document.querySelectorAll('input[type="hidden"]'))
+					.map((input) => /** @type {HTMLInputElement} */ (input))
+					.find((input) => /^[a-f0-9]{32}$/.test(input.name) && input.value === '1')?.name;
+			});
+			expect(token, 'the denied session still submits its real native CSRF token').toMatch(/^[a-f0-9]{32}$/);
+			const result = await page.request.post('/administrator/index.php?option=com_componentbuilder&format=json&raw=true&'
+				+ token + '=1&task=ajax.extrusionImport', {
+				multipart: { config: JSON.stringify({ dry_run: 1, libraries: [LIBRARY] }), decisions: '{}' }
+			});
+			expect(result.status()).toBe(200);
+			expect(await result.json()).toEqual({ error: 'You do not have permission to import with the extrusion tool.' });
+		} finally {
+			await context.close();
+		}
+	});
+});
+
 test.describe('the JCB dashboard and menu', () => {
 	test('offer the extrusion view next to the compiler', async ({ page }) => {
 		await openView(page, 'componentbuilder');

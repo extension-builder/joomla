@@ -7174,8 +7174,7 @@ class AjaxModel extends ListModel
 			? $this->getCurrentUser()
 			: Factory::getUser();
 
-		if (!$user->authorise('extrusion.import', 'com_componentbuilder')
-			|| !$user->authorise('extrusion.access', 'com_componentbuilder'))
+		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
 			return ['error' => Text::_('You do not have permission to import with the extrusion tool.')];
 		}
