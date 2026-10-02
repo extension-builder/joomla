@@ -127,6 +127,8 @@ if ($mode === '--seed')
 				'password2' => 'Jcb-Gui-Acl-2026!',
 				'groups' => [$groupId],
 				'block' => 0,
+				// Prevent native first-login tours from redirecting the owned test session.
+				'params' => ['allowTourAutoStart' => 0],
 			];
 			$check($user->bind($userData), 'Bind the isolated native Joomla ACL user');
 			$saved = $user->save();
@@ -135,6 +137,9 @@ if ($mode === '--seed')
 			$state['users'][] = ['id' => (int) $user->id, 'username' => $username];
 			$save($state);
 			Access::clearStatics();
+			$check($user->getParam('allowTourAutoStart') === 0
+				&& $user->authorise('core.login.admin') && $user->authorise('core.manage', 'com_componentbuilder'),
+				'The owned session can enter JCB with native tour auto-start disabled');
 			$check(!$user->authorise('core.admin') && !$user->authorise('extrusion.import', 'com_componentbuilder')
 				&& $user->authorise('extrusion.access', 'com_componentbuilder') === $allowed,
 				'Native ACL confirms the fixture has no super-user or separate import authority');
