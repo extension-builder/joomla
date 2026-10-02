@@ -107,7 +107,7 @@ JCB's linked custom admin view permission generates `extrusion.access`. Requirin
 | PHP syntax on changed PHP files | Local PHP 8.3.6 | Passed: AJAX model, Extrusion template, isolated ACL helper and contract test |
 | PHPUnit `ExtrusionImportAccessTest` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 class runtime, no installed application | Passed: 5 tests, 20 assertions |
 | PHPUnit `ExtrusionImportAccessTest` and `ExtrusionAjaxDiagnosticsTest` | Same local class runtime | Passed together: 10 tests, 72 assertions |
-| `composer test` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 source runtime | Passed: 4,396 tests, 47,709 assertions |
+| `composer test` | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 source runtime | Passed: 4,399 tests, 47,730 assertions |
 | `php bin/check-php-style.php` | Local test runtime, complete style scan | Passed: 534 files, including the new contract test |
 | JavaScript and shell syntax; `git diff --check` | Local Node, Bash and Git | Passed |
 | Playwright Extrusion permission journeys | Disposable installed Joomla/JCB GUI harness | Pending |

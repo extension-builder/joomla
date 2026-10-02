@@ -15,8 +15,13 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Api\Controller
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Error\JsonApi\NotAllowedExceptionHandler;
+use Joomla\CMS\MVC\View\JsonApiView;
 use Joomla\CMS\User\User;
+use Tobscure\JsonApi\ErrorHandler;
+use Tobscure\JsonApi\Exception\Handler\FallbackExceptionHandler;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
@@ -228,7 +233,7 @@ GEN;
 		$app->expects($this->never())->method('enqueueMessage');
 		$model = $this->generatedModel($app, [], true);
 
-		$this->expectException(\RuntimeException::class);
+		$this->expectException(NotAllowed::class);
 		$this->expectExceptionCode(403);
 		$model->getItem(42);
 	}
@@ -275,7 +280,7 @@ GEN;
 
 		if (!$readAllowed)
 		{
-			$this->expectException(\RuntimeException::class);
+			$this->expectException(NotAllowed::class);
 			$this->expectExceptionCode(403);
 		}
 
@@ -320,7 +325,7 @@ GEN;
 		$app->expects($this->never())->method('redirect');
 		$model = $this->generatedModel($app, ['accessswitch' => $access, 'fieldnames' => $names], false, 2);
 
-		$this->expectException(\RuntimeException::class);
+		$this->expectException(NotAllowed::class);
 		$this->expectExceptionCode(403);
 		$model->getItem(42);
 	}
@@ -398,6 +403,75 @@ GEN;
 
 		$this->assertSame(42, $model->getItem(42)->id);
 		$this->assertSame(1, $model->editChecks);
+	}
+
+	/**
+	 * The native view and error handlers classify generated read denials as 403.
+	 *
+	 * @param   bool  $entityAllowed     The mapped record permission.
+	 * @param   bool  $componentAllowed  The mapped component permission.
+	 * @param   int   $level             The stored native view level.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('nativeReadDenials')]
+	public function testGeneratedReadDenialsRemain403AtTheNativeJsonApiBoundary(bool $entityAllowed, bool $componentAllowed, int $level): void
+	{
+		$access = new AccessSwitch();
+		$access->set('demo', true);
+		$user = $this->createStub(User::class);
+		$user->method('authorise')->willReturnMap([
+			['demo.access', 'com_demo.demo.42', $entityAllowed],
+			['demo.access', 'com_demo', $componentAllowed],
+			['core.options', 'com_demo', false],
+		]);
+		$user->method('getAuthorisedViewLevels')->willReturn([1]);
+		$app = $this->createMock(CMSApplication::class);
+		$app->method('isClient')->willReturn(true);
+		$app->method('getIdentity')->willReturn($user);
+		$app->expects($this->never())->method('redirect');
+		$app->expects($this->never())->method('enqueueMessage');
+		$model = $this->generatedModel($app, ['accessswitch' => $access], true, $level);
+		$view = new class(['name' => 'demo', 'contentType' => 'demos']) extends JsonApiView
+		{
+		};
+		$view->setModel($model, true);
+		$handler = new ErrorHandler();
+		$handler->registerHandler(new NotAllowedExceptionHandler());
+		$handler->registerHandler(new FallbackExceptionHandler(false));
+
+		// Exception codes alone do not become HTTP statuses in Joomla JSON:API.
+		$this->assertSame(500, $handler->handle(new \RuntimeException('Denied', 403))->getStatus());
+
+		try
+		{
+			$view->displayItem();
+			$this->fail('The native view must reject an inaccessible item.');
+		}
+		catch (\Exception $error)
+		{
+			$response = $handler->handle($error);
+			$this->assertInstanceOf(NotAllowed::class, $error);
+			$this->assertSame(403, $response->getStatus());
+			$this->assertSame([['title' => 'Access Denied', 'code' => 403]], $response->getErrors());
+			$this->assertSame(0, $model->editChecks);
+		}
+	}
+
+	/**
+	 * Native mapped assets and view levels each retain the denied response.
+	 *
+	 * @return  array<string, array{bool, bool, int}>  The independent denials.
+	 * @since   6.1.7
+	 */
+	public static function nativeReadDenials(): array
+	{
+		return [
+			'entity denied' => [false, true, 1],
+			'component denied' => [true, false, 1],
+			'view level denied' => [true, true, 2],
+		];
 	}
 
 	/**

@@ -122,9 +122,11 @@ Behaviour the design relies on:
   `$model->save()`, and checks the record in.
 - `allowDelete()` exists only since 5.4.8 and 6.1.3; 4.4 checks
   `core.delete` inline. Both check the **core** action names.
-- The exception code becomes the HTTP status for the API client
-  (`ExceptionHandler`), so `NotAllowed` is 403, `ResourceNotFound` 404, and a
-  `RuntimeException` carrying 409 is 409.
+- API error handlers classify exceptions by type: native `NotAllowed`
+  produces HTTP 403 and `ResourceNotFound` produces HTTP 404. The generic
+  fallback produces HTTP 500 for a `RuntimeException`, even when its code
+  is 403 or 409. Generated read guards therefore throw native `NotAllowed`
+  for access denials.
 
 Version differences that matter are confined to the plugin (the legacy
 `onBeforeApiRoute(&$router)` signature on 4, `SubscriberInterface` with

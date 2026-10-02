@@ -114,7 +114,7 @@ if ($mode === '--seed')
 			}
 
 			$user = new User();
-			$check($user->bind([
+			$userData = [
 				'name' => 'JCB GUI Extrusion ' . ucfirst($role),
 				'username' => $username,
 				'email' => $username . '@jcb.invalid',
@@ -122,7 +122,8 @@ if ($mode === '--seed')
 				'password2' => 'Jcb-Gui-Acl-2026!',
 				'groups' => [$groupId],
 				'block' => 0,
-			]) && $user->save(), 'Create an isolated native Joomla ACL user');
+			];
+			$check($user->bind($userData) && $user->save(), 'Create an isolated native Joomla ACL user');
 			$state['users'][] = ['id' => (int) $user->id, 'username' => $username];
 			$save($state);
 			Access::clearStatics();
