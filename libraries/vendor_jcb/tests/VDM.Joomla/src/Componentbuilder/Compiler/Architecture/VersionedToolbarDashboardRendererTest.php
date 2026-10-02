@@ -12,10 +12,19 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomForm;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\History;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\OnlyFunctionButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Registry;
+use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 
 
 /**
@@ -84,6 +93,128 @@ final class VersionedToolbarDashboardRendererTest extends ArchitectureTestCase
 			'custom admin list' => ['CustomAdminViews/AddToolBar', 'code'],
 			'site item' => ['SiteView/AddToolBar', 'code'],
 		];
+	}
+
+	/**
+	 * Every modern item toolbar receives optional empty-state descriptions.
+	 *
+	 * @return  array<string, array{string,int,string,array{description?:string|null},string}>
+	 * @since   6.2.0
+	 */
+	public static function optionalEmptyStateDescriptions(): array
+	{
+		$cases = [];
+		$descriptions = [
+			'absent' => [[], ''],
+			'null' => [['description' => null], ''],
+			'empty' => [['description' => ''], ''],
+			'string' => [['description' => 'Manage articles.'], 'Manage articles.'],
+		];
+
+		foreach (self::versions() as [$version, $major])
+		{
+			if ($major < 4)
+			{
+				continue;
+			}
+
+			foreach (['AddToolBar', 'AddModalToolBar'] as $family)
+			{
+				foreach ($descriptions as $description => [$settings, $expected])
+				{
+					$cases[$version . ' ' . $family . ' ' . $description] = [
+						$version,
+						$major,
+						$family,
+						$settings,
+						$expected,
+					];
+				}
+			}
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Normalize absent and null descriptions without changing generated toolbar content.
+	 *
+	 * The native provider selects each target over the same real Language and
+	 * Content builders, preserving unrelated registrations and source settings.
+	 *
+	 * @param   string  $version      Target namespace segment.
+	 * @param   int     $major        Joomla target major.
+	 * @param   string  $family       Item or modal toolbar service suffix.
+	 * @param   array   $description  Optional description input.
+	 * @param   string  $expected     Expected empty-state language content.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('optionalEmptyStateDescriptions')]
+	public function testOptionalEmptyStateDescriptionPreservesLanguageAndToolbarContent(
+		string $version,
+		int $major,
+		string $family,
+		array $description,
+		string $expected
+	): void
+	{
+		$this->config()->set('joomla_version', $major);
+		$this->language()->set('admin', 'COM_DEMO_UNRELATED', 'Keep admin text.');
+		$this->language()->set('site', 'COM_DEMO_UNRELATED', 'Keep site text.');
+		$contentone = new ContentOne();
+		$contentmulti = new ContentMulti();
+		$contentone->set('UNRELATED', 'Keep global content.');
+		$contentmulti->set('unrelated|BODY', 'Keep view content.');
+		$globalContent = $contentone->toArray();
+		$viewContent = $contentmulti->toArray();
+
+		$container = new Container();
+		(new ArchitectureView())->register($container);
+		$container->set('Config', $this->config(), true);
+		$container->set('Placeholder', $this->placeholder(), true);
+		$container->set('Language', $this->language(), true);
+		$container->set('Compiler.Builder.Content.One', $contentone, true);
+		$container->set('Compiler.Builder.Content.Multi', $contentmulti, true);
+		$container->set('Compiler.Builder.Custom.Form', new CustomForm(), true);
+		$container->set('Compiler.Builder.Only.Function.Buttons', new OnlyFunctionButtons(), true);
+		$container->set('Compiler.Builder.History', new History(), true);
+		$container->set('Compiler.Creator.Permission', $this->permission(), true);
+		$container->set('Utilities.Structure', $this->createStub(Structure::class), true);
+		$container->set('Registry', new Registry(), true);
+		$subject = $container->get('Architecture.AdminView.' . $family);
+		$this->assertInstanceOf($this->rendererClass($version, 'AdminView/' . $family), $subject);
+
+		$view = $this->adminView(2);
+		unset($view['settings']->description);
+
+		foreach ($description as $key => $value)
+		{
+			$view['settings']->{$key} = $value;
+		}
+
+		$settings = clone $view['settings'];
+		$titleKey = $family === 'AddModalToolBar'
+			? 'COM_COMPONENTBUILDER__VIEWNAMELANG_READONLY_'
+			: 'COM_DEMO_ARTICLE_READONLY';
+		$toolbar = "\$this->input->set('hidemainmenu', true);"
+			. "\n\t\tJoomla___0c1a176a_304f_433a_8233_37d01ff87815___Power::title(Text::_('"
+			. $titleKey . "'), 'article');"
+			. "\n\t\tJoomla___0c1a176a_304f_433a_8233_37d01ff87815___Power::cancel('article.cancel', 'JTOOLBAR_CLOSE');";
+
+		$this->assertSame($toolbar, $subject->get($view));
+		$this->assertSame([
+			'COM_DEMO_UNRELATED' => 'Keep admin text.',
+			'COM_DEMO_ARTICLES_EMPTYSTATE_TITLE' => 'No articles have been created yet.',
+			'COM_DEMO_ARTICLES_EMPTYSTATE_CONTENT' => $expected,
+			'COM_DEMO_ARTICLES_EMPTYSTATE_BUTTON_ADD' => 'Add your first article',
+			'COM_DEMO_ARTICLE_READONLY' => 'Article :: Readonly',
+		], $this->language()->getTarget('admin'));
+		$this->assertSame(['COM_DEMO_UNRELATED' => 'Keep site text.'], $this->language()->getTarget('site'));
+		$this->assertEquals($settings, $view['settings']);
+		$this->assertSame($globalContent, $contentone->toArray());
+		$this->assertSame($viewContent, $contentmulti->toArray());
 	}
 
 	/**
