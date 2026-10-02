@@ -18,6 +18,15 @@ plugin on its own. Phase 4 (§8) extends the same API to the site views and
 custom admin views, read-only resources whose shape is the dynamic get of
 the view.
 
+The 2 October 2026 compatibility correction fixes the generator and shared
+model template rather than patching compiled `api/` files. Item and list
+controllers select their model by resource role; API item reads use native
+read ACL and view-level policy rather than the administrator edit redirect.
+This change adds no automatic custom-admin API builder or route/plugin
+generation. The diagnosis, delivery gates and unresolved authoritative
+definition work are recorded in
+[the compatibility ledger](api-compatibility-2026-10-02.md).
+
 It uses the labels defined in the [architecture guide](README.md): **current
 contract** is behavior found in the source; **placement rule** is inferred from
 consistent organization in the tree; **proposed** is design that does not
@@ -55,14 +64,13 @@ Every placeholder those templates contain is already populated: the
 `api.views.json`), the `View/view/Views/views` names from
 `Architecture/View/Placeholders`, and `###JCONTROLLERFORM_ALLOWADD###` /
 `###JCONTROLLERFORM_ALLOWEDIT###` from the same renderers that fill the admin
-form controller. What the templates do **not** contain is the problem: both
-`JsonapiView` classes have empty bodies, the list controller only names its
-content type, and nothing maps request filters, keys or permissions.
-
-Joomla refuses an empty JSON view outright: `JsonApiView::displayList()` and
-`displayItem()` construct an `OnGetApiFields` event whose `fields` argument
-must be a non-empty array, so every request to a generated view ends in a
-`BadMethodCallException` today.
+form controller. The implemented templates also contain the API renderer
+placeholders of §4.2 for field lists, filters, keys and permissions. Empty
+JSON-view shells were the earlier design's starting defect, not the current
+generated contract: Joomla's `OnGetApiFields` event requires a non-empty
+field list. Current compatibility failures must be traced through the
+actual rendered controller/model/form rather than attributed to those old
+shells.
 
 ## 2. The Joomla contract
 
@@ -160,7 +168,7 @@ class ArticleController extends ApiController
 	protected $default_view = 'article';   // View/Article/JsonapiView
 
 	public function getModel($name = '', $prefix = '', $config = [])
-	{ /* explicit: list name => ArticlesModel, anything else => ArticleModel */ }
+	{ /* this item controller always selects ArticleModel */ }
 
 	public function displayItem($id = null) { /* resolve key, allowView(), parent */ }
 	public function edit()                  { /* resolve key into input id, parent */ }
@@ -179,7 +187,7 @@ class ArticlesController extends ApiController
 	protected $contentType = 'articles';
 	protected $default_view = 'articles';
 
-	public function getModel(...)  { /* same explicit mapping */ }
+	public function getModel(...)  { /* this list controller always selects ArticlesModel */ }
 	public function displayList()  { /* filter[...] and list[...] into modelState, parent */ }
 	public function displayItem($id = null) { throw new NotAllowed(...); }  // and add(), edit(), delete()
 }
@@ -209,10 +217,13 @@ class ArticleSerializer extends JoomlaSerializer
 - Both controllers carry the list name as `$contentType`, so the JSON:API
   `type` is the same for a list and an item of the same resource, as Joomla's
   own components do. `$default_view` keeps the two `JsonapiView` classes apart.
-- `getModel()` is overridden in both controllers to map the list name to the
-  list model and everything else to the item model. This removes the inflector
-  from the picture and also stops a client from selecting an arbitrary model
-  through the `model` input.
+- `getModel()` is overridden in both controllers to select the item model
+  for an item controller and the list model for a list controller, regardless
+  of the name Joomla inflects or the caller supplies. Comparing the requested
+  name with `$contentType` is insufficient: names such as `components_config`
+  can remain unchanged by singularization and accidentally select the list
+  model during an item operation. Resource-role selection removes that
+  ambiguity and prevents arbitrary model selection.
 - The list controller is read-only by contract, not by omission: the four
   item tasks throw `NotAllowed`, so a route that is wired to the wrong
   controller fails loudly with 403 instead of half-working.
@@ -241,6 +252,7 @@ existing `API_*_HEADER` keys.
 | `###API_VIEW_CONTROLLER_GETMODEL###` | `EditView` | `Api\Controller\GetModel` | body of `getModel()` |
 | `###API_VIEW_CONTROLLER_RECORDID###` | `EditView` | `Api\Controller\RecordId` | body of `getRecordId()` |
 | `###API_VIEW_CONTROLLER_ALLOWVIEW###` | `EditView` | `Api\Controller\AllowView` | body of `allowView()` |
+| `###ADMIN_VIEW_MODEL_ITEM_ACCESS###` | `EditView` | `Api\Controller\AllowView::getItemGuard()` | Complete item access block; unchanged administrator guard when the API is disabled, native API read guard when enabled |
 | `###API_VIEW_CONTROLLER_ALLOWDELETE###` | `EditView` | `Api\Controller\AllowDelete` | body of `allowDelete()` |
 | `###API_VIEW_JSON_FIELDS###` | `EditView` | `Api\View\Fields` | entries of `$fieldsToRenderItem` |
 | `###API_VIEW_JSON_PERMISSIONS###` | `EditView` | `Api\View\FieldPermissions` | guard lines in `displayItem()` |
@@ -293,7 +305,7 @@ Builder registries; none resolves a factory.
 | --- | --- |
 | `Api\Controller\GetModel` | the two view names |
 | `Api\Controller\RecordId` | `DatabaseUniqueKeys`, `DatabaseUniqueGuid`, `FieldNames` |
-| `Api\Controller\AllowView` | `Creator\Permission` (`core.access`) |
+| `Api\Controller\AllowView` | `Creator\Permission` (`core.access`), `AccessSwitch`, `FieldNames` |
 | `Api\Controller\AllowDelete` | `Creator\Permission` (`core.access`, `core.delete`) |
 | `Api\Controller\DisplayList` | `Filter`, `Sort`, `Search`, `Category`, `AccessSwitch`, `FieldNames` |
 | `Api\View\Fields` | `ComponentFields`, `Config->default_fields`, `AccessSwitch`, `MetaData`, `FieldNames` |
@@ -317,7 +329,7 @@ helper exports for runtime use.
 | `allowAdd()` / `allowEdit()` with per-view action names, `core.access` gate, `edit.own` ownership test | `Architecture/Joomla*/Controller/AllowAdd`, `AllowEdit` | same renderers fill the same methods on the item controller; `add()` and `edit()` call them |
 | `canDelete()` per record, trashed-only rule | `Architecture/Joomla*/Model/CanDelete` | runs inside `AdminModel::delete()`; the API `delete()` adds the component-level `allowDelete()` from `Permission::getGlobal(view, 'core.delete')` |
 | items the user cannot access removed from lists, access-level join, per-field strict emptying | `Model/ItemsStringFix`, `Model/ListQuery` | runs unchanged inside `getItems()` because the API list uses the admin `ListModel` |
-| item access (`core.access` per record and globally) | `ItemsStringFix` (lists) | `allowView()` on `displayItem()`, generated from the same `Permission` lookups |
+| item access (`core.access` per record and globally), native viewing-access levels | `ItemsStringFix` / `ListQuery` (lists) | `allowView()` on `displayItem()` and `getModelGuard()` in API `getItem()`, generated from the same mapped `Permission` and access-field configuration |
 | field `edit` / `access` / `view` permissions on the form | `Model/GetForm` | run unchanged inside `save()` because the API validates against the admin form; additionally `FieldPermissions` drops `access` and `view` fields from the rendered field lists |
 | no permissions configured | `Permission::actionExist()` false | the renderers emit the plain fallback, nothing extra |
 
@@ -486,7 +498,9 @@ Three generated pieces make that shape safe for every JCB component:
   the caller set it, as Joomla's `FormController` does. Core's `save()`
   builds the model without it and reads the state only after the save; the
   lazy `populateState()` would then replace the new id with the request's,
-  and `add()` would answer "Check-in failed".
+  and `add()` would answer "Check-in failed". The item/list role now selects
+  the model explicitly, even when an irregular resource name is unchanged
+  by Joomla's inflector.
 
 - **`Api\Controller\RecordId::keysOfFields()`** derives the unique keys from
   the view's field definitions for `Api\Plugin\Routes`, which renders while
@@ -760,16 +774,18 @@ not from the templates. None of it fails the scenarios the harness runs.
 
 ### 9.1 In the generated component
 
-- **`getItem()` redirects under the API.** The generated administrator
+- **API item read/edit separation — correction in this branch.** The generated administrator
   model's `getItem()` (`admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php`, a
-  protected template) answers a record the user may not edit with an
-  enqueued message and `$app->redirect('index.php?option=com_<component>')`.
-  Under the API application that redirect is a `303` with an HTML location
-  where JSON:API expects a `403`, and core's `save()` on `PATCH` reads
-  through it. The site and custom admin models already throw a `404` when
-  the running client is the API (§8.9); the administrator model needs the
-  same branch, which touches the protected template and so waits for that
-  permission.
+  protected template) previously applied the administrator edit guard to
+  API reads and redirected permitted readers without edit permission with
+  HTTP 303. Its API branch now applies the existing mapped entity/component
+  access action and native viewing-access-level policy, with HTTP 403 on
+  denial. An unrelated custom string field named `access` does not become a
+  viewing-access-level field. Non-API clients retain their edit check,
+  message, redirect and false return; mutation controller checks remain
+  active. Installed compiled API acceptance is required before declaring
+  the shipped distribution repaired. See the
+  [protected-template change record](../graphical-user-interface-changes/2026-10-02-generated-api-item-read-permissions.md).
 - **`PATCH` re-encodes stored fields.** Core back-fills a `PATCH` body from
   the table's raw columns (`ApiController::save()` copies every column the
   body omits from the loaded table). The generated `save()` then encodes
@@ -822,6 +838,7 @@ not from the templates. None of it fails the scenarios the harness runs.
 2. Correct the `guid` validation rule as above.
 3. Add a `webservices` plugin to the demo data, then remove the seeding step
    from `.github/api-tests/run.sh`.
-4. Decide the `getItem()` change to the protected administrator model
-   template, and record it in the GUI change record if the template's
-   permission is granted.
+4. Compile and install the item-read correction, then verify read-only and
+   denied roles through numeric and GUID API routes. Reconcile any external
+   maintenance definitions identified by the protected-template change
+   record; do not infer completion from a renderer unit test.
