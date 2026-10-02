@@ -259,7 +259,8 @@ final class Vendor
 		$exists = (int) $this->item->table('joomla_component')->value($row->guid, 'guid', 'id') > 0;
 		$delta = $this->delta->weigh('joomla_component', 'guid', $row->guid, $definition, $exists, 'namespace|' . $row->guid);
 		$context['map'][Placeholders::PREFIX] = $prefix;
-		$context['map']['###NamespacePrefix###'] = $prefix;
+		// Keep this runtime map key out of the compiler's host placeholder pass.
+		$context['map']['###' . 'NamespacePrefix' . '###'] = $prefix;
 
 		return $delta['changed'] ? 1 : 0;
 	}
@@ -318,7 +319,8 @@ final class Vendor
 
 		$delta = $this->delta->weigh('component_placeholders', 'joomla_component', $row->guid, $definition, $exists, 'namespace|' . $row->guid);
 		$context['map'][Placeholders::COMPONENT] = $component;
-		$context['map']['###ComponentNamespace###'] = $component;
+		// Keep this runtime map key out of the compiler's host placeholder pass.
+		$context['map']['###' . 'ComponentNamespace' . '###'] = $component;
 
 		return $delta['changed'] ? 1 : 0;
 	}
