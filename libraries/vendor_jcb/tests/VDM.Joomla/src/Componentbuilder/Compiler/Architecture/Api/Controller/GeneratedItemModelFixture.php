@@ -81,6 +81,17 @@ class GeneratedItemModelFixture
 	}
 
 	/**
+	 * Identify the bounded record model for the native JSON:API view registry.
+	 *
+	 * @return  string  The fixture's native single view name.
+	 * @since   6.1.7
+	 */
+	public function getName(): string
+	{
+		return 'demo';
+	}
+
+	/**
 	 * Resolve the application at the generated Joomla Power boundary.
 	 *
 	 * @return  object  The request application.

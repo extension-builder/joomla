@@ -137,7 +137,7 @@ final class AllowView
 		return PHP_EOL . Indent::_(5) . '$user = $app->getIdentity();'
 			. PHP_EOL . Indent::_(5) . 'if (' . implode(' || ', $denied) . ')'
 			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . "throw new \\RuntimeException(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('JERROR_ALERTNOAUTHOR'), 403);"
+			. PHP_EOL . Indent::_(6) . "throw new \\Joomla\\CMS\\Access\\Exception\\NotAllowed(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('JERROR_ALERTNOAUTHOR'), 403);"
 			. PHP_EOL . Indent::_(5) . '}';
 	}
 

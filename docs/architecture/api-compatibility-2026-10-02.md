@@ -21,7 +21,7 @@ failures must not all be attributed to one mechanism.
 | --- | --- | --- |
 | Item controllers can choose list models | The previous generated `getModel()` selected the list model when its incoming name equaled the content type. Inflection can leave `components_config`, `components_dashboard` and `libraries_config` unchanged. The generator now selects the explicit single/list model by controller role. | Recompile and install JCB, then repeat direct API creation and item reads for these three resources with captured failures and owned fixtures. This source defect is deterministic; attributing every recorded 500 to it still requires the native rerun. |
 | Translation `source` is disabled | `admin/forms/language_translation.xml` declares `source` read-only and disabled. Native form validation rejects a submitted disabled field. The original failing request body is unavailable, so its inclusion of `source` is unproven. | Investigate the authoritative field definition, GUID `c2f5d193-ef76-422b-aae5-421cd0a4b22b`, in JCB's `#__componentbuilder_field` definition table (`admin/src/Table/FieldTable.php`). Its intended API write policy has not been established. Do not invent a generic bypass or hard-code a compiled form fix; any policy correction belongs to the maintained field definition and regeneration. |
-| Read-only item access redirects | The generated administrator model applied its edit guard to an API item read, producing native HTTP 303. The API-only guard now uses mapped native access permissions and viewing-access levels, returning HTTP 403 on denial. Administrator editing keeps its existing guard/redirect. | Compiled API cases for permitted read-only, denied access and denied view levels, by numeric ID and GUID, plus unchanged administrator denial behavior. |
+| Read-only item access redirects | The generated administrator model applied its edit guard to an API item read, producing native HTTP 303. The API-only guard now uses mapped native access permissions and viewing-access levels, using Joomla's native access exception for HTTP 403 on denial. Administrator editing keeps its existing guard/redirect. | Compiled API cases for permitted read-only, denied access and denied view levels, by numeric ID and GUID, plus unchanged administrator denial behavior. |
 | Optional descriptions crash toolbar generation | Six Joomla 4/5/6 toolbar and modal-toolbar renderers pass an omitted/null description into the string-only language service. They now treat an absent description as the native empty description. | Compile an otherwise valid component with omitted and null descriptions; inspect its artifacts and compare unaffected output. |
 | Extrusion's own marker literals are consumed during self-compilation | Runtime namespace markers and the external-code detector previously appeared as contiguous compiler tokens in Extrusion source. Three Extrusion classes now construct those literals by concatenation so compilation preserves their runtime values. | Rebuild JCB from its authoritative definitions and run real Extrusion harvest/review/import with the preserved markers. Unit preservation is not authoritative definition reconciliation. |
 | Extrusion import requires an extra access action | The template and AJAX import method required `extrusion.import` in addition to the custom view's `extrusion.access`. The maintained entry points now use the view-access contract and remove the extra access action/labels. | Installed GUI cases for access-only users and denied users, including direct AJAX denial and native cleanup. Transfer the change to the external layout/AJAX/permission definitions before self-regeneration. |
@@ -61,14 +61,17 @@ toolbar tests passed 56 tests with 306 assertions; Extrusion marker tests
 passed 78 tests with 666 assertions; Extrusion import ACL tests passed five
 tests with 20 assertions. These counts cover the selected test groups, not
 a completed installed API/GUI acceptance of this branch. API-read guard
-and provider tests passed 117 tests with 16,421 assertions, including actual
-template-method execution and administrator denial/edit behavior. The
+and provider tests passed 120 tests with 16,442 assertions, including actual
+template-method execution, administrator denial/edit behavior and the native
+JSON:API denial handler. A generic exception carrying code 403 is not
+sufficient: Joomla renders it as HTTP 500, so the guard emits its native
+access exception. The
 complete API-disabled template was materialized and matched the base
 template's bytes without weakening golden comparisons. Installed compiled
 API/GUI journeys remain pending and must record their executed results
 before handoff.
 
-The complete local `composer test` passed 4,396 tests with 47,709
+The complete local `composer test` passed 4,399 tests with 47,730
 assertions on PHP 8.3.6 and PHPUnit 12.5.33 against Joomla 6.1.2 source.
 The complete test PHP style scan passed 534 files; ownership covers all
 1,487 production declarations with no untested baseline debt, and all
