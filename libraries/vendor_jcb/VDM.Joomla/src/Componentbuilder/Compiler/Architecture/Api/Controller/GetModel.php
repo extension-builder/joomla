@@ -19,9 +19,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 /**
  * Api Controller Get Model Class.
  *
- * Builds the getModel method of both API controllers of a view. The model
- * names of a view are explicit, so the content type is mapped onto them and
- * never inflected into a model name Joomla has to guess.
+ * Builds the getModel method of both API controllers of a view. Each
+ * controller selects the model of its resource role, regardless of the name
+ * Joomla derives from the content type.
  *
  * @since 6.1.7
  */
@@ -32,25 +32,20 @@ final class GetModel
 	 *
 	 * @param   string  $nameSingleCode  The single code name of the view.
 	 * @param   string  $nameListCode    The list code name of the view.
+	 * @param   bool    $isList          Whether this controller serves the list resource.
 	 *
 	 * @return  string  The get model method body.
 	 * @since   6.1.7
 	 */
-	public function get(string $nameSingleCode, string $nameListCode): string
+	public function get(string $nameSingleCode, string $nameListCode, bool $isList = false): string
 	{
 		$code = [];
+		$model = $isList ? $nameListCode : $nameSingleCode;
 
 		$code[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
-			. " The model names of this view are explicit, the content type is never inflected.";
+			. " The controller role selects its explicit native model.";
 		$code[] = Indent::_(2)
-			. "if (\$name !== '' && strtolower((string) \$name) === \$this->contentType)";
-		$code[] = Indent::_(2) . "{";
-		$code[] = Indent::_(3) . "\$name = '" . $nameListCode . "';";
-		$code[] = Indent::_(2) . "}";
-		$code[] = Indent::_(2) . "else";
-		$code[] = Indent::_(2) . "{";
-		$code[] = Indent::_(3) . "\$name = '" . $nameSingleCode . "';";
-		$code[] = Indent::_(2) . "}";
+			. "\$name = '" . $model . "';";
 		$code[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
 			. " The API carries no request state for the model, as the form controller does not:";
 		$code[] = Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)

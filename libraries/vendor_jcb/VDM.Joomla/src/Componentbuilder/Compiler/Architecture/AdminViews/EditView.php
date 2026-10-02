@@ -728,6 +728,11 @@ final class EditView
 					'admin.view.model', $nameSingleCode
 				)
 			);
+
+			// Always populate the shared model template, including views without API routes.
+			$this->contentmulti->set($nameSingleCode . '|ADMIN_VIEW_MODEL_ITEM_ACCESS',
+				$this->apiallowview->getItemGuard($nameSingleCode, !empty($view['add_api']))
+			);
 			// ADMIN_VIEW_HTML_HEADER <<<DYNAMIC>>> add the header details for the view
 			$this->contentmulti->set($nameSingleCode . '|ADMIN_VIEW_HTML_HEADER',
 				$this->header->get(
@@ -760,7 +765,7 @@ final class EditView
 			// API_VIEW_CONTROLLER_GETMODEL <<<DYNAMIC>>> add the explicit model mapping to the api controller
 			$this->contentmulti->set($nameSingleCode . '|API_VIEW_CONTROLLER_GETMODEL',
 				$this->apigetmodel->get(
-					$nameSingleCode, $nameListCode
+					$nameSingleCode, $nameListCode, false
 				)
 			);
 

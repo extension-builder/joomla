@@ -180,6 +180,7 @@ final class ListViewTest extends ArchitectureTestCase
 		$written = $this->multi->get('demos');
 
 		$this->assertStringContainsString("\$name = 'demos';", $written['###API_VIEWS_CONTROLLER_GETMODEL###']);
+		$this->assertStringNotContainsString("\$name = 'demo';", $written['###API_VIEWS_CONTROLLER_GETMODEL###']);
 		$this->assertStringContainsString("\$this->modelState->set('filter.search'", $written['###API_VIEWS_CONTROLLER_DISPLAYLIST###']);
 		$this->assertStringContainsString('return parent::displayList();', $written['###API_VIEWS_CONTROLLER_DISPLAYLIST###']);
 		$this->assertStringContainsString("\t\t'id',", $written['###API_VIEWS_JSON_FIELDS###']);

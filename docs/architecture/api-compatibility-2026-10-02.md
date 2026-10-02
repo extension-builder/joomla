@@ -36,8 +36,10 @@ pass their roles explicitly.
 `Architecture.Api.Controller.AllowView` supplies the shared mapped access
 condition and the API item-model guard. The maintained
 `ADMIN_VIEW_MODEL.php` template distinguishes API reads from administrator
-editing. Viewing-access levels apply only to the native access field
-configuration, preserving the existing native `core.options` policy.
+editing. The native `AccessSwitch` controls viewing-access levels,
+including customized access fields, matching the list model and preserving
+the existing native `core.options` policy. A column name alone is not
+evidence of a field's type or permission policy.
 Mutation authorization, checkout and validation remain native responsibilities.
 
 The optional-description correction is confined to the six Joomla
@@ -59,14 +61,14 @@ toolbar tests passed 56 tests with 306 assertions; Extrusion marker tests
 passed 78 tests with 666 assertions; Extrusion import ACL tests passed five
 tests with 20 assertions. These counts cover the selected test groups, not
 a completed installed API/GUI acceptance of this branch. API-read guard
-and provider tests passed 116 tests with 16,417 assertions, including actual
+and provider tests passed 117 tests with 16,421 assertions, including actual
 template-method execution and administrator denial/edit behavior. The
 complete API-disabled template was materialized and matched the base
 template's bytes without weakening golden comparisons. Installed compiled
 API/GUI journeys remain pending and must record their executed results
 before handoff.
 
-The complete local `composer test` passed 4,395 tests with 47,705
+The complete local `composer test` passed 4,396 tests with 47,709
 assertions on PHP 8.3.6 and PHPUnit 12.5.33 against Joomla 6.1.2 source.
 The complete test PHP style scan passed 534 files; ownership covers all
 1,487 production declarations with no untested baseline debt, and all

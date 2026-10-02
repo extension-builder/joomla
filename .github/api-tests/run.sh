@@ -100,6 +100,8 @@ say "Installing Joomla on ${JCB_DB_NAME} at ${JCB_DB_HOST}"
 		--db-name="${JCB_DB_NAME}" --db-prefix=jcb_ --db-encryption=0 --no-interaction
 ) > "${OUT_DIR}/joomla-install.log" 2>&1
 tail -3 "${OUT_DIR}/joomla-install.log"
+realpath "${SITE}" > "${SITE}/.jcb-api-test-site"
+chmod 600 "${SITE}/.jcb-api-test-site"
 
 say "Installing the released JCB package ${JCB_PACKAGE_TAG}, for its console plugin"
 rm -rf "${OUT_DIR}/pkg-src"
@@ -171,6 +173,15 @@ console user:add --username="${API_USER}" --name="API Tests" --password="${API_P
 	--email="${API_USER}@jcb.invalid" --usergroup="Super Users" --no-interaction > "${OUT_DIR}/user.log" 2>&1 || true
 TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" "${API_USER}")"
 
+say "Native read-only and denied API users"
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-read-roles.php" "${SITE}"
+console user:add --username=jcbapireader --name="API Readonly" --password="${API_PASS}" \
+	--email=jcbapireader@jcb.invalid --usergroup="JCB API Readonly" --no-interaction > "${OUT_DIR}/reader-user.log" 2>&1
+console user:add --username=jcbapidenied --name="API Denied" --password="${API_PASS}" \
+	--email=jcbapidenied@jcb.invalid --usergroup="JCB API Denied" --no-interaction > "${OUT_DIR}/denied-user.log" 2>&1
+READER_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapireader)"
+DENIED_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapidenied)"
+
 say "Serving the site on ${BASE_URL}"
 live_site "${BASE_URL}"
 php -S "127.0.0.1:${JCB_API_PORT}" -t "${SITE}" > "${OUT_DIR}/server.log" 2>&1 &
@@ -191,4 +202,58 @@ then
 else
 	say "Driving v1/demo/looks"
 	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/looks --hammer="${JCB_API_HAMMER}"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/looks
+
+	# Recompile source definitions with a plural word in the middle of the list
+	# name. Item tasks must select Library_configModel, while list tasks select
+	# Libraries_configModel; native inflection alone cannot distinguish them.
+	# Restart the server so an old controller/namespace map cannot hide a defect.
+	kill "${SERVER_PID}"
+	wait "${SERVER_PID}" || true
+	SERVER_PID=""
+	live_site ''
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-model-role.php" "${SITE}" "${DEMO_COMPONENT}"
+	rm -f "${SITE}"/tmp/*.zip
+	say "Compiling Library Config / Libraries Config through the native compiler"
+	console componentbuilder:compile:component --component="${DEMO_COMPONENT}" --joomla-version=6 \
+		--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/model-role-compile.log" 2>&1
+
+	for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
+	do
+		[[ -s "${package}" ]] || { echo "Second compile left a missing package."; cat "${OUT_DIR}/model-role-compile.log"; exit 1; }
+		while IFS= read -r file
+		do
+			if unzip -p "${package}" "${file}" | grep -q '___Power'
+			then
+				echo "Unresolved power placeholder in second compile: ${file}"
+				exit 1
+			fi
+		done < <(unzip -Z1 "${package}" | grep '\.php$' || true)
+		console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/model-role-install.log" 2>&1
+	done
+
+	for file in Library_configModel.php Libraries_configModel.php
+	do
+		[[ -s "${SITE}/administrator/components/com_demo/src/Model/${file}" ]] \
+			|| { echo "Second compile is missing expected ${file}."; exit 1; }
+	done
+	grep -Fq "\$name = 'library_config';" "${SITE}/api/components/com_demo/src/Controller/Library_configController.php" \
+		|| { echo "Item controller does not select the native singular model."; exit 1; }
+	grep -Fq "\$name = 'libraries_config';" "${SITE}/api/components/com_demo/src/Controller/Libraries_configController.php" \
+		|| { echo "List controller does not select the native plural model."; exit 1; }
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-read-roles.php" "${SITE}"
+	live_site "${BASE_URL}"
+	php -S "127.0.0.1:${JCB_API_PORT}" -t "${SITE}" > "${OUT_DIR}/model-role-server.log" 2>&1 &
+	SERVER_PID=$!
+	for _ in $(seq 1 30)
+	do
+		if curl -s -o /dev/null "${BASE_URL}/api/index.php/v1/demo/libraries_config" -H "X-Joomla-Token: ${TOKEN}"
+		then
+			break
+		fi
+		sleep 1
+	done
+	say "Driving v1/demo/libraries_config with native model-role and read permissions"
+	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/libraries_config --hammer="${JCB_API_HAMMER}"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/libraries_config
 fi

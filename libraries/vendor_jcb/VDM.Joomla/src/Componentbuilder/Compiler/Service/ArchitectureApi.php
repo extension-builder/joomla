@@ -150,7 +150,8 @@ class ArchitectureApi implements ServiceProviderInterface
 	{
 		return new ControllerAllowView(
 			$container->get('Config'),
-			$container->get('Compiler.Creator.Permission')
+			$container->get('Compiler.Creator.Permission'),
+			$container->get('Compiler.Builder.Access.Switch')
 		);
 	}
 
