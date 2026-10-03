@@ -541,7 +541,9 @@ final class Harvester
 		$candidate['resolution'] = $result;
 		$candidate['guid'] = $result['write_guid'];
 		$candidate['matched_guid'] = $result['matched_guid'];
-		$candidate['placeholder'] = $result['namespace']['value'] ?? $this->namespacer->placeholderize($stored, false);
+		$candidate['placeholder'] = $result['namespace']['value'] ?? $this->namespacer->placeholderize(
+			$stored, false, $this->identity->sourceContext($candidate)
+		);
 		$candidate['exists'] = $result['status'] === 'matched';
 		$candidate['id'] = $result['target']['id'] ?? 0;
 		$candidate['standing'] = $result['target']['namespace'] ?? '';

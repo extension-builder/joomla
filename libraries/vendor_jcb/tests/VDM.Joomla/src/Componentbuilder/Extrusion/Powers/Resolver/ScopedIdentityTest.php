@@ -36,14 +36,14 @@ use VDM\Tests\Support\TestCase;
 final class ScopedIdentityTest extends TestCase
 {
 	/**
-	 * Literal branches survive both catalogue and selected-component collisions.
+	 * Only the explicitly selected component parameterises matching namespace words.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testNamespaceWordsDoNotAuthorizeComponentReplacement(): void
+	public function testOnlyTheSelectedComponentAuthorizesComponentReplacement(): void
 	{
-		foreach (['Registry', 'Storage', 'Domain' . substr(sha1('fixture'), 0, 8)] as $word)
+		foreach (['Registry', 'Storage', 'Domainfixture'] as $word)
 		{
 			foreach ([0, 3] as $selected)
 			{
@@ -57,8 +57,9 @@ final class ScopedIdentityTest extends TestCase
 
 				foreach (['Abstraction.' . $word . '.Traits', $word . '.Library', 'Deep.Path.' . $word] as $branch)
 				{
+					$expected = $selected === 3 ? str_replace($word, '[[[ComponentNamespace]]]', $branch) : $branch;
 					$this->assertSame(
-						'[[[NamespacePrefix]]]\\Joomla\\' . $branch . '.PathToString',
+						'[[[NamespacePrefix]]]\\Joomla\\' . $expected . '.PathToString',
 						$names->placeholderize('Acme\\Joomla\\' . $branch . '.PathToString')
 					);
 				}
@@ -66,6 +67,89 @@ final class ScopedIdentityTest extends TestCase
 				$this->assertSame([], $values->witnessed());
 			}
 		}
+	}
+
+	/**
+	 * Entered component codes match complete compiled segments and never class names.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testEnteredCodeUsesCompiledSegmentsAndPreservesPlacement(): void
+	{
+		$config = new Config(['componentCode' => 'my_component']);
+		$values = new Placeholders($config, new ExtrusionPowerLoadFixture(), new Report(), new Source(), 'Acme');
+		$names = new Namespacer($values);
+		$cases = [
+			'Acme\\Joomla\\Mycomponent.Service' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Service',
+			'Acme\\Mycomponent\\Deep.Mycomponent.Service' => '[[[NamespacePrefix]]]\\[[[ComponentNamespace]]]\\Deep.[[[ComponentNamespace]]].Service',
+			'Acme\\Joomla\\Mycomponent.Mycomponent' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Mycomponent',
+			'Acme\\Joomla\\Mycomponent\\Mycomponent' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]]\\Mycomponent',
+			'Acme\\Joomla\\mycomponent.Service' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Service',
+			'Acme\\Joomla\\MycomponentTools.Service' => '[[[NamespacePrefix]]]\\Joomla\\MycomponentTools.Service',
+			'Acme\\Joomla\\ToolsMycomponent.Service' => '[[[NamespacePrefix]]]\\Joomla\\ToolsMycomponent.Service',
+			'Acme\\Joomla\\Library.Mycomponent' => '[[[NamespacePrefix]]]\\Joomla\\Library.Mycomponent',
+		];
+
+		$this->assertSame('Mycomponent', $values->component());
+
+		foreach ($cases as $source => $expected)
+		{
+			$this->assertSame($expected, $names->placeholderize($source), $source);
+		}
+
+		$config->set('componentCode', 'acme');
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Acme', $names->placeholderize('Acme\\Joomla\\Acme.Acme'));
+		$this->assertSame([], $values->witnessed(), 'Namespace reconstruction cannot propose component configuration writes.');
+	}
+
+	/**
+	 * Effective compiler overrides define which component namespace to reverse.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testComponentOverrideDefinesTheMatchingNamespaceSegment(): void
+	{
+		$config = new Config(['component' => 3]);
+		$load = new ExtrusionPowerLoadFixture();
+		$load->component(3, 'aaaaaaaa-1111-4111-8111-111111111111', 'demo', 1, 'Acme');
+		$load->overrides('aaaaaaaa-1111-4111-8111-111111111111', [
+			['target' => '[[[ComponentNamespace]]]', 'value' => '[[[Component]]]Portal'],
+		]);
+		$names = new Namespacer(new Placeholders($config, $load, new Report(), new Source()));
+
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Service', $names->placeholderize('Acme\\Joomla\\DemoPortal.Service'));
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\Demo.Service', $names->placeholderize('Acme\\Joomla\\Demo.Service'));
+	}
+
+	/**
+	 * A proposal reconstructs its source component without leaking target values.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testProposalUsesItsIsolatedSourceComponentContext(): void
+	{
+		$config = new Config(['component' => 3]);
+		$load = new ExtrusionPowerLoadFixture();
+		$load->component(3, 'aaaaaaaa-1111-4111-8111-111111111111', 'beta', 1, 'Acme');
+		$load->component(4, 'bbbbbbbb-2222-4222-8222-222222222222', 'alpha', 1, 'Other');
+		$names = new Namespacer(new Placeholders($config, $load, new Report(), new Source()));
+		$target = $names->context();
+		$source = [
+			'stored' => 'SourceVendor\\Joomla\\Alpha.Controller.AllowDelete',
+			'fqn' => 'SourceVendor\\Joomla\\Alpha\\Controller\\AllowDelete',
+			'placement_valid' => true,
+		];
+		$proposal = $names->proposal($source, null, $names->context(4));
+
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Controller.AllowDelete', $proposal['value']);
+		$this->assertTrue($proposal['round_trip']);
+		$this->assertSame($source['fqn'], $proposal['source_fqn']);
+		$this->assertSame('Acme\\Joomla\\Beta\\Controller\\AllowDelete', $proposal['target_fqn']);
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\Alpha.Controller.AllowDelete', $names->proposal($source, null, $target)['value']);
+		$this->assertSame($target, $names->context());
 	}
 
 	/**

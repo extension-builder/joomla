@@ -485,7 +485,8 @@ final class Assembler
 		foreach ($candidates as $key => &$candidate)
 		{
 			if ($candidate['resolution']['status'] !== 'new' || isset($candidate['binding'])
-				|| $candidate['action'] === 'filtered')
+				|| $candidate['action'] === 'filtered'
+				|| ($candidate['resolution']['namespace']['provenance'] ?? '') === 'component-code-name')
 			{
 				continue;
 			}

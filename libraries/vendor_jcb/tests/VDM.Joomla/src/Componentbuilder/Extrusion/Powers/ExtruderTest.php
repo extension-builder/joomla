@@ -672,12 +672,12 @@ final class ExtruderTest extends FilesystemTestCase
 	}
 
 	/**
-	 * Naming an unpaired component never turns a literal into global configuration.
+	 * Naming a new component creates portable Powers without writing configuration.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testANamedUnpairedComponentKeepsLiteralsAndWritesNoConfiguration(): void
+	public function testANamedUnpairedComponentDefersItsNamespaceAndWritesNoConfiguration(): void
 	{
 		$this->load->params(['namespace_prefix' => 'Acme']);
 		$this->writeTemporaryFile('named/Acme.Joomla/src/DeMo/Helper.php',
@@ -688,7 +688,7 @@ final class ExtruderTest extends FilesystemTestCase
 		$this->assertTrue((bool) $report->get('powers.completed'), json_encode($report->get('plan')));
 		$power = $this->item->definition('power', $this->guid('Acme\\Joomla\\DeMo\\Helper'));
 		$this->assertNotNull($power);
-		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\DeMo.Helper', $power->namespace);
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Helper', $power->namespace);
 		$this->assertSame([], $this->item->records('placeholder'));
 		$this->assertSame([], $this->item->records('component_placeholders'));
 		$this->assertSame([], $this->item->records('joomla_component'));

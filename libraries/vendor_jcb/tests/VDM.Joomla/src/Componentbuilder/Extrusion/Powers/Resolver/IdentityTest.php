@@ -255,7 +255,7 @@ final class IdentityTest extends TestCase
 	}
 
 	/**
-	 * Source-root evidence can recover portable new siblings without word matching.
+	 * Explicit root bindings stay scoped while named new siblings need no seed.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -278,7 +278,7 @@ final class IdentityTest extends TestCase
 		$new['source_unit'] = 'unrelated_library';
 		$this->assertSame('conflict', $identity->resolve($new)['status']);
 		unset($new['binding']);
-		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\Beta.Nested.Service', $identity->resolve($new)['namespace']['value']);
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Nested.Service', $identity->resolve($new)['namespace']['value']);
 	}
 
 	/**

@@ -292,7 +292,9 @@ final class Existing
 
 		foreach (array_unique($forms) as $form)
 		{
-			$candidates += $this->candidates($this->namespacer->placeholderize($form, false));
+			// Reconstructing a new namespace may use the run's component name.
+			// A compatibility lookup must still retain same-word literal records.
+			$candidates += $this->candidates($this->namespacer->placeholderize($form, false, ['code' => '']));
 		}
 
 		return $this->unique($candidates);

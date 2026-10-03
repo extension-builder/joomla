@@ -1202,21 +1202,32 @@ GUID, competing candidates/reasons, namespace proposal, dependencies,
 `ambiguous`, `conflict`, `unresolved`, `ignored` and `filtered`. A matched existing
 source that is skipped or unchanged remains available for relationship linking.
 
-### 9.2 Namespace variables require scoped structural evidence
+### 9.2 Namespace reconstruction uses the run's named component
 
 `Powers/Resolver/Placeholders` still resolves values in compiler order: global
-placeholder rows, core values, then the applicable component's overrides. Value
-resolution and permission to substitute a namespace segment are separate.
-`Namespacer::placeholderize()` does not turn arbitrary recognised component
-words into `ComponentNamespace`, including when that word is also the selected
-component's name. The established vendor convention is retained independently.
+placeholder rows, core values, then the applicable component's overrides.
+For update runs, the selected `joomla_component.name_code` supplies the component
+name. For create runs, the entered `component_code` supplies it through
+`Powers/Extruder::componentCode()`. `Namespacer::placeholderize()` compares its
+effective compiler-normalized component namespace with complete namespace
+segments and replaces matches with `ComponentNamespace`. It excludes the vendor
+segment and final class name, preserves the observed backslash/dot separators,
+and never searches other component catalogue entries. With no usable component
+code, only the established vendor-prefix convention applies.
+
+This is an explicit reconstruction policy: a new namespace segment equal to the
+run's named component is treated as component-variable, including names such as
+`Registry` or `Storage`. It does not establish Power identity, consumer ownership
+or permission to update a shared definition. New component-name proposals carry
+`component-code-name` provenance before custom aliases are expressed; inferred
+root roles do not overwrite them. No existing Power seed is required.
 
 A compatible independently identified standing Power can establish component
 variable positions. Validated explicit source-root bindings and consistent
-root evidence can recover those roles for new sources. Unproven component
-segments remain literal with bounded diagnostics; conflicting root roles do not
-vote for a winner. A text round trip is necessary but does not establish role
-ownership when a literal and component happen to have the same spelling.
+root evidence can recover those roles for new sources whose namespaces did not
+match the named component. Unresolved segments remain literal with bounded
+diagnostics; conflicting root roles do not vote for a winner. Every proposal
+still has to reconstruct the original class and placement in its source context.
 
 A valid standing stored namespace is preserved, including custom aliases,
 wrapper form, casing and placement. A concrete-FQN match alone does not

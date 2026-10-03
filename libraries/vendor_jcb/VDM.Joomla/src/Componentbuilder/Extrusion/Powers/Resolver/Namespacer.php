@@ -242,28 +242,46 @@ final class Namespacer
 	}
 
 	/**
-	 * Defer the established vendor prefix without guessing component ownership.
+	 * Defer the vendor prefix and the component named for this source context.
 	 *
-	 * A component name, catalogue membership and a matching text round trip
-	 * are not role evidence. Component positions are recovered separately from
-	 * an identified definition or a validated, explicit source-root binding.
+	 * Only the selected component's code name or the entered creation name
+	 * authorises component replacement. Its effective compiler namespace is
+	 * compared with whole namespace segments, never the class or other catalogue
+	 * names. The stored backslash/dot placement remains exactly as observed.
 	 *
-	 * @param   string  $stored   The concrete stored namespace.
-	 * @param   bool    $witness  Retained for callers; a lookup never witnesses ownership.
+	 * @param   string      $stored   The concrete stored namespace.
+	 * @param   bool        $witness  Retained for callers; a lookup never witnesses ownership.
+	 * @param   array|null  $context  The source component context, or the active one.
 	 *
-	 * @return  string  The vendor-portable form with all other words preserved.
+	 * @return  string  The portable form with unrelated namespace segments preserved.
 	 * @since   6.1.7
+	 * @since   6.2.2  Reconstruct component segments from the run's named component.
 	 */
-	public function placeholderize(string $stored, bool $witness = true): string
+	public function placeholderize(string $stored, bool $witness = true, ?array $context = null): string
 	{
-		$sections = explode('\\', $stored);
+		$context ??= $this->context();
+		[$segments, $joiners] = $this->split($stored);
+		$component = (string) ($context['component'] ?? '');
+		$named = (string) ($context['code'] ?? '') !== '' && $component !== '';
+		$last = count($segments) - 1;
 
-		if (count($sections) > 1 && $sections[0] !== '')
+		if ($last > 0 && $segments[0] !== '')
 		{
-			$sections[0] = Placeholders::PREFIX;
+			$segments[0] = Placeholders::PREFIX;
 		}
 
-		return implode('\\', $sections);
+		if ($named)
+		{
+			for ($index = 1; $index < $last; $index++)
+			{
+				if (strcasecmp($segments[$index], $component) === 0)
+				{
+					$segments[$index] = Placeholders::COMPONENT;
+				}
+			}
+		}
+
+		return $segments[0] . $this->join(array_slice($segments, 1), $joiners);
 	}
 
 	/**
@@ -572,8 +590,9 @@ final class Namespacer
 	/**
 	 * Validate a namespace proposal against raw source namespace and placement.
 	 *
-	 * The caller must first establish definition identity or an explicit root
-	 * binding. This method validates a proposal; it does not prove ownership.
+	 * Existing definitions retain their established representation. New sources
+	 * use the run's named component before falling back to explicit root evidence.
+	 * This method validates a namespace proposal; it does not grant write scope.
 	 *
 	 * @param   array        $source     The raw source observation.
 	 * @param   string|null  $standing   An identified existing representation.
@@ -581,6 +600,7 @@ final class Namespacer
 	 *
 	 * @return  array  The representation, placement and round-trip verdict.
 	 * @since   6.2.0
+	 * @since   6.2.2  Record explicit component-name reconstruction separately from root evidence.
 	 */
 	public function proposal(array $source, ?string $standing = null, ?array $context = null): array
 	{
@@ -588,7 +608,16 @@ final class Namespacer
 		$stored = (string) ($source['stored'] ?? '');
 		$fqn = (string) ($source['fqn'] ?? '');
 		$context = $this->sourceContext($stored, $context);
-		$value = $standing ?? $this->express($this->placeholderize($stored, false), $context);
+		$value = $standing;
+		$provenance = 'identified-definition';
+
+		if ($value === null)
+		{
+			$value = $this->placeholderize($stored, false, $context);
+			$provenance = str_contains($value, Placeholders::COMPONENT)
+				? 'component-code-name' : 'literal-source';
+			$value = $this->express($value, $context);
+		}
 		$placement = (bool) ($source['placement_valid'] ?? false);
 		$relocation = false;
 		$matches = $fqn !== '' && $this->key($this->resolve($value, $context)) === $this->key($fqn);
@@ -620,7 +649,7 @@ final class Namespacer
 			'relocation' => $relocation,
 			'source_fqn' => $this->resolve($value, $context),
 			'target_fqn' => $this->resolve($value),
-			'provenance' => $standing !== null ? 'identified-definition' : 'literal-source'
+			'provenance' => $provenance
 		];
 	}
 
