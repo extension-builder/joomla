@@ -4,7 +4,7 @@
 
 - **Date first changed:** 2026-10-03
 - **Author/implementer:** Codex, for Lemuel van der Merwe
-- **Task/issue/PR:** Branch `fix/extrusion-existing-namespace-repair`
+- **Task/issue/PR:** [PR #57](https://github.com/extension-builder/joomla/pull/57), branch `fix/extrusion-existing-namespace-repair`
 - **Change record status:** Ready for review
 
 ## Explicit permission
@@ -84,13 +84,13 @@ Earlier extrusion could store literal component namespace segments for new Power
 | Full `composer test` | PHP 8.3.6 / Joomla 6.1.2 source runtime | Pass — 4,423 tests, 47,939 assertions |
 | Working-tree added-line PHP contribution style | PHP 8.3.6 | Pass — all 16 changed library/test PHP files |
 | Composer validation, platform requirements and locked dependency audit | Composer 2.10.2 | Pass |
-| Installed GUI and full compiler comparisons | GitHub Actions | Required PR checks; retained execution evidence accompanies the PR |
+| Installed GUI and full compiler comparisons | GitHub Actions | Pass — all seven checks on `50fb7f9`; [26 Playwright tests and actual repair persistence](https://github.com/extension-builder/joomla/actions/runs/37135419394), [Joomla 3/4/5/6 compiler comparisons](https://github.com/extension-builder/joomla/actions/runs/37135419351), [PHP 8.3/8.4](https://github.com/extension-builder/joomla/actions/runs/37135419293). Final-head check results are retained on PR #57 |
 
 ### Manual scenarios
 
 | Scenario | Environment | Result |
 | --- | --- | --- |
-| Repair source scan, automatic matching, namespace-only preview, dry-run apply | Disposable Joomla GUI suite | Covered by the PR GUI spec; execution evidence is retained in the GUI check |
+| Repair source scan, automatic matching, namespace-only preview, dry-run apply | Disposable Joomla GUI suite | Pass — installed GUI and real Data/Power compiler verification; retained GUI check evidence on PR #57 |
 
 ### GUI test coverage
 
@@ -98,7 +98,7 @@ Earlier extrusion could store literal component namespace segments for new Power
 
 ### Checks not performed
 
-- Local Docker GUI/golden execution was unavailable in the workspace. The PR runs the installed GUI harness and Joomla 3/4/5/6 compiler comparisons; their results are retained as required GitHub check evidence.
+- Local Docker execution was unavailable. Hosted GUI, actual repair persistence and Joomla 3/4/5/6 compiler checks passed; execution evidence is linked above. Owner-side recompilation after copying into the authoritative JCB definition remains a separate source reconciliation step.
 
 ## Risks, limitations, and rollback
 

@@ -180,6 +180,11 @@ test.describe('the extrusion view', () => {
 		// the social feed is gone -- its script never loaded on this page --
 		// while the banner block stays
 		await expect(page.locator('#noticeboard')).toHaveCount(0);
+		await expect(page.locator('#adminForm > .row > div:not(.col-md-5):not(.col-md-7)'),
+			'the maintained setup support banner sits outside the settings column').toHaveCount(1);
+		await expect(page.locator('#extrusion-pane-running > .col-md-8'),
+			'the maintained running support banner sits outside the progress row').toHaveCount(1);
+		await expect(page.locator('#extrusion-pane-running > .row > .col-md-8')).toHaveCount(0);
 	});
 
 	test('keeps the Joomla main menu available and returns through the maintained Back action', async ({ page }) => {
