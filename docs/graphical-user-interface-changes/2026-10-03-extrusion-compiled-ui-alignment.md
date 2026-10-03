@@ -4,7 +4,7 @@
 
 - **Date first changed:** 2026-10-03
 - **Author/implementer:** Codex, for Lemuel van der Merwe
-- **Task/issue/PR:** Branch `fix/extrusion-existing-namespace-repair`; owner's uploaded `com_componentbuilder_v6_1_6__J6.zip`
+- **Task/issue/PR:** [PR #57](https://github.com/extension-builder/joomla/pull/57), branch `fix/extrusion-existing-namespace-repair`; owner's uploaded `com_componentbuilder_v6_1_6__J6.zip`
 - **Change record status:** Ready for review
 
 ## Explicit permission
@@ -75,7 +75,7 @@ The owner maintains the Extrusion custom admin view in JCB and has adjusted its 
 | Full `composer test` | PHP 8.3.6 / Joomla 6.1.2 source runtime | Pass — 4,423 tests, 47,939 assertions |
 | Working-tree added-line PHP contribution style | PHP 8.3.6 | Pass — all 16 changed library/test PHP files |
 | Composer validation, platform requirements and locked dependency audit | Composer 2.10.2 | Pass |
-| Installed GUI and full compiler comparisons | GitHub Actions | Required PR checks; retained execution evidence accompanies the PR |
+| Installed GUI and full compiler comparisons | GitHub Actions | Pass — all seven checks on `50fb7f9`; [26 Playwright tests and actual repair persistence](https://github.com/extension-builder/joomla/actions/runs/37135419394), [Joomla 3/4/5/6 compiler comparisons](https://github.com/extension-builder/joomla/actions/runs/37135419351), [PHP 8.3/8.4](https://github.com/extension-builder/joomla/actions/runs/37135419293). Final-head check results are retained on PR #57 |
 
 ### Manual scenarios
 
@@ -89,7 +89,7 @@ The owner maintains the Extrusion custom admin view in JCB and has adjusted its 
 
 ### Checks not performed
 
-- Local Docker GUI execution was unavailable in the workspace. The PR runs the installed browser suite; its retained check evidence verifies the menu, Back behavior and icon loading.
+- Local Docker execution was unavailable. The hosted browser suite passed and verifies menu, Back behavior and icon loading; final-head coverage also asserts banner placement. Owner-side recompilation after copying into JCB remains a separate source reconciliation step.
 
 ## Risks, limitations, and rollback
 
