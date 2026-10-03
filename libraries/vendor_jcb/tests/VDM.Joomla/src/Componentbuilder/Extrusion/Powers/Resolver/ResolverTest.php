@@ -379,19 +379,19 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * The vendor convention is independent of unproven component-role values.
+	 * New namespaces defer the selected component while preserving other branches.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testPlaceholderizeDoesNotInferRolesFromResolvedValues(): void
+	public function testPlaceholderizeUsesTheSelectedComponentNamespace(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
 		$this->config->set('component', 3);
 		$namespacer = $this->namespacer();
 
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\Componentbuilder.Package.Readme.Item',
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Package.Readme.Item',
 			$namespacer->placeholderize('VDM\Joomla\Componentbuilder.Package.Readme.Item')
 		);
 		$this->assertSame(
@@ -413,12 +413,12 @@ final class ResolverTest extends TestCase
 	}
 
 	/**
-	 * Preserve component-like literal words and emit no unapproved witness.
+	 * Match the selected namespace case-insensitively without proposing configuration.
 	 *
 	 * @return  void
 	 * @since   6.1.8
 	 */
-	public function testThePrefixConventionDoesNotAuthoriseComponentWordReplacement(): void
+	public function testComponentReplacementDoesNotWitnessConfigurationChanges(): void
 	{
 		$this->load->component(3, 'comp-guid', 'componentbuilder', 1, 'VDM');
 		$this->config->set('component', 3);
@@ -431,9 +431,9 @@ final class ResolverTest extends TestCase
 			'The first segment is the vendor prefix, whatever it reads.'
 		);
 		$this->assertSame(
-			'[[[NamespacePrefix]]]\Joomla\ComponentBuilder.File.Display',
+			'[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].File.Display',
 			$namespacer->placeholderize('Other\Joomla\ComponentBuilder.File.Display'),
-			'The original literal casing survives; equal component values are not role evidence.'
+			'The selected component matches a complete segment under PHP namespace casing rules.'
 		);
 		$this->assertSame(
 			'[[[NamespacePrefix]]]\Query',

@@ -42,6 +42,124 @@ use VDM\Tests\Support\FilesystemTestCase;
 final class ScopedPipelineTest extends FilesystemTestCase
 {
 	/**
+	 * New compiler Powers use the named component without any existing root seed.
+	 *
+	 * @param   bool  $update  Select an existing component instead of entering its code.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	#[DataProvider('componentModes')]
+	public function testAllowDeleteRestoresComponentNamespaceWithoutExistingPowers(bool $update): void
+	{
+		[$container, $load, $item] = $this->engine(false, false);
+		$load->component(3, $this->guid('componentbuilder'), 'componentbuilder', 1, 'VDM');
+		$load->params(['namespace_prefix' => 'VDM']);
+		$container->get('Extrusion.Config')
+			->set('mode', $update ? 'update' : 'create')
+			->set('component', $update ? 3 : 0)
+			->set('sourceComponent', $update ? 3 : 0)
+			->set('componentCode', $update ? '' : 'componentbuilder')
+			->set('libraries', [$this->temporaryPath('lib/VDM.Joomla')]);
+		$this->writeTemporaryFile(
+			'lib/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowDelete.php',
+			"<?php\nnamespace VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\Api\\Controller;\nfinal class AllowDelete {}\n"
+		);
+
+		$this->assertSame(1, $container->get('Extrusion.Powers.Harvester')->harvest());
+		$this->assertSame(1, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$source = $this->source($harvest->get('classes'), 'AllowDelete');
+		$namespace = '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Compiler.Architecture.Api.Controller.AllowDelete';
+		$this->assertSame('new', $source['resolution']['status']);
+		$this->assertNull($source['matched_guid']);
+		$this->assertSame([], $source['resolution']['candidates']);
+		$this->assertTrue($source['resolution']['namespace']['round_trip']);
+		$this->assertSame('component-code-name', $source['resolution']['namespace']['provenance']);
+		$this->assertSame($namespace, $source['placeholder']);
+		$this->assertSame($namespace, $harvest->get('resolved.' . $source['source_key'])->namespace);
+		$this->assertSame(
+			[
+				'fqn' => 'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\Api\\Controller\\AllowDelete',
+				'path' => 'library:VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/Controller/AllowDelete.php',
+			],
+			$container->get('Extrusion.Powers.Resolver.Namespacer')->output($namespace)
+		);
+		$report = $container->get('Extrusion.Registry.Report');
+		$this->assertSame(0, $report->get('counts.powers.binding_checks'));
+		$this->assertSame(0, $report->get('counts.powers.binding_applications'));
+		$this->assertSame([], $item->records(), 'Harvest and assembly remain a preview.');
+	}
+
+	/**
+	 * Both component identification paths used by the Extrusion admin view.
+	 *
+	 * @return  array<string, array{bool}>  Update and create selections.
+	 * @since   6.2.2
+	 */
+	public static function componentModes(): array
+	{
+		return ['selected update' => [true], 'entered create' => [false]];
+	}
+
+	/**
+	 * The named component outranks inferred roles even when a custom alias hides it.
+	 *
+	 * @param   bool  $alias  Express the new namespace through a custom root alias.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	#[DataProvider('namespaceAliases')]
+	public function testNamedComponentProposalOutranksAnotherSeededCoreRole(bool $alias): void
+	{
+		[$container, $load] = $this->engine();
+		$legacy = '[[[NamespacePrefix]]]\\Joomla\\[[[Component]]].Factory';
+		$load->record('power', 12, [
+			'guid' => $this->guid('power-b'), 'name' => 'Factory', 'type' => 'class',
+			'namespace' => $legacy,
+		]);
+
+		if ($alias)
+		{
+			$load->placeholder(1, 'TargetRoot', '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]]');
+		}
+
+		$this->sources();
+		$container->get('Extrusion.Config')->set('libraries', [$this->temporaryPath('lib')]);
+		$this->assertSame(2, $container->get('Extrusion.Powers.Harvester')->harvest());
+		$this->assertSame(2, $container->get('Extrusion.Powers.Assembler')->assemble());
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$factory = $this->source($harvest->get('classes'), 'Factory');
+		$consumer = $this->source($harvest->get('classes'), 'Consumer');
+		$expected = $alias ? '[[[TargetRoot]]].Consumer' : '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Consumer';
+
+		$this->assertSame('matched', $factory['resolution']['status']);
+		$this->assertSame($legacy, $factory['placeholder'], 'The matched seed retains its stored core role.');
+		$this->assertSame('component-code-name', $consumer['resolution']['namespace']['provenance']);
+		$this->assertSame($expected, $consumer['placeholder']);
+		$this->assertSame($expected, $harvest->get('resolved.' . $consumer['source_key'])->namespace);
+		$this->assertSame(
+			'[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Consumer',
+			$container->get('Extrusion.Powers.Resolver.Namespacer')->canonical($consumer['placeholder'])
+		);
+		$report = $container->get('Extrusion.Registry.Report');
+		$this->assertSame(1, $report->get('counts.powers.binding_checks'), 'An independently matched alternative root was checked.');
+		$this->assertSame(0, $report->get('counts.powers.binding_applications'), 'An inferred root cannot replace the named component role.');
+	}
+
+	/**
+	 * Both direct and custom-aliased namespace representations.
+	 *
+	 * @return  array<string, array{bool}>  Namespace expression cases.
+	 * @since   6.2.2
+	 */
+	public static function namespaceAliases(): array
+	{
+		return ['direct component role' => [false], 'aliased component role' => [true]];
+	}
+
+	/**
 	 * Mapping follows B through aliases and inheritance in either discovery order.
 	 *
 	 * @param   bool  $reverse  Reverse database catalogue order.
@@ -284,12 +402,12 @@ final class ScopedPipelineTest extends FilesystemTestCase
 	}
 
 	/**
-	 * Equivalent independently proved bindings require one validation per witness.
+	 * Named new Powers avoid root inference while shared dependencies keep bounded work.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testEquivalentRootBindingsAndSharedDependenciesHaveBoundedWork(): void
+	public function testNamedComponentNamespacesAndSharedDependenciesHaveBoundedWork(): void
 	{
 		[$container, $load, $item] = $this->engine();
 		$this->sources();
@@ -318,7 +436,7 @@ final class ScopedPipelineTest extends FilesystemTestCase
 		$this->assertSame(72, $container->get('Extrusion.Powers.Assembler')->assemble());
 		$report = $container->get('Extrusion.Registry.Report');
 		$this->assertSame(41, $report->get('counts.powers.binding_checks'));
-		$this->assertSame(31, $report->get('counts.powers.binding_applications'));
+		$this->assertSame(0, $report->get('counts.powers.binding_applications'));
 		$this->assertSame(1, $report->get('counts.powers.dependency_lookups'));
 		$this->assertGreaterThanOrEqual(30, $report->get('counts.powers.dependency_reused'));
 		$harvest = $container->get('Extrusion.Registry.Harvest');
@@ -429,17 +547,19 @@ final class ScopedPipelineTest extends FilesystemTestCase
 	/**
 	 * Compose the production graph with external I/O recorded.
 	 *
-	 * @param   bool  $reverse  Reverse catalogue insertion order.
+	 * @param   bool  $reverse    Reverse catalogue insertion order.
+	 * @param   bool  $catalogue  Seed the component and Power catalogue.
 	 *
 	 * @return  array  Container, loader and Data pipeline fixture.
 	 * @since   6.2.0
 	 */
-	protected function engine(bool $reverse = false): array
+	protected function engine(bool $reverse = false, bool $catalogue = true): array
 	{
 		$load = new ExtrusionPowerLoadFixture();
 		$item = new ExtrusionItemFixture();
+		$order = $reverse ? [2, 1] : [1, 2];
 
-		foreach ($reverse ? [2, 1] : [1, 2] as $id)
+		foreach ($catalogue ? $order : [] as $id)
 		{
 			$key = $id === 1 ? 'a' : 'b';
 			$load->record('joomla_component', $id, $this->component($id === 1 ? 'alpha' : 'beta', 'component-' . $key, ['power-' . $key]));

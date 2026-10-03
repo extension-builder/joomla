@@ -677,8 +677,8 @@ final class Placeholders
 			? ''
 			: NamespaceHelper::safeSegment($component);
 
-		// Values are contextual data, never evidence that a source segment is
-		// component-owned. Unrelated catalogue rows cannot change this set.
+		// Only this run's component contributes names. Namespace reconstruction
+		// uses its effective value; unrelated catalogue rows cannot change it.
 		$recognise = array_values(array_unique(array_filter(array_map(
 			static fn (string $value): string => strtolower(trim($value)),
 			[$component, $derived, $this->segment($this->code($named))]
