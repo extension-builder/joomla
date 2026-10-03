@@ -117,7 +117,7 @@
 	/** Lock the run controls until the single requested operation answers. */
 	function beginRun() {
 		state.busy = true;
-		const controls = $$('#extrusion-tabs .nav-link, #extrusion-harvest-button, #extrusion-import-button');
+		const controls = $$('#extrusion-tabs .nav-link, #extrusion-harvest-button, #extrusion-repair-namespaces-button, #extrusion-import-button');
 		const disabled = controls.map((control) => control.disabled);
 		controls.forEach((control) => { control.disabled = true; });
 		return () => {
@@ -144,6 +144,23 @@
 		if (tab) {
 			tab.disabled = false;
 		}
+	}
+
+	/** The dedicated repair action remains the same operation through review and apply. */
+	function isNamespaceRepair() {
+		return Number((state.config || {}).repair_namespaces) === 1;
+	}
+
+	/** Make the namespace-only operation visible without changing ordinary import labels. */
+	function renderRunMode() {
+		const repair = isNamespaceRepair();
+		$('extrusion-pairing-title').textContent = repair ? T.repairPairingTitle : T.pairingTitle;
+		$('extrusion-namespace-repair-notice').hidden = !repair;
+		$('extrusion-import-label').textContent = repair ? T.repairLabel : T.importLabel;
+		$('extrusion-results-title').textContent = repair ? T.repairReportTitle : T.reportTitle;
+		$$('#extrusion-bulk-bar [data-extrusion-bulk="create"]').forEach((button) => {
+			button.hidden = repair;
+		});
 	}
 
 	/**
@@ -198,13 +215,28 @@
 	/**
 	 * Run the harvest and land on the pairing board.
 	 */
-	async function harvest() {
+	async function harvest(repairNamespaces = false) {
 		if (state.busy) {
 			return;
 		}
 		const notice = $('extrusion-setup-notice');
 		notice.style.display = 'none';
 		const config = readConfig();
+		config.repair_namespaces = repairNamespaces ? 1 : 0;
+		if (repairNamespaces && (config.mode !== 'update' || config.component <= 0)) {
+			notice.textContent = T.repairNeedTarget;
+			notice.style.display = 'block';
+			return;
+		}
+		if (repairNamespaces && config.libraries.length === 0) {
+			notice.textContent = T.repairNeedLibraries;
+			notice.style.display = 'block';
+			return;
+		}
+		if (repairNamespaces) {
+			config.on_existing = 'update';
+			config.detect = false;
+		}
 		if (config.admin_path === '' && config.site_path === ''
 			&& config.libraries.length === 0) {
 			notice.textContent = T.needSource;
@@ -212,6 +244,7 @@
 			return;
 		}
 		state.config = config;
+		renderRunMode();
 		window.clearTimeout(weighingTimer);
 		invalidateReview();
 		const finishRun = beginRun();
@@ -273,6 +306,7 @@
 		const none = document.createElement('option');
 		none.value = '0';
 		none.textContent = T.noTarget;
+		none.disabled = isNamespaceRepair();
 		select.appendChild(none);
 		(payload.components || []).forEach((component) => {
 			const option = document.createElement('option');
@@ -582,8 +616,9 @@
 			html += '</details>';
 		}
 		const namespace = candidate.namespace_proposal;
-		if (namespace && namespace.relocation) {
-			html += '<span>' + esc(T.relocation) + ': <code>' + esc(namespace.value) + '</code></span>';
+		if (namespace && (namespace.relocation || namespace.provenance === 'namespace-repair')) {
+			html += '<span>' + esc(namespace.provenance === 'namespace-repair' ? T.repairProposal : T.relocation)
+				+ ': <code>' + esc(namespace.value) + '</code></span>';
 		}
 		return html + '</span>';
 	}
@@ -1087,8 +1122,8 @@
 			+ '</span>'
 			+ '<span class="extrusion-actions">'
 			+ changeBadge(candidate)
-			+ '<button type="button" class="btn btn-sm extrusion-act' + active('create')
-			+ '" data-extrusion-act="create">' + esc(T.createNew) + '</button>'
+			+ (isNamespaceRepair() ? '' : '<button type="button" class="btn btn-sm extrusion-act' + active('create')
+				+ '" data-extrusion-act="create">' + esc(T.createNew) + '</button>')
 			+ '<button type="button" class="btn btn-sm extrusion-act extrusion-act-update' + active('update')
 			+ '" data-extrusion-act="update" title="' + esc(T.chooseTarget) + '">'
 			+ targetLabel + '</button>'
@@ -1420,6 +1455,10 @@
 			fingerprint: state.plan.fingerprint,
 			scopes: [...(state.plan.required_approvals || [])]
 		};
+		const repair = isNamespaceRepair();
+		$('extrusion-confirm-title').textContent = repair ? T.repairConfirmTitle : T.confirmTitle;
+		$('extrusion-confirm-description').textContent = repair ? T.repairConfirmDescription : T.confirmDescription;
+		$('extrusion-confirm-import').textContent = repair ? T.repairConfirmLabel : T.confirmLabel;
 		$('extrusion-confirm-dry-run').hidden = String((state.config || {}).dry_run) !== '1';
 		$('extrusion-confirm-modal').style.display = 'flex';
 		$('extrusion-confirm-cancel').focus();
@@ -1465,7 +1504,7 @@
 		const decisions = buildDecisions();
 		const finishRun = beginRun();
 		$('extrusion-running-title').textContent = config.admin_path || T.theSource;
-		$('extrusion-running-verb').textContent = T.importing;
+		$('extrusion-running-verb').textContent = isNamespaceRepair() ? T.repairing : T.importing;
 		showPane('running');
 		let payload;
 		try {
@@ -1671,6 +1710,15 @@
 		E = window.JCBExtrusion || E;
 		T = E.text || {};
 		decorateFolderFields();
+		// Keep the dedicated repair action with the existing Advanced disclosure.
+		const advanced = $('adminForm').elements['show_advanced_options'];
+		const toggleRepairOptions = () => {
+			$('extrusion-namespace-repair-options').hidden = !advanced || advanced.value !== '1';
+		};
+		$$('#adminForm [name="show_advanced_options"]').forEach((field) => {
+			field.addEventListener('change', toggleRepairOptions);
+		});
+		toggleRepairOptions();
 		// the component name input stands only when everything is created
 		// new: with a target selected or detection on, the target answers
 		const componentSelect = document.querySelector('[name="component_id"]');
@@ -1696,7 +1744,8 @@
 				closeFolderPicker();
 			}
 		});
-		$('extrusion-harvest-button').addEventListener('click', harvest);
+		$('extrusion-harvest-button').addEventListener('click', () => harvest(false));
+		$('extrusion-repair-namespaces-button').addEventListener('click', () => harvest(true));
 		wireBoard();
 		$('extrusion-back-button').addEventListener('click', () => showPane('setup'));
 		const importButton = $('extrusion-import-button');

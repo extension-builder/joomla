@@ -773,6 +773,14 @@ final class Assembler
 	 */
 	protected function definition(array $candidate): object
 	{
+		if ((bool) $this->config->get('repairNamespaces', false))
+		{
+			return (object) [
+				'guid' => (string) $candidate['guid'],
+				'namespace' => (string) $candidate['placeholder'],
+			];
+		}
+
 		$guid = (string) $candidate['guid'];
 		$type = (string) $candidate['type'];
 		$namespace = (string) $candidate['namespace'];

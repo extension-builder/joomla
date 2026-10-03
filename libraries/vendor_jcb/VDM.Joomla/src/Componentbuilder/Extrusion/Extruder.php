@@ -536,6 +536,22 @@ final class Extruder implements ExtruderInterface
 	}
 
 	/**
+	 * Restrict the operation to namespace repairs of identified existing Powers.
+	 *
+	 * Component source, schema and writer settings remain available for a later
+	 * ordinary run; this operation delegates exclusively to the Powers pipeline.
+	 *
+	 * @param   bool  $repair  Whether to enable namespace-only repair.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.2.2
+	 */
+	public function repairNamespaces(bool $repair = true): self
+	{
+		return $this->option('repairNamespaces', $repair);
+	}
+
+	/**
 	 * Set the bounded scan caps.
 	 *
 	 * @param   int  $depth     The maximum directory depth.
@@ -561,6 +577,13 @@ final class Extruder implements ExtruderInterface
 	 */
 	public function harvest(): Report
 	{
+		if ((bool) $this->config->get('repairNamespaces', false))
+		{
+			$this->powers->harvest();
+
+			return $this->finish((bool) $this->report->get('powers.completed', false));
+		}
+
 		$views = $this->assembleSource();
 
 		if ($views === null)
@@ -601,6 +624,13 @@ final class Extruder implements ExtruderInterface
 	 */
 	public function extrude(): Report
 	{
+		if ((bool) $this->config->get('repairNamespaces', false))
+		{
+			$this->powers->extrude();
+
+			return $this->finish((bool) $this->report->get('powers.completed', false));
+		}
+
 		$owner = $this->plan->begin();
 
 		try

@@ -290,6 +290,21 @@ final class Extruder implements PowersExtruderInterface
 	}
 
 	/**
+	 * Restrict the operation to namespace repairs of identified existing Powers.
+	 *
+	 * @param   bool  $repair  Whether to enable namespace-only repair.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.2.2
+	 */
+	public function repairNamespaces(bool $repair = true): self
+	{
+		$this->config->set('repairNamespaces', $repair);
+
+		return $this;
+	}
+
+	/**
 	 * Restrict the run to the named candidates.
 	 *
 	 * A candidate answers to its guid, class name, real or stored namespace,
@@ -477,6 +492,18 @@ final class Extruder implements PowersExtruderInterface
 	 */
 	protected function achieved(int $assembled): void
 	{
+		if ((bool) $this->config->get('repairNamespaces', false))
+		{
+			$dryRun = (bool) $this->config->get('dryRun', false);
+			$count = $this->tally($dryRun ? 'dryrun.power' : 'written.power');
+			$this->message->success(
+				($dryRun ? 'Prepared ' : 'Applied ') . $count . ' existing Power namespace repair(s).'
+			);
+			$this->shortfalls();
+
+			return;
+		}
+
 		if ((bool) $this->config->get('dryRun', false))
 		{
 			$this->message->success(

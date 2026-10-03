@@ -39,6 +39,29 @@ use VDM\Tests\Support\TestCase;
 final class IdentityTest extends TestCase
 {
 	/**
+	 * Changing repair mode invalidates cached proposals without losing Power identity.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairModeRefreshesExistingIdentityProposals(): void
+	{
+		[$identity, $load, $config] = $this->engine();
+		$literal = '[[[NamespacePrefix]]]\\Joomla\\Beta.Factory';
+		$load->record('power', 12, $this->power('power-b', $literal, 'Factory B'));
+		$source = $this->source();
+		$original = $identity->resolve($source);
+		$this->assertSame($literal, $original['namespace']['value']);
+		$config->set('repairNamespaces', true);
+		$repaired = $identity->resolve($source);
+		$this->assertSame($this->guid('power-b'), $repaired['matched_guid']);
+		$this->assertSame($this->template(), $repaired['namespace']['value']);
+		$this->assertSame('namespace-repair', $repaired['namespace']['provenance']);
+		$this->assertTrue($repaired['namespace']['round_trip']);
+		$config->set('repairNamespaces', false);
+		$this->assertSame($literal, $identity->resolve($source)['namespace']['value']);
+	}
+	/**
 	 * Catalogue order and equal placeholder values do not erase component scope.
 	 *
 	 * @param   bool  $reverse  Reverse catalogue declaration order.

@@ -172,7 +172,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$config = new Config();
 
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertSame(0, $config->get('component'));
 		$this->assertSame('update', $config->get('onExisting'));
@@ -192,6 +192,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('auto', $config->get('layout'));
 		$this->assertSame('en-GB', $config->get('languageTag'));
 		$this->assertFalse($config->get('dryRun'));
+		$this->assertFalse($config->get('repairNamespaces'));
 		$this->assertFalse($config->get('strict'));
 		$this->assertSame(12, $config->get('depth'));
 		$this->assertSame(20000, $config->get('maxFiles'));
@@ -215,6 +216,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$config = new Config();
 		$config->set('mode', 'update')
 			->set('dryRun', true)
+			->set('repairNamespaces', true)
 			->set('precedence', ['xml'])
 			->set('skipColumns', ['title'])
 			->set('include', ['article'])
@@ -222,14 +224,14 @@ final class ExtrusionStateContractTest extends TestCase
 
 		$this->assertSame('update', $config->get('mode'));
 		$this->assertSame('value', $config->get('custom'));
-		$this->assertCount(31, $config);
+		$this->assertCount(32, $config);
 
 		$cleared = $config->clear();
 
 		$this->assertSame($config, $cleared);
 		$this->assertNotSame([], $config->toArray());
 		$this->assertSame($this->expectedDefaults(), $config->toArray());
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 		$this->assertSame('create', $config->get('mode'));
 		$this->assertFalse($config->get('dryRun'));
 		$this->assertSame(Config::TIERS, $config->get('precedence'));
@@ -267,7 +269,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('update', $config->get('onExisting'));
 		$this->assertSame(20000, $config->get('maxFiles'));
 		$this->assertSame(Config::BOILERPLATE, $config->get('skipColumns'));
-		$this->assertCount(31, $config);
+		$this->assertCount(32, $config);
 
 		$this->assertSame(0, $config->rank('xml'), 'the configured precedence must drive the ranks.');
 		$this->assertSame(5, $config->rank('table'));
@@ -294,7 +296,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertFalse($fromString->selected('note'));
 		$this->assertTrue($fromString->selected('article'));
 		$this->assertSame('en-GB', $fromString->get('languageTag'));
-		$this->assertCount(30, $fromString);
+		$this->assertCount(31, $fromString);
 
 		$fromObject = new Config((object) ['strict' => true, 'tableClass' => 'off']);
 
@@ -302,7 +304,7 @@ final class ExtrusionStateContractTest extends TestCase
 		$this->assertSame('off', $fromObject->get('tableClass'));
 		$this->assertTrue($fromObject->get('admin'));
 		$this->assertSame(Config::TIERS, $fromObject->get('precedence'));
-		$this->assertCount(30, $fromObject);
+		$this->assertCount(31, $fromObject);
 
 		$fromNulls = new Config(['layout' => null, 'depth' => null, 'skipColumns' => null]);
 
@@ -343,7 +345,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'defaults() must leave keys outside the catalogue in place.'
 		);
 		$this->assertTrue($config->exists('custom'));
-		$this->assertCount(31, $config);
+		$this->assertCount(32, $config);
 
 		$config->clear();
 
@@ -351,7 +353,7 @@ final class ExtrusionStateContractTest extends TestCase
 			$config->exists('custom'),
 			'clear() must drop keys outside the catalogue.'
 		);
-		$this->assertCount(30, $config);
+		$this->assertCount(31, $config);
 	}
 
 	/**
@@ -813,6 +815,7 @@ final class ExtrusionStateContractTest extends TestCase
 			'codeName' => '',
 			'dump' => '',
 			'onExisting' => 'update',
+			'repairNamespaces' => false,
 			'admin' => true,
 			'site' => false,
 			'tabs' => true,
