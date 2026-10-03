@@ -36,6 +36,96 @@ use VDM\Tests\Support\TestCase;
 final class ScopedIdentityTest extends TestCase
 {
 	/**
+	 * Literal repairs preserve stored separators, custom aliases and class names.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairPreservesSymbolicRepresentationsAndExactSegments(): void
+	{
+		[$names, $load] = $this->repairNamespacer();
+		$load->placeholder(1, 'VendorRoot', 'Acme\\Joomla');
+		$load->placeholder(2, 'ComponentRoot', 'Acme\\Joomla\\Beta');
+		$load->placeholder(3, 'Branch', 'Deep');
+		$cases = [
+			'Acme\\Joomla\\Beta.Factory' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory',
+			'[[[NamespacePrefix]]]\\Joomla\\Beta.Factory' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory',
+			'###NamespacePrefix###\\Joomla\\Beta.Factory' => '###NamespacePrefix###\\Joomla\\[[[ComponentNamespace]]].Factory',
+			'[[[VendorRoot]]]\\Beta.Factory' => '[[[VendorRoot]]]\\[[[ComponentNamespace]]].Factory',
+			'###VendorRoot###\\Beta.Factory' => '###VendorRoot###\\[[[ComponentNamespace]]].Factory',
+			'[[[ComponentRoot]]].Factory' => '[[[ComponentRoot]]].Factory',
+			'[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory',
+			'[[[NamespacePrefix]]]\\Joomla\\###Branch###.Beta.Factory' => '[[[NamespacePrefix]]]\\Joomla\\###Branch###.[[[ComponentNamespace]]].Factory',
+			'[[[NamespacePrefix]]]\\Joomla\\BetaTools.Beta' => '[[[NamespacePrefix]]]\\Joomla\\BetaTools.Beta',
+		];
+
+		foreach ($cases as $standing => $expected)
+		{
+			$source = [
+				'stored' => $names->expand($standing, $names->context()), 'fqn' => $names->resolve($standing),
+				'placement_valid' => true,
+			];
+			$proposal = $names->repair($source, $standing);
+			$this->assertTrue($proposal['round_trip'], $standing);
+			$this->assertFalse($proposal['relocation'], $standing);
+			$this->assertSame($expected, $proposal['value'], $standing);
+			$this->assertSame($names->output($standing), $names->output($expected), 'Repair must retain the compiler class and file: ' . $standing);
+		}
+	}
+
+	/**
+	 * A repair cannot change the selected target's actual vendor or component class.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairRejectsChangedTargetOutputAndFileSeams(): void
+	{
+		[$names] = $this->repairNamespacer();
+		$source = [
+			'stored' => 'Other\\Joomla\\Alpha.Factory',
+			'fqn' => 'Other\\Joomla\\Alpha\\Factory', 'placement_valid' => true,
+		];
+		$proposal = $names->repair($source, '[[[NamespacePrefix]]]\\Joomla\\Alpha.Factory', $names->context(4));
+		$this->assertFalse($proposal['round_trip'], 'Changing a foreign literal Alpha to the target component Beta would rename its compiled class.');
+
+		$source['stored'] = 'Other\\Joomla\\Beta.Factory';
+		$source['fqn'] = 'Other\\Joomla\\Beta\\Factory';
+		$proposal = $names->repair($source, 'Other\\Joomla\\Beta.Factory');
+		$this->assertFalse($proposal['round_trip'], 'Deferring a literal Other vendor cannot move the actual target output to Acme.');
+
+		$source = [
+			'stored' => 'Acme\\Joomla\\Beta\\Deep.Factory',
+			'fqn' => 'Acme\\Joomla\\Beta\\Deep\\Factory',
+			'placement_valid' => true, 'placement_evidence' => true,
+		];
+		$proposal = $names->repair($source, '[[[NamespacePrefix]]]\\Joomla\\Beta.Deep.Factory');
+		$this->assertFalse($proposal['round_trip'], 'Repair cannot include an independently required physical file relocation.');
+	}
+
+	/**
+	 * Effective component overrides remain the literal role repaired by maintenance.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairUsesCompilerNormalizedComponentOverrides(): void
+	{
+		[$names, $load] = $this->repairNamespacer();
+		$load->overrides('aaaaaaaa-1111-4111-8111-111111111111', [
+			['target' => '[[[ComponentNamespace]]]', 'value' => '[[[Component]]]Portal'],
+		]);
+		$standing = '[[[NamespacePrefix]]]\\Joomla\\BetaPortal.Factory';
+		$proposal = $names->repair([
+			'stored' => 'Acme\\Joomla\\BetaPortal.Factory',
+			'fqn' => 'Acme\\Joomla\\BetaPortal\\Factory', 'placement_valid' => true,
+		], $standing);
+		$this->assertTrue($proposal['round_trip']);
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory', $proposal['value']);
+		$this->assertSame($names->output($standing), $names->output($proposal['value']));
+	}
+
+	/**
 	 * Only the explicitly selected component parameterises matching namespace words.
 	 *
 	 * @return  void
@@ -231,6 +321,28 @@ final class ScopedIdentityTest extends TestCase
 		$this->assertSame('Other\Component\Alpha\Administrator\Engine\Widget', $names->output($stored, $names->context(4))['fqn']);
 		$this->assertSame($before, $names->output($stored, $context));
 		$this->assertNull($names->output('[[[Unknown]]]\Engine.Widget', $context));
+	}
+
+	/**
+	 * Compose namespace placement and placeholders without installed Joomla state.
+	 *
+	 * @return  array  Namespacer, recorded loader and operation configuration.
+	 * @since   6.2.2
+	 */
+	protected function repairNamespacer(): array
+	{
+		$config = new Config(['component' => 3]);
+		$load = new ExtrusionPowerLoadFixture();
+		$load->component(3, 'aaaaaaaa-1111-4111-8111-111111111111', 'beta', 1, 'Acme');
+		$load->component(4, 'bbbbbbbb-2222-4222-8222-222222222222', 'alpha', 1, 'Other');
+		$container = new Container();
+		$container->set('Extrusion.Config', $config, true);
+		$container->set('Load', $load, true);
+		$container->set('Extrusion.Registry.Report', new Report(), true);
+		$container->set('Extrusion.Registry.Source', new Source(), true);
+		$container->registerServiceProvider(new Powers());
+
+		return [$container->get('Extrusion.Powers.Resolver.Namespacer'), $load, $config];
 	}
 
 }

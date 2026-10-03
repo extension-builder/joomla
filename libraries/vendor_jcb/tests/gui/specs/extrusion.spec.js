@@ -120,6 +120,12 @@ test.describe('the JCB dashboard and menu', () => {
 		expect(compiler, 'the compiler tile stands on the dashboard').toBeGreaterThanOrEqual(0);
 		expect(extrusion, 'the extrusion tile stands on the dashboard').toBeGreaterThanOrEqual(0);
 		expect(extrusion, 'the extrusion tile stands right next to the compiler').toBe(compiler + 1);
+		const extrusionImage = icons.nth(extrusion).locator('img');
+		await expect(extrusionImage, 'the maintained extrusion icon loads on the dashboard').toHaveJSProperty('complete', true);
+		expect(await extrusionImage.evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalWidth),
+			'the extrusion icon is a decoded image').toBeGreaterThan(0);
+		expect(await extrusionImage.evaluate((img) => /** @type {HTMLImageElement} */ (img).naturalHeight),
+			'the extrusion icon has visible height').toBeGreaterThan(0);
 
 		// and the administrator menu carries the view under the component
 		const menuLink = page.locator(
@@ -161,8 +167,10 @@ test.describe('the extrusion view', () => {
 
 		// the advanced options stay hidden until asked for, then show
 		await expect(page.locator('[name="language_tag"]')).toBeHidden();
+		await expect(page.getByRole('button', { name: 'Repair Existing Power Namespaces', exact: true })).toBeHidden();
 		await setRadio(page, 'show_advanced_options', '1');
 		await expect(page.locator('[name="language_tag"]')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Repair Existing Power Namespaces', exact: true })).toBeVisible();
 		await expect(page.locator('[name="depth"]')).toBeVisible();
 		await expect(page.locator('[name="max_files"]')).toBeVisible();
 		await expect(
@@ -172,6 +180,51 @@ test.describe('the extrusion view', () => {
 		// the social feed is gone -- its script never loaded on this page --
 		// while the banner block stays
 		await expect(page.locator('#noticeboard')).toHaveCount(0);
+	});
+
+	test('keeps the Joomla main menu available and returns through the maintained Back action', async ({ page }) => {
+		await expect(page.locator('#sidebar-wrapper'), 'extrusion keeps the native administrator menu available').toBeAttached();
+		await expect(page.locator('#sidebar-wrapper')).not.toHaveAttribute('data-hidden', /.*/);
+		await openView(page, 'componentbuilder');
+		await openView(page, 'extrusion');
+		await Promise.all([
+			page.waitForURL(/view=componentbuilder/),
+			page.evaluate(() => /** @type {any} */ (window).Joomla.submitbutton('extrusion.back'))
+		]);
+		await expect(page.locator('.dashboard-icons')).toBeVisible();
+	});
+
+	test('requires Update mode, an explicit target and library sources before namespace repair', async ({ page }) => {
+		const requests = [];
+		page.on('request', (request) => {
+			if (request.url().includes('extrusionHarvest')) {
+				requests.push(request);
+			}
+		});
+		await setRadio(page, 'show_advanced_options', '1');
+		const repair = page.getByRole('button', { name: 'Repair Existing Power Namespaces', exact: true });
+		const notice = page.locator('#extrusion-setup-notice');
+		await page.locator('[name="component_id"]').selectOption(String(fixtures.component_b_id));
+		await page.locator('[name="libraries"]').fill(fixtures.library_repair);
+		await setRadio(page, 'mode', 'create');
+		await repair.click();
+		await expect(notice).toContainText('requires Update mode');
+		await expect(page.locator('#extrusion-pane-setup')).toBeVisible();
+		expect(requests, 'Create mode does not send a namespace repair harvest').toHaveLength(0);
+		await setRadio(page, 'mode', 'update');
+		for (const target of ['', '0']) {
+			await page.locator('[name="component_id"]').selectOption(target);
+			await repair.click();
+			await expect(notice).toContainText('explicitly selected existing target component');
+			expect(requests, 'detection and no-target selections cannot repair existing namespaces').toHaveLength(0);
+		}
+		await page.locator('[name="component_id"]').selectOption(String(fixtures.component_b_id));
+		await page.locator('[name="libraries"]').fill('');
+		await repair.click();
+		await expect(notice).toContainText('at least one library source folder');
+		expect(requests, 'a namespace repair needs actual source classes before it sends AJAX').toHaveLength(0);
+		await setRadio(page, 'show_advanced_options', '0');
+		await expect(repair).toBeHidden();
 	});
 
 	test('walks the site to select a folder, never typing it', async ({ page }) => {
@@ -383,6 +436,116 @@ test.describe('the extrusion view', () => {
 	function powerRow(page, key) {
 		return page.locator('[data-extrusion-row="power|' + key + '"]');
 	}
+
+	test('automatically matches existing Powers, previews only namespaces and repairs the reviewed dry-run plan', async ({ page }) => {
+		test.setTimeout(240_000);
+		const before = '[[[NamespacePrefix]]]\\Joomla\\Extrusionfixtureb.RepairValue';
+		const after = '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].RepairValue';
+		await setRadio(page, 'show_advanced_options', '1');
+		await setRadio(page, 'dry_run', '1');
+		await setRadio(page, 'mode', 'update');
+		await setRadio(page, 'on_existing', 'skip');
+		await page.locator('[name="component_id"]').selectOption(String(fixtures.component_b_id));
+		await page.locator('[name="libraries"]').fill(fixtures.library_repair);
+		const harvestResponse = responseFor(page, 'extrusionHarvest');
+		await page.getByRole('button', { name: 'Repair Existing Power Namespaces', exact: true }).click();
+		const harvested = await harvestResponse;
+		const harvestConfig = postedJson(harvested.request(), 'config');
+		expect(harvestConfig.repair_namespaces).toBe(1);
+		expect(harvestConfig.on_existing).toBe('update');
+		expect(harvestConfig.detect).toBe(false);
+		expect(String(harvestConfig.dry_run)).toBe('1');
+		const payload = await harvested.json();
+		expect(payload.error, JSON.stringify(payload)).toBeUndefined();
+		expect(payload.plan.status, JSON.stringify(payload.plan)).toBe('preview');
+		const repaired = payload.powers.classes.find((candidate) => candidate.class === 'RepairValue');
+		const unmatched = payload.powers.classes.find((candidate) => candidate.class === 'NewRepairClass');
+		expect(repaired.status, 'extrusion automatically identifies the existing Power from the class').toBe('matched');
+		expect(repaired.matched_guid, 'repair retains the existing Power GUID without manual matching').toBe(fixtures.repair);
+		expect(repaired.target.namespace).toBe(before);
+		expect(repaired.namespace_proposal).toMatchObject({ value: after, provenance: 'namespace-repair', round_trip: true });
+		expect(payload.changes['power|' + repaired.source_key]).toMatchObject({ action: 'update', changed: true, records: 1 });
+		expect(unmatched.status, 'namespace repair never creates the unmatched source class').toBe('ignored');
+		expect(payload.changes['power|' + unmatched.source_key]).toBeUndefined();
+		await expect(page.getByRole('heading', { name: 'Review existing Power namespace repairs', exact: true })).toBeVisible();
+		await expect(page.locator('#extrusion-namespace-repair-notice')).toContainText('unmatched classes are skipped');
+		await expect(page.locator('#extrusion-board [data-extrusion-act="create"]')).toHaveCount(0);
+		await expect(page.locator('[data-extrusion-bulk="create"]')).toBeHidden();
+		const row = powerRow(page, repaired.source_key);
+		await expect(row.locator('.extrusion-target-guid')).toHaveText(fixtures.repair);
+		await expect(row.locator('.extrusion-target-namespace')).toHaveText(before);
+		await expect(row).toContainText('Proposed namespace repair');
+		await expect(row).toContainText(after);
+
+		// The source intentionally differs in code and curated metadata. The
+		// real diff must nevertheless contain the namespace column alone.
+		const diffResponse = responseFor(page, 'extrusionDiff');
+		await row.locator('.extrusion-change').click();
+		const diff = await (await diffResponse).json();
+		expect(diff.error, JSON.stringify(diff)).toBeUndefined();
+		expect(diff.records).toHaveLength(1);
+		expect(diff.records[0]).toMatchObject({ table: 'power', identity: fixtures.repair, action: 'update' });
+		expect(diff.records[0].columns.map((column) => column.name),
+			'the reviewed repair does not change body, licence, settings or dependency columns').toEqual(['namespace']);
+		await expect(row.locator('.extrusion-diff')).toBeVisible();
+		await expect(row.locator('.extrusion-diff')).toContainText(before);
+		await expect(row.locator('.extrusion-diff')).toContainText(after);
+		await row.locator('.extrusion-change').click();
+		await expect(row.locator('.extrusion-diff')).toHaveCount(0);
+
+		const ignoredResponse = responseFor(page, 'extrusionWeigh');
+		await row.getByRole('button', { name: 'Ignore', exact: true }).click();
+		const ignored = await ignoredResponse;
+		expect(postedJson(ignored.request(), 'config').repair_namespaces).toBe(1);
+		expect(postedJson(ignored.request(), 'decisions')).toEqual({ power: { [repaired.source_key]: { action: 'ignore' } } });
+		await expect(row.locator('.extrusion-change'), 'excluded Powers have no repair to apply').toHaveCount(0);
+		const resetResponse = responseFor(page, 'extrusionWeigh');
+		await row.locator('[data-extrusion-act="reset"]').click();
+		const reset = await (await resetResponse).json();
+		expect(reset.error, JSON.stringify(reset)).toBeUndefined();
+		expect(reset.plan.status, JSON.stringify(reset.plan)).toBe('preview');
+		const apply = page.getByRole('button', { name: 'Apply Namespace Repairs', exact: true });
+		await expect(apply).toBeEnabled();
+		const importResponse = responseFor(page, 'extrusionImport');
+		await apply.click();
+		if (reset.plan.required_approvals.length) {
+			const confirmation = page.getByRole('dialog', { name: 'Confirm namespace repair', exact: true });
+			await expect(confirmation).toBeVisible();
+			await expect(confirmation).toContainText('Only the reviewed namespace changes will be applied');
+			await confirmation.getByRole('button', { name: 'Acknowledge and repair', exact: true }).click();
+		}
+		const imported = await importResponse;
+		const importConfig = postedJson(imported.request(), 'config');
+		expect(importConfig.repair_namespaces).toBe(1);
+		expect(importConfig.approved_plan).toBe(reset.plan.fingerprint);
+		expect(importConfig.acknowledged_scopes).toEqual(Object.fromEntries(reset.plan.required_approvals.map((scope) => [scope, true])));
+		expect(String(importConfig.dry_run)).toBe('1');
+		const result = await imported.json();
+		expect(result.error, JSON.stringify(result)).toBeUndefined();
+		expect(result.plan.fingerprint).toBe(reset.plan.fingerprint);
+		expect(result.plan.writes || [], 'the GUI journey previews repairs without durable writes').toEqual([]);
+		await expect(page.getByRole('heading', { name: 'The namespace repair report', exact: true })).toBeVisible();
+		await expect(page.locator('#extrusion-pane-results .alert-success').first()).toBeVisible();
+		await expect(page.getByText('nothing was written', { exact: false }).first()).toBeVisible();
+
+		// Returning to the ordinary harvest clears the repair flag and its
+		// labels. Existing namespaces remain curated in the regular workflow.
+		await page.locator('#extrusion-tab-setup').click();
+		await setRadio(page, 'on_existing', 'update');
+		const ordinaryResponse = responseFor(page, 'extrusionHarvest');
+		await page.getByRole('button', { name: 'Harvest the source', exact: true }).click();
+		const ordinary = await ordinaryResponse;
+		expect(postedJson(ordinary.request(), 'config').repair_namespaces).toBe(0);
+		const regular = await ordinary.json();
+		expect(regular.error, JSON.stringify(regular)).toBeUndefined();
+		const retained = regular.powers.classes.find((candidate) => candidate.class === 'RepairValue');
+		expect(retained.matched_guid).toBe(fixtures.repair);
+		expect(retained.namespace_proposal.value, 'ordinary update still preserves the pre-existing stored namespace').toBe(before);
+		await expect(page.getByRole('heading', { name: 'Pair the harvest with what you already have', exact: true })).toBeVisible();
+		await expect(page.locator('#extrusion-namespace-repair-notice')).toBeHidden();
+		await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toBeVisible();
+		await expect(powerRow(page, retained.source_key).locator('[data-extrusion-act="create"]')).toBeVisible();
+	});
 
 	for (const failure of ['http', 'json', 'network']) {
 		test('distinguishes a real ' + failure + ' failure and recovers the harvest controls', async ({ page, context }) => {

@@ -153,7 +153,7 @@ final class Vendor
 	 */
 	public function write(): int
 	{
-		if (!$this->plan->active())
+		if (!$this->plan->active() || (bool) $this->config->get('repairNamespaces', false))
 		{
 			return 0;
 		}

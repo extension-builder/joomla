@@ -56,6 +56,16 @@ interface ExtruderInterface
 	public function dump(string $sql): self;
 
 	/**
+	 * Restrict the operation to namespace repairs of identified existing Powers.
+	 *
+	 * @param   bool  $repair  Whether to enable namespace-only repair.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.2.2
+	 */
+	public function repairNamespaces(bool $repair = true): self;
+
+	/**
 	 * Everything the run has to say, ready for a caller to present.
 	 *
 	 * @return  array<string, array<int, array{message: string, subject?: string}>>  The messages by level.

@@ -7366,7 +7366,30 @@ class AjaxModel extends ListModel
 
 		$component = max(0, (int) ($options['component'] ?? 0));
 		$componentCode = trim((string) ($options['component_code'] ?? ''));
+		$repairNamespaces = in_array($options['repair_namespaces'] ?? false, [true, 1, '1'], true);
+
+		if ($repairNamespaces && ($component === 0 || ($options['mode'] ?? 'create') !== 'update'))
+		{
+			throw new \InvalidArgumentException(Text::_('Namespace repair requires Update mode and an explicitly selected existing target component.'));
+		}
+
+		if ($repairNamespaces && $libraries === [])
+		{
+			throw new \InvalidArgumentException(Text::_('Select at least one library source folder containing the classes whose Power namespaces should be repaired.'));
+		}
+
+		if ($repairNamespaces && isset($options['source_component']) && (int) $options['source_component'] <= 0)
+		{
+			throw new \InvalidArgumentException(Text::_('Namespace repair requires an existing source component context.'));
+		}
+
 		$onExisting = (string) ($options['on_existing'] ?? 'update');
+
+		if ($repairNamespaces)
+		{
+			$onExisting = 'update';
+		}
+
 		$dryRun = !empty($options['dry_run']);
 		$depth = max(1, (int) ($options['depth'] ?? 12));
 		$maxFiles = max(1, (int) ($options['max_files'] ?? 20000));
@@ -7444,6 +7467,7 @@ class AjaxModel extends ListModel
 		}
 
 		$settings = ExtrusionFactory::_('Extrusion.Config');
+		$settings->set('repairNamespaces', $repairNamespaces);
 		$settings->set('sourceComponent', max(0, (int) ($options['source_component'] ?? $component)));
 		$settings->set('approvedPlan', (string) ($options['approved_plan'] ?? ''));
 

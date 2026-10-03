@@ -204,6 +204,7 @@ final class Commit
 		try
 		{
 			$this->context();
+			$this->namespaceRepair();
 			$required = $this->scopes();
 			$fingerprint = $this->plan->fingerprint();
 			$approved = (string) $this->config->get('approvedPlan', '');
@@ -385,6 +386,54 @@ final class Commit
 		ksort($required);
 
 		return array_keys($required);
+	}
+
+	/**
+	 * Enforce the namespace-only boundary on the complete repair operation.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	protected function namespaceRepair(): void
+	{
+		if (!(bool) $this->config->get('repairNamespaces', false))
+		{
+			return;
+		}
+
+		if ((int) $this->config->get('component', 0) < 1)
+		{
+			$this->plan->block('repair.component', 'Namespace repair requires a selected existing component.');
+		}
+
+		foreach ($this->plan->writes() as $entry)
+		{
+			if ($entry['table'] !== 'power' || $entry['key'] !== 'guid'
+				|| $entry['action'] !== 'update' || $entry['origins'] === []
+				|| ($entry['payload']['guid'] ?? '') !== $entry['identity']
+				|| array_diff(array_keys($entry['payload']), ['guid', 'namespace']) !== []
+				|| !isset($entry['payload']['namespace']))
+			{
+				$this->plan->block('repair.write.' . $entry['identity'], 'Namespace repair may only update the namespace of an existing Power.');
+
+				continue;
+			}
+
+			foreach (array_keys($entry['origins']) as $origin)
+			{
+				$key = str_starts_with($origin, 'power|') ? substr($origin, 6) : '';
+				$source = $this->harvest->get('classes.' . $key);
+				$result = $source['resolution'] ?? [];
+
+				if (($result['status'] ?? '') !== 'matched'
+					|| ($result['matched_guid'] ?? '') !== $entry['identity']
+					|| ($result['namespace']['value'] ?? null) !== $entry['payload']['namespace']
+					|| empty($result['namespace']['round_trip']))
+				{
+					$this->plan->block('repair.source.' . $key, 'A namespace repair requires one validated existing Power and its reviewed namespace.');
+				}
+			}
+		}
 	}
 
 	/**

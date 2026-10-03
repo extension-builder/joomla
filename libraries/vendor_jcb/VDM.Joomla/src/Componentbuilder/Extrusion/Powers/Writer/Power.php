@@ -156,7 +156,25 @@ final class Power extends Writer
 
 			$row = 'power|' . $sourceKey;
 
-			$this->settle($definition, $guid);
+			if ((bool) $this->config->get('repairNamespaces', false))
+			{
+				if (($candidate['resolution']['status'] ?? '') !== 'matched'
+					|| (int) $this->item->table($this->table())->value($guid, 'guid', 'id') < 1)
+				{
+					$this->report->set('failed.power.' . $sourceKey, 'Namespace repair requires the identified Power to still exist.');
+
+					continue;
+				}
+
+				$definition = (object) [
+					'guid' => $guid,
+					'namespace' => (string) ($candidate['resolution']['namespace']['value'] ?? ''),
+				];
+			}
+			else
+			{
+				$this->settle($definition, $guid);
+			}
 
 			if ($this->store($definition, self::SCAFFOLDING, null, $row))
 			{

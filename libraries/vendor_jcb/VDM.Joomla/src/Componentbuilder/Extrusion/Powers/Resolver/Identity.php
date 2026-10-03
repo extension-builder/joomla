@@ -413,6 +413,19 @@ final class Identity
 			return $this->block($result, 'conflict', (string) $source['source_error']);
 		}
 
+		$repair = !$reference && (bool) $this->config->get('repairNamespaces', false);
+
+		if ($repair && ((int) $target['id'] < 1 || $target['guid'] === ''
+			|| $target['code'] === '' || $sourceContext['code'] === ''))
+		{
+			return $this->block($result, 'unresolved', 'Namespace repair requires a selected component with an established code name.');
+		}
+
+		if ($repair && ($decision['action'] ?? '') === 'create')
+		{
+			return $this->block($result, 'conflict', 'Namespace repair can only update an identified existing Power.');
+		}
+
 		$derived = $this->guid->derive([
 			'power', 'scoped-source-v2', $target['guid'] ?: (string) $this->config->get('targetComponentGuid', $result['source_unit']), $result['source_key']
 		]);
@@ -529,6 +542,14 @@ final class Identity
 				return $result;
 			}
 
+			if ($repair)
+			{
+				$result['status'] = 'ignored';
+				$result['reason'] = 'namespace-repair-unmatched';
+
+				return $result;
+			}
+
 			$namespace = $this->names->proposal($source, null, $sourceContext);
 
 			if (isset($source['binding']))
@@ -587,9 +608,15 @@ final class Identity
 			return $result;
 		}
 
+		if ($repair)
+		{
+			$result['namespace'] = $this->names->repair($source, $record['namespace'], $sourceContext);
+		}
+
 		if (!$result['namespace']['round_trip'])
 		{
-			return $this->block($result, 'conflict', 'The identified definition does not reconstruct the source namespace and placement in its applicable context.');
+			return $this->block($result, 'conflict', $result['namespace']['repair_error']
+				?? 'The identified definition does not reconstruct the source namespace and placement in its applicable context.');
 		}
 
 		if ($entry['scope'] === 'foreign' && $action !== 'update')
@@ -657,7 +684,7 @@ final class Identity
 	{
 		$inputs = [];
 
-		foreach (['component', 'sourceComponent', 'componentCode', 'targetComponentGuid', 'path', 'libraries', 'layout', 'joomla_version'] as $key)
+		foreach (['component', 'sourceComponent', 'componentCode', 'targetComponentGuid', 'path', 'libraries', 'layout', 'joomla_version', 'repairNamespaces'] as $key)
 		{
 			$inputs[$key] = $this->config->get($key);
 		}

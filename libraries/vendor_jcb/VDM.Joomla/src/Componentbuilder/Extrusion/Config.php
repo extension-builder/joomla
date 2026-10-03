@@ -39,6 +39,7 @@ final class Config extends Registry implements Registryinterface
 		'codeName' => '',
 		'dump' => '',
 		'onExisting' => 'update',
+		'repairNamespaces' => false,
 		'admin' => true,
 		'site' => false,
 		'tabs' => true,

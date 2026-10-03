@@ -654,6 +654,69 @@ final class Namespacer
 	}
 
 	/**
+	 * Repair literal namespace roles without replacing established placeholders.
+	 *
+	 * The existing representation supplies the placement seam. Only literal
+	 * vendor/component segments are deferred; a curated symbolic head stays as
+	 * written. Both the source round trip and the selected component's compiled
+	 * class/file destination must remain valid, without auxiliary value writes.
+	 *
+	 * @param   array       $source    The matched source declaration and placement.
+	 * @param   string      $standing  The identified Power's stored namespace.
+	 * @param   array|null  $context   The verified source component context.
+	 *
+	 * @return  array  The namespace-only proposal and its validation verdict.
+	 * @since   6.2.2
+	 */
+	public function repair(array $source, string $standing, ?array $context = null): array
+	{
+		$context ??= $this->context();
+		$proposal = $this->proposal($source, $standing, $context);
+
+		if (!$proposal['round_trip'] || $proposal['relocation'])
+		{
+			$proposal['round_trip'] = false;
+			$proposal['repair_error'] = 'Namespace repair requires the existing namespace and file placement to match the source without relocation.';
+
+			return $proposal;
+		}
+
+		[$original] = $this->split($standing);
+		[$segments, $joiners] = $this->split($this->placeholderize($standing, false, $context));
+
+		// A custom head may stand for several namespace segments. Replacing
+		// it with the vendor role would discard the person's representation.
+		if (str_contains($original[0], '[[[') || str_contains($original[0], '###'))
+		{
+			$segments[0] = $original[0];
+		}
+
+		$value = $segments[0] . $this->join(array_slice($segments, 1), $joiners);
+
+		if ($value === $standing)
+		{
+			return $proposal;
+		}
+
+		$repaired = $this->proposal($source, $value, $context);
+		$before = $this->output($standing);
+		$after = $this->output($value);
+		$repaired['round_trip'] = $repaired['round_trip'] && !$repaired['relocation']
+			&& $before !== null && $after !== null
+			&& strcasecmp($before['fqn'], $after['fqn']) === 0
+			&& $before['path'] === $after['path'];
+		$repaired['preserved'] = false;
+		$repaired['provenance'] = 'namespace-repair';
+
+		if (!$repaired['round_trip'])
+		{
+			$repaired['repair_error'] = 'The repaired namespace would change the compiled class or file path. Check the selected component namespace configuration before repairing.';
+		}
+
+		return $repaired;
+	}
+
+	/**
 	 * Preserve the independent vendor axis in a source reconstruction context.
 	 *
 	 * @param   string  $stored   The raw source placement.

@@ -55,6 +55,16 @@ interface PowersExtruderInterface
 	public function component(int $id): self;
 
 	/**
+	 * Restrict the operation to namespace repairs of identified existing Powers.
+	 *
+	 * @param   bool  $repair  Whether to enable namespace-only repair.
+	 *
+	 * @return  self  For method chaining.
+	 * @since   6.2.2
+	 */
+	public function repairNamespaces(bool $repair = true): self;
+
+	/**
 	 * Harvest every class the library folders hold, without writing anything.
 	 *
 	 * @return  Report  What was found, and what each candidate would become.

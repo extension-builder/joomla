@@ -155,6 +155,16 @@ try
 			'namespace' => '[[[NamespacePrefix]]]\\Joomla\\Abstraction.Registry.Value', 'type' => 'class',
 			'main_class_code' => base64_encode("\tpublic function value(): int { return 1; }\n"), 'published' => 1
 		]);
+		$manifest['repair'] = identity('repair');
+		insertRecord('power', [
+			'guid' => $manifest['repair'], 'name' => 'RepairValue', 'system_name' => 'Extrusion Fixture Repair Value',
+			'namespace' => '[[[NamespacePrefix]]]\\Joomla\\Extrusionfixtureb.RepairValue', 'type' => 'class',
+			'main_class_code' => base64_encode("\tpublic function value(): int { return 7; }"),
+			'description' => 'Curated repair fixture metadata.',
+			'licensing_template' => base64_encode('A repair fixture licence.'), 'add_licensing_template' => 2,
+			'use_selection' => json_encode([['use' => $manifest['factory_b'], 'as' => 'CuratedFactory']]),
+			'power_version' => '3.2.1', 'published' => 1
+		]);
 		// Literal duplicate identities prove ambiguity without discovering the
 		// namespace aliases of every unselected component in the installation.
 		foreach (['Factory', 'Consumer'] as $name)
@@ -178,6 +188,7 @@ try
 			if ($owner === 'b')
 			{
 				$references[] = $manifest['consumer_b'];
+				$references[] = $manifest['repair'];
 			}
 			$tokens = array_map(static fn(string $guid): string => 'Super___' . str_replace('-', '_', $guid) . '___Power', $references);
 			$manifest['component_' . $owner] = identity('component-' . $owner);
@@ -194,6 +205,7 @@ try
 		$manifest['library_shared'] = $root . '/shared/ExtrusionFixture.Joomla';
 		$manifest['library_new'] = $root . '/new/ExtrusionFixture.Independent';
 		$manifest['library_ambiguous'] = $root . '/ambiguous/ExtrusionFixture.Ambiguous';
+		$manifest['library_repair'] = $root . '/repair/ExtrusionFixture.Joomla';
 		foreach (['Factory', 'Consumer'] as $name)
 		{
 			writeSource($manifest['library_ambiguous'] . '/src/' . $name . '.php', "<?php\nnamespace ExtrusionFixture\\Ambiguous;\nclass " . $name . "\n{\n\tpublic function value(): int { return 2; }\n}\n");
@@ -206,6 +218,8 @@ try
 		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Factory.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Factory\n{\n\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}\n}\n");
 		writeSource($manifest['library_noop'] . '/src/Extrusionfixtureb/Consumer.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass Consumer\n{\n\tpublic function value(): int { return 1; }\n}\n");
 		writeSource($manifest['library_shared'] . '/src/Abstraction/Registry/Value.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Abstraction\\Registry;\nclass Value\n{\n\tpublic function value(): int { return 2; }\n}\n");
+		writeSource($manifest['library_repair'] . '/src/Extrusionfixtureb/RepairValue.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass RepairValue\n{\n\tpublic function value(): int { return 99; }\n}\n");
+		writeSource($manifest['library_repair'] . '/src/Extrusionfixtureb/NewRepairClass.php', "<?php\nnamespace ExtrusionFixture\\Joomla\\Extrusionfixtureb;\nclass NewRepairClass {}\n");
 		foreach (['Alpha', 'Beta', 'Delta', 'Entry', 'Load', 'Report', 'Source', 'Write'] as $name)
 		{
 			writeSource($manifest['library_new'] . '/src/' . $name . '.php', "<?php\nnamespace ExtrusionFixture\\Independent;\nclass " . $name . "\n{\n\tpublic function value(): int { return 1; }\n}\n");
@@ -217,7 +231,7 @@ try
 	{
 		$manifest = json_decode(file_get_contents($manifestPath), true, 32, JSON_THROW_ON_ERROR);
 		$before = [];
-		foreach (['factory_a', 'factory_b', 'consumer_b', 'shared'] as $name)
+		foreach (['factory_a', 'factory_b', 'consumer_b', 'shared', 'repair'] as $name)
 		{
 			$before[$name] = readRecord('power', $manifest[$name]);
 		}
@@ -298,6 +312,43 @@ try
 			{
 				writeSource($path, $source);
 			}
+
+			// This independent maintenance pass consumes the same source reader,
+			// matching, review and transaction flow while proposing namespaces only.
+			$repairCompiled = compiled($manifest, 'b', $manifest['repair']);
+			$repairEngine = engine($manifest, true)->libraries([$manifest['library_repair']])->repairNamespaces();
+			$repairPreview = $repairEngine->extrude();
+			check($repairPreview->get('plan.status') === 'preview', 'namespace-only repair has a valid real-schema preview: ' . json_encode($repairPreview->get('plan')));
+			$repairWrites = Extrusion::_('Extrusion.Registry.Plan')->writes();
+			check(count($repairWrites) === 1, 'repair stages exactly the existing Power and never the new source class');
+			$repairColumns = array_keys($repairWrites[0]['payload']);
+			sort($repairColumns);
+			check($repairColumns === ['guid', 'namespace'], 'repair payload contains only namespace and existing GUID');
+			check(readRecord('power', $manifest['repair']) === $before['repair'], 'repair dry run leaves every Power field untouched');
+			$repairFingerprint = $repairPreview->get('plan.fingerprint');
+			$repairApprovals = (array) $repairPreview->get('plan.required_approvals');
+			$repairEngine = engine($manifest, false)->libraries([$manifest['library_repair']])->repairNamespaces();
+			Extrusion::_('Extrusion.Config')->set('approvedPlan', $repairFingerprint);
+			foreach ($repairApprovals as $scope)
+			{
+				Extrusion::_('Extrusion.Config')->set('acknowledge' . ucfirst($scope), true);
+			}
+			$repairReport = $repairEngine->extrude();
+			check($repairReport->get('plan.status') === 'committed', 'approved namespace repair commits through the real Data model: ' . json_encode($repairReport->get('plan')));
+			$repaired = readRecord('power', $manifest['repair']);
+			check($repaired['namespace'] === '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].RepairValue', 'repair restores the component namespace placeholder');
+			foreach ($before['repair'] as $column => $value)
+			{
+				if (!in_array($column, ['namespace', 'modified', 'modified_by', 'version'], true))
+				{
+					check($repaired[$column] === $value, 'namespace repair preserves stored ' . $column);
+				}
+			}
+			check(compiled($manifest, 'b', $manifest['repair']) === $repairCompiled, 'repair preserves actual compiler namespace, placement, class body and dependencies');
+			check(readRecord('joomla_component', $manifest['component_b']) === $componentBefore, 'repair does not update component settings or references');
+			$again = engine($manifest, false)->libraries([$manifest['library_repair']])->repairNamespaces()->extrude();
+			check($again->get('plan.status') === 'unchanged', 'repeated namespace repair is a real database no-op: ' . json_encode($again->get('plan')));
+			check(readRecord('power', $manifest['repair']) === $repaired, 'repeated repair leaves modification metadata untouched');
 		}
 		finally
 		{

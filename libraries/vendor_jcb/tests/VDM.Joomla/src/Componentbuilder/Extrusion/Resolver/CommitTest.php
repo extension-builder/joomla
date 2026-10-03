@@ -47,6 +47,258 @@ use VDM\Tests\Support\FilesystemTestCase;
 final class CommitTest extends FilesystemTestCase
 {
 	/**
+	 * Repair identifies existing classes and stages only their changed namespace.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairPreviewPreservesCodeRelationshipsAndNewClasses(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$report = $engine->repairNamespaces()->dryRun()->extrude();
+		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
+		$writes = $container->get('Extrusion.Registry.Plan')->writes();
+		$this->assertCount(1, $writes, 'The unmatched Consumer must never become a new Power during repair.');
+		$this->assertSame('power', $writes[0]['table']);
+		$this->assertSame($this->guid('power-b'), $writes[0]['identity']);
+		$this->assertSame([
+			'guid' => $this->guid('power-b'),
+			'namespace' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory',
+		], $writes[0]['payload'], 'Code, licence, version and dependency columns cannot enter the repair payload.');
+		$factory = $this->source($container->get('Extrusion.Registry.Harvest')->get('classes'), 'Factory');
+		$this->assertSame('matched', $factory['resolution']['status']);
+		$this->assertSame($this->guid('power-b'), $factory['matched_guid']);
+		$this->assertTrue($factory['resolution']['namespace']['round_trip']);
+		$this->assertSame([], $item->records(), 'Repair preview never writes a Power or component configuration.');
+	}
+
+	/**
+	 * Approved repair changes the existing namespace and a second run is a no-op.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairCommitsOneFieldAndIsIdempotent(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->once())->method('transactionStart')->with(true);
+		$db->expects($this->once())->method('transactionCommit')->with(true);
+		$db->expects($this->never())->method('transactionRollback');
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$report = $engine->repairNamespaces()->dryRun()->extrude();
+		$expected = $container->get('Extrusion.Registry.Plan')->writes()[0]['payload'];
+		$config = $container->get('Extrusion.Config');
+		$config->set('approvedPlan', $report->get('plan.fingerprint'))->set('acknowledgeUnknown', true);
+		$report = $engine->dryRun(false)->extrude();
+		$this->assertSame('committed', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertCount(1, $item->records());
+		$this->assertEquals((object) $expected, $item->definition('power', $this->guid('power-b')));
+		$this->assertSame(['power'], $item->sequence(), 'Namespace repair does not update the selected component or placeholders.');
+
+		// The fixture records rather than mutates Data, so expose the committed
+		// namespace at both database-read boundaries before the independent run.
+		$row = clone $item->table('power')->get($this->guid('power-b'));
+		$row->namespace = $expected['namespace'];
+		$item->serve('power', $row->guid, $row);
+		$load->record('power', 12, get_object_vars($row));
+		$config->set('approvedPlan', '');
+		$report = $engine->extrude();
+		$this->assertSame('unchanged', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame([], $container->get('Extrusion.Registry.Plan')->writes());
+		$this->assertCount(1, $item->records(), 'A repeated repair must not touch database metadata.');
+	}
+
+	/**
+	 * Existing update keeps its original literal namespace unless repair is chosen.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testOrdinaryUpdateDoesNotOptIntoNamespaceRepair(): void
+	{
+		[$container, $load, $item] = $this->repairPrepared();
+		$report = $container->get('Extrusion.Powers.Extruder')->dryRun()->extrude();
+		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertFalse((bool) $container->get('Extrusion.Config')->get('repairNamespaces'));
+		$factory = $this->source($container->get('Extrusion.Registry.Harvest')->get('classes'), 'Factory');
+		$this->assertSame('[[[NamespacePrefix]]]\\Joomla\\Beta.Factory', $factory['placeholder']);
+		$writes = $container->get('Extrusion.Registry.Plan')->writes();
+		$this->assertCount(2, $writes, 'Ordinary extrusion still imports the new Consumer.');
+		$existing = array_values(array_filter($writes, fn (array $entry): bool => $entry['identity'] === $this->guid('power-b')));
+		$this->assertCount(1, $existing);
+		$this->assertArrayNotHasKey('namespace', $existing[0]['payload']);
+		$this->assertArrayHasKey('main_class_code', $existing[0]['payload']);
+		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * Repair keeps the existing shared-scope acknowledgement requirement.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairCannotBypassScopeReview(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$load->record('joomla_component', 1, $this->component('alpha', 'component-a', ['power-b']));
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$report = $engine->repairNamespaces()->dryRun()->extrude();
+		$this->assertSame(['unknown'], $report->get('plan.required_approvals'));
+		$container->get('Extrusion.Config')->set('approvedPlan', $report->get('plan.fingerprint'));
+		$report = $engine->dryRun(false)->extrude();
+		$this->assertSame('blocked', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame([], $item->records(), 'A namespace repair is still a shared definition mutation.');
+	}
+
+	/**
+	 * Review exclusions remove a namespace repair without proposing another Power.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairRespectsIgnoredExistingRows(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$engine->repairNamespaces()->dryRun()->extrude();
+		$factory = $this->source($container->get('Extrusion.Registry.Harvest')->get('classes'), 'Factory');
+		$container->get('Extrusion.Resolver.Pairing')->load(['power' => [
+			$factory['source_key'] => ['action' => 'ignore'],
+		]]);
+		$report = $engine->extrude();
+		$this->assertSame([], $container->get('Extrusion.Registry.Plan')->writes());
+		$this->assertSame([], $item->records());
+		$this->assertNotSame('blocked', $report->get('plan.status'), json_encode($report->get('plan')));
+	}
+
+	/**
+	 * The combined extrusion entry point bypasses component harvesting in repair mode.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testCombinedExtruderRepairsLibrariesWithoutHarvestingComponentArtifacts(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$engine = $container->get('Extruder');
+		$engine->path($this->temporaryPath('absent-component'))
+			->dump('CREATE TABLE #__beta_widgets (id INTEGER, title VARCHAR(255));')
+			->repairNamespaces()->dryRun();
+		$report = $engine->harvest();
+		$this->assertTrue($report->get('powers.completed'));
+		$this->assertSame([], $container->get('Extrusion.Registry.Harvest')->get('views', []));
+		$report = $engine->extrude();
+		$this->assertSame('preview', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame(['power'], array_column($container->get('Extrusion.Registry.Plan')->writes(), 'table'));
+		$this->assertSame([], $container->get('Extrusion.Registry.Harvest')->get('views', []));
+		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * Final commit rejects any write that escapes the reviewed namespace-only plan.
+	 *
+	 * @param   string  $mutation  A malformed writer payload or action.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	#[DataProvider('invalidRepairWrites')]
+	public function testNamespaceRepairRejectsUnreviewedOrNonNamespaceWrites(string $mutation): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$plan = $container->get('Extrusion.Registry.Plan');
+		$plan->begin();
+		$container->get('Extrusion.Powers.Extruder')->repairNamespaces()->dryRun()->extrude();
+		$entries = $plan->get('writes');
+		$this->assertCount(1, $entries);
+		$key = array_key_first($entries);
+
+		if ($mutation === 'other-table')
+		{
+			$entries[$key]['table'] = 'joomla_component';
+		}
+		elseif ($mutation === 'insert')
+		{
+			$entries[$key]['action'] = 'create';
+		}
+		elseif ($mutation === 'class-body')
+		{
+			$entries[$key]['payload']['main_class_code'] = 'A writer tried to replace curated code.';
+		}
+		elseif ($mutation === 'different-guid')
+		{
+			$entries[$key]['payload']['guid'] = $this->guid('power-a');
+		}
+		else
+		{
+			$entries[$key]['payload']['namespace'] = '[[[NamespacePrefix]]]\\Joomla\\Elsewhere.Factory';
+		}
+
+		$plan->set('writes', $entries);
+		$this->assertFalse($container->get('Extrusion.Resolver.Commit')->apply());
+		$keys = array_column($plan->blockers(), 'key');
+		$this->assertNotEmpty(array_filter($keys, static fn (string $key): bool => str_starts_with($key, 'repair.')));
+		$this->assertSame([], $item->records(), 'Even a faulty writer cannot widen the namespace repair operation.');
+	}
+
+	/**
+	 * Malformed writer changes that must never become a namespace repair mutation.
+	 *
+	 * @return  array<string, array{string}>  Invalid write cases.
+	 * @since   6.2.2
+	 */
+	public static function invalidRepairWrites(): array
+	{
+		return [
+			'component settings' => ['other-table'],
+			'new Power' => ['insert'],
+			'class body' => ['class-body'],
+			'different identity' => ['different-guid'],
+			'unreviewed namespace' => ['unreviewed-namespace'],
+		];
+	}
+
+	/**
+	 * A vanished existing row cannot be silently inserted by the maintenance action.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairCannotInsertAMissingExistingRecord(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$item->identity('power', $this->guid('power-b'), 0);
+		$report = $container->get('Extrusion.Powers.Extruder')->repairNamespaces()->dryRun()->extrude();
+		$this->assertSame('blocked', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertSame([], $container->get('Extrusion.Registry.Plan')->writes());
+		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * An unnamed target cannot authorize a namespace-only existing Power repair.
+	 *
+	 * @return  void
+	 * @since   6.2.2
+	 */
+	public function testNamespaceRepairRequiresAnExistingSelectedComponent(): void
+	{
+		[$container, $load, $item, $db] = $this->repairPrepared();
+		$db->expects($this->never())->method('transactionStart');
+		$container->get('Extrusion.Config')->set('component', 0)->set('sourceComponent', 0);
+		$report = $container->get('Extrusion.Powers.Extruder')->repairNamespaces()->dryRun()->extrude();
+		$this->assertSame('blocked', $report->get('plan.status'), json_encode($report->get('plan')));
+		$this->assertContains('repair.component', array_column($report->get('plan.blockers'), 'key'));
+		$this->assertSame([], $item->records());
+	}
+
+	/**
 	 * Preview and persistence choose B and apply exactly its effective payload.
 	 *
 	 * @return  void
@@ -300,6 +552,33 @@ final class CommitTest extends FilesystemTestCase
 			$item->identity('joomla_component', $component->guid, $id)->serve('joomla_component', $component->guid, $component);
 		}
 		$container->get('Extrusion.Config')->set('libraries', [$this->temporaryPath('lib')]);
+
+		return [$container, $load, $item, $db];
+	}
+
+	/**
+	 * An old extrusion has literal namespace data and curated non-namespace fields.
+	 *
+	 * @return  array  Composed graph and its recorded external boundaries.
+	 * @since   6.2.2
+	 */
+	protected function repairPrepared(): array
+	{
+		[$container, $load, $item, $db] = $this->prepared();
+		$row = clone $item->table('power')->get($this->guid('power-b'));
+		$row->namespace = '[[[NamespacePrefix]]]\\Joomla\\Beta.Factory';
+		$row->description = 'A curated description that source code must not replace.';
+		$row->licensing_template = 'A curated licence.';
+		$row->add_licensing_template = 2;
+		$row->power_version = '9.2.1';
+		$row->use_selection = [['use' => $this->guid('curated-dependency'), 'as' => 'CuratedDependency']];
+		$load->record('power', 30, [
+			'guid' => $this->guid('curated-dependency'), 'name' => 'Dependency', 'type' => 'class',
+			'namespace' => 'Acme\\Joomla\\Other.Dependency',
+		]);
+		$item->serve('power', $row->guid, $row);
+		$load->record('power', 12, get_object_vars($row));
+		$container->get('Extrusion.Config')->set('mode', 'update');
 
 		return [$container, $load, $item, $db];
 	}

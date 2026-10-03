@@ -24,6 +24,9 @@ Html::_('bootstrap.tooltip');
 // No direct access to this file
 defined('_JEXEC') or die;
 
+// Keep the Joomla main menu visible, as in the maintained custom admin view.
+$this->app->getInput()->set('hidemainmenu', false);
+
 // the ajax gateway every extrusion call travels through
 $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 	. Session::getFormToken() . '=1&task=ajax.';
@@ -37,6 +40,19 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
  */
 ?>
 <?php if ($this->canDo->get('extrusion.access')): ?>
+<script type="text/javascript">
+	Joomla.submitbutton = function(task) {
+		if (task === 'extrusion.back') {
+			parent.history.back();
+			return false;
+		} else {
+			var form = document.getElementById('adminForm');
+			form.task.value = task;
+			form.submit();
+		}
+	}
+</script>
+
 <div class="main-card p-md-3" id="extrusion-page">
 
 	<ul class="nav nav-tabs" id="extrusion-tabs">
@@ -90,14 +106,24 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 										<?php echo $this->form->renderFieldset('switches'); ?>
 										<?php echo $this->form->renderFieldset('advanced'); ?>
 									<?php endif; ?>
+									<div id="extrusion-namespace-repair-options" hidden>
+										<button type="button" class="btn btn-outline-primary" id="extrusion-repair-namespaces-button"
+											aria-describedby="extrusion-namespace-repair-description">
+											<span class="icon-refresh" aria-hidden="true"></span>
+											<?php echo Text::_('Repair Existing Power Namespaces'); ?>
+										</button>
+										<p id="extrusion-namespace-repair-description" class="mt-2">
+											<?php echo Text::_('Select an existing target component in Update mode and its library source folders. Review and repair namespace placeholders for matched Powers only; their GUIDs, code, settings, and links are retained.'); ?>
+										</p>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
-					<div class="p-md-3"><?php if ($this->dankie == 2): ?>
-<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
-<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
-			</div>
+				</div>
+				<div class="p-md-3"><?php if ($this->dankie == 2): ?>
+					<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
+					<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
 				</div>
 			</div>
 			<input type="hidden" name="task" value="" />
@@ -114,11 +140,11 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 					<span class="loading-dots">.</span></p>
 				<p style="font-size: smaller;"><?php echo Text::_('A large source can carry hundreds of classes and views, so this may take a moment.'); ?></p>
 			</div>
-			<div class="col-md-8 p-md-3">
-				<div class="p-md-3"><?php if ($this->dankie == 2): ?>
-<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
-<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
-			</div>
+		</div>
+		<div class="col-md-8 p-md-3">
+			<div class="p-md-3"><?php if ($this->dankie == 2): ?>
+				<?php echo LayoutHelper::render('jcbsupportmessage', []); ?><?php else: ?>
+				<?php echo ComponentbuilderHelper::getDynamicContent('banner', '728-90'); ?><?php endif; ?>
 			</div>
 		</div>
 	</div>
@@ -126,8 +152,11 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 	<div id="extrusion-pane-pairing" class="extrusion-pane" data-extrusion-pane="pairing" style="display:none;">
 		<div class="row p-md-3">
 			<div class="col-md-8">
-				<h3><?php echo Text::_('Pair the harvest with what you already have'); ?></h3>
+				<h3 id="extrusion-pairing-title"><?php echo Text::_('Pair the harvest with what you already have'); ?></h3>
 				<p><?php echo Text::_('Everything below was found in the source. Proposals identify the actual target records. Ambiguous or conflicting Powers must be resolved before import. Change any decision -- nothing is written until you approve the current plan.'); ?></p>
+				<p id="extrusion-namespace-repair-notice" class="alert alert-info" role="status" hidden>
+					<?php echo Text::_('Namespace repair: only the namespaces of existing matched Powers can change. Review the proposed namespace differences; unmatched classes are skipped.'); ?>
+				</p>
 			</div>
 			<div class="col-md-4" style="text-align: right;">
 				<label for="extrusion-component-select" style="display:block;"><?php echo Text::_('Target component'); ?></label>
@@ -204,7 +233,7 @@ $urlAjax = 'index.php?option=com_componentbuilder&format=json&raw=true&'
 		<div class="p-md-3">
 			<button type="button" class="btn btn-success btn-lg px-4" id="extrusion-import-button" disabled>
 				<span class="icon-download icon-white" aria-hidden="true"></span>
-				<?php echo Text::_('Import into JCB'); ?>
+				<span id="extrusion-import-label"><?php echo Text::_('Import into JCB'); ?></span>
 			</button>
 			<button type="button" class="btn btn-outline-secondary btn-lg px-4" id="extrusion-back-button">
 				<?php echo Text::_('Back to setup'); ?>
@@ -263,6 +292,22 @@ window.JCBExtrusion = {
 	url: '<?php echo $urlAjax; ?>',
 	canImport: true,
 	text: {
+		pairingTitle: '<?php echo Text::_('Pair the harvest with what you already have', true); ?>',
+		repairPairingTitle: '<?php echo Text::_('Review existing Power namespace repairs', true); ?>',
+		repairNeedTarget: '<?php echo Text::_('Namespace repair requires Update mode and an explicitly selected existing target component.', true); ?>',
+		repairNeedLibraries: '<?php echo Text::_('Select at least one library source folder containing the classes whose Power namespaces should be repaired.', true); ?>',
+		repairProposal: '<?php echo Text::_('Proposed namespace repair', true); ?>',
+		importLabel: '<?php echo Text::_('Import into JCB', true); ?>',
+		repairLabel: '<?php echo Text::_('Apply Namespace Repairs', true); ?>',
+		confirmTitle: '<?php echo Text::_('Confirm import', true); ?>',
+		repairConfirmTitle: '<?php echo Text::_('Confirm namespace repair', true); ?>',
+		confirmDescription: '<?php echo Text::_('I acknowledge that these changes can affect the system.', true); ?>',
+		repairConfirmDescription: '<?php echo Text::_('I acknowledge that changing these existing Power namespaces can affect their consumers. Only the reviewed namespace changes will be applied.', true); ?>',
+		confirmLabel: '<?php echo Text::_('Acknowledge and import', true); ?>',
+		repairConfirmLabel: '<?php echo Text::_('Acknowledge and repair', true); ?>',
+		reportTitle: '<?php echo Text::_('The import report', true); ?>',
+		repairReportTitle: '<?php echo Text::_('The namespace repair report', true); ?>',
+		repairing: '<?php echo Text::_('is having its Power namespaces repaired', true); ?>',
 		reviewPending: '<?php echo Text::_('Resolving the current targets and write plan...', true); ?>',
 		reviewBlocked: '<?php echo Text::_('Resolve the blocked items before importing.', true); ?>',
 		blockerDetails: '<?php echo Text::_('Review conflict details', true); ?>',

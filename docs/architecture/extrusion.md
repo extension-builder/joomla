@@ -1243,6 +1243,26 @@ cannot supply false configuration witnesses. Existing configured values are not
 silently overwritten. Auxiliary changes go through the same preview, no-op and
 preflight rules as Power and component records.
 
+The opt-in **Repair Existing Power Namespaces** action is a separate,
+namespace-only operation. The administrator sends `repair_namespaces`; the shared
+configuration stores `repairNamespaces`, which defaults to false. It scans the
+supplied library files and uses the same source-to-Power matching and selected
+component context as extrusion. An ambiguous identity still needs a compatible
+explicit pairing; an unmatched class cannot become a new Power during repair.
+
+Repair starts from a validated existing namespace, preserving its symbolic
+aliases, wrapper spelling and backslash/dot placement. It replaces eligible
+literal vendor and component segments using the named-component policy above.
+The preview carries only the Power GUID and namespace; class bodies, metadata,
+relationships and component namespace settings are not proposed. The component
+and vendor writers do not participate in this operation. Already-correct
+namespaces produce no effective writes, so repeated repair is unchanged.
+
+The existing plan still checks compiled identities and placement, output
+collisions, consumer scope and freshness. Shared, foreign, unknown and remapping
+effects retain their reviewed acknowledgements. Repair does not turn namespace
+word matching into proof of ownership or permission to mutate a shared Power.
+
 ### 9.3 Dependencies and compiler output conflicts
 
 `Powers/Assembler` first settles source-to-GUID decisions, then assembles imports,
@@ -1312,6 +1332,15 @@ the current selected effects. Unchanged, skipped and ignored remain distinct.
 Existing permissions, request tokens, escaping, global manual picker and JCB
 natural-string language registration are preserved.
 
+Advanced settings expose **Repair Existing Power Namespaces** for Update mode,
+an explicitly selected existing component and at least one library source
+folder. Its pairing board automatically matches existing Powers, shows the
+proposed namespace beside the stored one, and permits individual exclusions.
+Creation actions are hidden. **Apply Namespace Repairs** uses the same reviewed
+fingerprint, scope acknowledgements and dry-run behavior as import. Starting an
+ordinary harvest clears repair mode. The AJAX adapter validates the repair
+requirements independently of the browser.
+
 `reset()` clears source bindings, graphs, candidates, witnesses and plans. Cache
 boundaries include component identity and reference/override snapshots, not just
 placeholder text. Tests exercise A -> B -> A, including equal placeholder values.
@@ -1336,6 +1365,9 @@ components where applicable.
 
 Protected-path changes and their exact source-transfer mapping live in the
 [GUI change record](../graphical-user-interface-changes/2026-09-21-extrusion-scoped-identities.md).
+The optional namespace repair and uploaded UI alignment are recorded separately
+in the [repair transfer record](../graphical-user-interface-changes/2026-10-03-extrusion-existing-namespace-repair.md)
+and [UI alignment record](../graphical-user-interface-changes/2026-10-03-extrusion-compiled-ui-alignment.md).
 No historical Power definitions are repaired, merged or renumbered automatically.
 Source reconciliation in an external authoritative JCB database must not be
 reported as completed without actually transferring those changes.

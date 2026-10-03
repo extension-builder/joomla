@@ -90,8 +90,8 @@ final class ExtrusionServiceProviderTest extends ServiceProviderTestCase
 	 * @since  6.1.6
 	 */
 	private const CONTRACTS = [
-		'ExtruderInterface' => ['reset', 'path', 'dump', 'extrude', 'messages'],
-		'PowersExtruderInterface' => ['reset', 'library', 'component', 'harvest', 'extrude', 'messages'],
+		'ExtruderInterface' => ['reset', 'path', 'dump', 'repairNamespaces', 'extrude', 'messages'],
+		'PowersExtruderInterface' => ['reset', 'library', 'component', 'repairNamespaces', 'harvest', 'extrude', 'messages'],
 		'LayoutInterface' => ['version', 'kinds', 'candidates', 'roots'],
 		'LocatorInterface' => ['kind', 'locate'],
 		'PrecedenceInterface' => ['resolve'],
