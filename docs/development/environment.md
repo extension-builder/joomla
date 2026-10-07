@@ -94,6 +94,10 @@ complete environment contract. An optional `GITHUB_TOKEN` authenticates public
 fixture reads through the existing client parameter in process memory; it is
 never saved in the component definitions or uploaded evidence.
 
+The API and golden harnesses share pinned official public Power mirrors through
+test-only compiler configuration. See [compiler-power-fixtures.md](compiler-power-fixtures.md)
+for the revisions, upstream failure evidence and unchanged resolution gates.
+
 ## The gates before handoff
 
 From `libraries/vendor_jcb/tests`, with `<base>` the merge-base commit:

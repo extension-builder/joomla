@@ -119,7 +119,7 @@ wait_for_log \
 	'the released JCB is installed'
 
 compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
-for driver in bootstrap cli compile-evidence
+for driver in bootstrap cli compile-evidence power-repositories
 do
 	compose cp "${REPO_ROOT}/.github/golden-master/${driver}.php" "joomla:/tmp/${driver}.php"
 done
