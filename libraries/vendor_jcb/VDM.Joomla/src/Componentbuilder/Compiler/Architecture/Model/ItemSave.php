@@ -241,6 +241,7 @@ class ItemSave implements ItemSaveInterface
 		{
 			foreach ($this->jsonitem->get($view) as $jsonItem)
 			{
+				$script .= $this->patchRefreshField($jsonItem);
 				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
 					. Line::_(__Line__, __Class__) . " Set the " . $jsonItem
 					. " items to data.";
@@ -301,6 +302,7 @@ class ItemSave implements ItemSaveInterface
 		{
 			foreach ($this->jsonstring->get($view) as $jsonString)
 			{
+				$script .= $this->patchRefreshField($jsonString);
 				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
 					. Line::_(__Line__, __Class__) . " Set the " . $jsonString
 					. " string to JSON string.";
@@ -318,6 +320,7 @@ class ItemSave implements ItemSaveInterface
 		{
 			foreach ($this->basesixfour->get($view) as $baseString)
 			{
+				$script .= $this->patchRefreshField($baseString);
 				$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
 					. Line::_(__Line__, __Class__) . " Set the " . $baseString
 					. " string to base64 string.";
@@ -350,6 +353,7 @@ class ItemSave implements ItemSaveInterface
 						. " = new Super_" . "__99175f6d_dba8_4086_8a65_5c4ec175e61d___Power(\$" . $cryptionType . "key);";
 					foreach ($cryptionFields->get($view) as $baseString)
 					{
+						$script .= $this->patchRefreshField($baseString);
 						$script .= PHP_EOL . PHP_EOL . Indent::_(2) . "//"
 							. Line::_(__Line__, __Class__) . " Encrypt data "
 							. $baseString . ".";
@@ -369,6 +373,7 @@ class ItemSave implements ItemSaveInterface
 
 					foreach (array_keys($cryptionFields->get($view)) as $expertField)
 					{
+						$script .= $this->patchRefreshField($expertField);
 						$expertGuards[] = "!array_key_exists('" . $expertField . "', \$jcbPatchStored)";
 					}
 
@@ -389,6 +394,7 @@ class ItemSave implements ItemSaveInterface
 					// set the expert script
 					foreach ($cryptionFields->get($view) as $baseString => $locker_)
 					{
+						$script .= $this->patchRefreshField($baseString, 3);
 						$_placeholder_for_field
 							= array('[[[field]]]' => "\$data['"
 							. $baseString . "']");
@@ -423,6 +429,33 @@ class ItemSave implements ItemSaveInterface
 		);
 
 		return $script;
+	}
+
+	/**
+	 * Recheck an omitted field after earlier custom storage code may have changed it.
+	 *
+	 * Expert initializers and preceding field scripts run in their existing order.
+	 * A newly derived value must leave the preservation map before its own encoder.
+	 *
+	 * @param   string  $field   The generated field name.
+	 * @param   int     $indent  Generated indentation level.
+	 *
+	 * @return  string  The generated per-field comparison block.
+	 * @since   6.2.0
+	 */
+	private function patchRefreshField(string $field, int $indent = 2): string
+	{
+		$name = var_export($field, true);
+		$code = [];
+		$code[] = PHP_EOL . PHP_EOL . Indent::_($indent)
+			. "if (array_key_exists({$name}, \$jcbPatchStored)";
+		$code[] = Indent::_($indent + 1) . "&& (!array_key_exists({$name}, \$data)"
+			. " || serialize(\$data[{$name}]) !== \$jcbPatchInput[{$name}]))";
+		$code[] = Indent::_($indent) . '{';
+		$code[] = Indent::_($indent + 1) . "unset(\$jcbPatchStored[{$name}]);";
+		$code[] = Indent::_($indent) . '}';
+
+		return implode(PHP_EOL, $code);
 	}
 
 	/**
