@@ -16,6 +16,7 @@ use Joomla\Input\Input;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Search\Agent;
@@ -366,6 +367,121 @@ final class SearchBoundaryAndOrchestrationTest extends JoomlaTestCase
 	}
 
 	/**
+	 * Walk real model cursors across reversed titles without omissions or repeats.
+	 *
+	 * @param   int   $count       Number of stored records.
+	 * @param   int   $stride      Gap between stored identifiers.
+	 * @param   bool  $duplicates  Whether adjacent titles are identical.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('bundleDatasets')]
+	public function testDatabaseLoadVisitsEveryRecordExactlyOnce(
+		int $count, int $stride, bool $duplicates
+	): void
+	{
+		$records = [];
+
+		for ($number = 1; $number <= $count; $number++)
+		{
+			$id = $number * $stride;
+			$records[$id] = (object) [
+				'id' => (string) $id,
+				'title' => sprintf('Title %04d', $duplicates ? intdiv($count - $number, 2) : $count - $number),
+				'code' => base64_encode('Code ' . $id),
+			];
+		}
+
+		$config = $this->config(['table_name' => 'demo']);
+		$table = $this->createStub(Table::class);
+		$table->method('titleName')->willReturn('title');
+		$table->method('get')->willReturnCallback(
+			static fn (string $name, string $field, string $property): ?string => $field === 'code' ? 'base64' : null
+		);
+		$table->method('fields')->willReturnCallback(
+			static fn (string $name, bool $default = false): array => $default ? ['id', 'title', 'code'] : ['title', 'code']
+		);
+		$model = new ModelLoad($config, $table);
+		$requests = [];
+		$load = $this->datasetLoad($records, $requests, (int) ceil($count / 300) + 1);
+		$subject = new DatabaseLoad($config, $table, $model, $load);
+		$ids = [];
+		$sizes = [];
+		$expectedRequests = [1];
+		$terminated = false;
+
+		for ($bundle = 1; $bundle <= (int) ceil($count / 300) + 1; $bundle++)
+		{
+			$items = $subject->items('demo', $bundle);
+
+			if ($items === null)
+			{
+				$terminated = true;
+				break;
+			}
+
+			$sizes[] = count($items);
+
+			foreach ($items as $id => $item)
+			{
+				$ids[] = $id;
+				$this->assertSame('Code ' . $id, $item->code);
+			}
+
+			$expectedRequests[] = end($ids) + 1;
+		}
+
+		$this->assertTrue($terminated, 'An exhausted dataset must terminate the bundle walk.');
+		$this->assertSame(array_keys($records), $ids);
+		$this->assertCount($count, array_unique($ids));
+		$this->assertSame($expectedRequests, array_column($requests, 'start'));
+		$this->assertSame(['id'], array_values(array_unique(array_column($requests, 'order'))));
+		$this->assertSame([300], array_values(array_unique(array_column($requests, 'limit'))));
+		$this->assertSame(array_map('count', array_chunk($records, 300)), $sizes);
+	}
+
+	/**
+	 * Cover a complete two-bundle replay, sparse IDs, duplicate titles and boundaries.
+	 *
+	 * @return  array<string, array{int, int, bool}>
+	 * @since   6.2.0
+	 */
+	public static function bundleDatasets(): array
+	{
+		return [
+			'600 reversed titles' => [600, 1, false],
+			'600 sparse IDs and duplicate titles' => [600, 7, true],
+			'empty table' => [0, 1, false],
+			'one record' => [1, 5, false],
+			'below one full bundle' => [299, 3, true],
+			'one full bundle' => [300, 2, false],
+			'one full bundle plus one' => [301, 4, true],
+			'two full bundles plus one' => [601, 3, false],
+		];
+	}
+
+	/**
+	 * Keep the title sort and unlimited result contract outside bundled searches.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUnbundledLoadRetainsTitleOrdering(): void
+	{
+		$config = $this->config(['table_name' => 'demo']);
+		$table = $this->createStub(Table::class);
+		$table->method('fields')->willReturn(['title', 'code']);
+		$table->method('titleName')->willReturn('title');
+		$requests = [];
+		$load = $this->datasetLoad([], $requests, 1);
+		$subject = new DatabaseLoad($config, $table, new ModelLoad($config, $table), $load);
+
+		$this->assertNull($subject->items('demo'));
+		$this->assertSame([['start' => null, 'order' => 'title', 'limit' => null]], $requests);
+	}
+
+	/**
 	 * Record the missing StringHelper import as a desired model contract.
 	 *
 	 * @return  void
@@ -384,6 +500,107 @@ final class SearchBoundaryAndOrchestrationTest extends JoomlaTestCase
 			(object) ['code' => 'value', 'title' => 'Example'],
 			$subject->item((object) ['code' => 'value', 'title' => 'Example'], 'demo')
 		);
+	}
+
+	/**
+	 * Feed deterministic records through the real query builder and model boundary.
+	 *
+	 * @param   array  $records   Stored database rows keyed by identifier.
+	 * @param   array  $requests  Captured query cursor, ordering and limit.
+	 * @param   int    $calls     Expected number of database queries.
+	 *
+	 * @return  CoreDatabaseLoad
+	 * @since   6.2.0
+	 */
+	private function datasetLoad(array $records, array &$requests, int $calls): CoreDatabaseLoad
+	{
+		$state = [];
+		$rows = [];
+		$query = $this->createMock(QueryInterface::class);
+		$query->method('select')->willReturnSelf();
+		$query->method('from')->willReturnSelf();
+		$query->method('where')->willReturnCallback(function (string $clause) use (&$state, $query): QueryInterface
+		{
+			$this->assertMatchesRegularExpression('/^\[a\.id\] >= [0-9]+$/', $clause);
+			$state['start'] = (int) substr($clause, strlen('[a.id] >= '));
+
+			return $query;
+		});
+		$query->expects($this->exactly($calls))->method('order')->willReturnCallback(function (string $order) use (&$state, $query): QueryInterface
+		{
+			$this->assertContains($order, ['[a.id] ASC', '[a.title] ASC']);
+			$state['order'] = $order === '[a.id] ASC' ? 'id' : 'title';
+
+			return $query;
+		});
+		$query->method('setLimit')->willReturnCallback(static function (int $limit) use (&$state, $query): QueryInterface
+		{
+			$state['limit'] = $limit;
+
+			return $query;
+		});
+		$database = $this->createMock(DatabaseInterface::class);
+		$database->method('quoteName')->willReturnCallback(
+			static function (string|array $name, string|array|null $as = null): string|array
+			{
+				if (is_array($name))
+				{
+					$aliases = is_array($as) ? $as : array_fill(0, count($name), null);
+
+					return array_map(
+						static fn (string $column, ?string $alias): string => $alias === null
+							? '[' . $column . ']'
+							: '[' . $column . '] AS [' . $alias . ']',
+						$name,
+						$aliases
+					);
+				}
+
+				return $as === null ? '[' . $name . ']' : '[' . $name . '] AS [' . $as . ']';
+			}
+		);
+		$database->method('quote')->willReturnCallback(static fn (mixed $value): string => "'" . (string) $value . "'");
+		$database->expects($this->exactly($calls))->method('createQuery')->willReturnCallback(
+			static function () use (&$state, $query): QueryInterface
+			{
+				$state = ['start' => null, 'order' => null, 'limit' => null];
+
+				return $query;
+			}
+		);
+		$database->expects($this->exactly($calls))->method('setQuery')->with($query);
+		$database->expects($this->exactly($calls))->method('execute')->willReturnCallback(
+			static function () use ($records, &$requests, &$state, &$rows): bool
+			{
+				$requests[] = $state;
+				$rows = array_filter($records, static fn (object $row): bool => $row->id >= ($state['start'] ?? 0));
+				uasort($rows, static fn (object $left, object $right): int => $left->{$state['order']} <=> $right->{$state['order']});
+				$rows = array_slice($rows, 0, $state['limit'], true);
+
+				return true;
+			}
+		);
+		$database->method('getNumRows')->willReturnCallback(static function () use (&$rows): int
+		{
+			return count($rows);
+		});
+		$database->method('loadObjectList')->willReturnCallback(function (string $key) use (&$rows): array
+		{
+			$this->assertSame('id', $key);
+
+			return array_map(static fn (object $row): object => clone $row, $rows);
+		});
+		$originalOption = ComponentHelper::$option;
+		ComponentHelper::setOption('com_componentbuilder');
+
+		try
+		{
+			return new CoreDatabaseLoad($database);
+		}
+		finally
+		{
+			ComponentHelper::setOption($originalOption);
+		}
 	}
 
 	/**
