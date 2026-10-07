@@ -432,7 +432,8 @@ class ArchitectureModel implements ServiceProviderInterface
 	public function getModelSearchQuery(Container $container): SearchQuery
 	{
 		return new SearchQuery(
-			$container->get('Compiler.Builder.Search')
+			$container->get('Compiler.Builder.Search'),
+			$container->get('Compiler.Builder.Custom.Field')
 		);
 	}
 
@@ -1417,4 +1418,3 @@ class ArchitectureModel implements ServiceProviderInterface
 		);
 	}
 }
-

@@ -13,9 +13,10 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Search;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomField;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Utilities\StringHelper;
 
 
 /**
@@ -40,15 +41,25 @@ final class SearchQuery
 	protected Search $search;
 
 	/**
+	 * Custom-field definitions used by the list query join renderer.
+	 *
+	 * @var    CustomField
+	 * @since  6.2.0
+	 */
+	protected CustomField $customfield;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param Search  $search  The Search Class.
+	 * @param   Search       $search       The Search Class.
+	 * @param   CustomField  $customfield  The custom-field definitions.
 	 *
 	 * @since 6.1.7
 	 */
-	public function __construct(Search $search)
+	public function __construct(Search $search, CustomField $customfield)
 	{
 		$this->search = $search;
+		$this->customfield = $customfield;
 	}
 
 	/**
@@ -68,26 +79,12 @@ final class SearchQuery
 			$search = "'(";
 			foreach ($this->search->get($nameListCode) as $nr => $array)
 			{
-				// array( 'type' => $typeName, 'code' => $name, 'custom' => $custom, 'list' => $field['list']);
-				if ($nr == 0)
+				$search .= ($nr == 0 ? '' : ' OR ') . "a." . $array['code'] . " LIKE '.\$search.'";
+				$column = $this->joinedColumn($nameListCode, $array);
+
+				if ($column !== null)
 				{
-					$search .= "a." . $array['code'] . " LIKE '.\$search.'";
-					if (ArrayHelper::check($array['custom'])
-						&& 1 == $array['list'])
-					{
-						$search .= " OR " . $array['custom']['db'] . "."
-							. $array['custom']['text'] . " LIKE '.\$search.'";
-					}
-				}
-				else
-				{
-					$search .= " OR a." . $array['code'] . " LIKE '.\$search.'";
-					if (ArrayHelper::check($array['custom'])
-						&& 1 == $array['list'])
-					{
-						$search .= " OR " . $array['custom']['db'] . "."
-							. $array['custom']['text'] . " LIKE '.\$search.'";
-					}
+					$search .= " OR " . $column . " LIKE '.\$search.'";
 				}
 			}
 			$search .= ")'";
@@ -119,5 +116,48 @@ final class SearchQuery
 
 		return '';
 	}
-}
 
+	/**
+	 * Resolve a display column only when its custom field is joined into the list.
+	 *
+	 * Creator\Builders registers every list=1 field in CustomList. Its storage
+	 * method and table metadata must also satisfy CustomQuery's join conditions.
+	 * Local a.field searches do not depend on this optional display-column lookup.
+	 *
+	 * @param   string  $nameListCode  The list view code name.
+	 * @param   array   $field         The searchable field definition.
+	 *
+	 * @return  string|null
+	 * @since   6.2.0
+	 */
+	private function joinedColumn(string $nameListCode, array $field): ?string
+	{
+		if (1 != $field['list'])
+		{
+			return null;
+		}
+
+		foreach ($this->customfield->get($nameListCode, []) as $definition)
+		{
+			if ($definition['code'] !== $field['code'] || !isset($definition['method'])
+				|| $definition['method'] != 0)
+			{
+				continue;
+			}
+
+			$custom = $definition['custom'] ?? [];
+
+			foreach (['table', 'db', 'text', 'id'] as $key)
+			{
+				if (!StringHelper::check($custom[$key] ?? null))
+				{
+					return null;
+				}
+			}
+
+			return $custom['db'] . '.' . $custom['text'];
+		}
+
+		return null;
+	}
+}
