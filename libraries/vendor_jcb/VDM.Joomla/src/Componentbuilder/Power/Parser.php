@@ -37,13 +37,40 @@ final class Parser
 	private const IDENTIFIER = '[a-zA-Z_\x80-\xFF][a-zA-Z0-9_\x80-\xFF]*';
 
 	/**
-	 * A property or return type: optionally nullable, namespaced, union or intersection.
+	 * A single named type, including qualified and fully qualified names.
+	 *
+	 * @var    string
+	 * @since  6.2.0
+	 */
+	private const NAMED_TYPE = '\\\\?' . self::IDENTIFIER . '(?:\\\\' . self::IDENTIFIER . ')*';
+
+	/**
+	 * An intersection contains at least two named types, never a reference marker.
+	 *
+	 * @var    string
+	 * @since  6.2.0
+	 */
+	private const INTERSECTION_TYPE = self::NAMED_TYPE . '(?:\s*&\s*' . self::NAMED_TYPE . ')+';
+
+	/**
+	 * A union member is a named type or one parenthesized intersection.
+	 *
+	 * PHP DNF types need only this one level of parentheses, not recursive parsing.
+	 *
+	 * @var    string
+	 * @since  6.2.0
+	 */
+	private const UNION_MEMBER_TYPE = '(?:' . self::NAMED_TYPE . '|\(\s*' . self::INTERSECTION_TYPE . '\s*\))';
+
+	/**
+	 * A property or parameter type: nullable, union, intersection or DNF.
 	 *
 	 * @var    string
 	 * @since  6.1.6
+	 * @since  6.2.0  Read complete DNF types and whitespace around type operators.
 	 */
-	private const TYPE = '\??\\\\?[a-zA-Z_\x80-\xFF][a-zA-Z0-9_\x80-\xFF\\\\]*'
-		. '(?:[|&]\s*\??\\\\?[a-zA-Z_\x80-\xFF][a-zA-Z0-9_\x80-\xFF\\\\]*)*';
+	private const TYPE = '(?:\?' . self::NAMED_TYPE . '|' . self::INTERSECTION_TYPE . '|'
+		. self::UNION_MEMBER_TYPE . '(?:\s*\|\s*' . self::UNION_MEMBER_TYPE . ')*)';
 
 	/**
 	 * Get properties and method declarations and other details from the given code.
@@ -633,6 +660,7 @@ final class Parser
 	 *
 	 * @return array|null   An array of argument types
 	 * @since 3.2.0
+	 * @since 6.2.0  Require complete parameter signatures after attributes and promotion modifiers.
 	 */
 	private function extractArgTypesArguments(?string $arguments, ?string $mask = null): ?array
 	{
@@ -648,12 +676,35 @@ final class Parser
 		{
 			$argument = substr($arguments, $start, $length);
 			$hidden = substr($mask, $start, $length);
-			$eqPos = strpos($hidden, '=');
+			$signatureStart = strspn($hidden, " \t\n\r");
 
-			$signature = $eqPos === false ? $argument : substr($argument, 0, $eqPos);
+			// Attributes may contain brackets, commas and equals signs. Skip their
+			// balanced blocks before locating the parameter's own type and default.
+			while (substr($hidden, $signatureStart, 2) === '#[')
+			{
+				$attributeEnd = $this->closing($hidden, $signatureStart + 1, '[', ']');
+
+				if ($attributeEnd === null)
+				{
+					continue 2;
+				}
+
+				$signatureStart = $attributeEnd + 1;
+				$signatureStart += strspn($hidden, " \t\n\r", $signatureStart);
+			}
+
+			$eqPos = strpos($hidden, '=', $signatureStart);
+			$signature = $eqPos === false
+				? substr($hidden, $signatureStart)
+				: substr($hidden, $signatureStart, $eqPos - $signatureStart);
 			$default = $eqPos === false ? null : $this->flatten(substr($argument, $eqPos + 1));
 
-			if (preg_match('/(?:(' . self::TYPE . ')\s+)?&?\s*(?:\.\.\.)?\s*\$(\w+)/', $signature, $arg_matches))
+			// Match the entire declaration after optional promotion modifiers. An
+			// unsupported type must never be silently read from a matching suffix.
+			$pattern = '/\A(?:(?:public|protected|private)(?:\s*\(\s*set\s*\))?\s+|readonly\s+)*'
+				. '(?:(' . self::TYPE . ')\s*)?&?\s*(?:\.\.\.)?\s*\$(' . self::IDENTIFIER . ')\s*\z/';
+
+			if (preg_match($pattern, $signature, $arg_matches))
 			{
 				$type = $arg_matches[1] ?: null;
 				$name = $arg_matches[2] ?: null;

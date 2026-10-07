@@ -394,6 +394,179 @@ PHP;
 	}
 
 	/**
+	 * Read complete DNF types without dropping a property or narrowing an argument.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserReadsDnfPropertiesArgumentsAndReturns(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public (\Domain\First&Second)|null $value = null;
+
+	protected static null|(First&Second)|(Third&Fourth) $alternate;
+
+	public function choose((\Domain\First&Second)|null $input = null): (\Domain\First&Second)|null
+	{
+		return $input;
+	}
+}
+PHP;
+		$parsed = (new Parser())->code($code);
+
+		$this->assertIsArray($parsed['properties']);
+		$this->assertSame(['$value', '$alternate'], array_column($parsed['properties'], 'name'));
+		$this->assertSame('(\\Domain\\First&Second)|null', $parsed['properties'][0]['type']);
+		$this->assertSame('null', $parsed['properties'][0]['default']);
+		$this->assertSame('null|(First&Second)|(Third&Fourth)', $parsed['properties'][1]['type']);
+		$this->assertTrue($parsed['properties'][1]['static']);
+		$this->assertSame(
+			['name' => '$input', 'type' => '(\\Domain\\First&Second)|null', 'default' => 'null'],
+			$parsed['methods'][0]['arguments']['$input']
+		);
+		$this->assertSame('(\\Domain\\First&Second)|null', $parsed['methods'][0]['return_type']);
+		$this->assertSame("\n\t\treturn \$input;\n\t", $parsed['methods'][0]['body']);
+	}
+
+	/**
+	 * Separate intersection ampersands from argument references and variadics.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserKeepsReferenceAndVariadicArgumentTypes(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public function change(First&Second &$value, (First&Second)|null&$compact, ?\Domain\First &$nullable): void
+	{
+	}
+
+	public function collect((First&Second)|(Third&Fourth)&...$values): void
+	{
+	}
+
+	public function plain(&$value, ...$values): void
+	{
+	}
+}
+PHP;
+		$methods = (new Parser())->code($code)['methods'];
+
+		$this->assertSame('First&Second', $methods[0]['arguments']['$value']['type']);
+		$this->assertSame('(First&Second)|null', $methods[0]['arguments']['$compact']['type']);
+		$this->assertSame('?\\Domain\\First', $methods[0]['arguments']['$nullable']['type']);
+		$this->assertSame('(First&Second)|(Third&Fourth)', $methods[1]['arguments']['$values']['type']);
+		$this->assertNull($methods[1]['arguments']['$values']['default']);
+		$this->assertSame(['$value', '$values'], array_keys($methods[2]['arguments']));
+		$this->assertNull($methods[2]['arguments']['$value']['type']);
+		$this->assertNull($methods[2]['arguments']['$values']['type']);
+	}
+
+	/**
+	 * Comments and line breaks inside compound types cannot introduce declarations.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserReadsWhitespaceAndCommentsInDnfTypes(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public ( First /* $ghost */ & Second ) | null $value = null;
+
+	public function change(
+		( First /* $ghost */ &
+			Second ) | null $value
+	): ( First & Second ) | null
+	{
+		return $value;
+	}
+}
+PHP;
+		$parsed = (new Parser())->code($code);
+
+		$this->assertIsArray($parsed['properties']);
+		$this->assertSame(['$value'], array_column($parsed['properties'], 'name'));
+		$this->assertSame('(First&Second)|null', preg_replace('/\s+/', '', $parsed['properties'][0]['type']));
+		$this->assertSame(['$value'], array_keys($parsed['methods'][0]['arguments']));
+		$this->assertSame(
+			'(First&Second)|null',
+			preg_replace('/\s+/', '', $parsed['methods'][0]['arguments']['$value']['type'])
+		);
+		$this->assertSame('( First & Second ) | null', $parsed['methods'][0]['return_type']);
+	}
+
+	/**
+	 * Anchoring a type must retain attributed and promoted argument declarations.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserPreservesAttributedAndPromotedArgumentMetadata(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public function __construct(
+		#[Map(['key' => [']', 'comma,equals=']])]
+		#[Other]
+		public readonly (First&Second)|null $value = null,
+		protected string $name = 'kept',
+		public private(set) string $title = 'existing',
+		#[Map] int $count = 0
+	)
+	{
+	}
+}
+PHP;
+		$parsed = (new Parser())->code($code);
+		$arguments = $parsed['methods'][0]['arguments'];
+
+		$this->assertNull($parsed['properties']);
+		$this->assertSame(['$value', '$name', '$title', '$count'], array_keys($arguments));
+		$this->assertSame('(First&Second)|null', $arguments['$value']['type']);
+		$this->assertSame('null', $arguments['$value']['default']);
+		$this->assertSame('string', $arguments['$name']['type']);
+		$this->assertSame("'kept'", $arguments['$name']['default']);
+		$this->assertSame('string', $arguments['$title']['type']);
+		$this->assertSame("'existing'", $arguments['$title']['default']);
+		$this->assertSame('int', $arguments['$count']['type']);
+		$this->assertSame('0', $arguments['$count']['default']);
+	}
+
+	/**
+	 * Unsupported parenthesized expressions must never succeed at a type suffix.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserDoesNotReadUnsupportedTypeSuffixesAsArguments(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public function broken((First|Second)&Third $value, Unknown<Thing>|null $generic, string $valid): void
+	{
+	}
+}
+PHP;
+		$arguments = (new Parser())->code($code)['methods'][0]['arguments'];
+
+		$this->assertSame(['$valid'], array_keys($arguments));
+		$this->assertSame('string', $arguments['$valid']['type']);
+	}
+
+	/**
 	 * Report no body for a method that declares none.
 	 *
 	 * @return  void
