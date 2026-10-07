@@ -218,7 +218,7 @@ final class VersionedModelListQueryTest extends ArchitectureTestCase
 		$filter->set('articles', [['type' => 'text', 'code' => 'status']]);
 
 		$code = $this->query('JoomlaSix', [
-			'searchquery' => new SearchQuery($search),
+			'searchquery' => new SearchQuery($search, new CustomField()),
 			'filterquery' => new FilterQuery(
 				$filter, new AdminFilterType(), $this->contentOne()
 			),
@@ -228,6 +228,53 @@ final class VersionedModelListQueryTest extends ArchitectureTestCase
 		$this->assertStringContainsString(
 			"\$_status = \$this->getState('filter.status');", $code
 		);
+	}
+
+	/**
+	 * Every target keeps local, relation, access and default ordering behavior together.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testFolderSelectorsDoNotBreakJoinedOrDefaultSearches(string $version, int $major): void
+	{
+		$relation = ['table' => '#__users', 'db' => 'g', 'text' => 'name', 'id' => 'id'];
+		$folder = ['table' => '', 'db' => 'h', 'text' => '', 'id' => ''];
+		$search = new Search();
+		$search->set('articles', [
+			['type' => 'text', 'code' => 'title', 'custom' => null, 'list' => 1],
+			['type' => 'user', 'code' => 'created_by', 'custom' => $relation, 'list' => 1],
+			['type' => 'folderlist', 'code' => 'admin_view', 'custom' => $folder, 'list' => 1],
+		]);
+		$customfield = new CustomField();
+		$customfield->set('articles', [
+			['code' => 'created_by', 'method' => 0, 'custom' => $relation],
+			['code' => 'admin_view', 'method' => 0, 'custom' => $folder],
+		]);
+		$customlist = new CustomList();
+		$customlist->set('article.created_by', true);
+		$customlist->set('article.admin_view', true);
+		$accessswitch = new AccessSwitch();
+		$accessswitch->set('article', true);
+		$code = $this->query($version, [
+			'searchquery' => new SearchQuery($search, $customfield),
+			'customquery' => new CustomQuery($customfield, $customlist, $this->createStub(CustomFieldTypeFileInterface::class)),
+			'accessswitch' => $accessswitch,
+		]);
+
+		$this->assertStringContainsString("\$db->quoteName('#__users', 'g')", $code);
+		$this->assertStringContainsString(
+			"(a.title LIKE '.\$search.' OR a.created_by LIKE '.\$search.' OR g.name LIKE '.\$search.'"
+			. " OR a.admin_view LIKE '.\$search.')", $code
+		);
+		$this->assertStringNotContainsString(' OR h.', $code);
+		$this->assertStringContainsString('// Implement View Level Access', $code);
+		$this->assertStringContainsString("\$orderCol = \$this->getState('list.ordering', 'a.id');", $code);
+		$this->assertStringContainsString("\$orderDirn = \$this->getState('list.direction', 'desc');", $code);
 	}
 
 	/**
@@ -255,7 +302,7 @@ final class VersionedModelListQueryTest extends ArchitectureTestCase
 				new CustomList(),
 				$this->createStub(CustomFieldTypeFileInterface::class)
 			),
-			'searchquery' => new SearchQuery(new Search()),
+			'searchquery' => new SearchQuery(new Search(), new CustomField()),
 			'filterquery' => new FilterQuery(
 				new Filter(), new AdminFilterType(), $this->contentOne()
 			),

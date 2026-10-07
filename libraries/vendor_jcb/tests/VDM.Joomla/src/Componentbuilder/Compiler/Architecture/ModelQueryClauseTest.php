@@ -12,14 +12,23 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\DI\Container;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\SearchQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AdminFilterType;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomField;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomList;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Creator\CustomFieldTypeFileInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Filter;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Search;
+use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel;
 
 
 /**
@@ -45,7 +54,7 @@ final class ModelQueryClauseTest extends ArchitectureTestCase
 	 */
 	public function testAViewWithoutSearchableFieldsProducesNothing(): void
 	{
-		$this->assertSame('', (new SearchQuery(new Search()))->get('articles'));
+		$this->assertSame('', (new SearchQuery(new Search(), new CustomField()))->get('articles'));
 	}
 
 	/**
@@ -62,7 +71,7 @@ final class ModelQueryClauseTest extends ArchitectureTestCase
 			['type' => 'text', 'code' => 'alias', 'custom' => null, 'list' => 0],
 		]);
 
-		$code = (new SearchQuery($search))->get('articles');
+		$code = (new SearchQuery($search, $this->customFields()))->get('articles');
 
 		$this->assertStringContainsString("a.title LIKE '.\$search.'", $code);
 		$this->assertStringContainsString("OR a.alias LIKE '.\$search.'", $code);
@@ -86,7 +95,7 @@ final class ModelQueryClauseTest extends ArchitectureTestCase
 			],
 		]);
 
-		$code = (new SearchQuery($search))->get('articles');
+		$code = (new SearchQuery($search, $this->customFields()))->get('articles');
 
 		$this->assertStringContainsString("a.created_by LIKE '.\$search.'", $code);
 		$this->assertStringContainsString("OR g.name LIKE '.\$search.'", $code);
@@ -110,10 +119,224 @@ final class ModelQueryClauseTest extends ArchitectureTestCase
 			],
 		]);
 
-		$code = (new SearchQuery($search))->get('articles');
+		$code = (new SearchQuery($search, $this->customFields()))->get('articles');
 
 		$this->assertStringContainsString("a.created_by LIKE '.\$search.'", $code);
 		$this->assertStringNotContainsString('g.name', $code);
+	}
+
+	/**
+	 * The provider shares both registries with the logical search renderer alias.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testProviderWiresSharedCustomFieldDefinitions(): void
+	{
+		$search = new Search();
+		$search->set('articles', [['code' => 'created_by', 'list' => 1]]);
+		$customfield = $this->customFields();
+		$container = new Container();
+		$container->share('Compiler.Builder.Search', $search);
+		$container->share('Compiler.Builder.Custom.Field', $customfield);
+		(new ArchitectureModel())->register($container);
+		$subject = $container->get('Architecture.Model.SearchQuery');
+
+		$this->assertSame($subject, $container->get(SearchQuery::class));
+		$this->assertStringContainsString(' OR g.name LIKE ', $subject->get('articles'));
+		$customfield->set('articles', []);
+		$this->assertStringNotContainsString(' OR g.name LIKE ', $subject->get('articles'));
+		$this->assertStringContainsString('a.created_by LIKE ', $subject->get('articles'));
+	}
+
+	/**
+	 * Folder selectors remain searchable through their stored local values.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testFolderSelectorsKeepLocalSearchWithoutPhantomJoins(): void
+	{
+		$search = new Search();
+		$fields = [
+			['type' => 'text', 'code' => 'title', 'custom' => null, 'list' => 1],
+			['type' => 'list', 'code' => 'type', 'custom' => null, 'list' => 1],
+			['type' => 'list', 'code' => 'location', 'custom' => null, 'list' => 1],
+			['type' => 'adminviews', 'code' => 'admin_view', 'custom' => ['db' => 'g', 'text' => '', 'table' => ''], 'list' => 1],
+			['type' => 'siteviews', 'code' => 'site_view', 'custom' => ['db' => 'h', 'text' => '', 'table' => ''], 'list' => 1],
+		];
+		$search->set('articles', $fields);
+		$customfield = new CustomField();
+		$customfield->set('articles', array_map(
+			static fn (array $field): array => $field + ['method' => 0], array_slice($fields, 3)
+		));
+		$customlist = new CustomList();
+		$customlist->set('article.admin_view', true);
+		$customlist->set('article.site_view', true);
+		$joins = new CustomQuery($customfield, $customlist, $this->createStub(CustomFieldTypeFileInterface::class));
+		$code = (new SearchQuery($search, $customfield))->get('articles');
+
+		$this->assertSame('', $joins->get('articles', 'article'));
+		$this->assertStringContainsString(
+			"(a.title LIKE '.\$search.' OR a.type LIKE '.\$search.' OR a.location LIKE '.\$search.'"
+			. " OR a.admin_view LIKE '.\$search.' OR a.site_view LIKE '.\$search.')", $code
+		);
+		$this->assertStringNotContainsString(' OR g.', $code);
+		$this->assertStringNotContainsString(' OR h.', $code);
+	}
+
+	/**
+	 * Incomplete metadata and nonjoined storage modes never add alias predicates.
+	 *
+	 * @param   array  $changes  Changes to otherwise valid custom-field metadata.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('unjoinedDefinitions')]
+	public function testUnjoinedDefinitionsKeepOnlyTheirLocalSearch(array $changes): void
+	{
+		$customfield = $this->customFields();
+		$definition = array_replace_recursive($customfield->get('articles')[0], $changes);
+		$customfield->set('articles', [$definition]);
+		$search = new Search();
+		$search->set('articles', [['code' => 'created_by', 'custom' => $definition['custom'], 'list' => 1]]);
+		$code = (new SearchQuery($search, $customfield))->get('articles');
+
+		$this->assertStringContainsString("a.created_by LIKE '.\$search.'", $code);
+		$this->assertStringNotContainsString(' OR ', $code);
+	}
+
+	/**
+	 * Invalid and nonrelational custom metadata requiring no display-column search.
+	 *
+	 * @return  array<string, array{array}>
+	 * @since   6.2.0
+	 */
+	public static function unjoinedDefinitions(): array
+	{
+		return [
+			'no table' => [['custom' => ['table' => '']]],
+			'no alias' => [['custom' => ['db' => '']]],
+			'no display column' => [['custom' => ['text' => '']]],
+			'no foreign key' => [['custom' => ['id' => '']]],
+			'encoded storage' => [['method' => 1]],
+			'custom storage' => [['method' => 6]],
+		];
+	}
+
+	/**
+	 * Execute generated search code with ID, empty, quote and wildcard input.
+	 *
+	 * @param   string       $term       Search filter value.
+	 * @param   string|null  $predicate  Expected additional query predicate.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('searchInputs')]
+	public function testGeneratedSearchPreservesEscapingAndExistingAccessPredicates(
+		string $term, ?string $predicate
+	): void
+	{
+		$search = new Search();
+		$search->set('articles', [['code' => 'created_by', 'custom' => ['db' => 'g', 'text' => 'name'], 'list' => 1]]);
+		$customfield = $this->customFields();
+		$customlist = new CustomList();
+		$customlist->set('article.created_by', true);
+		$joins = new CustomQuery($customfield, $customlist, $this->createStub(CustomFieldTypeFileInterface::class));
+		$this->assertStringContainsString("\$db->quoteName('#__users', 'g')", $joins->get('articles', 'article'));
+		$code = (new SearchQuery($search, $customfield))->get('articles');
+		$clauses = ['a.access IN (1,2)'];
+		$query = $this->createMock(QueryInterface::class);
+		$query->expects($predicate === null ? $this->never() : $this->once())
+			->method('where')->willReturnCallback(
+				static function (string $clause) use (&$clauses, $query): QueryInterface
+				{
+					$clauses[] = $clause;
+
+					return $query;
+				}
+			);
+		$database = $this->createStub(DatabaseInterface::class);
+		$database->method('escape')->willReturnCallback(static fn (string $value): string => str_replace("'", "''", $value));
+		$database->method('quote')->willReturnCallback(static fn (string $value): string => "'" . $value . "'");
+		$state = new class($term)
+		{
+			/**
+			 * Search input supplied to generated model code.
+			 *
+			 * @var    string
+			 * @since  6.2.0
+			 */
+			private string $term;
+
+			/**
+			 * Capture the model filter value.
+			 *
+			 * @param   string  $term  Search filter.
+			 *
+			 * @since   6.2.0
+			 */
+			public function __construct(string $term)
+			{
+				$this->term = $term;
+			}
+
+			/**
+			 * Supply the state requested by generated model code.
+			 *
+			 * @param   string  $key  Model state key.
+			 *
+			 * @return  string
+			 * @since   6.2.0
+			 */
+			public function getState(string $key): string
+			{
+				return $this->term;
+			}
+		};
+		$execute = eval('return function ($db, $query): void {' . $code . '};');
+		$execute->call($state, $database, $query);
+
+		$this->assertSame($predicate === null ? ['a.access IN (1,2)'] : ['a.access IN (1,2)', $predicate], $clauses);
+	}
+
+	/**
+	 * Search inputs retain the existing query interpretation and quoting.
+	 *
+	 * @return  array<string, array{string, string|null}>
+	 * @since   6.2.0
+	 */
+	public static function searchInputs(): array
+	{
+		return [
+			'empty' => ['', null],
+			'numeric identifier' => ['id:42', 'a.id = 42'],
+			'case insensitive identifier' => ['ID:42 suffix', 'a.id = 42'],
+			'ordinary text' => ['Alice', "(a.created_by LIKE '%Alice%' OR g.name LIKE '%Alice%')"],
+			'no matching text' => ['unmatched', "(a.created_by LIKE '%unmatched%' OR g.name LIKE '%unmatched%')"],
+			'quote' => ["O'Brien", "(a.created_by LIKE '%O''Brien%' OR g.name LIKE '%O''Brien%')"],
+			'wildcards' => ['A_%', "(a.created_by LIKE '%A_%%' OR g.name LIKE '%A_%%')"],
+		];
+	}
+
+	/**
+	 * Build the same relation metadata consumed by CustomQuery.
+	 *
+	 * @return  CustomField
+	 * @since   6.2.0
+	 */
+	private function customFields(): CustomField
+	{
+		$customfield = new CustomField();
+		$customfield->set('articles', [[
+			'code' => 'created_by',
+			'method' => 0,
+			'custom' => ['table' => '#__users', 'db' => 'g', 'text' => 'name', 'id' => 'id'],
+		]]);
+
+		return $customfield;
 	}
 
 	/**
