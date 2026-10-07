@@ -97,17 +97,109 @@ final class HtmlTest extends TestCase
 	}
 
 	/**
-	 * Record the documented image conversion contract defeated by link ordering.
+	 * Render complete image syntax before ordinary links consume its inner token.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	#[Group('known-defect')]
 	public function testConvertRendersMarkdownImageAsImageElement(): void
 	{
 		$this->assertSame(
 			'<p><img src="https://example.test/logo.png" alt="Logo"></p>',
 			(new Html())->convert('![Logo](https://example.test/logo.png)')
+		);
+	}
+
+	/**
+	 * Keep images and links independent, including a linked image and escaped attributes.
+	 *
+	 * @param   string  $markdown  The image and link source.
+	 * @param   string  $expected  The exact safe output.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('imageAndLinkMarkup')]
+	public function testConvertPreservesImageAndLinkBoundaries(string $markdown, string $expected): void
+	{
+		$this->assertSame($expected, (new Html())->convert($markdown));
+	}
+
+	/**
+	 * Image boundaries that ordinary link conversion must preserve.
+	 *
+	 * @return  array<string, array{string, string}>
+	 * @since   6.2.0
+	 */
+	public static function imageAndLinkMarkup(): array
+	{
+		return [
+			'multiple images and ordinary link' => [
+				'![First](/first.png) [docs](/docs) ![Second](/second.png)',
+				'<p><img src="/first.png" alt="First"> <a href="/docs">docs</a>'
+					. ' <img src="/second.png" alt="Second"></p>',
+			],
+			'linked image' => [
+				'[![Logo](/logo.png)](https://example.test)',
+				'<p><a href="https://example.test"><img src="/logo.png" alt="Logo"></a></p>',
+			],
+			'linked image with refused link scheme' => [
+				'[![Logo](/logo.png)](javascript:alert%281%29)',
+				'<p><a href=""><img src="/logo.png" alt="Logo"></a></p>',
+			],
+			'linked image with refused source scheme' => [
+				'[![Logo](data:text/html;base64,PHNjcmlwdD4=)](/home)',
+				'<p><a href="/home"><img src="" alt="Logo"></a></p>',
+			],
+			'bracketed alternative text before a link' => [
+				'![Logo [draft]](/logo.png) [docs](/docs)',
+				'<p><img src="/logo.png" alt="Logo [draft]"> <a href="/docs">docs</a></p>',
+			],
+			'bracketed alternative text in a linked image' => [
+				'[![Logo [draft]](/logo.png)](/home) [docs](/docs)',
+				'<p><a href="/home"><img src="/logo.png" alt="Logo [draft]"></a>'
+					. ' <a href="/docs">docs</a></p>',
+			],
+			'escaped alternative text and source' => [
+				'!["Logo" & <draft>](/logo.png?a=1&b=2)',
+				'<p><img src="/logo.png?a=1&amp;b=2" alt="&quot;Logo&quot; &amp; &lt;draft&gt;"></p>',
+			],
+			'empty alternative text' => [
+				'![](/logo.png)',
+				'<p><img src="/logo.png" alt=""></p>',
+			],
+		];
+	}
+
+	/**
+	 * Apply the existing URL scheme validation to image sources as well as links.
+	 *
+	 * @param   string  $markdown  The link source converted to an image token.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('refusedUrlSchemes')]
+	public function testConvertEmptiesAnExecutableImageSource(string $markdown): void
+	{
+		$this->assertSame('<p><img src="" alt="x"></p>', (new Html())->convert('!' . $markdown));
+	}
+
+	/**
+	 * Preserve the established URL allow-list and escaping when rendering images.
+	 *
+	 * @param   string  $markdown  The link source converted to an image token.
+	 * @param   string  $expected  The source attribute the image must keep.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('keptUrls')]
+	public function testConvertKeepsANonExecutableImageSource(string $markdown, string $expected): void
+	{
+		$this->assertSame(
+			'<p><img src="' . $expected . '" alt="x"></p>',
+			(new Html())->convert('!' . $markdown)
 		);
 	}
 
