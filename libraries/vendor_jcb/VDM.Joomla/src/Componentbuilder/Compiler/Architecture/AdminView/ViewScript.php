@@ -267,6 +267,7 @@ final class ViewScript
 	{
 		// set the view name
 		$nameSingleCode = $viewArray['settings']->name_single_code;
+		$this->validationfix->setConditions($nameSingleCode, []);
 		// add conditions to this view
 		if (isset($viewArray['settings']->conditions)
 			&& ArrayHelper::check(
@@ -278,6 +279,8 @@ final class ViewScript
 			$ifValue        = [];
 			$targetControls = [];
 			$functions      = [];
+			$serverConditions = [];
+			$serverGroups = [];
 
 			foreach ($viewArray['settings']->conditions as $condition)
 			{
@@ -332,6 +335,7 @@ final class ViewScript
 								$condition['match_type'],
 								$condition['match_options']
 							);
+							$serverConditions[$matchName] = $this->validationCondition($condition, $options);
 							// set the if values
 							$ifValue[$matchName] = $this->ifvaluescript->get(
 								(string) $matchName,
@@ -368,6 +372,7 @@ final class ViewScript
 										$relation['match_type'],
 										$relation['match_options']
 									);
+									$serverConditions[$relationName] = $this->validationCondition($relation, $relationOptions);
 									$getValue[$relationName]
 										= $this->valuescript->get(
 										$relation['match_type'],
@@ -412,6 +417,7 @@ final class ViewScript
 							$condition['match_type'],
 							$condition['match_options']
 						);
+						$serverConditions[$matchName] = $this->validationCondition($condition, $options);
 						// set the if values
 						$ifValue[$matchName] = $this->ifvaluescript->get(
 							(string) $matchName, $condition['match_behavior'],
@@ -638,6 +644,31 @@ final class ViewScript
 					// get target behavior and default
 					$targetBehavior = $behaviors[$f_matchKeys[0]];
 					$targetDefault  = $defaults[$f_matchKeys[0]];
+					$requiredTargets = [];
+					foreach ($controls as $target => $action)
+					{
+						if ($action['requiredVar'] !== '')
+						{
+							$requiredTargets[] = $target;
+						}
+					}
+					if ($requiredTargets !== [])
+					{
+						$matches = [];
+						foreach ($f_matchKeys as $key)
+						{
+							$matches[] = $serverConditions[$key] + [
+								'array' => $addArray,
+								'supported' => $ifValue[$key] !== 0,
+							];
+						}
+						$serverGroups[] = [
+							'matches' => $matches,
+							'targets' => $requiredTargets,
+							'show' => $targetBehavior === 'show',
+							'toggle' => $toggleSwitch[$f_matchKeys[0]],
+						];
+					}
 					// load the target behavior
 					foreach ($controls as $target => $action)
 					{
@@ -675,6 +706,7 @@ final class ViewScript
 				$validation = $this->validationScript($nameSingleCode);
 
 				// set the isSet function
+				$this->validationfix->setConditions($nameSingleCode, $serverGroups);
 				$isSet = $this->isSetFunction();
 			}
 			// load to this buket
@@ -817,6 +849,34 @@ final class ViewScript
 				$nameSingleCode . '.footerScript', $footerScript
 			);
 		}
+	}
+
+	/**
+	 * Preserve the browser's normalized match definition for model validation.
+	 *
+	 * @param   array  $condition  The normalized view condition.
+	 * @param   array  $options    Options read by the shared options renderer.
+	 *
+	 * @return  array
+	 * @since   6.2.0
+	 */
+	protected function validationCondition(array $condition, array $options): array
+	{
+		if (in_array((int) $condition['match_behavior'], [8, 9], true))
+		{
+			$options['keywords'] = array_map(
+				static fn ($keyword) => StringHelper::safe($keyword, 'w'),
+				$options['keywords'] ?? []
+			);
+		}
+
+		return [
+			'name' => $condition['match_name'],
+			'behavior' => (int) $condition['match_behavior'],
+			'options' => $options,
+			'user' => $this->scriptuserswitch->inArray($condition['match_type']),
+			'checkbox' => $condition['match_type'] === 'checkbox',
+		];
 	}
 
 	/**

@@ -408,6 +408,22 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		$this->assertSame(self::EXPECTED_REQUIRED_FILE, $this->scripts->get('look.fileScript'));
 		$this->assertSame(['colour'], $this->fixes->get('look'));
+		$this->assertSame([
+			[
+				'matches' => [[
+					'name' => 'kind',
+					'behavior' => 1,
+					'options' => ['one', 'two'],
+					'user' => false,
+					'checkbox' => false,
+					'array' => true,
+					'supported' => true,
+				]],
+				'targets' => ['colour'],
+				'show' => true,
+				'toggle' => true,
+			],
+		], $this->fixes->getConditions('look'));
 	}
 
 	/**
@@ -430,6 +446,32 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		$this->assertSame(self::EXPECTED_CHAINED_FILE, $this->scripts->get('look.fileScript'));
 		$this->assertSame(self::EXPECTED_CHAINED_FOOTER, $this->scripts->get('look.footerScript'));
+	}
+
+	/**
+	 * Server validation uses exactly the relation group the browser has selected.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testServerRequirementsReuseBrowserRelationGroups(): void
+	{
+		$targets = [['name' => 'colour', 'type' => 'text', 'required' => 'yes']];
+		$this->subject()->get(self::view([
+			self::condition(['target_relation' => 1, 'target_field' => $targets]),
+			self::condition([
+				'match_field' => 'f-b', 'match_name' => 'level',
+				'match_options' => "yes\nno", 'target_relation' => 1,
+				'target_field' => $targets,
+			]),
+		]));
+
+		$groups = $this->fixes->getConditions('look');
+		$this->assertCount(1, $groups);
+		$this->assertSame(['kind', 'level'], array_column($groups[0]['matches'], 'name'));
+		$this->assertSame(['colour'], $groups[0]['targets']);
+		$this->assertTrue($groups[0]['toggle']);
+		$this->assertSame([true, true], array_column($groups[0]['matches'], 'array'));
 	}
 
 	/**

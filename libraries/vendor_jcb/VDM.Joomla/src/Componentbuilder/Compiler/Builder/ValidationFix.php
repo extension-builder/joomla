@@ -33,5 +33,40 @@ final class ValidationFix extends Registry implements Registryinterface
 	 * @since 6.1.7
 	 **/
 	protected bool $addAsArray = true;
+
+	/**
+	 * Server validation groups, separate from the legacy field-name registry.
+	 *
+	 * @var    array<string, array>
+	 * @since  6.2.0
+	 */
+	protected array $conditions = [];
+
+	/**
+	 * Store the exact condition groups selected for the browser script.
+	 *
+	 * @param   string  $view    The single view name.
+	 * @param   array   $groups  The ordered condition groups.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function setConditions(string $view, array $groups): void
+	{
+		$this->conditions[$view] = $groups;
+	}
+
+	/**
+	 * Read the server validation groups without changing field-name values.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  array
+	 * @since   6.2.0
+	 */
+	public function getConditions(string $view): array
+	{
+		return $this->conditions[$view] ?? [];
+	}
 }
 

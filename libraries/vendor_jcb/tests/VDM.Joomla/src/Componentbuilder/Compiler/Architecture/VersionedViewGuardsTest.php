@@ -130,24 +130,6 @@ GEN;
 	 */
 	public function validate($form, $data, $group = null)
 	{
-		// check if the not_required field is set
-		if (isset($data['not_required']) && Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check($data['not_required']))
-		{
-			$requiredFields = (array) explode(',',(string) $data['not_required']);
-			$requiredFields = array_unique($requiredFields);
-			// now change the required field attributes value
-			foreach ($requiredFields as $requiredField)
-			{
-				// make sure there is a string value
-				if (Super___1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check($requiredField))
-				{
-					// change to false
-					$form->setFieldAttribute($requiredField, 'required', 'false');
-					// also clear the data set
-					unset($data[$requiredField]);
-				}
-			}
-		}
 		return parent::validate($form, $data, $group);
 	}
 GEN;
@@ -419,7 +401,7 @@ GEN;
 	public function testAViewWithFixesIsGivenTheValidationMethod(): void
 	{
 		$fixes = new ValidationFixRegistry();
-		$fixes->set('demo', ["\$data['name'] = trim(\$data['name']);"]);
+		$fixes->set('demo', ['conditional_name']);
 
 		$subject = $this->renderer(ValidationFix::class, ['validationfix' => $fixes]);
 

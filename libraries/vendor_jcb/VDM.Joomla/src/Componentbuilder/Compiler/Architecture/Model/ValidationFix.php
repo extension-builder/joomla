@@ -14,17 +14,14 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Utilities\ArrayHelper;
-use VDM\Joomla\Utilities\StringHelper;
 
 
 /**
  * Model Validation Fix Class.
  * 
- * Builds the statements an admin model runs to make a value the form gave it
- * fit what the database will take.
+ * Builds server-side conditional requirements from the same normalized
+ * definitions used by the administrator form script.
  * 
  * @since 6.1.7
  */
@@ -90,36 +87,7 @@ final class ValidationFix
 			$fix .= PHP_EOL . Indent::_(1)
 				. "public function validate(\$form, \$data, \$group = null)";
 			$fix .= PHP_EOL . Indent::_(1) . "{";
-			$fix .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
-				. " check if the not_required field is set";
-			$fix .= PHP_EOL . Indent::_(2)
-				. "if (isset(\$data['not_required']) && "
-				. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$data['not_required']))";
-			$fix .= PHP_EOL . Indent::_(2) . "{";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "\$requiredFields = (array) explode(',',(string) \$data['not_required']);";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "\$requiredFields = array_unique(\$requiredFields);";
-			$fix .= PHP_EOL . Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-				. " now change the required field attributes value";
-			$fix .= PHP_EOL . Indent::_(3)
-				. "foreach (\$requiredFields as \$requiredField)";
-			$fix .= PHP_EOL . Indent::_(3) . "{";
-			$fix .= PHP_EOL . Indent::_(4) . "//" . Line::_(__Line__, __Class__)
-				. " make sure there is a string value";
-			$fix .= PHP_EOL . Indent::_(4) . "if ("
-				. "Super_" . "__1f28cb53_60d9_4db1_b517_3c7dc6b429ef___Power::check(\$requiredField))";
-			$fix .= PHP_EOL . Indent::_(4) . "{";
-			$fix .= PHP_EOL . Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " change to false";
-			$fix .= PHP_EOL . Indent::_(5)
-				. "\$form->setFieldAttribute(\$requiredField, 'required', 'false');";
-			$fix .= PHP_EOL . Indent::_(5) . "//" . Line::_(__Line__, __Class__)
-				. " also clear the data set";
-			$fix .= PHP_EOL . Indent::_(5) . "unset(\$data[\$requiredField]);";
-			$fix .= PHP_EOL . Indent::_(4) . "}";
-			$fix .= PHP_EOL . Indent::_(3) . "}";
-			$fix .= PHP_EOL . Indent::_(2) . "}";
+			$fix .= $this->conditions($view);
 			$fix .= PHP_EOL . Indent::_(2)
 				. "return parent::validate(\$form, \$data, \$group);";
 			$fix .= PHP_EOL . Indent::_(1) . "}";
@@ -127,5 +95,224 @@ final class ValidationFix
 
 		return $fix;
 	}
+
+	/**
+	 * Render conditional requirements without trusting browser-supplied field names.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function conditions(string $view): string
+	{
+		$groups = $this->validationfix->getConditions($view);
+		if ($groups === [])
+		{
+			return '';
+		}
+
+		$code = PHP_EOL . Indent::_(2) . '$conditionGroups = ' . $this->export($groups) . ';';
+		$code .= PHP_EOL . <<<'PHP'
+		// The browser's not_required list is informational, never an authority.
+		$conditionData = $data;
+		$conditionStored = [];
+		$recordId = (int) ($data['id'] ?? $this->getState($this->getName() . '.id', 0));
+		if ($recordId > 0)
+		{
+			$stored = $this->getItem($recordId);
+			if ($stored === false || $stored === null)
+			{
+				return false;
+			}
+			$conditionStored = (array) $stored;
+			$conditionData = array_replace($conditionStored, $conditionData);
+		}
+		$conditionPresent = static function ($value): bool
+		{
+			return $value !== null && $value !== '' && $value !== [];
+		};
+		$conditionEquals = static function ($value, $option): bool
+		{
+			// Selection values arrive as DOM strings; numeric/boolean options use JS equality.
+			if (is_numeric($option) || $option === 'true' || $option === 'false')
+			{
+				if ($value === null)
+				{
+					return false;
+				}
+				$number = $option === 'true' ? 1 : ($option === 'false' ? 0 : (float) $option);
+				if (is_bool($value) || (is_string($value) && trim($value) === ''))
+				{
+					return (float) $value === (float) $number;
+				}
+				return is_numeric($value) && (float) $value === (float) $number;
+			}
+			return is_scalar($value) && (string) $value === (string) $option;
+		};
+		$conditionMatch = static function ($value, array $rule) use ($conditionPresent, $conditionEquals): bool
+		{
+			$behavior = $rule['behavior'];
+			$options = $rule['options'];
+			if ($behavior >= 1 && $behavior <= 3)
+			{
+				if ($options !== [])
+				{
+					foreach ($options as $option)
+					{
+						$equal = $conditionEquals($value, $option);
+						// Preserve the browser's OR across options, including Is Not.
+						if ($behavior === 2 ? !$equal : $equal)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				$present = $conditionPresent($value);
+				if ($behavior === 2)
+				{
+					return !$present;
+				}
+				return $present && !($behavior === 3 && $rule['user'] && $conditionEquals($value, '0'));
+			}
+			if ($behavior === 4 || $behavior === 5)
+			{
+				return $behavior === 4 ? $conditionPresent($value) : !$conditionPresent($value);
+			}
+			if (!is_scalar($value) && $value !== null)
+			{
+				return false;
+			}
+			$value = (string) $value;
+			if ($behavior >= 6 && $behavior <= 9)
+			{
+				$keywords = $options['keywords'] ?? [];
+				if ($keywords === [])
+				{
+					return $value === 'error';
+				}
+				$all = $behavior === 6 || $behavior === 8;
+				if ($behavior === 8 || $behavior === 9)
+				{
+					$value = StringHelper::strtolower($value);
+				}
+				foreach ($keywords as $keyword)
+				{
+					$found = strpos($value, $keyword) !== false;
+					if ($all ? !$found : $found)
+					{
+						return !$all;
+					}
+				}
+				return $all;
+			}
+			// JavaScript length counts UTF-16 code units, including surrogate pairs.
+			$length = StringHelper::strlen($value) + preg_match_all('/[\x{10000}-\x{10FFFF}]/u', $value);
+			$expected = (int) (($options['length'] ?? 0) ?: 5);
+			switch ($behavior)
+			{
+				case 10:
+					return $length >= $expected;
+				case 11:
+					return $length <= $expected;
+				case 12:
+					return $length == $expected;
+			}
+			return false;
+		};
+		$conditionalRequired = [];
+		foreach ($conditionGroups as $conditionGroup)
+		{
+			foreach ($conditionGroup['targets'] as $target)
+			{
+				$conditionalRequired[$target] = true;
+			}
+		}
+		foreach ($conditionGroups as $conditionGroup)
+		{
+			$matched = true;
+			foreach ($conditionGroup['matches'] as $rule)
+			{
+				// Unsupported definitions cannot relax a required field.
+				if (!$rule['supported'])
+				{
+					continue 2;
+				}
+				// ACL-denied selectors cannot change applicability through discarded input.
+				$disabled = strtolower((string) $form->getFieldAttribute($rule['name'], 'disabled', '', $group));
+				$filter = strtolower((string) $form->getFieldAttribute($rule['name'], 'filter', '', $group));
+				$available = $form->getFieldAttribute($rule['name'], 'name', null, $group) !== null;
+				$values = !$available || in_array($disabled, ['true', '1', 'disabled'], true) || $filter === 'unset'
+					? $conditionStored : $conditionData;
+				$value = array_key_exists($rule['name'], $values)
+					? $values[$rule['name']]
+					: $form->getFieldAttribute($rule['name'], 'default', null, $group);
+				if ($rule['checkbox'])
+				{
+					$value = (bool) $value;
+				}
+				if ($rule['array'])
+				{
+					$values = $conditionPresent($value) ? (array) $value : [];
+					$oneMatches = false;
+					foreach ($values as $entry)
+					{
+						if ($conditionMatch($entry, $rule))
+						{
+							$oneMatches = true;
+							break;
+						}
+					}
+				}
+				else
+				{
+					$oneMatches = $conditionMatch($value, $rule);
+				}
+				$matched = $matched && $oneMatches;
+			}
+			if ($matched || $conditionGroup['toggle'])
+			{
+				$required = $matched ? $conditionGroup['show'] : !$conditionGroup['show'];
+				foreach ($conditionGroup['targets'] as $target)
+				{
+					$conditionalRequired[$target] = $required;
+				}
+			}
+		}
+		foreach ($conditionalRequired as $field => $required)
+		{
+			$form->setFieldAttribute($field, 'required', $required ? 'true' : 'false', $group);
+		}
+		// Inactive fields keep their values; ordinary filtering and validation still apply.
+PHP;
+
+		return $code;
+	}
+
+	/**
+	 * Export normalized condition data as a compact PHP array literal.
+	 *
+	 * @param   mixed  $value  A scalar or array from the compiler definition.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function export($value): string
+	{
+		if (!is_array($value))
+		{
+			return var_export($value, true);
+		}
+
+		$items = [];
+		foreach ($value as $key => $item)
+		{
+			$items[] = var_export($key, true) . ' => ' . $this->export($item);
+		}
+
+		return '[' . implode(', ', $items) . ']';
+	}
+
 }
 
