@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Move Folder Script Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface MoveFolderScriptInterface
@@ -28,3 +28,4 @@ interface MoveFolderScriptInterface
 	 */
 	public function get(): string;
 }
+

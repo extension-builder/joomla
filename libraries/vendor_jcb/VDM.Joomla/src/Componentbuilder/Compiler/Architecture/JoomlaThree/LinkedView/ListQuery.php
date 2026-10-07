@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedVi
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListQuery as ExtendingListQuery;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface;
 
 
 /**
  * Linked View List Query Class for Joomla 3
- *
+ * 
  * Joomla 3 has no application identity and no model database accessor, so
  * both the user and the database come from the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class ListQuery extends ExtendingListQuery implements ListQueryInterface
@@ -51,3 +51,4 @@ final class ListQuery extends ExtendingListQuery implements ListQueryInterface
 			. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDBO();";
 	}
 }
+

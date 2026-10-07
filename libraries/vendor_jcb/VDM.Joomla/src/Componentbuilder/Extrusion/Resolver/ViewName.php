@@ -17,11 +17,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Recovers a JCB view name from a source table name.
- *
+ * 
  * A component prefixes its tables with its own code name, so the view name is
  * what remains once that prefix is removed. The list name is the naive plural,
  * which is the same convention JCB itself uses when generating a component.
- *
+ * 
  * @since 6.1.6
  */
 final class ViewName
@@ -166,3 +166,4 @@ final class ViewName
 		return $prefixes;
 	}
 }
+

@@ -27,12 +27,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Extension Version Update Class.
- *
+ * 
  * Builds the component's version-update output: the update-server XML
  * entries, the changelog server manifest values, the per-version SQL
  * update files, and, when dynamic SQL updates exist, the persisted
  * component version and version-update rows.
- *
+ * 
  * @since  6.1.7
  */
 final class VersionUpdate
@@ -534,3 +534,4 @@ final class VersionUpdate
 		}
 	}
 }
+

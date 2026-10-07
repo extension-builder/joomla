@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 
 /**
  * One source-to-Power decision for harvest, relationships, preview and writes.
- *
+ * 
  * Lookup candidates are gathered before any decision. Usage can disambiguate a
  * definition, but never turns all of its namespace words into component roles.
- *
+ * 
  * @since  6.2.0
  */
 final class Identity
@@ -1143,3 +1143,4 @@ final class Identity
 		return $result;
 	}
 }
+

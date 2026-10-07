@@ -26,23 +26,23 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelExpertField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionFields;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SelectionTranslation;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Tags;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface;
 
 
 /**
  * Model Items String Fix Class.
- *
+ * 
  * Generates everything a list model does to its items after loading them:
  * decodes and escapes stored values, resolves related and expert fields,
  * applies access checks to permission-guarded fields, and attaches tags.
- *
+ * 
  * Only how the current user is obtained differs between Joomla targets, so
  * that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ItemsStringFix implements ItemsStringFixInterface
@@ -909,3 +909,4 @@ class ItemsStringFix implements ItemsStringFixInterface
 			. "\$user = \$this->getCurrentUser();";
 	}
 }
+

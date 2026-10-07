@@ -21,16 +21,16 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Model Field Relation Class.
- *
+ * 
  * Generates the statement that gives a related field its value once a list
  * model has loaded its items. A relation either runs the custom code the
  * field carries, or concatenates the field and every field it joins with a
  * separator between them.
- *
+ * 
  * A field may be referenced in that custom code by its numeric id or by its
  * guid, both written as `$item->{...}`, so both spellings are replaced with
  * the real property before the code is emitted.
- *
+ * 
  * @since  6.1.7
  */
 final class FieldRelation
@@ -132,3 +132,4 @@ final class FieldRelation
 		return $this->placeholder->update_($fix);
 	}
 }
+

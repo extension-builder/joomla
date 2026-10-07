@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model BatchCopy Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface BatchCopyInterface
@@ -30,3 +30,4 @@ interface BatchCopyInterface
 	 */
 	public function get($nameSingleCode);
 }
+

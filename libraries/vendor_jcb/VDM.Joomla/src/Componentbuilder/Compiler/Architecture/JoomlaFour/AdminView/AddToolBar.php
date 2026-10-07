@@ -590,3 +590,4 @@ final class AddToolBar implements AddToolBarInterface
 		return $toolBar;
 	}
 }
+

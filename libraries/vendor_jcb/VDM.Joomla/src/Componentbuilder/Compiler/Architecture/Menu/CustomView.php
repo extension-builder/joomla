@@ -31,14 +31,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomView
 
 /**
  * Custom View Menu Class.
- *
+ * 
  * Builds the `default.xml` menu metadata for a site or custom admin view,
  * including its request fields and frontend page parameters. The rule and
  * field lookup attributes of the generated fieldsets are supplied by the
  * Joomla-target variants through the `getPathAttributes()` extension
  * point; this shared implementation carries the Joomla 4+ namespace
  * prefixes.
- *
+ * 
  * @since  6.1.7
  */
 class CustomView implements CustomViewInterface
@@ -333,3 +333,4 @@ class CustomView implements CustomViewInterface
 		return $xml;
 	}
 }
+

@@ -14,19 +14,19 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Php;
 
 /**
  * Reads the body a screen shows out of its own template file.
- *
+ * 
  * A Joomla view template opens with PHP -- the execution guard, the imports,
  * whatever the view prepares -- and then closes that block and lays out the
  * markup a person actually sees. What JCB holds for a screen is that second
  * part: everything after the first closing tag. So that is what is taken here,
  * exactly as a power's body is taken out of its class file, rather than a body
  * being invented for the screen.
- *
+ * 
  * Nothing about which file this is, or where it sits, is decided here. The
  * caller has already found the screen's template through the layout the
  * component follows; this only separates what a template says from how it
  * prepares to say it.
- *
+ * 
  * @since 6.2.0
  */
 final class Template
@@ -80,3 +80,4 @@ final class Template
 		return trim(substr($code, $closed + 2));
 	}
 }
+

@@ -12,17 +12,18 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion Schema Registry
- *
+ * 
  * Parsed install schema: tables, columns, types, keys, and decoded column notes.
- *
+ * 
  * @since 6.1.6
  */
 final class Schema extends Registry implements Registryinterface
 {
 }
+

@@ -28,10 +28,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom View Template Body Class.
- *
+ * 
  * Writes every template a custom view was drawn with into the component being
  * built, and fills in the code, the header and the default of each.
- *
+ * 
  * @since 6.1.7
  */
 final class TemplateBody
@@ -204,3 +204,4 @@ final class TemplateBody
 		return '';
 	}
 }
+

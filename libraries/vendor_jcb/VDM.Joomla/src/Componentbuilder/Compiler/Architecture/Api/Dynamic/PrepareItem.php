@@ -20,11 +20,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * The item preparation of a dynamic get JSON view
- *
+ * 
  * A JSON:API resource needs an id, the multi-row joins of the main get are
  * fetched for every row through the model methods the templates use, and
  * on an item resource the custom gets of the view ride along as attributes.
- *
+ * 
  * @since 6.1.7
  */
 class PrepareItem
@@ -205,3 +205,4 @@ class PrepareItem
 		return $key;
 	}
 }
+

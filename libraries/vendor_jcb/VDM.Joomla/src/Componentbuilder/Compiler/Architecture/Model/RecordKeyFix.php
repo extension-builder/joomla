@@ -22,7 +22,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Model Record Key Fix Class.
- *
+ * 
  * Builds the opening block of the save method of an admin edit view model:
  * the record keys, in the shape every line after it expects. The primary key
  * becomes an integer that is never taken from the request (Joomla's API hands
@@ -33,10 +33,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  * without a valid unique guid gets one. On a view with an alias a new record
  * gets the alias key, so the table builds the alias from the title the way a
  * form submit with an empty alias does.
- *
+ * 
  * The output is identical for every Joomla target, and it lands in the
  * administrator model and the site edit model alike.
- *
+ * 
  * @since  6.1.7
  */
 final class RecordKeyFix
@@ -210,3 +210,4 @@ final class RecordKeyFix
 		return is_string($alias) && $alias !== '' ? $alias : null;
 	}
 }
+

@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentMetadata as S
 
 /**
  * Joomla 3 View Document Metadata Class.
- *
+ * 
  * A Joomla 3 view holds its document in a property of its own, and sets the
  * description of the item it read straight on it.
- *
+ * 
  * @since  6.1.7
  */
 final class DocumentMetadata extends SharedDocumentMetadata
@@ -51,3 +51,4 @@ final class DocumentMetadata extends SharedDocumentMetadata
 		return "\$this->document->setDescription(" . $value . ");";
 	}
 }
+

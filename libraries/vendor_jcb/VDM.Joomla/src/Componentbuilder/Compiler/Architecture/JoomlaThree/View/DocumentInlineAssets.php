@@ -19,10 +19,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Joomla 3 View Document Inline Assets Class.
- *
+ * 
  * A Joomla 3 view declares its stylesheet and its script on the document
  * itself, there being no web asset manager to hand them to.
- *
+ * 
  * @since  6.1.7
  */
 final class DocumentInlineAssets extends SharedDocumentInlineAssets
@@ -57,3 +57,4 @@ final class DocumentInlineAssets extends SharedDocumentInlineAssets
 			. Indent::_(2) . '$this->getDocument()->addScriptDeclaration("';
 	}
 }
+

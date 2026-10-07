@@ -656,3 +656,4 @@ final class Structuresingle
 		}
 	}
 }
+

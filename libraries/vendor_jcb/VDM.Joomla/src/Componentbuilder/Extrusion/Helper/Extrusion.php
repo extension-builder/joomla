@@ -20,18 +20,18 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * The dump-driven extrusion entry point.
- *
+ * 
  * This is the seam the component form has always called: saving a component with
  * a pasted schema dump builds its views and fields. It no longer carries any
  * parsing or writing of its own. It resolves the extrusion engine from the
  * container, hands it the dump and the component it belongs to, and surfaces what
  * the engine reported.
- *
+ * 
  * Keeping one engine behind both entry points is the point. The dump path and the
  * folder path now share every reader, resolver and writer, so an improvement to
  * one is an improvement to both, and they cannot quietly disagree about the same
  * dump.
- *
+ * 
  * @since 3.2.0
  */
 class Extrusion
@@ -201,3 +201,4 @@ class Extrusion
 		}
 	}
 }
+

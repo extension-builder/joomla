@@ -21,15 +21,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Joomla 3 Component Content Types Class.
- *
+ * 
  * Joomla 3 has no script.php helper to hand a content type to, so the
  * generated code assembles each row itself and inserts it, updating the row it
  * finds when the component is updating rather than installing.
-
+ * 
  * What a row carries differs too: the table it names is the Joomla 3 JTable
  * pair, the route is the component's own helper method, and the history
  * options read a form out of the models folder and hide the version column.
- *
+ * 
  * @since  6.1.7
  */
 final class ContentTypes extends SharedContentTypes
@@ -228,3 +228,4 @@ final class ContentTypes extends SharedContentTypes
 		return '{"formFile":"administrator\/components\/com_categories\/models\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
 	}
 }
+

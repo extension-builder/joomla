@@ -24,15 +24,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * License Lock Generation Class.
- *
+ * 
  * Generates the WHMCS license-lock fragments of a component: the helper
  * `isGenuine()` methods, the global lock initialization and `defined` guard,
  * and the per-view boolean lock methods with their check statements.
- *
+ * 
  * The generated fragments are stored in the shared ContentOne and
  * ContentMulti registries under the same placeholder keys the legacy
  * Interpretation helper used.
- *
+ * 
  * @since  6.1.7
  */
 final class LicenseLock
@@ -316,3 +316,4 @@ final class LicenseLock
 		return implode(PHP_EOL, $init);
 	}
 }
+

@@ -19,10 +19,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Joomla 3 Component Move Folder Method Class.
- *
+ * 
  * A Joomla 3 install script is handed the application and the parent installer
  * rather than the adapter, and reports through the application it was given.
- *
+ * 
  * @since  6.1.7
  */
 final class MoveFolderMethod extends SharedMoveFolderMethod
@@ -66,3 +66,4 @@ $lines[] = Indent::_(2) . "\$installer = \$parent->getParent();";
 	. "\$app->enqueueMessage('Could not copy '.\$folder.' folder into place, please make sure destination is writable!', 'error');";
 	}
 }
+

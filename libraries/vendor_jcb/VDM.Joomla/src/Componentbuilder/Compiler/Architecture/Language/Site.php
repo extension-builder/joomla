@@ -25,9 +25,9 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Language Site Class.
- *
+ * 
  * Registers every language string the site side needs.
- *
+ * 
  * @since 6.1.7
  */
 final class Site
@@ -190,3 +190,4 @@ final class Site
 		return false;
 	}
 }
+

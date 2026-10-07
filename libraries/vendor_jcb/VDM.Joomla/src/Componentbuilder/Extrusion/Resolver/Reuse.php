@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 
 /**
  * Makes every matched candidate reuse what JCB already holds.
- *
+ * 
  * Everything in JCB is linked by guid, so a guid in common says two
  * definitions are the same thing -- and a field the paired view already
  * links is that view's own wiring rediscovered, which weighs the same.
@@ -29,10 +29,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
  * untouched. A candidate that merely shares a name with something elsewhere
  * in the system stays a fresh creation -- the resemblance is offered on the
  * board, never acted on, because linking a lookalike would misstate identity.
- *
+ * 
  * An explicit verdict from the pairing board always outranks these defaults;
  * this layer only speaks where the caller stayed silent.
- *
+ * 
  * @since 6.1.8
  */
 final class Reuse
@@ -249,3 +249,4 @@ final class Reuse
 		));
 	}
 }
+

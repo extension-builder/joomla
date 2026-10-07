@@ -689,3 +689,4 @@ final class Header implements HeaderInterface
 		return !in_array($context, $this->disallowedContexts, true);
 	}
 }
+

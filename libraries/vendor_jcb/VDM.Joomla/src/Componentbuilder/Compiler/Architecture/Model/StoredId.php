@@ -27,11 +27,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Stored Id Class.
- *
+ * 
  * Builds the method a list model runs to work out whether the state it was
  * given differs from the state it last stored, so it knows when to throw its
  * cached list away.
- *
+ * 
  * @since 6.1.7
  */
 final class StoredId
@@ -323,3 +323,4 @@ final class StoredId
 		return $stored;
 	}
 }
+

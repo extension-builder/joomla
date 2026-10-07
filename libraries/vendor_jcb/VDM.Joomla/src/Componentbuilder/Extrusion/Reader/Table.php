@@ -12,28 +12,28 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Literal;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table as TableRegistry;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 
 
 /**
  * Reads a JCB table definition class into the table registry.
- *
+ * 
  * This is precedence tier zero, the highest priority source a component can
  * offer. A component built by JCB carries a table definition class whose
  * $tables map is the source of truth for its whole infrastructure, and it holds
  * three things no other artifact records at all: the foreign key relationship
  * in link, the storage encoding in store, and the per-field guid that lets a
  * re-run line up exactly with the source project's own definitions.
- *
+ * 
  * The file is read as text and handed to the literal-only parser. It is never
  * included, required, or evaluated, because a source tree may be an unzipped
  * upload. When the parser refuses the map, the reason is recorded at
  * report.table.reason and the run drops to the next tier rather than trusting
  * part of what it saw.
- *
+ * 
  * @since 6.1.6
  */
 final class Table implements ReaderInterface
@@ -441,3 +441,4 @@ final class Table implements ReaderInterface
 		return $contents === false ? null : $contents;
 	}
 }
+

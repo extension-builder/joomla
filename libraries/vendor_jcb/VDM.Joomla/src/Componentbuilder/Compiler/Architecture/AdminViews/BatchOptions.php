@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Batc
 
 /**
  * Admin Views Batch Options Class.
- *
+ * 
  * Targets after Joomla 3 build their batch options from the list view itself
  * rather than from a helper, so there is nothing to build here.
- *
+ * 
  * @since 6.1.7
  */
 final class BatchOptions implements BatchOptionsInterface
@@ -40,3 +40,4 @@ final class BatchOptions implements BatchOptionsInterface
 		return '';
 	}
 }
+

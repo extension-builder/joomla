@@ -18,11 +18,11 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * List Column Number Builder Class.
- *
+ * 
  * Counts the columns rendered in each admin list view head so the matching
  * list footer can span the same number of columns. The count is keyed by
  * the list code name of the view.
- *
+ * 
  * @since  6.1.7
  */
 final class ListColumnNumber extends Registry implements Registryinterface
@@ -41,3 +41,4 @@ final class ListColumnNumber extends Registry implements Registryinterface
 		$this->set($nameListCode, ((int) $this->get($nameListCode, 0)) + 1);
 	}
 }
+

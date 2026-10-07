@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 
 /**
  * Finds the component's form XML, one per view.
- *
+ * 
  * The located name is the view name, taken from the file name, because that is
  * what ties a form to its database table.
- *
+ * 
  * @since 6.1.6
  */
 final class Form extends Locator
@@ -107,3 +107,4 @@ final class Form extends Locator
 		return strtolower(pathinfo($path, PATHINFO_FILENAME));
 	}
 }
+

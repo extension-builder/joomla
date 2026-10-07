@@ -19,20 +19,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\List
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DoNotEscape;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Lists;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface;
 
 
 /**
  * Linked View List Body Class.
- *
+ * 
  * Builds the table body a linked admin view renders inside an edit tab: one
  * row per item, the columns that target the linked list, the publish state
  * and id columns, and the paging footer.
- *
+ * 
  * Only how a checked-out user is looked up differs between Joomla targets,
  * so that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ListBody implements ListBodyInterface
@@ -313,3 +313,4 @@ class ListBody implements ListBodyInterface
 		return $body;
 	}
 }
+

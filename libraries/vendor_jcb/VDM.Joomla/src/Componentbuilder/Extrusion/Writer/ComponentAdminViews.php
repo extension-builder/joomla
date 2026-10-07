@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -21,15 +20,16 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Links every written admin view to the JCB component being built.
- *
+ * 
  * Without this the extruded views exist but belong to nothing, which is the state
  * the run must never be left in. An update run merges with the links the
  * component already has rather than replacing them.
- *
+ * 
  * @since 6.1.6
  */
 final class ComponentAdminViews extends Writer
@@ -415,3 +415,4 @@ final class ComponentAdminViews extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla 3 View Ajax Token Class.
- *
+ * 
  * A Joomla 3 view declares the token straight on the document, there being no
  * web asset manager to hand it to.
- *
+ * 
  * @since  6.1.7
  */
 final class AjaxToken extends SharedAjaxToken
@@ -39,3 +39,4 @@ final class AjaxToken extends SharedAjaxToken
 			. "\$this->getDocument()->addScriptDeclaration(\"var token = '\" . Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::getFormToken() . \"';\");";
 	}
 }
+

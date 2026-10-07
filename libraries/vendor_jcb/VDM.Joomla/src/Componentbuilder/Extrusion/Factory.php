@@ -21,24 +21,24 @@ use VDM\Joomla\Componentbuilder\Extrusion\Service\Reader;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Registry;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Resolver;
 use VDM\Joomla\Componentbuilder\Extrusion\Service\Writer;
-use VDM\Joomla\Interfaces\FactoryInterface;
 use VDM\Joomla\Service\Data;
 use VDM\Joomla\Service\Database;
 use VDM\Joomla\Service\Model;
 use VDM\Joomla\Service\Table;
+use VDM\Joomla\Interfaces\FactoryInterface;
 
 
 /**
  * Extrusion Factory
- *
+ * 
  * The composition entry point for the extrusion engine. Resolving the Extruder
  * from here is the only permitted static resolution: every class below it takes
  * its collaborators by constructor injection, and the providers are the only
  * place a collaborator is constructed.
- *
+ * 
  * The JCB data pipeline is composed in as well, because writing goes through it
  * rather than around it.
- *
+ * 
  * @since 6.1.6
  */
 abstract class Factory extends ExtendingFactory implements FactoryInterface
@@ -73,3 +73,4 @@ abstract class Factory extends ExtendingFactory implements FactoryInterface
 			->registerServiceProvider(new Extrusion());
 	}
 }
+

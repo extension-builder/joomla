@@ -32,14 +32,14 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Component Details Class.
- *
+ * 
  * Fills in everything the component says about itself before any of its views
  * are built: its names, who wrote it and when, the version the target expects,
  * the scripts and styles it carries, and the placeholders the component was
  * given of its own.
- *
+ * 
  * Every view built after this reads what is set here, so it runs once, first.
- *
+ * 
  * @since 6.1.7
  */
 final class Details
@@ -514,3 +514,4 @@ final class Details
 		return implode(PHP_EOL, $files);
 	}
 }
+

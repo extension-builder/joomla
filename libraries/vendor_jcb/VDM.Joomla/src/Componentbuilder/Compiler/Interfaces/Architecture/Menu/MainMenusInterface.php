@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu;
 
 /**
  * Menu Main Menus Interface
- *
+ * 
  * @since  6.1.7
  */
 interface MainMenusInterface
@@ -28,3 +28,4 @@ interface MainMenusInterface
 	 */
 	public function get(): string;
 }
+

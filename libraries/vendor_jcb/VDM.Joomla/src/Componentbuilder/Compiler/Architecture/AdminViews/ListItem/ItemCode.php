@@ -331,3 +331,4 @@ final class ItemCode
 			. 'loadUserById((int) ($item->' . $code . ' ?? 0))->name';
 	}
 }
+

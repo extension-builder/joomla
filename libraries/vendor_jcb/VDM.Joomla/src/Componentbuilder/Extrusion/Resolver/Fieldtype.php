@@ -19,17 +19,17 @@ use VDM\Joomla\Interfaces\Database\LoadInterface;
 
 /**
  * Maps a Joomla form field type onto a JCB field type.
- *
+ * 
  * The mapping is data, not a hardcoded table. Each JCB field type row carries a
  * properties JSON whose first entry is the type property, and the example on that
  * entry is the Joomla XML type string. Reading the catalogue therefore yields the
  * authoritative mapping and keeps working as JCB gains field types.
- *
+ * 
  * Three policies the catalogue forces: a collision is settled by an exact name
  * match then an explicit override then the lowest id; a version-scoped type is
  * filtered by the target major; and an unknown type is the component's own custom
  * field type rather than a failure.
- *
+ * 
  * @since 6.1.6
  */
 final class Fieldtype
@@ -728,3 +728,4 @@ final class Fieldtype
 		return null;
 	}
 }
+

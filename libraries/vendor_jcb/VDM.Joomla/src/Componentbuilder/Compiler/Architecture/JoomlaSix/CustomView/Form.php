@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Form as SharedF
 
 /**
  * Joomla 6 Custom View Form Class.
- *
+ * 
  * A Joomla 6 site form posts to index.php on its own, the component it belongs
  * to being carried by the route rather than by the query.
- *
+ * 
  * @since  6.1.7
  */
 final class Form extends SharedForm
@@ -42,3 +42,4 @@ final class Form extends SharedForm
 			. PHP_EOL;
 	}
 }
+

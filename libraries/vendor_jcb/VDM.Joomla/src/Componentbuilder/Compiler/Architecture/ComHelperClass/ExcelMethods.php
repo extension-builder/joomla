@@ -21,13 +21,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\
 
 /**
  * Component Helper Class Excel Methods Class.
- *
+ * 
  * Generates the component helper `xls()` export method, the
  * `getFileHeaders()` import-header reader, and the phpspreadsheet
  * composer loader used by the import/export feature. Joomla-target
  * variants supply the target-specific user lookup through the
  * `getUserLines()` extension point.
- *
+ * 
  * @since  6.1.7
  */
 class ExcelMethods implements ExcelMethodsInterface
@@ -384,3 +384,4 @@ class ExcelMethods implements ExcelMethodsInterface
 		return [];
 	}
 }
+

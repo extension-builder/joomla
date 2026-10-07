@@ -23,10 +23,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Admin Views Can Do Class.
- *
+ * 
  * Builds the permission object a list view is given, which the view asks
  * before it shows anything the user may not be allowed to do.
- *
+ * 
  * @since 6.1.7
  */
 final class CanDo
@@ -110,3 +110,4 @@ final class CanDo
 		return implode(PHP_EOL, $allow);
 	}
 }
+

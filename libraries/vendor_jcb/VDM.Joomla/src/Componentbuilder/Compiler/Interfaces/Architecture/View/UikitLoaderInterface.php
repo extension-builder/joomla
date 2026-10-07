@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View;
 
 /**
  * View Uikit Loader Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface UikitLoaderInterface
@@ -30,3 +30,4 @@ interface UikitLoaderInterface
 	 */
 	public function get(array $view): string;
 }
+

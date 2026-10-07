@@ -19,10 +19,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Pure selection decisions shared by compilation and read-only discovery.
- *
+ * 
  * This service neither loads definitions nor executes custom code. It preserves
  * stored selector values so callers can report malformed references separately.
- *
+ * 
  * @since  6.2.0
  */
 final class Selection
@@ -149,7 +149,7 @@ final class Selection
 		);
 		$layouts = [];
 
-		foreach (['LayoutHelper', 'Joomla___7ab82272_0b3d_4bb1_af35_e63a096cfe0b___Power'] as $class)
+		foreach (['LayoutHelper', 'Joomla__' . '_7ab82272_0b3d_4bb1_af35_e63a096cfe0b___Power'] as $class)
 		{
 			$layouts = array_merge(
 				$layouts,
@@ -247,3 +247,4 @@ final class Selection
 		return is_array($values) && in_array(-1, $values, false);
 	}
 }
+

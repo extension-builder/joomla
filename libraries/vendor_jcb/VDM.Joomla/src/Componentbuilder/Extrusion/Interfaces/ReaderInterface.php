@@ -14,11 +14,11 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Interfaces;
 
 /**
  * Turns one located source artifact into registry state.
- *
+ * 
  * A reader is pure with respect to JCB: it reads a file from the source tree
  * and writes what it understood into a focused registry. It never touches the
  * database and never includes or evaluates a file from the source tree.
- *
+ * 
  * @since 6.1.6
  */
 interface ReaderInterface
@@ -34,3 +34,4 @@ interface ReaderInterface
 	 */
 	public function read(string $path, ?string $name = null): bool;
 }
+

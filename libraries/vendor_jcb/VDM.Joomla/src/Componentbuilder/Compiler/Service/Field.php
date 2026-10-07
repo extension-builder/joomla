@@ -46,7 +46,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Field\InputButtonInterface a
 
 /**
  * Compiler Field
- *
+ * 
  * @since 3.2.0
  */
 class Field implements ServiceProviderInterface
@@ -596,3 +596,4 @@ class Field implements ServiceProviderInterface
 		return $container->get('J' . $this->targetVersion . '.Field.Input.Button');
 	}
 }
+

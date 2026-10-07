@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelper
 
 /**
  * Component Helper Class Excel Methods Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ExcelMethodsInterface
@@ -28,3 +28,4 @@ interface ExcelMethodsInterface
 	 */
 	public function get(): string;
 }
+

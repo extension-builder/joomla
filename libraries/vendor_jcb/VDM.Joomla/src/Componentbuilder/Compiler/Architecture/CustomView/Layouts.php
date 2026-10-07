@@ -27,10 +27,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom View Layouts Class.
- *
+ * 
  * Writes every layout the build target collected into the component being
  * built, and fills in the code, the header and the default of each.
- *
+ * 
  * @since 6.1.7
  */
 final class Layouts
@@ -163,3 +163,4 @@ final class Layouts
 		}
 	}
 }
+

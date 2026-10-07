@@ -20,23 +20,23 @@ use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\ContentTypesInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\PostInstallScriptInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\PostInstallScriptInterface;
 
 
 /**
  * Component Post Install Script Class.
- *
+ * 
  * Builds what the install script of the component runs once the files are in
  * place.
- *
+ * 
  * How the extension permissions and params are installed is what the compile
  * target decides, and it is the extension point below.
- *
+ * 
  * @since 6.1.7
  */
 class PostInstallScript implements PostInstallScriptInterface
@@ -225,3 +225,4 @@ class PostInstallScript implements PostInstallScriptInterface
 		return $script;
 	}
 }
+

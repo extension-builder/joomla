@@ -30,13 +30,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Api View Prepare Item Class.
- *
+ * 
  * Builds the prepareItem method of the JSON API views. The item view gets
  * its tags as names, since the item model already decoded everything else.
  * The list view decodes, decrypts and unpacks the stored values the list
  * model leaves raw, because the list model only prepares the columns the
  * admin list shows while the API renders every column.
- *
+ * 
  * @since 6.1.7
  */
 final class PrepareItem
@@ -421,3 +421,4 @@ final class PrepareItem
 		};
 	}
 }
+

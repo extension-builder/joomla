@@ -14,20 +14,20 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Abstraction;
 
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Scanner;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Selector;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\Heuristic;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 
 
 /**
  * Shared three-tier location mechanics.
- *
+ * 
  * Tier one asks the selected layout where the artifact should be. Tier two takes
  * a bounded scan for the right extension. Tier three classifies what tier two
  * found by looking inside it. A miss at tier one is normal, not fatal, so the
  * tiers always run in order and each match records which tier produced it.
- *
+ * 
  * @since 6.1.6
  */
 abstract class Locator implements LocatorInterface
@@ -218,3 +218,4 @@ abstract class Locator implements LocatorInterface
 		return $found;
 	}
 }
+

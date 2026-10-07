@@ -28,13 +28,13 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Dashboard Icons Class.
- *
+ * 
  * Builds the icon set the component dashboard renders: one icon per admin
  * view the user may reach, the extra icons a custom admin view adds, and the
  * category icons of any categorised view.
- *
+ * 
  * The icons read the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class Icons
@@ -575,3 +575,4 @@ final class Icons
 		return $icon;
 	}
 }
+

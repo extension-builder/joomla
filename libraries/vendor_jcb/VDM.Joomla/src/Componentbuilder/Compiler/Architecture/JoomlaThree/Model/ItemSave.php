@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as ExtendingItemSave;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface;
 
 
 /**
  * Model Item Save Class for Joomla 3
- *
+ * 
  * Joomla 3 has no application identity, so a permission check reaches the
  * current user through the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class ItemSave extends ExtendingItemSave implements ItemSaveInterface
@@ -46,3 +46,4 @@ final class ItemSave extends ExtendingItemSave implements ItemSaveInterface
 			. "', 'com_" . $component . "')";
 	}
 }
+

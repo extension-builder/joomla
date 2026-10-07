@@ -18,10 +18,10 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Validation Fix Builder Class
- *
+ * 
  * Which fields of a view have their required attribute switched at runtime,
  * and so need the form validation override.
- *
+ * 
  * @since 6.1.7
  */
 final class ValidationFix extends Registry implements Registryinterface
@@ -34,3 +34,4 @@ final class ValidationFix extends Registry implements Registryinterface
 	 **/
 	protected bool $addAsArray = true;
 }
+

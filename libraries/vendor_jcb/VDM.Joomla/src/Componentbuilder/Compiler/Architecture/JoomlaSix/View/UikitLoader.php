@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoade
 
 /**
  * View Uikit Loader Class for Joomla 6
- *
+ * 
  * Joomla 6 does not carry uikit, so nothing is loaded. A component that still
  * needs it adds it through the libraries.
- *
+ * 
  * @since 6.1.7
  */
 final class UikitLoader extends ExtendingUikitLoader implements UikitLoaderInterface
@@ -40,3 +40,4 @@ final class UikitLoader extends ExtendingUikitLoader implements UikitLoaderInter
 		return '';
 	}
 }
+

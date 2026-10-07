@@ -14,10 +14,10 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
 
 /**
  * Recognises one INSERT INTO statement and names the table it seeds.
- *
+ * 
  * The statement itself is handed back verbatim. Seed data is stored, never
  * interpreted, so the extrusion keeps the author's rows exactly as written.
- *
+ * 
  * @since 6.1.6
  */
 final class Insert
@@ -130,3 +130,4 @@ final class Insert
 		return str_replace($quote . $quote, $quote, substr($raw, 1, -1));
 	}
 }
+

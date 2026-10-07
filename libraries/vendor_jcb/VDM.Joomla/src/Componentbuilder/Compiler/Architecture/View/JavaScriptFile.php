@@ -27,10 +27,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * View JavaScript File Class.
- *
+ * 
  * Writes the script file of a view into the component being built, and gives
  * back the statement the view runs to include it.
- *
+ * 
  * @since  6.1.7
  */
 final class JavaScriptFile
@@ -175,3 +175,4 @@ final class JavaScriptFile
 		return '';
 	}
 }
+

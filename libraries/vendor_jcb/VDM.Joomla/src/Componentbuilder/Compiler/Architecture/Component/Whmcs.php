@@ -24,13 +24,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * WHMCS Encryption Class Generation.
- *
+ * 
  * Generates the body of the `whmcs.php` file: the WHMCS runtime class that
  * validates a component's WHMCS license key against the configured WHMCS
  * server. The component's stored key is decrypted with the JCB basic key
  * on the host before the connection details are embedded in the generated
  * class.
- *
+ * 
  * @since  6.1.7
  */
 final class Whmcs
@@ -372,3 +372,4 @@ final class Whmcs
 			. " Please note that you will need to enable the add-on in the Joomla Component area (Add WHMCS)->Yes.";
 	}
 }
+

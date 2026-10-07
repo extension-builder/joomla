@@ -22,10 +22,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Field Set Access Control Class.
- *
+ * 
  * Builds the access control fieldset a view is given, which decides who may
  * see and change what the view holds.
- *
+ * 
  * @since 6.1.7
  */
 final class SetAccessControl
@@ -105,3 +105,4 @@ final class SetAccessControl
 		return $access;
 	}
 }
+

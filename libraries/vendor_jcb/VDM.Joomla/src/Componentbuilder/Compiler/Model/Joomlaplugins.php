@@ -97,5 +97,5 @@ class Joomlaplugins
 
 		unset($item->addjoomla_plugins);
 	}
-
 }
+

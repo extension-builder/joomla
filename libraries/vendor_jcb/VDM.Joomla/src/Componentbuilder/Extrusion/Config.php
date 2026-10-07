@@ -12,17 +12,17 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion Configuration
- *
+ * 
  * Holds one run's options. The Extruder's fluent setters validate and write
  * here, and every downstream service receives this object by injection, so the
  * options are read from exactly one place.
- *
+ * 
  * @since 6.1.6
  */
 final class Config extends Registry implements Registryinterface
@@ -318,3 +318,4 @@ final class Config extends Registry implements Registryinterface
 		return $this;
 	}
 }
+

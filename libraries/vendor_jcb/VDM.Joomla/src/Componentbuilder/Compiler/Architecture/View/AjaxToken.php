@@ -13,20 +13,20 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\View;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface;
 
 
 /**
  * View Ajax Token Class.
- *
+ * 
  * Builds the statement a view runs to put the form token where its ajax calls
  * can reach it. Only a view that was found to make ajax calls gets one.
- *
+ * 
  * How the statement reaches the page is what the compile target decides, and
  * it is the extension point below.
- *
+ * 
  * @since  6.1.7
  */
 class AjaxToken implements AjaxTokenInterface
@@ -88,3 +88,4 @@ class AjaxToken implements AjaxTokenInterface
 			. "\$this->getDocument()->getWebAssetManager()->addInlineScript(\"var token = '\" . Joomla__"."_5ba38513_5c4f_4b0d_935e_49e986a6bce8___Power::getFormToken() . \"';\");";
 	}
 }
+

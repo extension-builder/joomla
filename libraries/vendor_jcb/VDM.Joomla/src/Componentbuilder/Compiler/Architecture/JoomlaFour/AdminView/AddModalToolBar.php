@@ -399,3 +399,4 @@ final class AddModalToolBar implements AddModalToolBarInterface
 		return $toolBar;
 	}
 }
+

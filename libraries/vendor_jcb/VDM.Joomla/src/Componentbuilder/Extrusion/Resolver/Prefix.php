@@ -19,24 +19,24 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table;
 
 /**
  * Recovers the component code name from the table names themselves.
- *
+ * 
  * A component that follows Joomla's own convention prefixes every one of its
  * tables with its own name, so a schema carrying two or more tables states its
  * component in the part they all share. That makes the code name recoverable from
  * a bare dump with no manifest, no folder and nothing the caller had to type,
  * which is the case the original dump-driven extruder could only handle because
  * the component form told it the name.
- *
+ * 
  * The shared part is taken at underscore boundaries rather than character by
  * character, because #__demo_widget and #__demo_widget_note share the characters
  * "demo_widget" while the component they belong to is "demo". Cutting anywhere
  * other than a boundary would invent a component name no component has.
- *
+ * 
  * A single table cannot testify to anything: its whole name is equally well one
  * prefix and one view, or no prefix and a compound view. Inference therefore
  * needs at least two tables that genuinely differ, and says so rather than
  * guessing from one.
- *
+ * 
  * @since 6.1.6
  */
 final class Prefix
@@ -246,3 +246,4 @@ final class Prefix
 		return $shared;
 	}
 }
+

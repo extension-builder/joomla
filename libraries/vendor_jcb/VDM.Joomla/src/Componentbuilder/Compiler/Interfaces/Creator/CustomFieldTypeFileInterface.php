@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Creator;
 
 /**
  * Custom Field Type File Creator Interface
- *
+ * 
  * @since  6.1.7
  */
 interface CustomFieldTypeFileInterface
@@ -32,3 +32,4 @@ interface CustomFieldTypeFileInterface
 	 */
 	public function set(array $data, string $nameListCode, string $nameSingleCode): void;
 }
+

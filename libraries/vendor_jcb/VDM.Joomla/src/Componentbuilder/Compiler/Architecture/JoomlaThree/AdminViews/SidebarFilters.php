@@ -18,21 +18,21 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Filter;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\SidebarFiltersInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\SidebarFiltersInterface;
 
 
 /**
  * Joomla 3 Admin Views Sidebar Filters Class.
- *
+ * 
  * Builds the statements a Joomla 3 list view runs to put its filters in the
  * sidebar: the published and access filters every view has, the category
  * filter of a view that has categories, and one for every other filter field
  * the view was given.
- *
+ * 
  * @since 6.1.7
  */
 final class SidebarFilters implements SidebarFiltersInterface
@@ -365,3 +365,4 @@ final class SidebarFilters implements SidebarFiltersInterface
 		}
 	}
 }
+

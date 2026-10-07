@@ -18,12 +18,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * View Fade In Effect Class.
- *
+ * 
  * Generates the loading overlay a view shows while the page is still
  * loading, together with the component loader container that the overlay
  * reveals once the load event fires. When the view does not use the effect
  * only the plain loader container is generated.
- *
+ * 
  * @since  6.1.7
  */
 final class FadeInEffect
@@ -108,3 +108,4 @@ final class FadeInEffect
 		return "<div id=\"{$component}_loader\">";
 	}
 }
+

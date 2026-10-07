@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model Items Method Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface ItemsMethodInterface
@@ -32,3 +32,4 @@ interface ItemsMethodInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode, $config = array());
 }
+

@@ -22,13 +22,13 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Dashboard Model Methods Class.
- *
+ * 
  * The dashboard model carries whatever methods the component was built with,
  * and the dashboard view reads back whatever those methods get.
- *
+ * 
  * The two belong together: reading the methods is what tells this which data
  * the view has to ask for.
- *
+ * 
  * @since 6.1.7
  */
 final class ModelMethods
@@ -152,3 +152,4 @@ final class ModelMethods
 		return $this->customData;
 	}
 }
+

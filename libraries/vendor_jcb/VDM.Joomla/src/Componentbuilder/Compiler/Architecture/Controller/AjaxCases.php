@@ -13,23 +13,23 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\AjaxCasesInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\AjaxCasesInterface;
 
 
 /**
  * Controller Ajax Cases Class.
- *
+ * 
  * Builds the case of every ajax task a build target declares: the values the
  * task reads off the request, the check they have to pass, the model method
  * that answers, and how the answer is written back.
- *
+ * 
  * How the ajax model is asked for, and what a task that cannot run answers
  * with, are what the compile target decides, and they are the two extension
  * points below.
- *
+ * 
  * @since  6.1.7
  */
 class AjaxCases implements AjaxCasesInterface
@@ -239,3 +239,4 @@ class AjaxCases implements AjaxCasesInterface
 		return "\$ajaxModule = \$this->getModel('ajax', '$prefix');";
 	}
 }
+

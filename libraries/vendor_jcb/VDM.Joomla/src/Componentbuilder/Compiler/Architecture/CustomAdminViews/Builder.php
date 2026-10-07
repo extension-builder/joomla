@@ -44,13 +44,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Custom Admin Views Builder Class.
- *
+ * 
  * Builds every custom admin view the component was given: the body it shows,
  * the form and the toolbar above it, the data it fetches, the document it
  * prepares, and the layouts it draws with.
- *
+ * 
  * A component that was given none is left alone.
- *
+ * 
  * @since 6.1.7
  */
 final class Builder
@@ -649,3 +649,4 @@ final class Builder
 		}
 	}
 }
+

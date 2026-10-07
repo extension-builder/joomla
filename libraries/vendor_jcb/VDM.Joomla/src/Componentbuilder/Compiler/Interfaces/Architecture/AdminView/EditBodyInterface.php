@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin Edit View Body Interface
- *
+ * 
  * @since  6.1.7
  */
 interface EditBodyInterface
@@ -30,3 +30,4 @@ interface EditBodyInterface
 	 */
 	public function get(array &$view): string;
 }
+

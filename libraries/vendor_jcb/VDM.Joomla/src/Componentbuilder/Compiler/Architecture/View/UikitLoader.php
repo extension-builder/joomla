@@ -16,18 +16,18 @@ use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SiteFieldData;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UikitComp;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoaderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\UikitLoaderInterface;
 
 
 /**
  * View Uikit Loader Class.
- *
+ * 
  * Builds the statements a view runs to load the uikit assets it needs: the
  * options the component was built with, the styles and scripts of the uikit
  * version in use, and the components the view's own fields ask for.
- *
+ * 
  * @since  6.1.7
  */
 class UikitLoader implements UikitLoaderInterface
@@ -363,3 +363,4 @@ class UikitLoader implements UikitLoaderInterface
 		return $setter;
 	}
 }
+

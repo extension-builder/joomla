@@ -13,22 +13,22 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface;
 
 
 /**
  * Admin View Footable Scripts Class.
- *
+ * 
  * Loads the stylesheets and scripts a view needs for its Footable tables,
  * and optionally the inline call that initialises them.
- *
+ * 
  * Two axes meet here and they are not the same thing. Which Footable
  * release to load is a component setting, so both releases are built here.
  * How an inline script reaches the document is a Joomla target concern, so
  * that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class FootableScripts implements FootableScriptsInterface
@@ -208,3 +208,4 @@ class FootableScripts implements FootableScriptsInterface
 			. PHP_EOL;
 	}
 }
+

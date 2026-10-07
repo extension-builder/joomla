@@ -23,15 +23,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom Sub Menu Class.
- *
+ * 
  * Builds the sub menu entries of every custom admin view and every custom menu
  * the component declares, for the admin view whose sub menu is being written.
- *
+ * 
  * An entry that belongs after the component's own views is held back rather
  * than returned, and the caller takes what was held once it has walked them
  * all. That is a hand over, not a copy: what is taken is forgotten here, which
  * is what the caller's unset used to do.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomSubMenu
@@ -323,3 +323,4 @@ final class CustomSubMenu
 		return false;
 	}
 }
+

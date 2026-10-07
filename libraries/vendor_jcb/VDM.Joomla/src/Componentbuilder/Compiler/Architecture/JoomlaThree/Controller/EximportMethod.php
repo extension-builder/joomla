@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controll
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\EximportMethod as ExtendingEximportMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface;
 
 
 /**
  * Controller Eximport Method Class for Joomla 3
- *
+ * 
  * Joomla 3 has no application identity to ask, so the current user comes from
  * the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class EximportMethod extends ExtendingEximportMethod implements EximportMethodInterface
@@ -38,3 +38,4 @@ final class EximportMethod extends ExtendingEximportMethod implements EximportMe
 		return Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
 	}
 }
+

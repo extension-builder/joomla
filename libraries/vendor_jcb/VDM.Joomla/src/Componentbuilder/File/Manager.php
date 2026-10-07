@@ -750,3 +750,4 @@ class Manager implements PersistentManagerInterface
 		return $oldest;
 	}
 }
+

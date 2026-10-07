@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Side
 
 /**
  * Admin Views Sidebar Filters Class.
- *
+ * 
  * Targets after Joomla 3 put their filters in the search tools of the list
  * view itself rather than in a sidebar, so there is nothing to build here.
- *
+ * 
  * @since 6.1.7
  */
 final class SidebarFilters implements SidebarFiltersInterface
@@ -40,3 +40,4 @@ final class SidebarFilters implements SidebarFiltersInterface
 		return '';
 	}
 }
+

@@ -12,14 +12,17 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Layout;
 
 
+use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaFour;
+
+
 /**
  * Joomla 5 component placement.
- *
+ * 
  * The Joomla 5 administrator tree is structurally identical to Joomla 4, so this
  * is a thin version identity over the shared map rather than a second copy of
  * it. The distinct service key is retained so a future divergence has a place
  * to land without touching a consumer.
- *
+ * 
  * @since 6.1.6
  */
 final class JoomlaFive extends JoomlaFour
@@ -35,3 +38,4 @@ final class JoomlaFive extends JoomlaFour
 		return 'J5';
 	}
 }
+

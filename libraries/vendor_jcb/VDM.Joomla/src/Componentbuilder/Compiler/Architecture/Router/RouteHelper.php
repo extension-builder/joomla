@@ -16,25 +16,25 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryCode;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\HasMenuGlobal;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Tags;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Router\RouteHelperInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Router\RouteHelperInterface;
 
 
 /**
  * Route Helper Class.
- *
+ * 
  * Builds the route method a site view offers the rest of the generated
  * component, so anything that links to one of its items asks for the link
  * rather than assembling it. A view gets one when it carries tags, or when it
  * is a front item view, and only ever gets one.
- *
+ * 
  * How the link finds its menu item is the part that differs by target: Joomla
  * 3 gathers needles for the core menu lookup as it goes, and later targets ask
  * the router for the item directly. Those pieces are the extension points
  * below.
- *
+ * 
  * @since  6.1.7
  */
 class RouteHelper implements RouteHelperInterface
@@ -265,3 +265,4 @@ class RouteHelper implements RouteHelperInterface
 		return [];
 	}
 }
+

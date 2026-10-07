@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin List View Head Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ListHeadInterface
@@ -31,3 +31,4 @@ interface ListHeadInterface
 	 */
 	public function get(string $nameSingleCode, string $nameListCode): string;
 }
+

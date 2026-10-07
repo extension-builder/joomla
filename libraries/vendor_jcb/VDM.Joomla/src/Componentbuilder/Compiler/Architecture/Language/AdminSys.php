@@ -25,10 +25,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Language AdminSys Class.
- *
+ * 
  * Registers every language string the administrator side needs before it is
  * installed.
- *
+ * 
  * @since 6.1.7
  */
 final class AdminSys
@@ -137,3 +137,4 @@ final class AdminSys
 		return false;
 	}
 }
+

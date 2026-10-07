@@ -26,10 +26,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Component Import Custom Scripts Class.
- *
+ * 
  * Writes the custom import files a view was given into the component being
  * built, and fills in the parts of each the compiler owns.
- *
+ * 
  * @since 6.1.7
  */
 final class ImportCustomScripts
@@ -171,3 +171,4 @@ final class ImportCustomScripts
 		));
 	}
 }
+

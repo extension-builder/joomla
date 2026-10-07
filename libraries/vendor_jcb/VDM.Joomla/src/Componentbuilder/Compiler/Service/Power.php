@@ -365,3 +365,4 @@ class Power implements ServiceProviderInterface
 		);
 	}
 }
+

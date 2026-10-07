@@ -17,14 +17,16 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Factory;
 
 
 /**
  * Api Controller Allow View Class.
- *
+ * 
  * Builds the allowView method of the item API controller from the same
  * access permission the admin list uses to remove items a user may not see.
- *
+ * 
  * @since 6.1.7
  */
 final class AllowView
@@ -137,7 +139,7 @@ final class AllowView
 		return PHP_EOL . Indent::_(5) . '$user = $app->getIdentity();'
 			. PHP_EOL . Indent::_(5) . 'if (' . implode(' || ', $denied) . ')'
 			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . "throw new \\Joomla\\CMS\\Access\\Exception\\NotAllowed(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('JERROR_ALERTNOAUTHOR'), 403);"
+			. PHP_EOL . Indent::_(6) . "throw new \\Joomla\\CMS\\Access\\Exception\\NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);"
 			. PHP_EOL . Indent::_(5) . '}';
 	}
 
@@ -161,8 +163,8 @@ final class AllowView
 			return PHP_EOL . Indent::_(3) . '// check edit access permissions'
 				. PHP_EOL . Indent::_(3) . 'if (!empty($item->id) && !$this->allowEdit((array) $item))'
 				. PHP_EOL . Indent::_(3) . '{'
-				. PHP_EOL . ' ' . Indent::_(4) . '$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
-				. PHP_EOL . '  ' . Indent::_(4) . "\$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');"
+				. PHP_EOL . ' ' . Indent::_(4) . '$app = Factory::getApplication();'
+				. PHP_EOL . '  ' . Indent::_(4) . "\$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');"
 				. PHP_EOL . Indent::_(4) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
 				. PHP_EOL . Indent::_(4) . 'return false;'
 				. PHP_EOL . Indent::_(3) . '}';
@@ -171,13 +173,13 @@ final class AllowView
 		return PHP_EOL . Indent::_(3) . '// API reads use read permissions; administrator editing keeps its edit guard.'
 			. PHP_EOL . Indent::_(3) . 'if (!empty($item->id))'
 			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
+			. PHP_EOL . Indent::_(4) . '$app = Factory::getApplication();'
 			. PHP_EOL . PHP_EOL . Indent::_(4) . "if (\$app->isClient('api'))"
 			. PHP_EOL . Indent::_(4) . '{' . $this->getModelGuard($nameSingleCode)
 			. PHP_EOL . Indent::_(4) . '}'
 			. PHP_EOL . Indent::_(4) . 'elseif (!$this->allowEdit((array) $item))'
 			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . "\$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');"
+			. PHP_EOL . Indent::_(5) . "\$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');"
 			. PHP_EOL . Indent::_(5) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
 			. PHP_EOL . Indent::_(5) . 'return false;'
 			. PHP_EOL . Indent::_(4) . '}'
@@ -202,3 +204,4 @@ final class AllowView
 			. $action . "', 'com_" . $this->component . "'))";
 	}
 }
+

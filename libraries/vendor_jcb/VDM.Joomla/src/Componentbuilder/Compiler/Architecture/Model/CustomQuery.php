@@ -22,14 +22,14 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Custom Query Class.
- *
+ * 
  * Adds the selects and joins a list query needs for the custom fields of a
  * view, so a field that stores a foreign id also yields its display text.
- *
+ * 
  * Building the query is only half of what this does: every custom field of
  * the view has its field type file written as a side effect, whether or not
  * that field contributes anything to the query.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomQuery
@@ -179,3 +179,4 @@ final class CustomQuery
 		return $query;
 	}
 }
+

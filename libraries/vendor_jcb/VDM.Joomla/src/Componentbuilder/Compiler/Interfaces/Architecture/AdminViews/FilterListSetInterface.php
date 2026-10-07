@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin Views Filter List Set Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface FilterListSetInterface
@@ -31,3 +31,4 @@ interface FilterListSetInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode): string;
 }
+

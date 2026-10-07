@@ -12,24 +12,24 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\CreateTable;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema as SchemaRegistry;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 
 
 /**
  * Reads one install schema file into the schema registry.
- *
+ * 
  * The file is read as text and never included, required, or evaluated: a source
  * tree may be an unzipped upload and is treated as untrusted throughout. Each
- * CREATE TABLE becomes table.<table>.name plus a path per parsed property of
- * every column, and each INSERT INTO becomes seed.<table>.sql. A per table
+ * CREATE TABLE becomes table..name plus a path per parsed property of
+ * every column, and each INSERT INTO becomes seed..sql. A per table
  * summary lands in the report registry so a run can explain what it understood
  * without anything downstream having to re-read the file.
- *
+ * 
  * @since 6.1.6
  */
 final class Schema implements ReaderInterface
@@ -338,3 +338,4 @@ final class Schema implements ReaderInterface
 		return $contents === false ? null : $contents;
 	}
 }
+

@@ -22,21 +22,21 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * The JSON:API route registration of the linked web services plugin
- *
+ * 
  * The compiler does not generate a plugin. A plugin of the webservices
  * group that the JCB user creates and links to the component carries one
  * of these placeholders, which the compiler fills for every resource of
  * the component (the admin views with an API, and the custom admin views
  * and site views the resources map names):
- *
- *   [[[API_ROUTES]]]         the body of the route method, indented two
+ * 
+ *   [[API_ROUTES]]         the body of the route method, indented two
  *                            tabs after its first line, and
- *   [[[API_ROUTES_METHOD]]]  the whole onBeforeApiRoute() method, indented
+ *   [[API_ROUTES_METHOD]]  the whole onBeforeApiRoute() method, indented
  *                            one tab after its first line;
- *
- * both are also accepted in their ###API_ROUTES### and
- * ###API_ROUTES_METHOD### form.
- *
+ * 
+ * both are also accepted in their ##API_ROUTES## and
+ * ##API_ROUTES_METHOD## form.
+ * 
  * @since 6.1.7
  */
 class Routes
@@ -426,3 +426,4 @@ class Routes
 		return $code;
 	}
 }
+

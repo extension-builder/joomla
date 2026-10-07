@@ -21,7 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Placeholder\Reverse;
 
 /**
  * Compiler Placeholder Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class Placeholder implements ServiceProviderInterface
@@ -96,3 +96,4 @@ class Placeholder implements ServiceProviderInterface
 		);
 	}
 }
+

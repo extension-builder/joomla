@@ -13,13 +13,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\CustomView as ExtendingCustomView;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\CustomViewInterface;
 
 
 /**
  * Custom View Menu Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomView extends ExtendingCustomView implements CustomViewInterface
@@ -47,3 +47,4 @@ final class CustomView extends ExtendingCustomView implements CustomViewInterfac
 		return $xml;
 	}
 }
+

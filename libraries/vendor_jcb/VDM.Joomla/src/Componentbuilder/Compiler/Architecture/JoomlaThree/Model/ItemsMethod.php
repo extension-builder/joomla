@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsMethod as ExtendingItemsMethod;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface;
 
 
 /**
  * Model Items Method Class for Joomla 3
- *
+ * 
  * Joomla 3 models have no getCurrentUser() and no getDatabase(), so both the
  * user and the database are taken from the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class ItemsMethod extends ExtendingItemsMethod implements ItemsMethodInterface
@@ -55,3 +55,4 @@ final class ItemsMethod extends ExtendingItemsMethod implements ItemsMethodInter
 			. "\$db = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getDBO();";
 	}
 }
+

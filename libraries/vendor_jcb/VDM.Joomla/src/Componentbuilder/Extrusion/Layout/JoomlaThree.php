@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Layout;
 
 /**
  * Joomla 3 component placement, inverted from the joomla_3 move map.
- *
+ * 
  * Most components an extrusion run will meet are of this generation, so this
  * map is not a legacy afterthought: it is the common case.
- *
+ * 
  * @since 6.1.6
  */
 final class JoomlaThree extends Layout
@@ -80,3 +80,4 @@ final class JoomlaThree extends Layout
 		];
 	}
 }
+

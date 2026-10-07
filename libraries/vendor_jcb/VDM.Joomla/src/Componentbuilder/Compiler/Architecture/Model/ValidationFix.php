@@ -22,10 +22,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Validation Fix Class.
- *
+ * 
  * Builds the statements an admin model runs to make a value the form gave it
  * fit what the database will take.
- *
+ * 
  * @since 6.1.7
  */
 final class ValidationFix
@@ -128,3 +128,4 @@ final class ValidationFix
 		return $fix;
 	}
 }
+

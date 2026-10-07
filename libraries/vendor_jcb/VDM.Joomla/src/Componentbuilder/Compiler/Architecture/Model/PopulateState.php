@@ -25,10 +25,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Populate State Class.
- *
+ * 
  * Builds the statements a list model runs to read its filters, its search and
  * its ordering off the request and put them in the state.
- *
+ * 
  * @since 6.1.7
  */
 final class PopulateState
@@ -268,3 +268,4 @@ final class PopulateState
 		return $state;
 	}
 }
+

@@ -49,15 +49,15 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Admin Views Edit View Class.
- *
+ * 
  * Builds everything the edit view of one admin view is made of: the form it
  * shows, the toolbar above it, the table and model behind it, and the scripts
  * it runs. A view the component gave no single name is not one you can edit,
  * and gets none of it.
- *
+ * 
  * The order the pieces are asked for is the order the compiler has always
  * asked for them in, and the events fired between them are the same events.
- *
+ * 
  * @since 6.1.7
  */
 final class EditView
@@ -847,3 +847,4 @@ final class EditView
 		}
 	}
 }
+

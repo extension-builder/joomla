@@ -18,10 +18,10 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Custom View Code Body Class.
- *
+ * 
  * A custom view the component was given php of its own carries that php, with
  * whatever placeholders it was written with filled in.
- *
+ * 
  * @since 6.1.7
  */
 final class CodeBody
@@ -77,3 +77,4 @@ final class CodeBody
 		return '';
 	}
 }
+

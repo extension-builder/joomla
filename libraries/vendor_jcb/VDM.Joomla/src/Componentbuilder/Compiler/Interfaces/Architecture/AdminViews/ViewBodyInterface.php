@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin List View Body Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ViewBodyInterface
@@ -43,3 +43,4 @@ interface ViewBodyInterface
 	 */
 	public function getModal(string $nameSingleCode, string $nameListCode): string;
 }
+

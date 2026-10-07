@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Router;
 
 /**
  * Router Route Helper Interface
- *
+ * 
  * @since  6.1.7
  */
 interface RouteHelperInterface
@@ -32,3 +32,4 @@ interface RouteHelperInterface
 	 */
 	public function get(string $nameSingleCode, string $nameListCode, bool $front = false): string;
 }
+

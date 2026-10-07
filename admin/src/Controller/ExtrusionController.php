@@ -2,7 +2,7 @@
 /**
  * @package    Joomla.Component.Builder
  *
- * @created    23rd August, 2026
+ * @created    30th April, 2015
  * @author     Llewellyn van der Merwe <https://dev.vdm.io>
  * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
  * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
@@ -10,8 +10,14 @@
  */
 namespace VDM\Component\Componentbuilder\Administrator\Controller;
 
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\AdminController;
+use Joomla\Utilities\ArrayHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
+use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
+use Joomla\CMS\Version;
 
 // No direct access to this file
 \defined('_JEXEC') or die;
@@ -19,11 +25,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Extrusion Admin Controller
  *
- * The extrusion view is a single-page tool: the harvest, the pairing
- * decisions and the import all travel through the AJAX pipeline, so this
- * controller only serves the page and the way back to the dashboard.
- *
- * @since  6.1.7
+ * @since  1.6
  */
 class ExtrusionController extends AdminController
 {
@@ -31,7 +33,7 @@ class ExtrusionController extends AdminController
 	 * The prefix to use with controller messages.
 	 *
 	 * @var    string
-	 * @since  6.1.7
+	 * @since  1.6
 	 */
 	protected $text_prefix = 'COM_COMPONENTBUILDER_EXTRUSION';
 
@@ -44,7 +46,7 @@ class ExtrusionController extends AdminController
 	 *
 	 * @return  \Joomla\CMS\MVC\Model\BaseDatabaseModel
 	 *
-	 * @since   6.1.7
+	 * @since   1.6
 	 */
 	public function getModel($name = 'Extrusion', $prefix = 'Administrator', $config = ['ignore_request' => true])
 	{
@@ -56,10 +58,12 @@ class ExtrusionController extends AdminController
 	 *
 	 * @return  void
 	 *
-	 * @since   6.1.7
+	 * @since   3.0
 	 */
 	public function dashboard(): void
 	{
 		$this->setRedirect(Route::_('index.php?option=com_componentbuilder', false));
 	}
+
+//none
 }

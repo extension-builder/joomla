@@ -11,17 +11,19 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
+
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
+
 /**
  * Turns a form's fieldsets into JCB tabs.
- *
+ * 
  * A table definition class states the intended tab outright in tab_name, which is
  * the better answer. Otherwise the form's fieldsets supply the grouping, which is
  * still far better than putting every field on one tab.
- *
+ * 
  * @since 6.1.6
  */
 final class Tab
@@ -227,3 +229,4 @@ final class Tab
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

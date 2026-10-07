@@ -12,13 +12,13 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews;
 
 
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as ExtendingListHead;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface;
 
 
 /**
  * Admin List View Head Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class ListHead extends ExtendingListHead implements ListHeadInterface
@@ -37,3 +37,4 @@ final class ListHead extends ExtendingListHead implements ListHeadInterface
 		return "<?php if (\$this->canEdit && \$this->canState): ?>";
 	}
 }
+

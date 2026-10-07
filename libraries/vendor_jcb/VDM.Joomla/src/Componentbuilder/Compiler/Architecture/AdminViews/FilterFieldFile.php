@@ -19,12 +19,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Filter Field File Class.
- *
+ * 
  * Builds the custom filter field type file a list view filter needs, once per
  * filter type.
- *
+ * 
  * The file is the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class FilterFieldFile
@@ -106,3 +106,4 @@ final class FilterFieldFile
 		}
 	}
 }
+

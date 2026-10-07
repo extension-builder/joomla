@@ -172,7 +172,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\ExtraDisplayMet
 
 /**
  * Architecture View Service Provider
- *
+ * 
  * @since 5.1.4
  */
 class ArchitectureView implements ServiceProviderInterface
@@ -3780,5 +3780,5 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Config')
 		);
 	}
-
 }
+

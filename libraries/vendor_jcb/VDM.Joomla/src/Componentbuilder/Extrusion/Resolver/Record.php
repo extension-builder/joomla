@@ -17,7 +17,7 @@ use VDM\Joomla\Interfaces\TableInterface;
 
 /**
  * Composes the field record one resolved column would write, identity aside.
- *
+ * 
  * A field's properties ARE its record: the field type, the database shape and
  * the stored form element together carry everything the source stated. This
  * resolver builds those columns once, in one place, so the writer persists
@@ -25,7 +25,7 @@ use VDM\Joomla\Interfaces\TableInterface;
  * hash, because two columns whose records would be byte-identical are one
  * field, and a standing record whose stored columns carry that same hash is
  * that field already written.
- *
+ * 
  * The mappings here are the compiler's own: store codes as
  * Compiler\Creator\Builders::store() reads them, index numbers as the field
  * form offers them, EMPTY as JCB's word for a column carrying no DEFAULT
@@ -33,7 +33,7 @@ use VDM\Joomla\Interfaces\TableInterface;
  * Every fact the mapping has to give up is returned as a note under the very
  * report key the writer records it under, so composing for a hash never
  * reports and composing for a write never loses a finding.
- *
+ * 
  * @since 6.1.9
  */
 final class Record
@@ -554,3 +554,4 @@ final class Record
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

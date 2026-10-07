@@ -14,13 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
 
 /**
  * Parses one CREATE TABLE statement into table and column metadata.
- *
+ * 
  * This is the pure replacement for the legacy trick of executing the extracted
  * DDL against the live database and reading MySQL's normalised metadata back.
  * Nothing here touches a database, a file, or the Joomla application, so the
  * parser is testable in isolation and an untrusted dump can never reach a
  * query.
- *
+ * 
  * The reproduced metadata is the set the field derivation depends on: the type
  * keyword and its size, unsigned, the null switch, the default, the auto
  * increment flag, the column comment that carries the author's JCB notes, and
@@ -28,7 +28,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
  * unique, 1 is a plain index, and 0 is none. Table level key clauses and inline
  * column keys are both honoured, and a composite key
  * marks every column it names.
- *
+ * 
  * @since 6.1.6
  */
 final class CreateTable
@@ -1022,3 +1022,4 @@ final class CreateTable
 		return $length;
 	}
 }
+

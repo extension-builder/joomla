@@ -24,17 +24,17 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\Disp
 
 /**
  * Custom View Display Method Class.
- *
+ * 
  * Generates the body of a site or custom admin view display method: the
  * main and custom Dynamic Get retrieval, the view's own display PHP, the
  * toolbar and document preparation for its build target, the error check,
  * and the content plugin event triggers.
- *
+ * 
  * The shared implementation emits the model-based retrieval and the
  * event-object dispatch used from Joomla 5 onwards. Joomla 3 and Joomla 4
  * select the legacy dispatcher mechanics through the extension points
  * below; Joomla 3 additionally selects the legacy view get() proxy.
- *
+ * 
  * @since  6.1.7
  */
 class DisplayMethod implements DisplayMethodInterface
@@ -425,3 +425,4 @@ class DisplayMethod implements DisplayMethodInterface
 		return $method;
 	}
 }
+

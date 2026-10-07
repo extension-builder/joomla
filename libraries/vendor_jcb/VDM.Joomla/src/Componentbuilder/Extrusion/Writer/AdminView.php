@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -24,16 +23,17 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Writes one JCB admin view definition per resolved table.
- *
+ * 
  * The seed data a source schema carried in its INSERT statements is passed
  * through raw, because the admin view's sql column declares base64 storage and
  * the Data pipeline applies it. Encoding here is exactly the mistake the legacy
  * extrusion helper makes.
- *
+ * 
  * @since 6.1.6
  */
 final class AdminView extends Writer
@@ -540,3 +540,4 @@ final class AdminView extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

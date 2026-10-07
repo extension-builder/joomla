@@ -12,17 +12,18 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion Source Registry
- *
+ * 
  * Located component identity: source path, code name, layout family, and versions.
- *
+ * 
  * @since 6.1.6
  */
 final class Source extends Registry implements Registryinterface
 {
 }
+

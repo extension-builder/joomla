@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin List View Link Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ListLinkInterface
@@ -31,3 +31,4 @@ interface ListLinkInterface
 	 */
 	public function getButtons(string $nameListCode, string $ref = ''): string;
 }
+

@@ -21,11 +21,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface as Event;
 
 /**
  * Language Admin Class.
- *
+ * 
  * Registers every language string the administrator side of a component
  * needs: its own name and description, the labels of its views and their
  * permissions, and the messages the installer and the dashboard show.
- *
+ * 
  * @since  6.1.7
  */
 final class Admin
@@ -392,3 +392,4 @@ final class Admin
 		return false;
 	}
 }
+

@@ -14,10 +14,10 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Interfaces;
 
 /**
  * Finds one kind of source artifact inside a component source tree.
- *
+ * 
  * A locator never interprets what it finds. It records located paths and the
  * discovery tier that produced them, so a low confidence match stays visible.
- *
+ * 
  * @since 6.1.6
  */
 interface LocatorInterface
@@ -40,3 +40,4 @@ interface LocatorInterface
 	 */
 	public function locate(string $root): array;
 }
+

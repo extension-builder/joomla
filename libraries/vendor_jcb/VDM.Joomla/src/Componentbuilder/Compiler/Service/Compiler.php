@@ -177,3 +177,4 @@ class Compiler implements ServiceProviderInterface
 		);
 	}
 }
+

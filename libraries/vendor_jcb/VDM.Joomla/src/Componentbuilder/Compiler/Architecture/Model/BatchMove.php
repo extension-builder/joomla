@@ -18,22 +18,22 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryCode;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchMoveInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchMoveInterface;
 
 
 /**
  * Model BatchMove Class.
- *
+ * 
  * Builds the batchMove method of an admin model: the guards that
  * decide whether the current user may move a record, and the update that
  * moves it.
- *
+ * 
  * Only how the current user is put in scope differs between Joomla targets,
  * so that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class BatchMove implements BatchMoveInterface
@@ -308,3 +308,4 @@ class BatchMove implements BatchMoveInterface
 			. "\$this->user		= Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
 }
+

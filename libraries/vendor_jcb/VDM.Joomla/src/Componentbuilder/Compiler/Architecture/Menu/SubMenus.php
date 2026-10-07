@@ -28,15 +28,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Sub Menus Class.
- *
+ * 
  * Builds the administrator sub menu of the component: an entry for every admin
  * view that asks for one, the fields and field group entries of a view that
  * carries custom fields, and whatever the custom admin views and custom menus
  * add beside them.
- *
+ * 
  * A view that carries custom fields also registers what has to be removed again
  * when the component is uninstalled, since the fields it registers outlive it.
- *
+ * 
  * @since  6.1.7
  */
 final class SubMenus
@@ -321,3 +321,4 @@ final class SubMenus
 		return false;
 	}
 }
+

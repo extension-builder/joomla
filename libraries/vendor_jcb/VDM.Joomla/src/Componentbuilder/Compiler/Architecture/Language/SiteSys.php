@@ -25,9 +25,9 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Language SiteSys Class.
- *
+ * 
  * Registers every language string the site side needs before it is installed.
- *
+ * 
  * @since 6.1.7
  */
 final class SiteSys
@@ -148,3 +148,4 @@ final class SiteSys
 		return false;
 	}
 }
+

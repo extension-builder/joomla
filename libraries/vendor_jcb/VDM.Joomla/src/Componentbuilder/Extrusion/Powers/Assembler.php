@@ -25,7 +25,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 
 /**
  * Assembles the approved harvest candidates into power definitions.
- *
+ * 
  * This is where a class's relationships become identities. Every parent,
  * interface and import is resolved to the class it names under PHP's own
  * rules, then to a power guid -- first among the candidates being assembled,
@@ -33,11 +33,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
  * way the powers engine expects. What resolves to a power is dropped from the
  * head entirely, because the compiler reintroduces those imports itself; what
  * does not stays as written, in the head, so nothing a class needs is lost.
- *
+ * 
  * The two passes matter: every selected candidate claims its identity before
  * any relationship is resolved, so classes may reference each other in either
  * order and still link.
- *
+ * 
  * @since 6.1.7
  */
 final class Assembler
@@ -1027,7 +1027,7 @@ final class Assembler
 	 * The system name one stored namespace derives.
 	 *
 	 * JCB's own powers speak this convention -- VDM.Data.Action.Load for the
-	 * class stored as [[[NamespacePrefix]]]\Joomla\Data.Action.Load -- the
+	 * class stored as VDM\Joomla\Data.Action.Load -- the
 	 * vendor prefix, then the dotted tail with the class, and none of the
 	 * connecting head between them.
 	 *
@@ -1319,3 +1319,4 @@ final class Assembler
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

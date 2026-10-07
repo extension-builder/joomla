@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Chooses the layout that describes the tree being extruded.
- *
+ * 
  * Every target-version layout is injected, so the selection happens here and no
  * consumer ever branches on a Joomla major version. All four version keys are
  * retained even though the modern three currently share one placement map.
- *
+ * 
  * @since 6.1.6
  */
 final class Selector
@@ -162,3 +162,4 @@ final class Selector
 		}
 	}
 }
+

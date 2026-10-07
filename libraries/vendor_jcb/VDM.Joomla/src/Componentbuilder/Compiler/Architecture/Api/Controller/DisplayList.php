@@ -25,12 +25,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Api Controller Display List Class.
- *
+ * 
  * Builds the displayList method of the list API controller: the request
  * filters, search and ordering are copied onto the model state under the
  * names the generated list model reads, and only the columns the admin list
  * can sort by are accepted as ordering.
- *
+ * 
  * @since 6.1.7
  */
 final class DisplayList
@@ -267,3 +267,4 @@ final class DisplayList
 		return $ordering;
 	}
 }
+

@@ -33,7 +33,6 @@ use VDM\Joomla\Utilities\JsonHelper;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Componentbuilder\Search\Factory as SearchFactory;
 use VDM\Joomla\Componentbuilder\Import\Factory as ImportFactory;
-use VDM\Joomla\Componentbuilder\Extrusion\Factory as ExtrusionFactory;
 use VDM\Joomla\Utilities\GuidHelper;
 use VDM\Joomla\Componentbuilder\Remote\Version;
 use VDM\Joomla\Utilities\SessionHelper;
@@ -48,6 +47,7 @@ use VDM\Joomla\Data\Factory as DataFactory;
 use VDM\Joomla\Componentbuilder\Factory as ComponentbuilderFactory;
 use VDM\Joomla\Componentbuilder\File\Factory as FileFactory;
 use VDM\Joomla\File\TypeDefinition;
+use VDM\Joomla\Componentbuilder\Extrusion\Factory as ExtrusionFactory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\CMS\Form\FormHelper as FormFormHelper;
 
@@ -76,14 +76,6 @@ class AjaxModel extends ListModel
 	 * @since 3.2.0
 	 */
 	protected CMSApplicationInterface $app;
-
-	/**
-	 * Safe diagnostics already generated for this request's backend reports.
-	 *
-	 * @var   array<string, array>
-	 * @since 6.2.1
-	 */
-	protected array $extrusionFailureReferences = [];
 
 	/**
 	 * Constructor
@@ -7044,6 +7036,16 @@ class AjaxModel extends ListModel
 
 		return ['error' => Text::_('COM_COMPONENTBUILDER_THE_TRANSLATIONS_FILE_COULD_NOT_BE_DELETED')];
 	}
+
+	// Used in extrusion
+	/**
+	 * Safe diagnostics already generated for this request's backend reports.
+	 *
+	 * @var   array<string, array>
+	 * @since 6.2.1
+	 */
+	protected array $extrusionFailureReferences = [];
+
 	/**
 	 * Harvest an extrusion source and return the approval payload.
 	 *
@@ -7064,18 +7066,18 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_USE_THE_EXTRUSION_TOOL')];
 		}
 
 		$options = json_decode($config, true);
 
 		if (!is_array($options))
 		{
-			return ['error' => Text::_('The extrusion configuration could not be read.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THE_EXTRUSION_CONFIGURATION_COULD_NOT_BE_READ')];
 		}
 
 		$phase = 'harvest';
@@ -7090,7 +7092,7 @@ class AjaxModel extends ListModel
 
 			if ($extruder === null && $powers === null)
 			{
-				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+				return ['error' => Text::_('COM_COMPONENTBUILDER_GIVE_THE_TOOL_AT_LEAST_A_COMPONENT_SOURCE_FOLDER_AN_SQL_DUMP_OR_A_LIBRARY_FOLDER_TO_HARVEST')];
 			}
 
 			$extruder?->harvest();
@@ -7109,7 +7111,7 @@ class AjaxModel extends ListModel
 			$sourceComponent = max(0, (int) ($options['source_component'] ?? $component));
 
 			$harvested = [
-				'success' => Text::_('The source was harvested. Review the pairings below, then import.'),
+				'success' => Text::_('COM_COMPONENTBUILDER_THE_SOURCE_WAS_HARVESTED_REVIEW_THE_PAIRINGS_BELOW_THEN_IMPORT'),
 				'component' => $component,
 				'source_component' => $sourceComponent,
 				'detected' => $detected,
@@ -7143,7 +7145,7 @@ class AjaxModel extends ListModel
 				$harvested['changes'] = [];
 				$failure = $this->extrusionFailure($error, $phase, $completed);
 				$harvested['weighing'] = $failure['error'] . ' '
-					. Text::_('Failure reference:') . ' ' . $failure['failure']['reference'];
+					. Text::_('COM_COMPONENTBUILDER_FAILURE_REFERENCE') . ' ' . $failure['failure']['reference'];
 				$harvested['failure'] = $failure['failure'];
 			}
 
@@ -7172,11 +7174,11 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to import with the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_IMPORT_WITH_THE_EXTRUSION_TOOL')];
 		}
 
 		$options = json_decode($config, true);
@@ -7184,12 +7186,12 @@ class AjaxModel extends ListModel
 
 		if (!is_array($options) || !is_array($verdicts))
 		{
-			return ['error' => Text::_('The extrusion configuration could not be read.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THE_EXTRUSION_CONFIGURATION_COULD_NOT_BE_READ')];
 		}
 
 		if (empty($options['dry_run']) && !preg_match('/^[a-f0-9]{64}$/D', (string) ($options['approved_plan'] ?? '')))
 		{
-			return ['error' => Text::_('Review the current write plan before importing.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_REVIEW_THE_CURRENT_WRITE_PLAN_BEFORE_IMPORTING')];
 		}
 
 		$phase = 'import';
@@ -7204,7 +7206,7 @@ class AjaxModel extends ListModel
 
 			if ($extruder === null && $powers === null)
 			{
-				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+				return ['error' => Text::_('COM_COMPONENTBUILDER_GIVE_THE_TOOL_AT_LEAST_A_COMPONENT_SOURCE_FOLDER_AN_SQL_DUMP_OR_A_LIBRARY_FOLDER_TO_HARVEST')];
 			}
 
 			// the verdicts load after the engines reset, because reset is the run boundary
@@ -7223,8 +7225,8 @@ class AjaxModel extends ListModel
 			return $review + [
 				(in_array($status, ['committed', 'unchanged', 'preview'], true) ? 'success' : 'error')
 					=> in_array($status, ['committed', 'unchanged', 'preview'], true)
-						? Text::_('The import has run. The full report follows.')
-						: Text::_('The import was blocked or rolled back. Review the reported plan before trying again.'),
+						? Text::_('COM_COMPONENTBUILDER_THE_IMPORT_HAS_RUN_THE_FULL_REPORT_FOLLOWS')
+						: Text::_('COM_COMPONENTBUILDER_THE_IMPORT_WAS_BLOCKED_OR_ROLLED_BACK_REVIEW_THE_REPORTED_PLAN_BEFORE_TRYING_AGAIN'),
 				'messages' => ExtrusionFactory::_('Extruder')->messages(),
 				'report' => $this->extrusionPublicReport()
 			];
@@ -7251,11 +7253,11 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_USE_THE_EXTRUSION_TOOL')];
 		}
 
 		$phase = 'catalogue';
@@ -7290,18 +7292,18 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_USE_THE_EXTRUSION_TOOL')];
 		}
 
 		$base = realpath(JPATH_ROOT);
 
 		if ($base === false)
 		{
-			return ['error' => Text::_('The site root could not be resolved.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THE_SITE_ROOT_COULD_NOT_BE_RESOLVED')];
 		}
 
 		$relative = trim(str_replace('\\', '/', $path), '/');
@@ -7310,7 +7312,7 @@ class AjaxModel extends ListModel
 		if ($target === false || !is_dir($target)
 			|| ($target !== $base && !str_starts_with($target, $base . DIRECTORY_SEPARATOR)))
 		{
-			return ['error' => Text::_('That folder does not exist below the site root.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THAT_FOLDER_DOES_NOT_EXIST_BELOW_THE_SITE_ROOT')];
 		}
 
 		$relative = trim(str_replace('\\', '/', substr($target, strlen($base))), '/');
@@ -7370,17 +7372,17 @@ class AjaxModel extends ListModel
 
 		if ($repairNamespaces && ($component === 0 || ($options['mode'] ?? 'create') !== 'update'))
 		{
-			throw new \InvalidArgumentException(Text::_('Namespace repair requires Update mode and an explicitly selected existing target component.'));
+			throw new \InvalidArgumentException(Text::_('COM_COMPONENTBUILDER_NAMESPACE_REPAIR_REQUIRES_UPDATE_MODE_AND_AN_EXPLICITLY_SELECTED_EXISTING_TARGET_COMPONENT'));
 		}
 
 		if ($repairNamespaces && $libraries === [])
 		{
-			throw new \InvalidArgumentException(Text::_('Select at least one library source folder containing the classes whose Power namespaces should be repaired.'));
+			throw new \InvalidArgumentException(Text::_('COM_COMPONENTBUILDER_SELECT_AT_LEAST_ONE_LIBRARY_SOURCE_FOLDER_CONTAINING_THE_CLASSES_WHOSE_POWER_NAMESPACES_SHOULD_BE_REPAIRED'));
 		}
 
 		if ($repairNamespaces && isset($options['source_component']) && (int) $options['source_component'] <= 0)
 		{
-			throw new \InvalidArgumentException(Text::_('Namespace repair requires an existing source component context.'));
+			throw new \InvalidArgumentException(Text::_('COM_COMPONENTBUILDER_NAMESPACE_REPAIR_REQUIRES_AN_EXISTING_SOURCE_COMPONENT_CONTEXT'));
 		}
 
 		$onExisting = (string) ($options['on_existing'] ?? 'update');
@@ -7481,7 +7483,7 @@ class AjaxModel extends ListModel
 		{
 			if (!is_array($options['source_bindings']))
 			{
-				throw new \InvalidArgumentException(Text::_('Source-root bindings must be a mapping.'));
+				throw new \InvalidArgumentException(Text::_('COM_COMPONENTBUILDER_SOURCEROOT_BINDINGS_MUST_BE_A_MAPPING'));
 			}
 
 			$settings->set('sourceBindings', $options['source_bindings']);
@@ -7513,11 +7515,11 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_USE_THE_EXTRUSION_TOOL')];
 		}
 
 		$options = json_decode($config, true);
@@ -7525,7 +7527,7 @@ class AjaxModel extends ListModel
 
 		if (!is_array($options))
 		{
-			return ['error' => Text::_('The extrusion configuration could not be read.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THE_EXTRUSION_CONFIGURATION_COULD_NOT_BE_READ')];
 		}
 
 		$phase = 'weigh';
@@ -7535,14 +7537,14 @@ class AjaxModel extends ListModel
 		{
 			if (!is_array($verdicts))
 			{
-				return ['error' => Text::_('The pairing decisions could not be read.')];
+				return ['error' => Text::_('COM_COMPONENTBUILDER_THE_PAIRING_DECISIONS_COULD_NOT_BE_READ')];
 			}
 
 			$changes = $this->extrusionProposals($options, $verdicts);
 
 			if ($changes === null)
 			{
-				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+				return ['error' => Text::_('COM_COMPONENTBUILDER_GIVE_THE_TOOL_AT_LEAST_A_COMPONENT_SOURCE_FOLDER_AN_SQL_DUMP_OR_A_LIBRARY_FOLDER_TO_HARVEST')];
 			}
 
 			$completed = $phase;
@@ -7583,11 +7585,11 @@ class AjaxModel extends ListModel
 	{
 		$user = method_exists($this, 'getCurrentUser')
 			? $this->getCurrentUser()
-			: Factory::getUser();
+			: Factory::getApplication()->getIdentity();
 
 		if (!$user->authorise('extrusion.access', 'com_componentbuilder'))
 		{
-			return ['error' => Text::_('You do not have permission to use the extrusion tool.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_YOU_DO_NOT_HAVE_PERMISSION_TO_USE_THE_EXTRUSION_TOOL')];
 		}
 
 		$options = json_decode($config, true);
@@ -7596,7 +7598,7 @@ class AjaxModel extends ListModel
 
 		if (!is_array($options) || !is_array($verdicts) || $row === '')
 		{
-			return ['error' => Text::_('The extrusion configuration could not be read.')];
+			return ['error' => Text::_('COM_COMPONENTBUILDER_THE_EXTRUSION_CONFIGURATION_COULD_NOT_BE_READ')];
 		}
 
 		$phase = 'diff';
@@ -7606,7 +7608,7 @@ class AjaxModel extends ListModel
 		{
 			if ($this->extrusionProposals($options, is_array($verdicts) ? $verdicts : []) === null)
 			{
-				return ['error' => Text::_('Give the tool at least a component source folder, an SQL dump, or a library folder to harvest.')];
+				return ['error' => Text::_('COM_COMPONENTBUILDER_GIVE_THE_TOOL_AT_LEAST_A_COMPONENT_SOURCE_FOLDER_AN_SQL_DUMP_OR_A_LIBRARY_FOLDER_TO_HARVEST')];
 			}
 
 			$completed = $phase;
@@ -7683,7 +7685,7 @@ class AjaxModel extends ListModel
 		}
 
 		return [
-			'error' => Text::_('The server could not complete this operation. Review the current state and use the failure reference when reporting the problem.'),
+			'error' => Text::_('COM_COMPONENTBUILDER_THE_SERVER_COULD_NOT_COMPLETE_THIS_OPERATION_REVIEW_THE_CURRENT_STATE_AND_USE_THE_FAILURE_REFERENCE_WHEN_REPORTING_THE_PROBLEM'),
 			'failure' => $failure
 		];
 	}
@@ -7728,7 +7730,7 @@ class AjaxModel extends ListModel
 		}
 
 		$failure = $this->extrusionFailureReferences[$key];
-		$message = $failure['error'] . ' ' . Text::_('Failure reference:') . ' ' . $failure['failure']['reference'];
+		$message = $failure['error'] . ' ' . Text::_('COM_COMPONENTBUILDER_FAILURE_REFERENCE') . ' ' . $failure['failure']['reference'];
 
 		foreach ($preparation as $index)
 		{

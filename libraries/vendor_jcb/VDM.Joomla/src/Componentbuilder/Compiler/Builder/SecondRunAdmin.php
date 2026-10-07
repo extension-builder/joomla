@@ -18,14 +18,15 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Second Run Admin Builder Class
- *
+ * 
  * Work an admin view defers to a second pass, keyed by the method that must
  * run it. Building an edit body discovers linked views whose own views are
  * not compiled yet, so it queues them here and the infusion runs the queue
  * once every view exists.
- *
+ * 
  * @since 6.1.7
  */
 final class SecondRunAdmin extends Registry implements Registryinterface
 {
 }
+

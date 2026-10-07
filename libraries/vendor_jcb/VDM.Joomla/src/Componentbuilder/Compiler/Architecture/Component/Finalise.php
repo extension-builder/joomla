@@ -26,7 +26,7 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Everything the component still needs once every file has its content.
- *
+ * 
  * @since 6.1.7
  */
 final class Finalise
@@ -229,3 +229,4 @@ final class Finalise
 		$this->config->set('lang_prefix', $_backup_langPrefix);
 	}
 }
+

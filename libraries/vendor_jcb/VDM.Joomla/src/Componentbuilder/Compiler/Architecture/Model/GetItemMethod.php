@@ -36,11 +36,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Get Item Class.
- *
+ * 
  * Builds the getItem method of an item model: what it decodes, what it
  * decrypts, what it unpacks, what tags it loads, and whatever the view was
  * given to run alongside it.
- *
+ * 
  * @since 6.1.7
  */
 final class GetItemMethod
@@ -397,5 +397,5 @@ final class GetItemMethod
 			default => null,
 		};
 	}
-
 }
+

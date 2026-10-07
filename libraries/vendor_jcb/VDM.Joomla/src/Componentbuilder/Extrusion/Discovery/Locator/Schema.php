@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 
 /**
  * Finds the component's install schema, the single most important artifact.
- *
+ * 
  * @since 6.1.6
  */
 final class Schema extends Locator
@@ -76,3 +76,4 @@ final class Schema extends Locator
 		return $this->recorded(array_values($found));
 	}
 }
+

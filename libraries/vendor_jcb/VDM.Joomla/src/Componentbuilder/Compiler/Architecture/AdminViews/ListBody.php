@@ -20,21 +20,21 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\DoNotEscape;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ListFieldClass;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Lists;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface;
 
 
 /**
  * Admin View List Body Class.
- *
+ * 
  * Builds the table body an admin list view renders: one row per item, the
  * ordering handle, the selection checkbox, every column that targets the
  * admin list, and the publish state and id columns.
- *
+ * 
  * Two things differ between Joomla targets — how a checked out user is
  * looked up, and whether the permission tests are also guarded by the modal
  * state — so those are the extension points the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ListBody implements ListBodyInterface
@@ -331,3 +331,4 @@ class ListBody implements ListBodyInterface
 		return "!\$this->isModal && ";
 	}
 }
+

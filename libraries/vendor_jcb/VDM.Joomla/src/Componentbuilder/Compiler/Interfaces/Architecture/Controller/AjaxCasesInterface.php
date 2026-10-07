@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controlle
 
 /**
  * Controller Ajax Cases Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface AjaxCasesInterface
@@ -30,3 +30,4 @@ interface AjaxCasesInterface
 	 */
 	public function get($target): string;
 }
+

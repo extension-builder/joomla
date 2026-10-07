@@ -12,19 +12,20 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Run-scoped lexical Power observations keyed by the complete source digest.
- *
+ * 
  * Context, placement and identity are deliberately absent. Each harvest still
  * reads the source bytes and metadata before it reuses a lexical observation.
  * Scope clears these observations between independent operations.
- *
+ * 
  * @since  6.2.0
  */
 final class Parsed extends Registry implements Registryinterface
 {
 }
+

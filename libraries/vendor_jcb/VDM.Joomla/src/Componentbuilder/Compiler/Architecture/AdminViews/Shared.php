@@ -39,15 +39,15 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface as Event;
 
 /**
  * Admin Views Shared Class.
- *
+ * 
  * Builds the pieces an admin view needs whether or not it can be edited or
  * listed: what a batch may copy and move, what a controller and a model will
  * let a user do, the buttons a custom admin view adds, the routes the site
  * reaches it by, and the permissions it is asked for.
- *
+ * 
  * The order the pieces are asked for is the order the compiler has always
  * asked for them in, and the event fired at the end is the same event.
- *
+ * 
  * @since 6.1.7
  */
 final class Shared
@@ -496,3 +496,4 @@ final class Shared
 		);
 	}
 }
+

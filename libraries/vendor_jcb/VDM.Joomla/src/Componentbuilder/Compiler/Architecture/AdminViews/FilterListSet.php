@@ -16,20 +16,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Adminview\DefaultOrdering;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AdminFilterType;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Sort;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface;
 
 
 /**
  * Admin Views Filter List Set Class.
- *
+ * 
  * Builds the fields a list view is ordered and paged by: what it can be sorted
  * on, and how many rows it shows at a time.
- *
+ * 
  * How each of those two is labelled and told to submit is what the compile
  * target decides, and they are the two extension points below.
- *
+ * 
  * @since 6.1.7
  */
 class FilterListSet implements FilterListSetInterface
@@ -236,3 +236,4 @@ class FilterListSet implements FilterListSetInterface
 		return $lines;
 	}
 }
+

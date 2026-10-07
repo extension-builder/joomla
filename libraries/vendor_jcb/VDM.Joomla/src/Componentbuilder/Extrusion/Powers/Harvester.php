@@ -25,18 +25,18 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 
 /**
  * Walks the given library folders and gathers every class as a power candidate.
- *
+ * 
  * Harvesting is the whole first step of the two-step run: everything here is
  * gathered, identified and grouped, and nothing is written. The tree this
  * builds in the Harvest registry -- library, then sub-folder bundle, then
  * class, each candidate carrying its derived identity and whether it already
  * exists -- is deliberately the shape a caller presents for approval, so the
  * eventual interface only has to render it, never reorganise it.
- *
+ * 
  * A declaration's stable source key is independent of a selected database
  * GUID. Raw observations survive ambiguous matching and are re-resolved under
  * the final context and explicit pairing before assembly or persistence.
- *
+ * 
  * @since 6.1.7
  */
 final class Harvester
@@ -602,5 +602,5 @@ final class Harvester
 
 		return ['guid' => strtolower($data['guid']), 'namespace' => $data['namespace'], 'file' => $path, 'snapshot' => hash('sha256', $text)];
 	}
-
 }
+

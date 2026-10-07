@@ -18,18 +18,18 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Applies the caller's pairing verdicts to every settled identity.
- *
+ * 
  * The harvest derives an identity for every candidate, and left alone that
  * identity is what the writers use -- an existing definition updates, a new
  * one is created. The pairing step lets a person overrule any of it: ignore a
  * candidate outright, force a fresh definition even though a match exists, or
  * point the candidate at a different existing definition entirely.
- *
+ * 
  * A verdict is three parts: an action (create, update, ignore), an optional
  * target identity for updates, and the candidate key it applies to. Anything
  * without a verdict keeps the harvest's own answer, so the whole layer is
  * invisible until the interface hands verdicts back.
- *
+ * 
  * @since 6.1.7
  */
 final class Pairing
@@ -306,3 +306,4 @@ final class Pairing
 		return preg_replace('/[^A-Za-z0-9_.]/', '_', trim($segment)) ?? $segment;
 	}
 }
+

@@ -14,26 +14,26 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu;
 
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\MainMenusInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Language;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu\MainMenusInterface;
 
 
 /**
  * Main Menus Class.
- *
+ * 
  * Builds the administrator main menu of the component: the component's own
  * entry, an entry for every admin view that asks for one, and whatever the
  * custom main menus add between them.
- *
+ * 
  * A component that builds no dashboard of its own is given a menu entry that
  * reaches the default one. Joomla 3 has no such default, which is the one thing
  * about this menu the compile target decides, and it is the extension point
  * below.
- *
+ * 
  * @since  6.1.7
  */
 class MainMenus implements MainMenusInterface
@@ -223,3 +223,4 @@ class MainMenus implements MainMenusInterface
 		return $entry;
 	}
 }
+

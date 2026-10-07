@@ -19,10 +19,10 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Controller Ajax Tasks Class.
- *
+ * 
  * The ajax controller of a target registers every task the views of that
  * target were given, each task once however many views asked for it.
- *
+ * 
  * @since 6.1.7
  */
 final class AjaxTasks
@@ -89,3 +89,4 @@ final class AjaxTasks
 		return $tasks;
 	}
 }
+

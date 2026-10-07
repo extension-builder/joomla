@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Turns a form field's showon attribute into a JCB field condition.
- *
+ * 
  * Joomla expresses a dependency as showon="a:1[AND]b:2", which JCB models as a
  * condition with a match field, the values that trigger it, and the fields the
  * condition governs. This is information the schema cannot carry, so it comes
  * from the form XML or not at all.
- *
+ * 
  * @since 6.1.6
  */
 final class Condition
@@ -195,3 +195,4 @@ final class Condition
 		return $conditions;
 	}
 }
+

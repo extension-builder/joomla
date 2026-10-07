@@ -12,16 +12,16 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView;
 
 
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod as ExtendingDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface;
 
 
 /**
  * Custom View Display Method Class for Joomla 4.
- *
+ * 
  * Joomla 4 keeps the legacy global event dispatcher while already using
  * the model-based retrieval of the later targets.
- *
+ * 
  * @since  6.1.7
  */
 final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMethodInterface
@@ -53,3 +53,4 @@ final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMetho
 		return $this->getLegacyPluginEvent($pluginEvent, $context);
 	}
 }
+

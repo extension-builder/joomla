@@ -24,10 +24,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Filter Fields Class.
- *
+ * 
  * Builds the array a list model declares of every field its list may be
  * filtered, searched or ordered by.
- *
+ * 
  * @since 6.1.7
  */
 final class FilterFields
@@ -195,3 +195,4 @@ final class FilterFields
 		return $field;
 	}
 }
+

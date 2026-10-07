@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Config;
 
 /**
  * The run boundary for every piece of extrusion state.
- *
+ * 
  * The registries are shared services, so without an explicit boundary a second
  * extrusion in one request would inherit the first one's findings. Clearing them
  * from one place makes that boundary impossible to forget, and keeps the entry
  * point from having to know the full set.
- *
+ * 
  * @since 6.1.6
  */
 final class Scope
@@ -260,3 +260,4 @@ final class Scope
 		];
 	}
 }
+

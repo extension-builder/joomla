@@ -40,17 +40,17 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Admin View Script Class.
- *
+ * 
  * Builds the javascript an admin view carries. The conditions the view
  * declares become one function per condition, the listeners that call it, the
  * tests it runs and the statements that reveal, hide and re-require the fields
  * it steers; the view's own custom code is appended; and the result is
  * minified when the build asks for it and stored for the view's edit file, its
  * footer and its list file.
- *
+ * 
  * Nothing here is decided by the Joomla version being compiled for, so there
  * is one class for every target.
- *
+ * 
  * @since  6.1.7
  */
 final class ViewScript
@@ -1007,3 +1007,4 @@ final class ViewScript
 		return $isSet;
 	}
 }
+

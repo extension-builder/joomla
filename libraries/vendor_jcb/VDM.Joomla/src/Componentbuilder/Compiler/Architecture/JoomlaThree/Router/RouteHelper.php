@@ -19,13 +19,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Joomla 3 Route Helper Class.
- *
+ * 
  * Joomla 3 finds a link's menu item through the core needle lookup, so the
  * generated method gathers needles as it builds the link — one for the view
  * itself, and the whole category path when the link carries a category — and
  * hands them to `_findItem`. A view with no menu item of its own still asks,
  * with only the needles to go on.
- *
+ * 
  * @since  6.1.7
  */
 final class RouteHelper extends SharedRouteHelper
@@ -107,3 +107,4 @@ final class RouteHelper extends SharedRouteHelper
 		];
 	}
 }
+

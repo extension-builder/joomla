@@ -19,15 +19,15 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * One field per stated identity, linked into every view that states it.
- *
+ * 
  * JCB holds a field once and every view that needs it links it by guid. A
  * component whose ten views each state the same name field therefore owes one
  * field record and ten links -- not ten records. What makes two columns the
  * same field is decided here, before anything is written, so the harvest a
  * person approves already shows one field and the views it serves.
- *
+ * 
  * Identity is settled in the order the rule runs:
- *
+ * 
  * - A stated Global Unique ID outranks everything. The same guid is the same
  *   field always, and two columns stating it are one field whatever else they
  *   say.
@@ -35,9 +35,9 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
  *   the field type, the database shape, and every stated XML property must
  *   match exactly. Required true and required false are two different fields.
  *   Nothing is judged more or less important -- a statement is a statement.
- *
+ * 
  * A settled group then takes ONE written identity, chosen in rank:
- *
+ * 
  * - A person's verdict on the group, from the pairing board, outranks all.
  * - When a component is paired, what already stands in it is recognised: a
  *   record standing under a member's own derived identity, under the fresh
@@ -45,7 +45,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
  *   link whose stored properties hash to exactly what this run would write,
  *   IS this field already written -- so it is reused, never written beside.
  * - Otherwise the first view in table order owns a fresh record.
- *
+ * 
  * The owner's write is steered onto that identity through the same decision
  * registry a person's verdict lands in, and every later view carries a share
  * note the writer turns into a link. A person's verdict on any single column
@@ -54,11 +54,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
  * settled identity, are recorded as superseded: their links are consolidated
  * onto the one field and the newly unlinked records are named in the report,
  * never deleted.
- *
+ * 
  * Nothing here looks outside the component being extruded and the component
  * it is paired against. A resemblance elsewhere in the system stays a
  * suggestion on the board, never an identity this run acts on by itself.
- *
+ * 
  * @since 6.1.9
  */
 final class Sharing
@@ -621,3 +621,4 @@ final class Sharing
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

@@ -14,12 +14,12 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Interfaces;
 
 /**
  * Describes where one Joomla major version places a component's artifacts.
- *
+ * 
  * An implementation is the inverse of the compiler's own settings.json move
  * map. It answers "where would this component keep its schema, forms, models,
  * language, templates and layouts", relative to a source root, for every
  * plausible shape of that root.
- *
+ * 
  * @since 6.1.6
  */
 interface LayoutInterface
@@ -59,3 +59,4 @@ interface LayoutInterface
 	 */
 	public function roots(): array;
 }
+

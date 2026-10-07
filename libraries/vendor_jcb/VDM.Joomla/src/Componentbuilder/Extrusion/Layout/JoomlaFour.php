@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Layout;
 
 /**
  * Joomla 4 component placement, inverted from the joomla_4 move map.
- *
+ * 
  * @since 6.1.6
  */
 class JoomlaFour extends Layout
@@ -78,3 +78,4 @@ class JoomlaFour extends Layout
 		];
 	}
 }
+

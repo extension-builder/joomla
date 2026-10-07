@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
+
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
@@ -18,14 +19,15 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Php\Template;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
+
 /**
  * Reads everything the inventory located into the registries.
- *
+ * 
  * The order matters in one place only: the language catalogue is read before
  * anything that resolves a constant, so a label never has to be looked up twice.
  * Otherwise each reader is independent and a failure in one is recorded rather
  * than allowed to abort the run.
- *
+ * 
  * @since 6.1.6
  */
 final class Dispatcher
@@ -321,3 +323,4 @@ final class Dispatcher
 		return $entries;
 	}
 }
+

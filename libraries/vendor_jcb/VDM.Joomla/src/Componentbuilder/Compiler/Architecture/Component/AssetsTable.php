@@ -20,14 +20,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\Asset
 
 /**
  * Component Assets Table Intelligent Fix Class.
- *
+ * 
  * Generates the script.php treatment of the `#__assets` table rules
  * column when the component compiles with the intelligent fix option.
  * The install side enlarges the column to carry the component's worst
  * case permission rules, and the uninstall side reverts it. Joomla
  * target variants supply the target-specific treatment through the
  * `installScript()` and `uninstallScript()` extension points.
- *
+ * 
  * @since  6.1.7
  */
 class AssetsTable implements AssetsTableInterface
@@ -154,3 +154,4 @@ class AssetsTable implements AssetsTableInterface
 		return PHP_EOL . implode(PHP_EOL, $script);
 	}
 }
+

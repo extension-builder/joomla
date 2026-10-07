@@ -13,7 +13,6 @@ namespace VDM\Joomla\Componentbuilder\Extrusion;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher as ReaderDispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Schema as SchemaReader;
@@ -29,20 +28,21 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Candidates;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Reuse;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Sharing;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher as WriterDispatcher;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ExtruderInterface;
 
 
 /**
  * The single entry point that consumes a component source tree into JCB.
- *
+ * 
  * This is resolved from the container and configured by chaining, so a caller
  * never constructs a request object. Every setter validates and writes into the
  * shared configuration, which each downstream service already holds by injection.
- *
+ * 
  * The run is four ordered steps and nothing else: collect an inventory, read what
  * was found, assemble it into one resolved definition set, then write. Nothing
  * below this class enqueues a message; findings accumulate in the report and only
  * the caller decides how to present them.
- *
+ * 
  * @since 6.1.6
  */
 final class Extruder implements ExtruderInterface
@@ -990,3 +990,4 @@ final class Extruder implements ExtruderInterface
 		return $this->report;
 	}
 }
+

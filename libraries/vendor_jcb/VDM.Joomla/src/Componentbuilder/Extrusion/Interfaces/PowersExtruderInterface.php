@@ -17,11 +17,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * The Powers Extrusion Entry Contract
- *
+ * 
  * The two-step pipeline that consumes PHP library classes into JCB powers:
  * harvest first, so a caller can present what was found and collect approval,
  * then extrude what was approved.
- *
+ * 
  * @since 6.1.7
  */
 interface PowersExtruderInterface
@@ -88,3 +88,4 @@ interface PowersExtruderInterface
 	 */
 	public function messages(): array;
 }
+

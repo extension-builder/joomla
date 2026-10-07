@@ -17,16 +17,16 @@ use VDM\Joomla\Componentbuilder\Power\Parser;
 
 /**
  * Reads one PHP file into the parts a power row stores.
- *
+ * 
  * The declaration is located with PHP's own lexer rather than patterns, so a
  * class name inside a string, a ::class constant, or an anonymous class can
  * never be mistaken for the file's declaration. The body, license and import
  * statements come from the shared power Parser, so what this reader extracts is
  * exactly what the compiler will later reassemble.
- *
+ * 
  * Reading never interprets: what a parent or import refers to is the
  * assembler's question, so this class hands back names exactly as written.
- *
+ * 
  * @since 6.1.7
  */
 final class ClassFile
@@ -666,3 +666,4 @@ final class ClassFile
 		return trim(implode("\n", $lines), "\n");
 	}
 }
+

@@ -12,27 +12,27 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\View;
 
 
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentMetadataInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentMetadataInterface;
 
 
 /**
  * View Document Metadata Class.
- *
+ * 
  * Builds the statements a view runs to set the document metadata: the
  * description, the keywords, the robots, the author, and whatever the item
  * itself carries.
- *
+ * 
  * A view that reads one item takes its metadata from that item and falls back
  * on the menu parameters; a view that reads a list has only the parameters. A
  * view whose own custom get method carries the name of the view is read as the
  * first kind, since that method is where the item then comes from.
- *
+ * 
  * How the document is reached is what the compile target decides, and it is the
  * two extension points below.
- *
+ * 
  * @since  6.1.7
  */
 class DocumentMetadata implements DocumentMetadataInterface
@@ -244,3 +244,4 @@ class DocumentMetadata implements DocumentMetadataInterface
 		return "\$this->setDocumentTitle(" . $value . ");";
 	}
 }
+

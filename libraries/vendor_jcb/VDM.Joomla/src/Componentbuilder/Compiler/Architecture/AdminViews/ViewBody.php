@@ -23,20 +23,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\View
 
 /**
  * Admin List View Body Class.
- *
+ * 
  * Generates the default and modal body layouts of an admin list view: the
  * form wrapper, the search-tools or sidebar filter controls, the empty
  * result notice, and the list table that loads the head, foot and body
  * templates.
- *
+ * 
  * Extension events are triggered at the top of the body, inside the form,
  * at the end of the form and at the end of the body. Their names, order,
  * and by-reference arguments are a compatibility seam.
- *
+ * 
  * The shared implementation emits the single container used from Joomla 4
  * onwards; the Joomla 3 variant adds the sidebar container and the batch
  * processing modal.
- *
+ * 
  * @since  6.1.7
  */
 class ViewBody implements ViewBodyInterface
@@ -383,3 +383,4 @@ class ViewBody implements ViewBodyInterface
 		];
 	}
 }
+

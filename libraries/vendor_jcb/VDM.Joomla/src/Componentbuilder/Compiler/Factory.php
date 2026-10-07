@@ -80,8 +80,8 @@ use VDM\Joomla\Componentbuilder\Package\Service\CustomCodeGet;
 use VDM\Joomla\Componentbuilder\Package\Service\LibraryGet;
 use VDM\Joomla\Componentbuilder\Package\Service\FieldGet;
 use VDM\Joomla\Componentbuilder\Package\Service\DependenciesGet;
-use VDM\Joomla\Interfaces\FactoryInterface;
 use VDM\Joomla\Abstraction\Factory as ExtendingFactory;
+use VDM\Joomla\Interfaces\FactoryInterface;
 
 
 /**
@@ -215,3 +215,4 @@ abstract class Factory extends ExtendingFactory implements FactoryInterface
 			->registerServiceProvider(new DependenciesGet());
 	}
 }
+

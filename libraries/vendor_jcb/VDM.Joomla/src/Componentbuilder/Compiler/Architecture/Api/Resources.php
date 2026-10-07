@@ -17,14 +17,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Config;
 
 /**
  * The API resources of a component and their names
- *
+ * 
  * Every admin view with the API option is a resource named by its list
  * code, and every custom admin view and site view of a component that
  * has such an admin API is a read-only resource named by its code. The
  * names are resolved in that order: an admin view reserves both of its
  * codes, a custom admin view that hits a reserved name is skipped with a
  * warning, and a site view that hits one takes the site_ prefix.
- *
+ * 
  * @since 6.1.7
  */
 class Resources
@@ -433,3 +433,4 @@ class Resources
 		return in_array($option, [1, 2, 3], true) ? $option : 0;
 	}
 }
+

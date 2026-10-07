@@ -190,9 +190,6 @@ class Load implements LoadInterface
 			// add limitation and pagination
 			if ($bundle > 0)
 			{
-				// order by the same key used by the bundle cursor
-				$order = ['a.id' => 'ASC'];
-
 				// get the incremental number
 				$where = ['a.id' => [
 						'operator' => '>=',
@@ -305,3 +302,4 @@ class Load implements LoadInterface
 	}
 
 }
+

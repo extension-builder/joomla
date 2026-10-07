@@ -20,11 +20,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Field If Value Script Class.
- *
+ * 
  * Builds the javascript test a form condition runs against the field it
  * watches: what counts as a match for the behaviour the condition declares,
  * over the options the field offers.
- *
+ * 
  * @since  6.1.7
  */
 final class IfValueScript
@@ -380,3 +380,4 @@ final class IfValueScript
 		return $string;
 	}
 }
+

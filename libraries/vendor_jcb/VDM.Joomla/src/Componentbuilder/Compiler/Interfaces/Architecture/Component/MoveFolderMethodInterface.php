@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Move Folder Method Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface MoveFolderMethodInterface
@@ -28,3 +28,4 @@ interface MoveFolderMethodInterface
 	 */
 	public function get(): string;
 }
+

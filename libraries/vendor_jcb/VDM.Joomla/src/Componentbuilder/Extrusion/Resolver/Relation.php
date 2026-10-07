@@ -18,17 +18,17 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Interprets the relationships a table definition class declares.
- *
+ * 
  * A link names a target table, component, entity, value field and key field. No
  * other artifact carries this, so it is the single reason the table definition
  * class is worth reading. Reconstructing it from column names would be guesswork.
- *
+ * 
  * How a relationship should finally be expressed inside JCB -- as a generated
  * custom field type querying the linked view, as a dynamic get, or as a stored
  * field relation -- is a product decision that is still open. Until it is
  * settled this resolver normalises the relationship and records it, so nothing is
  * lost and nothing is invented.
- *
+ * 
  * @since 6.1.6
  */
 final class Relation
@@ -173,3 +173,4 @@ final class Relation
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

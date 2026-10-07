@@ -14,27 +14,27 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\View;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\LibrariesLoaderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Library\Document;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\LibrariesLoaderInterface;
 
 
 /**
  * View Libraries Loader Class.
- *
+ * 
  * Builds the statements a view runs to load what it needs before it renders:
  * jQuery, the header checker, and every library the view was linked to.
- *
+ * 
  * A module asks for the same statements, and is given them written against the
  * document it holds rather than the one a view reaches for.
- *
+ * 
  * How the header checker is reached is what the compile target decides, and it
  * is the extension point below.
- *
+ * 
  * @since  6.1.7
  */
 class LibrariesLoader implements LibrariesLoaderInterface
@@ -196,3 +196,4 @@ class LibrariesLoader implements LibrariesLoaderInterface
 		return $setter;
 	}
 }
+

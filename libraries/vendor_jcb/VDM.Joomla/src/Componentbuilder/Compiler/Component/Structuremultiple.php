@@ -12,6 +12,8 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Component;
 
 
+use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Factory;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface as Settings;
@@ -22,8 +24,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Utilities\ObjectHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
-use Joomla\CMS\Application\CMSApplicationInterface;
-use Joomla\CMS\Factory;
 
 
 /**
@@ -517,3 +517,4 @@ final class Structuremultiple
 		$this->structure->build(['api' => $name], $type, false, $config);
 	}
 }
+

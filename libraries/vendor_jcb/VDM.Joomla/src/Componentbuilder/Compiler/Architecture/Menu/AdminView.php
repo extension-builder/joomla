@@ -24,11 +24,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Admin View Site Menu Class.
- *
+ * 
  * Builds the site `edit.xml` menu metadata for an admin view whose items
  * can be edited from the site area, registering the menu language keys
  * and the metadata file in the build structure.
- *
+ * 
  * @since  6.1.7
  */
 final class AdminView
@@ -147,3 +147,4 @@ final class AdminView
 		return $xml;
 	}
 }
+

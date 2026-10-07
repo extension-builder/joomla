@@ -18,13 +18,14 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Uninstall Script Fields Builder Class
- *
+ * 
  * The views whose custom fields the component registered, keyed by view code
  * name. A view listed here has its fields and field groups removed as well as
  * itself when the component is uninstalled.
- *
+ * 
  * @since 6.1.7
  */
 final class UninstallScriptFields extends Registry implements Registryinterface
 {
 }
+

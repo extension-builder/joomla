@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * The documented expectations of a dynamic get API resource
- *
+ * 
  * What the compiler can see of the dynamic get it writes into the docblock
  * of the display method: every filter and clause in words, the request
  * variables the get reads, whether the resource paginates, and where the
  * custom PHP of the get may add what the compiler cannot describe.
- *
+ * 
  * @since 6.1.7
  */
 class Expectations
@@ -321,3 +321,4 @@ class Expectations
 		return PHP_EOL . Indent::_(1) . ' * ' . $text;
 	}
 }
+

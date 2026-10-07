@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model Items String Fix Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ItemsStringFixInterface
@@ -36,3 +36,4 @@ interface ItemsStringFixInterface
 	public function get($nameSingleCode, $nameListCode,
 		$Component, $tab = '', $export = false, $all = false);
 }
+

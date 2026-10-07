@@ -18,14 +18,15 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * View Script Builder Class
- *
+ * 
  * The javascript each admin view carries, keyed by the view code name and then
  * by which of the view's files it belongs in: `fileScript`, `footerScript` or
  * `list_fileScript`. It is built while the view is interpreted and read back
  * when the view's content is assembled.
- *
+ * 
  * @since 6.1.7
  */
 final class ViewScript extends Registry implements Registryinterface
 {
 }
+

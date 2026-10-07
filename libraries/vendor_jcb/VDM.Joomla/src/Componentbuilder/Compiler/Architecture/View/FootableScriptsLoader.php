@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\Foota
 
 /**
  * View Footable Scripts Loader Class.
- *
+ * 
  * Gives a view the footable scripts it needs. Only a view that was found to
  * have a footable table on it gets them, and it gets them without the
  * initialisation an admin view asks for.
- *
+ * 
  * @since  6.1.7
  */
 final class FootableScriptsLoader
@@ -90,3 +90,4 @@ final class FootableScriptsLoader
 		return '';
 	}
 }
+

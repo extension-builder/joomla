@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View;
 
 /**
  * View Document Inline Assets Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface DocumentInlineAssetsInterface
@@ -41,3 +41,4 @@ interface DocumentInlineAssetsInterface
 	 */
 	public function js(array &$view): string;
 }
+

@@ -23,19 +23,19 @@ use VDM\Joomla\Interfaces\Database\LoadInterface;
 
 /**
  * Turns one harvest into the candidate list a person approves.
- *
+ * 
  * Every resolved artifact becomes a candidate that carries exactly what the
  * pairing step needs: the key its verdict will be filed under, the identity
  * the writers would settle on when left alone, and the existing definition it
  * appears to match. The matching is by name against what the target component
  * already links, so a re-import of a known component arrives pre-paired as
  * updates and only what is genuinely new proposes itself as a creation.
- *
+ * 
  * The catalogue of existing definitions stands on its own, because the
  * interface asks for it again whenever the person points the run at another
  * component -- every proposed pairing then re-lines against that component's
  * own links.
- *
+ * 
  * @since 6.1.7
  */
 final class Candidates
@@ -1094,3 +1094,4 @@ final class Candidates
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

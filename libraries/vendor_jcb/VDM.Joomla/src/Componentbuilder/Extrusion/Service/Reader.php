@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
+
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Dispatcher;
@@ -24,12 +25,13 @@ use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Insert;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql\Splitter;
 use VDM\Joomla\Componentbuilder\Extrusion\Reader\Table as TableReader;
 
+
 /**
  * Extrusion Reader Service Provider
- *
+ * 
  * Every reader is pure with respect to JCB: it reads a file from an untrusted
  * source tree into a registry, and never touches the database.
- *
+ * 
  * @since 6.1.6
  */
 class Reader implements ServiceProviderInterface
@@ -231,3 +233,4 @@ class Reader implements ServiceProviderInterface
 		return new Template();
 	}
 }
+

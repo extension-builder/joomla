@@ -14,14 +14,14 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 /**
  * Derives the stable identity an extruded definition is written under.
- *
+ * 
  * The Data pipeline resolves insert against update from the GUID, so identity is
  * what makes a second run over the same source update in place instead of
  * producing a duplicate definition set. When the source is a JCB-built component
  * its table definition class already carries a per-field GUID, which is the
  * ideal case; everything else gets a name-based version 5 identifier so the same
  * source always derives the same GUID.
- *
+ * 
  * @since 6.1.6
  */
 final class Guid
@@ -127,3 +127,4 @@ final class Guid
 		);
 	}
 }
+

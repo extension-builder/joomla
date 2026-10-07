@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedVie
 
 /**
  * Linked View List Body Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ListBodyInterface
@@ -33,3 +33,4 @@ interface ListBodyInterface
 	public function get(string $nameSingleCode, string $nameListCode,
 		string $refview): string;
 }
+

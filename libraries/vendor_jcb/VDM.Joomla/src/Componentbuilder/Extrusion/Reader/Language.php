@@ -12,14 +12,14 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Language as LanguageRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 
 
 /**
  * Reads one language ini file into the Language registry.
- *
+ * 
  * The content is parsed from a string rather than from the path, so the parse is
  * testable without a file, and in raw mode, so Joomla's own escaping survives to
  * be undone here rather than by the ini scanner. The raw scanner removes the
@@ -28,12 +28,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
  * _QQ_ token, and both become a literal double quote. Nothing else is stripped:
  * a quote that survives the scanner is content, as is any whitespace inside the
  * quotes, and both are kept exactly as Joomla's own language loader keeps them.
- *
+ * 
  * Merging is first writer wins: a later file never replaces a constant that is
  * already present with a non-empty value, so reading the component ini before
  * its sys ini leaves the main catalogue in charge. The file is never included,
  * required, or evaluated.
- *
+ * 
  * @since 6.1.6
  */
 final class Language implements ReaderInterface
@@ -262,3 +262,4 @@ final class Language implements ReaderInterface
 		return $parsed;
 	}
 }
+

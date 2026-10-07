@@ -19,11 +19,11 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * View Document Custom PHP Class.
- *
+ * 
  * Gives back the php a view was built to run when its document is prepared,
  * laid out at the indent the generated method expects and with its
  * placeholders filled in.
- *
+ * 
  * @since  6.1.7
  */
 final class DocumentCustomPHP
@@ -79,3 +79,4 @@ final class DocumentCustomPHP
 		return '';
 	}
 }
+

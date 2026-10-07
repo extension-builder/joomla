@@ -20,7 +20,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * The read permission of a dynamic get API controller
- *
+ * 
  * @since 6.1.7
  */
 class AllowView
@@ -105,3 +105,4 @@ class AllowView
 		return $body;
 	}
 }
+

@@ -18,11 +18,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Api Controller Get Model Class.
- *
+ * 
  * Builds the getModel method of both API controllers of a view. Each
  * controller selects the model of its resource role, regardless of the name
  * Joomla derives from the content type.
- *
+ * 
  * @since 6.1.7
  */
 final class GetModel
@@ -60,3 +60,4 @@ final class GetModel
 		return implode(PHP_EOL, $code);
 	}
 }
+

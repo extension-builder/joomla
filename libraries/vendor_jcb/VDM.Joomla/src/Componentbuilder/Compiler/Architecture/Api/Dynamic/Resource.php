@@ -21,10 +21,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * The API resource of a site view or custom admin view
- *
+ * 
  * Sets every placeholder of the dynamic API templates for one view, keyed
  * by the API name the resources map resolved for it.
- *
+ * 
  * @since 6.1.7
  */
 class Resource
@@ -264,3 +264,4 @@ class Resource
 		return $this->component->isArray($key) ? $this->component->get($key) : [];
 	}
 }
+

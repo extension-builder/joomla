@@ -18,11 +18,12 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Custom Admin View List Id Builder Class.
- *
+ * 
  * Marks the custom admin views whose list query must expose an id filter, keyed by the code name of the custom admin view.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomAdminViewListId extends Registry implements Registryinterface
 {
 }
+

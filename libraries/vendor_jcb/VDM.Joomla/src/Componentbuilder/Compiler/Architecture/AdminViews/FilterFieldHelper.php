@@ -20,24 +20,24 @@ use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AdminFilterType;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Filter;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SelectionTranslation;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface;
 
 
 /**
  * Admin View Filter Field Helper Class.
- *
+ * 
  * Builds the filter option getters a list view helper carries, one per
  * filtered field, resolving each field type to the query or lookup that
  * produces its options.
- *
+ * 
  * Two things differ between Joomla targets — how a database connection is
  * opened, and how a user name is resolved for a user filter — so those are
  * the extension points the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class FilterFieldHelper implements FilterFieldHelperInterface
@@ -554,3 +554,4 @@ class FilterFieldHelper implements FilterFieldHelperInterface
 		];
 	}
 }
+

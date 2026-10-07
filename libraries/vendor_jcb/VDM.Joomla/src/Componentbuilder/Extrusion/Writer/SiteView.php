@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -23,21 +22,22 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Pairing;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Writes the front end views a component's site templates describe.
- *
+ * 
  * A site view is the front end counterpart of an admin view, but it is not built
  * from a database table: its body is the default template of its own folder. That
  * makes it recoverable from any component with a site folder, whether or not JCB
  * built it and whether or not the run ever saw a schema.
- *
+ * 
  * The view's data source is the dynamic get the run wrote for it: a real back
  * end source when an admin view of this run answers for the view's name, and a
  * custom-get scaffold when none does -- either way main_get names it, because a
  * site view without a source displays nothing at all.
- *
+ * 
  * @since 6.1.6
  */
 final class SiteView extends Writer
@@ -284,3 +284,4 @@ HTML;
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

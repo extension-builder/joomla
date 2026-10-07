@@ -18,11 +18,12 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Custom Admin View List Link Builder Class.
- *
+ * 
  * Records the custom admin views that are linked from each admin list view row, keyed by the list code name of the view.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomAdminViewListLink extends Registry implements Registryinterface
 {
 }
+

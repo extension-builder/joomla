@@ -12,17 +12,18 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion Report Registry
- *
+ * 
  * What was found, resolved, guessed, skipped, and left unresolved.
- *
+ * 
  * @since 6.1.6
  */
 final class Report extends Registry implements Registryinterface
 {
 }
+

@@ -13,13 +13,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\ComHelpe
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\ExcelMethodsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\ExcelMethods as ExtendingExcelMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\ComHelperClass\ExcelMethodsInterface;
 
 
 /**
  * Component Helper Class Excel Methods Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class ExcelMethods extends ExtendingExcelMethods implements ExcelMethodsInterface
@@ -40,3 +40,4 @@ final class ExcelMethods extends ExtendingExcelMethods implements ExcelMethodsIn
 		];
 	}
 }
+

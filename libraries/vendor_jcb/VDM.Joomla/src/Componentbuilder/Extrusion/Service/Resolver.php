@@ -43,7 +43,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\ViewName;
 
 /**
  * Extrusion Resolver Service Provider
- *
+ * 
  * @since 6.1.6
  */
 class Resolver implements ServiceProviderInterface
@@ -577,3 +577,4 @@ class Resolver implements ServiceProviderInterface
 		);
 	}
 }
+

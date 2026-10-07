@@ -18,11 +18,12 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Eximport View Builder Class
- *
+ * 
  * Which list views carry the export and import feature.
- *
+ * 
  * @since 6.1.7
  */
 final class EximportView extends Registry implements Registryinterface
 {
 }
+

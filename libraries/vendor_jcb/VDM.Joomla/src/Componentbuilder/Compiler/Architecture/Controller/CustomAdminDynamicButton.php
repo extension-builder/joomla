@@ -14,25 +14,25 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DynamicButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\CustomAdminDynamicButtonInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Language;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\CustomAdminDynamicButtonInterface;
 
 
 /**
  * Controller Custom Admin Dynamic Button Class.
- *
+ * 
  * Builds the controller method behind every dynamic button a custom admin view
  * was given: the token check, the permission check, and the redirect back to
  * the view with whatever the model answered.
- *
+ * 
  * How the current user is reached is what the compile target decides, and it
  * is the extension point below.
- *
+ * 
  * @since 6.1.7
  */
 class CustomAdminDynamicButton implements CustomAdminDynamicButtonInterface
@@ -172,5 +172,5 @@ class CustomAdminDynamicButton implements CustomAdminDynamicButtonInterface
 	{
 		return Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
-
 }
+

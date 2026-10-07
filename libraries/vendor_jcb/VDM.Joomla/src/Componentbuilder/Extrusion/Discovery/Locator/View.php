@@ -17,13 +17,13 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 
 /**
  * Finds and classifies the component's templates and layouts.
- *
+ * 
  * The placement map decides what a file is: a layouts folder holds layouts, a
  * view's template folder holds templates, and the main default file is the
  * view's own template rather than a reusable one. Two things the map cannot
  * settle -- list against edit, and admin against custom admin -- are left to the
  * resolver, so this locator only reports what it can prove.
- *
+ * 
  * @since 6.1.6
  */
 final class View extends Locator
@@ -371,3 +371,4 @@ final class View extends Locator
 		return $found;
 	}
 }
+

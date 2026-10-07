@@ -12,27 +12,26 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Writes the field conditions a form's showon attributes described.
- *
+ * 
  * A dependency between fields is expressed only in the form XML, so this is the
  * one structural signal that has no other source. Nothing is written for a view
  * whose form declared no dependency.
- *
+ * 
  * @since 6.1.6
  */
 final class AdminFieldsConditions extends Writer
 {
-
 	/**
 	 * The Source Registry.
 	 *
@@ -242,3 +241,4 @@ final class AdminFieldsConditions extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

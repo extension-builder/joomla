@@ -20,11 +20,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Field Options Script Class.
- *
+ * 
  * Reads the options a watched field declares into the bucket the condition
  * test is built from: a selection field yields its option values, and a text
  * field yields the keywords and the length its options name.
- *
+ * 
  * @since  6.1.7
  */
 final class OptionsScript
@@ -137,3 +137,4 @@ final class OptionsScript
 		return $buket;
 	}
 }
+

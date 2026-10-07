@@ -24,7 +24,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * The site view model data, keyed on the main get type the view was given.
- *
+ * 
  * @since 6.1.7
  */
 final class ModelData
@@ -196,3 +196,4 @@ final class ModelData
 		}
 	}
 }
+

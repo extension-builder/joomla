@@ -39,7 +39,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 
 /**
  * Everything one site view of the component adds to the compiler.
- *
+ * 
  * @since 6.1.7
  */
 final class Builder
@@ -454,3 +454,4 @@ final class Builder
 		);
 	}
 }
+

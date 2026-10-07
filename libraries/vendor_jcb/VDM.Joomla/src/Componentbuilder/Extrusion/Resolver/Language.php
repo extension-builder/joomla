@@ -19,12 +19,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Turns a language constant into the actual English string.
- *
+ * 
  * JCB stores real text, not placeholders, so a label of
  * COM_EXAMPLE_ITEM_NAME_LABEL must become "Name" before it is written. A
  * constant that cannot be resolved is kept verbatim and recorded, because
  * silently inventing a label would be worse than reporting the gap.
- *
+ * 
  * @since 6.1.6
  */
 final class Language
@@ -366,3 +366,4 @@ final class Language
 		return $attributes;
 	}
 }
+

@@ -16,20 +16,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\UninstallScriptInterface;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\UninstallScriptInterface;
 
 
 /**
  * Component Uninstall Script Class.
- *
+ * 
  * Generates the uninstall method body of the script.php: the removal of
  * the component's related data per view, the assets table intelligent
  * reversal, and the component's own custom uninstall script. Joomla 3
  * carries its own class, because its generated code removes the content
  * types, fields and history the Joomla 3 target registered.
- *
+ * 
  * @since  6.1.7
  */
 class UninstallScript implements UninstallScriptInterface
@@ -146,3 +146,4 @@ class UninstallScript implements UninstallScriptInterface
 		return $script;
 	}
 }
+

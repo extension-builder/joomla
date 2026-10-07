@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Field Value Script Class.
- *
+ * 
  * Builds the javascript that reads the current value out of the field a form
  * condition watches, and reports whether that value arrives as an array, since
  * the condition function iterates one and compares the other.
- *
+ * 
  * @since  6.1.7
  */
 final class ValueScript
@@ -128,3 +128,4 @@ final class ValueScript
 		return array('get' => $select, 'isArray' => $isArray);
 	}
 }
+

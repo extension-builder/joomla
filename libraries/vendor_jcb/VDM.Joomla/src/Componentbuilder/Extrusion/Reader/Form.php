@@ -13,27 +13,27 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader;
 
 
 use SimpleXMLElement;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form as FormRegistry;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ReaderInterface;
 
 
 /**
  * Reads one form XML document into the Form registry.
- *
+ * 
  * Every field attribute is carried across verbatim rather than curated, because
  * JCB's own field.xml is itself an attribute bag and the value of this reader is
  * exactly the attributes we hold no opinion about. Structure is captured in the
  * same pass: fieldsets become the tab signal, and a field nested in a
- * <fields name="x"> group records that group name. Both fields and fieldsets
+ *  group records that group name. Both fields and fieldsets
  * carry a zero-based order, which is their position in the document, so the
  * source ordering survives into the definitions.
- *
+ * 
  * The document is untrusted, so it is parsed as a string with libxml's internal
  * error buffer active. A malformed file therefore neither warns nor throws: it
  * is recorded in the report and the read returns false. The file is never
  * included, required, or evaluated.
- *
+ * 
  * @since 6.1.6
  */
 final class Form implements ReaderInterface
@@ -484,3 +484,4 @@ final class Form implements ReaderInterface
 		return null;
 	}
 }
+

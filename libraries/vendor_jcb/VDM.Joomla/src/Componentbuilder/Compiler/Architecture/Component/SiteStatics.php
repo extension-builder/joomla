@@ -23,7 +23,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Everything the site side of the component needs whether or not it has views.
- *
+ * 
  * @since 6.1.7
  */
 final class SiteStatics
@@ -164,3 +164,4 @@ final class SiteStatics
 		}
 	}
 }
+

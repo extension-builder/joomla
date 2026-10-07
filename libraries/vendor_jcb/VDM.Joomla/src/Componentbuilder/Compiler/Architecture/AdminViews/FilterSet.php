@@ -18,24 +18,24 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Filter;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterSetInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Language;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterSetInterface;
 
 
 /**
  * Admin Views Filter Set Class.
- *
+ * 
  * Builds the filter fields the list view of a component is searched with: the
  * search box, whatever of the status, category and access filters the view was
  * given, and every filter the component declared for it.
- *
+ * 
  * Which attributes each of those fields carries is what the compile target
  * decides, and they are the extension points below.
- *
+ * 
  * @since 6.1.7
  */
 class FilterSet implements FilterSetInterface
@@ -426,3 +426,4 @@ class FilterSet implements FilterSetInterface
 		return $lines;
 	}
 }
+

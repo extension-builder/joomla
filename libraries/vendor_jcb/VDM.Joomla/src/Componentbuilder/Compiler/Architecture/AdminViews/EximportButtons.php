@@ -17,11 +17,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Exim
 
 /**
  * Admin Views Eximport Buttons Class.
- *
+ * 
  * The toolbar buttons that export and import a list view's data were only ever
  * written for Joomla 3, and every later target is still waiting for them, so it
  * is given none.
- *
+ * 
  * @since 6.1.7
  */
 class EximportButtons implements EximportButtonsInterface
@@ -56,3 +56,4 @@ class EximportButtons implements EximportButtonsInterface
 		return '';
 	}
 }
+

@@ -534,3 +534,4 @@ final class Initializer
 		$this->event->trigger('jcb_ce_onAfterGet');
 	}
 }
+

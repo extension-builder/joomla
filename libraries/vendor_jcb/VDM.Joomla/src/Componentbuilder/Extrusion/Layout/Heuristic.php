@@ -14,11 +14,11 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Layout;
 
 /**
  * Classifies a source file by what it intrinsically is, not by where it sits.
- *
+ * 
  * This is the last discovery tier and the one that makes a component which
  * ignored Joomla's own layout still work. The file kind matters more than the
  * location, so each test below looks inside the file.
- *
+ * 
  * @since 6.1.6
  */
 final class Heuristic
@@ -162,3 +162,4 @@ final class Heuristic
 		return null;
 	}
 }
+

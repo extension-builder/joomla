@@ -12,22 +12,22 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * What a run would write, weighed against what already stands.
- *
+ * 
  * Every record that reaches the write boundary is proposed here first, changed
  * or not, and each proposal carries the row of the pairing board it belongs to.
  * That is what lets a person see the whole change before any of it is made: the
  * board asks this registry how much each of its rows would add and take away,
  * and asks again for one record's text when somebody opens it.
- *
+ * 
  * A proposal is not a plan the writers follow -- the writers are what produced
  * it. It is the same composition, weighed and set down before the write.
- *
+ * 
  * @since 6.2.0
  */
 final class Proposal extends Registry implements Registryinterface
@@ -175,3 +175,4 @@ final class Proposal extends Registry implements Registryinterface
 		return preg_replace('/[^A-Za-z0-9_-]/', '_', $segment) ?? $segment;
 	}
 }
+

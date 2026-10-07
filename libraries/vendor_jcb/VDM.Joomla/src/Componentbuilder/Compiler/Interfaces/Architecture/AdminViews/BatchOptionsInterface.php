@@ -11,9 +11,10 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews;
 
+
 /**
  * Admin Views Batch Options Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface BatchOptionsInterface
@@ -30,3 +31,4 @@ interface BatchOptionsInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode): string;
 }
+

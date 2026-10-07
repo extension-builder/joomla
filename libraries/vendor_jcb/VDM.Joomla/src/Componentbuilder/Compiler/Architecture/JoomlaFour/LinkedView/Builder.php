@@ -18,11 +18,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\Buil
 
 /**
  * Linked View Builder Class for Joomla 4
- *
+ * 
  * Seeding a new record from the parent's guid arrived in Joomla 5, so
  * Joomla 4 always passes a referring id instead, even when the two views
  * are tied together on guid.
- *
+ * 
  * @since 6.1.7
  */
 final class Builder extends ExtendingBuilder implements BuilderInterface
@@ -41,3 +41,4 @@ final class Builder extends ExtendingBuilder implements BuilderInterface
 		return $this->getIdReferralBlock($nameSingleCode);
 	}
 }
+

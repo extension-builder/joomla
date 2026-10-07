@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Locator;
 
 /**
  * Finds the component's language catalogue.
- *
+ * 
  * The main file is ordered before the system file, because the reader lets the
  * first value for a constant win and the main catalogue is the better source.
- *
+ * 
  * @since 6.1.6
  */
 final class Language extends Locator
@@ -162,3 +162,4 @@ final class Language extends Locator
 		return $found;
 	}
 }
+

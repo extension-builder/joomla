@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Factory as CFactory;
 
 /**
  * Fields class
- *
+ * 
  * @since 3.2.0
  * @deprecated 3.3
  */
@@ -180,3 +180,4 @@ class Fields
 			->set($getOptions, $filter);
 	}
 }
+

@@ -25,7 +25,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Dashboard\ModelMethods;
 
 /**
  * Architecture Dashboard Service Provider
- *
+ * 
  * @since 5.1.5
  */
 class ArchitectureDashboard implements ServiceProviderInterface
@@ -201,3 +201,4 @@ class ArchitectureDashboard implements ServiceProviderInterface
 		);
 	}
 }
+

@@ -18,13 +18,14 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Uninstall Script Content Builder Class
- *
+ * 
  * The names of the content types the component registered, keyed the same
  * way the contexts are. Kept beside the contexts as the record of what was
  * declared.
- *
+ * 
  * @since 6.1.7
  */
 final class UninstallScriptContent extends Registry implements Registryinterface
 {
 }
+

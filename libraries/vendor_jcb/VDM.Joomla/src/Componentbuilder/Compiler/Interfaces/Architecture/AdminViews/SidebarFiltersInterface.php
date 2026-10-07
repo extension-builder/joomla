@@ -11,9 +11,10 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews;
 
+
 /**
  * Admin Views Sidebar Filters Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface SidebarFiltersInterface
@@ -30,3 +31,4 @@ interface SidebarFiltersInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode): string;
 }
+

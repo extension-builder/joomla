@@ -342,3 +342,4 @@ final class LinkLogic
 		return $link;
 	}
 }
+

@@ -26,16 +26,16 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * View Layout Class.
- *
+ * 
  * Builds the layout files of a view and fills their content placeholders.
  * A layout is emitted either from the component's own generated items or,
  * when a matching template-layout override exists, from that override's
  * header, code and body.
- *
+ * 
  * Overrides are resolved from the most specific key to the least: component
  * plus view plus layout, component plus layout, view plus layout, and
  * finally the layout name on its own.
- *
+ * 
  * @since  6.1.7
  */
 final class View
@@ -322,3 +322,4 @@ final class View
 		return null;
 	}
 }
+

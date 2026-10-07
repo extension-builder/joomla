@@ -26,7 +26,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\Unins
 
 /**
  * The install, update and uninstall scripts of the component.
- *
+ * 
  * @since 6.1.7
  */
 final class InstallScripts
@@ -197,3 +197,4 @@ final class InstallScripts
 		$this->contentone->set('HELPER_UIKIT', $this->uikitmethods->get());
 	}
 }
+

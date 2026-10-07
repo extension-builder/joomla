@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
+
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Discovery\Collector;
@@ -29,13 +30,14 @@ use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaFour;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaSix;
 use VDM\Joomla\Componentbuilder\Extrusion\Layout\JoomlaThree;
 
+
 /**
  * Extrusion Discovery Service Provider
- *
+ * 
  * All four target-version layouts are registered even though the modern three
  * currently share one placement map, so a future divergence lands in the provider
  * and never in a consumer conditional.
- *
+ * 
  * @since 6.1.6
  */
 class Discovery implements ServiceProviderInterface
@@ -356,3 +358,4 @@ class Discovery implements ServiceProviderInterface
 		);
 	}
 }
+

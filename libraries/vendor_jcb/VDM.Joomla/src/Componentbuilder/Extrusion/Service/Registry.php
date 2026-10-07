@@ -35,10 +35,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\View;
 
 /**
  * Extrusion Registry Service Provider
- *
+ * 
  * Every registry is shared, because they are the run's state and each service
  * must see the same instance. Scope is what clears them between runs.
- *
+ * 
  * @since 6.1.6
  */
 class Registry implements ServiceProviderInterface
@@ -343,3 +343,4 @@ class Registry implements ServiceProviderInterface
 		return new Plan();
 	}
 }
+

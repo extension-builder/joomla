@@ -24,15 +24,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * View Prepare Document Class.
- *
+ * 
  * Fills in everything the prepare document method of a view is built from: the
  * assets it loads, the metadata it sets, whatever it was given to run, and the
  * buttons and modules it carries.
- *
+ * 
  * The language target follows the build target while this runs, and is put
  * back the way it was found, since a view of one target may be prepared while
  * the other is being built.
- *
+ * 
  * @since  6.1.7
  */
 final class PrepareDocument
@@ -280,3 +280,4 @@ final class PrepareDocument
 		$this->config->lang_target = $tmp;
 	}
 }
+

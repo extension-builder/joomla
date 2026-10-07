@@ -21,15 +21,15 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Model Filter Query Class.
- *
+ * 
  * Builds the per field filter clauses a list model applies. A field filtered
  * from the top bar with multi select enabled gets a clause that accepts a
  * list of values, every other field gets the single value clause.
- *
+ * 
  * Category filters are skipped here, the list query handles those itself.
- *
+ * 
  * The clauses read the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class FilterQuery
@@ -253,3 +253,4 @@ final class FilterQuery
 		return $filterQuery;
 	}
 }
+

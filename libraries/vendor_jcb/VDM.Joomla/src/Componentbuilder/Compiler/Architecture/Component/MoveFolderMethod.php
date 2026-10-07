@@ -13,24 +13,24 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Component;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderMethodInterface;
 
 
 /**
  * Component Move Folder Method Class.
- *
+ * 
  * Builds the method the install script runs to copy the folders a component
  * was built to carry into the places it wants them.
- *
+ * 
  * How the installer is reached, and how a failure is reported, are what the
  * compile target decides, and they are the two extension points below.
- *
+ * 
  * @since 6.1.7
  */
 class MoveFolderMethod implements MoveFolderMethodInterface
@@ -168,5 +168,5 @@ $lines[] = Indent::_(2) . "\$installer = \$adapter->getParent();";
 		return Indent::_(6)
 . "\$this->app->enqueueMessage('Could not copy '.\$folder.' folder into place, please make sure destination is writable!', 'error');";
 	}
-
 }
+

@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\MoveFolderScript
 
 /**
  * Joomla 3 Component Move Folder Script Class.
- *
+ * 
  * A Joomla 3 install script copies its folders through the method it was given
  * the application and the parent installer for.
- *
+ * 
  * @since 6.1.7
  */
 final class MoveFolderScript extends SharedMoveFolderScript
@@ -37,3 +37,4 @@ final class MoveFolderScript extends SharedMoveFolderScript
 		return 'setDynamicF0ld3rs($app, $parent)';
 	}
 }
+

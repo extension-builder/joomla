@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Discovery;
 
+
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LocatorInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Inventory;
@@ -18,13 +19,14 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Message;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
+
 /**
  * Establishes identity, then runs every locator into the inventory.
- *
+ * 
  * Collection stops before interpretation: nothing here parses a file or writes a
  * definition. That separation is what makes the whole discovery layer testable
  * against a fixture tree with no database and no Joomla application.
- *
+ * 
  * @since 6.1.6
  */
 final class Collector
@@ -546,3 +548,4 @@ final class Collector
 		return $seen;
 	}
 }
+

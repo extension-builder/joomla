@@ -18,11 +18,12 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Import Custom Scripts Builder Class
- *
+ * 
  * Which list views carry their own import model, view and controller.
- *
+ * 
  * @since 6.1.7
  */
 final class ImportCustomScripts extends Registry implements Registryinterface
 {
 }
+

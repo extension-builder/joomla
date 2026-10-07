@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Joomla 3 View Libraries Loader Class.
- *
+ * 
  * A Joomla 3 view has no autoloader to find the header checker with, so the
  * file is required from where the build target put it and the class is named
  * after the component.
- *
+ * 
  * @since  6.1.7
  */
 final class LibrariesLoader extends SharedLibrariesLoader
@@ -55,3 +55,4 @@ final class LibrariesLoader extends SharedLibrariesLoader
 		return $setter;
 	}
 }
+

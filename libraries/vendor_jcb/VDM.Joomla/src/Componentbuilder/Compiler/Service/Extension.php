@@ -36,7 +36,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Extension\VersionUpdate;
 
 /**
  * Extension Script Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class Extension implements ServiceProviderInterface
@@ -437,3 +437,4 @@ class Extension implements ServiceProviderInterface
 		);
 	}
 }
+

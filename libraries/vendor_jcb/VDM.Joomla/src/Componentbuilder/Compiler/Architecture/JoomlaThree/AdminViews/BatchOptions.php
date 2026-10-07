@@ -19,21 +19,21 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Filter;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\BatchOptionsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\BatchOptionsInterface;
 
 
 /**
  * Joomla 3 Admin Views Batch Options Class.
- *
+ * 
  * Builds the statements a Joomla 3 list view runs to offer its batch options:
  * the state and access options every view has, the category option of a view
  * that has categories, and one for every other filter field the view was
  * given.
- *
+ * 
  * @since 6.1.7
  */
 final class BatchOptions implements BatchOptionsInterface
@@ -381,3 +381,4 @@ final class BatchOptions implements BatchOptionsInterface
 		}
 	}
 }
+

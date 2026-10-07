@@ -30,14 +30,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Placefix;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
 
 
 /**
  * Component Install Sql Class.
- *
+ * 
  * Generates the install.sql of the component: a create statement per
  * active database table with the component's fields and the default
  * columns not overwritten, the keys, the gathered update sql, the
@@ -45,7 +45,7 @@ use VDM\Joomla\Utilities\StringHelper;
  * when the component compiled with the sql fix option. Joomla target
  * variants supply the sql header and the default column definitions
  * through extension points.
- *
+ * 
  * @since  6.1.7
  */
 class InstallSql implements InstallSqlInterface
@@ -856,3 +856,4 @@ class InstallSql implements InstallSqlInterface
 			. "`metadata` TEXT,";
 	}
 }
+

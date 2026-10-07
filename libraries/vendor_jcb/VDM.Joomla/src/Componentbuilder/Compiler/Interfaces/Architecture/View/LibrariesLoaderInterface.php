@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View;
 
 /**
  * View Libraries Loader Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface LibrariesLoaderInterface
@@ -30,3 +30,4 @@ interface LibrariesLoaderInterface
 	 */
 	public function get($view): string;
 }
+

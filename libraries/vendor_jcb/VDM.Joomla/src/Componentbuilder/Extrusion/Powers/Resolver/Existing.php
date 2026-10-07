@@ -19,11 +19,11 @@ use VDM\Joomla\Utilities\GuidHelper;
 
 /**
  * Retains Power definitions by GUID and namespace lookup candidate sets.
- *
+ * 
  * A compiled namespace is evidence, not a globally unique definition identity.
  * These lookups never discard a GUID because another definition has the same
  * namespace. Choosing an update target additionally requires scoped evidence.
- *
+ * 
  * @since 6.1.7
  */
 final class Existing
@@ -546,3 +546,4 @@ final class Existing
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

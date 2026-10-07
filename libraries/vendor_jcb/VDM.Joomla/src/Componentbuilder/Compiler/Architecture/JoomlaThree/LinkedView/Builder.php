@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\Buil
 
 /**
  * Linked View Builder Class for Joomla 3
- *
+ * 
  * Joomla 3 takes its input object from the global application, has no guid
  * seeding, and reaches a new record through the edit task rather than add.
- *
+ * 
  * @since 6.1.7
  */
 final class Builder extends ExtendingBuilder implements BuilderInterface
@@ -63,3 +63,4 @@ final class Builder extends ExtendingBuilder implements BuilderInterface
 		return 'edit';
 	}
 }
+

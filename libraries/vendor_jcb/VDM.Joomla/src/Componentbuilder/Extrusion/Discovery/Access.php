@@ -18,14 +18,14 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Reads the access rules a component ships.
- *
+ * 
  * access.xml is where a component states every permission it has and at which
  * level it offers it: an action in the component section is set once for the
  * whole component, an action in a view's own section is set per record, and an
  * action in both is offered at both levels. That is exactly the shape JCB
  * stores in a view's permissions, so the file answers the question outright
  * and nothing has to be assumed on the component's behalf.
- *
+ * 
  * @since 6.1.8
  */
 final class Access
@@ -223,3 +223,4 @@ final class Access
 		return null;
 	}
 }
+

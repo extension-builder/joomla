@@ -21,14 +21,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\Disp
 
 /**
  * Admin List View Display Method Class.
- *
+ * 
  * Generates the body of an admin list view display method: the search-tool
  * filter form retrieval when the view uses the top-bar filter type, and the
  * list ordering clause built from the view's configured default ordering.
- *
+ * 
  * The shared implementation emits the search-tools model calls used from
  * Joomla 4 onwards; the Joomla 3 variant overrides the filter-form lines.
- *
+ * 
  * @since  6.1.7
  */
 class DisplayMethod implements DisplayMethodInterface
@@ -126,3 +126,4 @@ class DisplayMethod implements DisplayMethodInterface
 		return $script;
 	}
 }
+

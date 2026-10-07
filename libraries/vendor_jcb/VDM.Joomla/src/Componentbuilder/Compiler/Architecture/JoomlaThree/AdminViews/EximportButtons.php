@@ -22,10 +22,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Joomla 3 Admin Views Eximport Buttons Class.
- *
+ * 
  * A Joomla 3 list view the component allows export or import on is given the
  * toolbar button that starts it, guarded by the permission it needs.
- *
+ * 
  * @since 6.1.7
  */
 final class EximportButtons extends SharedEximportButtons
@@ -145,3 +145,4 @@ final class EximportButtons extends SharedEximportButtons
 		return $button;
 	}
 }
+

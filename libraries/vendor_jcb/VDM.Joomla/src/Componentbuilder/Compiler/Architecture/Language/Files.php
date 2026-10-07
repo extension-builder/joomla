@@ -36,15 +36,15 @@ use VDM\Joomla\Utilities\FileHelper;
 
 /**
  * Language Files Class.
- *
+ * 
  * Collects every language string the four areas of a component were given,
  * keeps the component's own record of them in step, and writes each area's
  * strings into the ini file the built component ships them in.
- *
+ * 
  * A language the component has too little of is left out, which is what the
  * translation service decides, and the manifest only lists the files that
  * were written.
- *
+ * 
  * @since 6.1.7
  */
 final class Files
@@ -433,3 +433,4 @@ final class Files
 		}
 	}
 }
+

@@ -18,10 +18,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom View Submit Button Script Class.
- *
+ * 
  * A custom view that submits its form is given the script that does it, unless
  * the view was drawn with a script of its own that already does.
- *
+ * 
  * @since 6.1.7
  */
 final class SubmitButtonScript
@@ -69,3 +69,4 @@ final class SubmitButtonScript
 		return '';
 	}
 }
+

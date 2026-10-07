@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Menu;
 
 /**
  * Custom View Menu Interface
- *
+ * 
  * @since  6.1.7
  */
 interface CustomViewInterface
@@ -42,3 +42,4 @@ interface CustomViewInterface
 	 */
 	public function params(array $params, string $view): array;
 }
+

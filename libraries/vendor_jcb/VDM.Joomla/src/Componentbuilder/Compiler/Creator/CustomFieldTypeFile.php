@@ -1036,3 +1036,4 @@ final class CustomFieldTypeFile implements CustomFieldTypeFileInterface
 		return strpos($this->nameSingleCode, 'pLuG!n') !== false || strpos($this->nameSingleCode, 'M0dUl3') !== false;
 	}
 }
+

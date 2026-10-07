@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -20,16 +19,17 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Links every written custom admin view to the JCB component being built.
- *
+ * 
  * A custom admin view that belongs to no component is never compiled, so the
  * link is what puts the recovered screen back into the component's own
  * administrator. Every option the component_custom_admin_views form offers is
  * stated with its defaults, exactly as the admin and site links do.
- *
+ * 
  * @since 6.1.8
  */
 final class ComponentCustomAdminViews extends Writer
@@ -272,3 +272,4 @@ final class ComponentCustomAdminViews extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

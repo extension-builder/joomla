@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * The model resolution of a dynamic get API controller
- *
+ * 
  * @since 6.1.7
  */
 class GetModel
@@ -51,3 +51,4 @@ class GetModel
 		return $body;
 	}
 }
+

@@ -27,14 +27,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Whmcs;
 
 /**
  * Crypt Key Helper Method Generation Class.
- *
+ * 
  * Generates the component helper `getCryptKey()` method, and when medium
  * encryption fields are used, the `getMediumCryptKey()` method with its
  * static key property. When the WHMCS encryption or license option is
  * active, the `whmcs.php` file is added to the build structure and its
  * encryption body and manifest filename are stored in the shared content
  * registries.
- *
+ * 
  * @since  6.1.7
  */
 final class CryptKey
@@ -361,3 +361,4 @@ final class CryptKey
 		return '';
 	}
 }
+

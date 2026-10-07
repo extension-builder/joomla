@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 
 /**
  * Custom View Extra Display Methods Class.
- *
+ * 
  * A custom view the component was given extra view methods for carries them,
  * with whatever placeholders they were written with filled in.
- *
+ * 
  * @since 6.1.7
  */
 final class ExtraDisplayMethods
@@ -68,3 +68,4 @@ final class ExtraDisplayMethods
 		return '';
 	}
 }
+

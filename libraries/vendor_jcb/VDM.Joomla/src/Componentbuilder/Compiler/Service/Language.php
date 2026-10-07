@@ -23,16 +23,16 @@ use VDM\Joomla\Componentbuilder\Compiler\Language\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\Language\Fieldset;
 use VDM\Joomla\Componentbuilder\Compiler\Language\Multilingual;
 use VDM\Joomla\Componentbuilder\Compiler\Language\Translation;
-
-
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Admin as ArchitectureLanguageAdmin;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Site as ArchitectureLanguageSite;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\SiteSys as ArchitectureLanguageSiteSys;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\AdminSys as ArchitectureLanguageAdminSys;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Language\Files as ArchitectureLanguageFiles;
+
+
 /**
  * Compiler Language Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class Language implements ServiceProviderInterface
@@ -339,5 +339,5 @@ class Language implements ServiceProviderInterface
 			$container->get('Event')
 		);
 	}
-
 }
+

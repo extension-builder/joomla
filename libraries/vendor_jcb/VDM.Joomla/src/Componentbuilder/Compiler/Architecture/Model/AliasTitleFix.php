@@ -25,13 +25,13 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Alias Title Fix Class.
- *
+ * 
  * Builds the uniqueness fix a model applies before storing a record, so a
  * title and its alias stay unique within the view, and within its category
  * where the view is categorised.
- *
+ * 
  * The fix reads the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class AliasTitleFix
@@ -308,3 +308,4 @@ final class AliasTitleFix
 		return PHP_EOL . implode(PHP_EOL, $fixUnique);
 	}
 }
+

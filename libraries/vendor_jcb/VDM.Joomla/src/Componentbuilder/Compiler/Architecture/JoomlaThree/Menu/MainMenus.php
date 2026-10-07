@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\MainMenus as SharedMa
 
 /**
  * Joomla 3 Main Menus Class.
- *
+ * 
  * Joomla 3 has no default dashboard for a component to reach, so a component
  * that builds none of its own is given no entry to one.
- *
+ * 
  * @since  6.1.7
  */
 final class MainMenus extends SharedMainMenus
@@ -40,3 +40,4 @@ final class MainMenus extends SharedMainMenus
 		return '';
 	}
 }
+

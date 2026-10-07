@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin Views Eximport Buttons Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface EximportButtonsInterface
@@ -43,3 +43,4 @@ interface EximportButtonsInterface
 	 */
 	public function import($nameSingleCode, $nameListCode): string;
 }
+

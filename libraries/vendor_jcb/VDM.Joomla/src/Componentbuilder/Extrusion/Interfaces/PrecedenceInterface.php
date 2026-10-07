@@ -14,11 +14,11 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Interfaces;
 
 /**
  * Decides which source wins for each property of one field.
- *
+ * 
  * This is the only place in the pipeline that arbitrates precedence. Every
  * resolved property carries the tier that produced it, which is what allows a
  * run to explain itself instead of presenting a guess as a fact.
- *
+ * 
  * @since 6.1.6
  */
 interface PrecedenceInterface
@@ -35,3 +35,4 @@ interface PrecedenceInterface
 	 */
 	public function resolve(string $view, array $keys, string $column): ?array;
 }
+

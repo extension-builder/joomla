@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * The single entry point that consumes a component source tree into JCB.
- *
+ * 
  * The implementation is resolved from the container and configured fluently, so
  * a caller never constructs a request object. Calling reset is the run
  * boundary: it clears the configuration and every registry, so two runs in one
  * request cannot leak state into each other.
- *
+ * 
  * @since 6.1.6
  */
 interface ExtruderInterface
@@ -81,3 +81,4 @@ interface ExtruderInterface
 	 */
 	public function extrude(): Report;
 }
+

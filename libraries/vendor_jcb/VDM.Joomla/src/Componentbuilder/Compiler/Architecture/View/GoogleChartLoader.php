@@ -20,11 +20,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * View Google Chart Loader Class.
- *
+ * 
  * Builds the statements a view runs to load the google chart builder and the
  * scripts it draws with. Only a view that was found to have a chart on it gets
  * them.
- *
+ * 
  * @since  6.1.7
  */
 final class GoogleChartLoader
@@ -95,3 +95,4 @@ final class GoogleChartLoader
 		return '';
 	}
 }
+

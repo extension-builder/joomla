@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model Item Save Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface ItemSaveInterface
@@ -30,3 +30,4 @@ interface ItemSaveInterface
 	 */
 	public function get(&$view);
 }
+

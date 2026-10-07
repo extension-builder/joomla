@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomVie
 
 /**
  * Custom View Form Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface FormInterface
@@ -32,3 +32,4 @@ interface FormInterface
 	 */
 	public function get(&$view, &$gettype, $type): string;
 }
+

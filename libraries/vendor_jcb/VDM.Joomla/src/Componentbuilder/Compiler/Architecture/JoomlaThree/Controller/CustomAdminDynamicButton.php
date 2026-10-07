@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla 3 Controller Custom Admin Dynamic Button Class.
- *
+ * 
  * A Joomla 3 controller asks the factory for the user directly, there being no
  * application identity to read it from.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomAdminDynamicButton extends SharedCustomAdminDynamicButton
@@ -38,3 +38,4 @@ final class CustomAdminDynamicButton extends SharedCustomAdminDynamicButton
 		return Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
 	}
 }
+

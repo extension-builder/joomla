@@ -287,3 +287,4 @@ final class AllowEdit implements AllowEditInterface
 		return implode(PHP_EOL, $allow);
 	}
 }
+

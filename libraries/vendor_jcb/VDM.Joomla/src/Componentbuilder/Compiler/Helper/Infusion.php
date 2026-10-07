@@ -27,7 +27,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Helper\Interpretation;
 
 /**
  * Infusion class
- *
+ * 
  * @since 3.2.0
  * @deprecated 3.3
  */
@@ -191,3 +191,4 @@ class Infusion extends Interpretation
 		CFactory::_('Architecture.Language.Files')->build();
 	}
 }
+

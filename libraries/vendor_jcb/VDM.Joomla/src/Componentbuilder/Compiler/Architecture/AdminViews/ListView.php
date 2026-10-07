@@ -62,15 +62,15 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Admin Views List View Class.
- *
+ * 
  * Builds everything the list view of one admin view is made of: what it shows
  * in each column, what it can be filtered and ordered by, the buttons above
  * it, and the model that fetches the rows. A view the component gave no list
  * name is not one you can list, and gets none of it.
- *
+ * 
  * The order the pieces are asked for is the order the compiler has always
  * asked for them in, and the events fired between them are the same events.
- *
+ * 
  * @since 6.1.7
  */
 final class ListView
@@ -993,3 +993,4 @@ final class ListView
 		}
 	}
 }
+

@@ -20,10 +20,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Joomla 3 Component Post Install Script Class.
- *
+ * 
  * A Joomla 3 install script writes the permissions and params of the extension
  * into the database itself, there being no method on the script to hand them to.
- *
+ * 
  * @since  6.1.7
  */
 final class PostInstallScript extends SharedPostInstallScript
@@ -128,3 +128,4 @@ final class PostInstallScript extends SharedPostInstallScript
 		return $script;
 	}
 }
+

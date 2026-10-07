@@ -17,13 +17,13 @@ namespace VDM\Joomla\Componentbuilder\Power;
  *        Very basic php class methods parser, does not catch all edge-cases!
  *        Use this only on code that are following standard good practices
  *        Suggested improvements are welcome
- *
+ * 
  * Structure is located with PHP's own lexer: string, heredoc and comment
  * content is blanked out (offsets preserved) before any pattern is applied, so
  * code that only looks like a declaration can never be mistaken for one. Every
  * value is then sliced out of the original code by the offset of its own match,
  * never by searching for its text again.
- *
+ * 
  * @since 3.2.0
  */
 final class Parser
@@ -923,3 +923,4 @@ final class Parser
 		return preg_replace('/[^\n]/', ' ', $text) ?? $text;
 	}
 }
+

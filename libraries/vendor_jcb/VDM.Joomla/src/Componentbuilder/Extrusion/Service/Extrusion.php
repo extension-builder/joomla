@@ -20,10 +20,10 @@ use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\ExtruderInterface;
 
 /**
  * Extrusion Entry Service Provider
- *
+ * 
  * Registers the one service a caller resolves. Everything else in the domain
  * arrives through constructor injection below it.
- *
+ * 
  * @since 6.1.6
  */
 class Extrusion implements ServiceProviderInterface
@@ -74,3 +74,4 @@ class Extrusion implements ServiceProviderInterface
 		);
 	}
 }
+

@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -21,23 +20,24 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Language;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Fills in the JCB component record from the component's own manifest.
- *
+ * 
  * The manifest is the component's account of itself, and it is the one artifact
  * every Joomla component has: a component with no schema, no table class and no
  * form XML still declares who wrote it, under what licence, at what version and
  * what it is for. Every one of those has a column waiting for it, so leaving them
  * empty would mean the person who ran the extrusion has to retype what the source
  * already said.
- *
+ * 
  * Only what the manifest actually stated is written. A column the manifest is
  * silent about is left out of the update entirely rather than blanked, because the
  * caller may well have filled it in before running this and an extrusion has no
  * business erasing that.
- *
+ * 
  * @since 6.1.6
  */
 final class Component extends Writer
@@ -436,3 +436,4 @@ final class Component extends Writer
 		return $major >= 3 && $major <= 9 ? ['preferred_joomla_version' => $major] : [];
 	}
 }
+

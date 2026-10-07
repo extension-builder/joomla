@@ -15,13 +15,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomVi
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod as ExtendingDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface;
 
 
 /**
  * Custom View Display Method Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMethodInterface
@@ -140,3 +140,4 @@ final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMetho
 		return $this->getLegacyPluginEvent($pluginEvent, $context);
 	}
 }
+

@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedVie
 
 /**
  * Linked View Builder Interface
- *
+ * 
  * @since  6.1.7
  */
 interface BuilderInterface
@@ -30,3 +30,4 @@ interface BuilderInterface
 	 */
 	public function set($args);
 }
+

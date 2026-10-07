@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin List View Item Builder Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ListItemBuilderInterface
@@ -49,3 +49,4 @@ interface ListItemBuilderInterface
 		?string $refview = null
 	): string;
 }
+

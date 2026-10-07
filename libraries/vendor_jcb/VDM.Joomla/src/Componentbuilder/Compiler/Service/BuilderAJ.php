@@ -75,7 +75,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\JsonString;
 
 /**
  * Builder A-J Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class BuilderAJ implements ServiceProviderInterface
@@ -1002,3 +1002,4 @@ class BuilderAJ implements ServiceProviderInterface
 		return new CustomAdminViewListLink();
 	}
 }
+

@@ -24,27 +24,27 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface;
 
 
 /**
  * Linked View List Query Class.
- *
+ * 
  * Generates the getter a parent view's model uses to load the items of a
  * linked view: the query itself, the access joins, the ordering, and the
  * post-load filtering by the key that ties the two views together.
- *
+ * 
  * That key may be a plain column, a value inside a repeatable field, a
  * value inside an array field, or several columns joined by OR, so the
  * filtering is built from whichever spelling the link carries.
- *
+ * 
  * Only how the user and the database are obtained differs between Joomla
  * targets, so those are the extension points the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ListQuery implements ListQueryInterface
@@ -722,3 +722,4 @@ class ListQuery implements ListQueryInterface
 		return PHP_EOL . Indent::_(2) . "\$db = \$this->getDatabase();";
 	}
 }
+

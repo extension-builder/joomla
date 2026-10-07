@@ -22,10 +22,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Table Constructor Class.
- *
+ * 
  * The table class of a view watches its own rows for the features the view was
  * given, and this builds the observers that do the watching.
- *
+ * 
  * @since 6.1.7
  */
 final class Constructor
@@ -145,3 +145,4 @@ final class Constructor
 		return '';
 	}
 }
+

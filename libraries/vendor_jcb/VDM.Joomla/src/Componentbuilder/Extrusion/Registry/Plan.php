@@ -12,16 +12,16 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * One operation's private effective writes and the evidence approved for them.
- *
+ * 
  * Definitions are staged in raw Data-pipeline form, not encoded SQL values.
  * The public report exposes summaries and a fingerprint, never this registry.
- *
+ * 
  * @since  6.2.0
  */
 final class Plan extends Registry implements Registryinterface
@@ -256,3 +256,4 @@ final class Plan extends Registry implements Registryinterface
 		return hash('sha256', serialize($normalise($value)));
 	}
 }
+

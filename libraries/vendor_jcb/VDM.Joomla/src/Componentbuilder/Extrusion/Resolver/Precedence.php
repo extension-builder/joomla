@@ -13,26 +13,26 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PrecedenceInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Form;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Schema;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PrecedenceInterface;
 
 
 /**
  * Decides which source wins for each property of one field.
- *
+ * 
  * This is the only place in the pipeline that arbitrates precedence. Each tier
  * contributes whatever it happens to know, and the configured tier order picks
  * the winner. Every resolved property keeps the tier that produced it, which is
  * what lets a run distinguish a fact from a guess.
- *
+ * 
  * Some properties exist at exactly one tier and are therefore uncontested: a
  * relationship, a storage encoding and a per-field GUID come from the table
  * definition class or not at all, while a showon condition comes from the form
  * XML or not at all.
- *
+ * 
  * @since 6.1.6
  */
 final class Precedence implements PrecedenceInterface
@@ -693,3 +693,4 @@ final class Precedence implements PrecedenceInterface
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

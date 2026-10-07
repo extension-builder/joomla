@@ -26,12 +26,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\List
 
 /**
  * Admin List View Custom Admin Link Class.
- *
+ * 
  * Resolves which custom admin views are reachable from an admin view and
  * records them: views filtered by the item id become per-row list links,
  * every other view becomes a list toolbar button. Also generates the
  * per-row link buttons from the recorded state.
- *
+ * 
  * @since  6.1.7
  */
 final class ListLink implements ListLinkInterface
@@ -249,3 +249,4 @@ final class ListLink implements ListLinkInterface
 		return $customAdminViewButton;
 	}
 }
+

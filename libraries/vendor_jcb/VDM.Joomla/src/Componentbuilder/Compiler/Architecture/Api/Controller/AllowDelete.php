@@ -20,12 +20,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Api Controller Allow Delete Class.
- *
+ * 
  * Builds the allowDelete method of the item API controller the way the
  * admin allowAdd is built: the component level delete permission of the
  * view, behind its access permission when it has one. The record level
  * delete permission stays in the model's canDelete.
- *
+ * 
  * @since 6.1.7
  */
 final class AllowDelete
@@ -99,3 +99,4 @@ final class AllowDelete
 		return implode(PHP_EOL, $allow);
 	}
 }
+

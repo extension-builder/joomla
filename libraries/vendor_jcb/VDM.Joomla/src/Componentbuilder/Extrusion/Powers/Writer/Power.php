@@ -12,24 +12,24 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Persists every assembled power definition into JCB.
- *
+ * 
  * All the shared writing mechanics apply unchanged: the Data pipeline resolves
  * insert against update from the guid and applies the storage encoding the
  * power table declares, a dry run stops before anything is touched, and the
  * skip policy leaves an existing power exactly as it stands while the report
  * still names it -- which is the whole "mention it, do not touch it" switch.
- *
+ * 
  * @since 6.1.7
  */
 final class Power extends Writer
@@ -386,3 +386,4 @@ final class Power extends Writer
 		return is_string($value) && in_array(trim($value), ['[]', '{}', '0'], true);
 	}
 }
+

@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Model Checkbox Save Class.
- *
+ * 
  * A checkbox a user leaves untouched is not posted at all, so the save method
  * of a view that has any is given the statements that put an empty value back
  * for each of them.
- *
+ * 
  * @since 6.1.7
  */
 final class CheckboxSave
@@ -81,3 +81,4 @@ final class CheckboxSave
 		return $script;
 	}
 }
+

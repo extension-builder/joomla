@@ -22,11 +22,11 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Field Target Controls Script Class.
- *
+ * 
  * Builds the jQuery statements that reveal, hide and re-require every field a
  * form condition targets, along with the variables that remember whether a
  * target was required to begin with.
- *
+ * 
  * @since  6.1.7
  */
 final class TargetControlsScript
@@ -275,3 +275,4 @@ final class TargetControlsScript
 		return $bucket;
 	}
 }
+

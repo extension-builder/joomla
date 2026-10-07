@@ -21,11 +21,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * View Get Modules Class.
- *
+ * 
  * Builds the method a view is given to render the modules published in a
  * position, and registers the import that method needs. Only a view that was
  * found to call for modules gets it.
- *
+ * 
  * @since  6.1.7
  */
 final class GetModules
@@ -181,3 +181,4 @@ final class GetModules
 		return '';
 	}
 }
+

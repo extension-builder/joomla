@@ -19,10 +19,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Model Selection Translation Class.
- *
+ * 
  * Generates the loop a list model runs over its loaded items to turn every
  * selection value that has a translation into its translatable form.
- *
+ * 
  * @since  6.1.7
  */
 final class SelectionTranslation
@@ -90,3 +90,4 @@ final class SelectionTranslation
 		return $fix;
 	}
 }
+

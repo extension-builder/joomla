@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Composes the form XML attribute string JCB stores on a field.
- *
+ * 
  * JCB keeps a field's form definition as a single self-closing field element, so
  * this builds that element from the resolved attribute bag. The field type's own
  * declared property names decide what is allowed through, which is how an
  * attribute JCB would not understand is dropped rather than written blindly.
- *
+ * 
  * @since 6.1.6
  */
 final class FieldXml
@@ -556,3 +556,4 @@ final class FieldXml
 		return htmlspecialchars($value, ENT_COMPAT | ENT_XML1, 'UTF-8');
 	}
 }
+

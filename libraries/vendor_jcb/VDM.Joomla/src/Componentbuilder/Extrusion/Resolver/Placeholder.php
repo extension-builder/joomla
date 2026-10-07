@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
 
 /**
  * Says a component's own name through the placeholder that stands for it.
- *
+ * 
  * The compiler holds the values it derives from the component -- its code
  * name in three shapes and its namespace segment -- and substitutes them into
  * everything it writes with a bare string replacement. So a class, a screen or
@@ -25,7 +25,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
  * it was built from carried a placeholder, and reading that name back binds
  * the record to the one component it was lifted out of: a power lifted out of
  * com_demo would say Demo forever, wherever it is used next.
- *
+ * 
  * Nothing is guessed. The name is only written back where the compiler itself
  * puts it -- the extension element, the table prefix, the language prefix, the
  * component helper, a namespace segment -- so a component named demo keeps its
@@ -33,7 +33,7 @@ use VDM\Joomla\Componentbuilder\Extrusion\Powers\Resolver\Placeholders;
  * defined for themselves is never touched: the compiler substitutes it too,
  * but only the person knows where they meant it, and a run that acted on that
  * would be guessing.
- *
+ * 
  * @since 6.2.0
  */
 final class Placeholder
@@ -186,3 +186,4 @@ final class Placeholder
 		];
 	}
 }
+

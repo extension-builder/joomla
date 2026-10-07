@@ -22,25 +22,25 @@ use VDM\Joomla\Interfaces\TableInterface;
 
 /**
  * Weighs the record a writer composed against the record that stands.
- *
+ * 
  * Only the columns a write would carry are weighed. A column the record holds
  * and the write never names is untouched by that write, so it is not a
  * difference -- the question this answers is "what would this write change",
  * never "how do these two records differ".
- *
+ * 
  * Two forms of every value are kept, and they are not the same form. Whether a
  * value changed is decided on what would land in the column, encoded as the
  * storage pipeline encodes it, because that is what a write compares against.
  * What a person is shown is the value read back out -- the text of a power,
  * the pretty print of a subform -- because that is what a person reads.
- *
+ * 
  * Both forms read a value the way a person does, never the way bytes do. A
  * line ends the same whichever way it was broken; a subform says the same
  * thing whichever order its keys were saved in, and whether a number was
  * posted as text through a form or composed as a number by a writer. A write
  * that differs only in those ways would change nothing anybody could see, so
  * it is not a change, and it is not made.
- *
+ * 
  * @since 6.2.0
  */
 final class Delta
@@ -644,3 +644,4 @@ final class Delta
 		return $this->text($value);
 	}
 }
+

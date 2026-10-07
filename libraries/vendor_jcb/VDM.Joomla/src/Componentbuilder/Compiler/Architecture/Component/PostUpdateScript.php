@@ -27,10 +27,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Component Post Update Script Class.
- *
+ * 
  * Builds what the install script of the component runs when it is updated
  * rather than installed.
- *
+ * 
  * @since 6.1.7
  */
 final class PostUpdateScript
@@ -153,3 +153,4 @@ final class PostUpdateScript
 			. " noting to update.";
 	}
 }
+

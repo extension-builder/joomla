@@ -29,26 +29,26 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContent;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\UninstallScriptContext;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\ContentTypesInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\ContentTypesInterface;
 
 
 /**
  * Component Content Types Class.
- *
+ * 
  * Declares every admin view that keeps history or carries tags to Joomla's
  * content type table, so the core services that read a content type — history,
  * tags, workflow and the router — can find the component's own items.
- *
+ * 
  * The declaration a target writes is its own: Joomla 3 assembles the rows and
  * inserts them itself, and later targets hand each one to the script.php
  * helper. What goes into a row also differs by target, so the pieces that do
  * are the extension points below; everything a row says about the view itself
  * is decided once, here.
- *
+ * 
  * @since  6.1.7
  */
 class ContentTypes implements ContentTypesInterface
@@ -627,3 +627,4 @@ class ContentTypes implements ContentTypesInterface
 		return '{"formFile":"administrator\/components\/com_categories\/forms\/category.xml", "hideFields":["asset_id","checked_out","checked_out_time","version","lft","rgt","level","path","extension"], "ignoreChanges":["modified_user_id", "modified_time", "checked_out", "checked_out_time", "version", "hits", "path"],"convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"created_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_user_id","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"parent_id","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"}]}';
 	}
 }
+

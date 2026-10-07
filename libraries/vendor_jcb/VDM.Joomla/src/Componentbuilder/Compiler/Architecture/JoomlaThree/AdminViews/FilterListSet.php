@@ -13,17 +13,17 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterListSet as ExtendingFilterListSet;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterListSetInterface;
 
 
 /**
  * Joomla 3 Admin Views Filter List Set Class.
- *
+ * 
  * A Joomla 3 list borrows the content component's own strings for the two
  * fields, and submits its form from an onchange attribute rather than the
  * class every later target gives it.
- *
+ * 
  * @since 6.1.7
  */
 final class FilterListSet extends ExtendingFilterListSet implements FilterListSetInterface
@@ -68,3 +68,4 @@ final class FilterListSet extends ExtendingFilterListSet implements FilterListSe
 		return $lines;
 	}
 }
+

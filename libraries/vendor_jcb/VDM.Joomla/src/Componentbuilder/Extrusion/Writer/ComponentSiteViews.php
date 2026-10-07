@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -20,15 +19,16 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Links every written site view to the JCB component being built.
- *
+ * 
  * A site view that belongs to no component exists but is compiled into nothing, so
  * this is what makes the front end half of the run mean anything. It mirrors the
  * admin link exactly, because the two tables differ only in which view they name.
- *
+ * 
  * @since 6.1.6
  */
 final class ComponentSiteViews extends Writer
@@ -274,3 +274,4 @@ final class ComponentSiteViews extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

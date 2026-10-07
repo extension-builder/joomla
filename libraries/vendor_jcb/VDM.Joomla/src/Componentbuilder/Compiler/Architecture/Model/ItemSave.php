@@ -25,27 +25,27 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelMediumField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelWhmcsField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelExpertField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelExpertFieldInitiator;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface;
 
 
 /**
  * Model Item Save Class.
- *
+ * 
  * Builds the save method of an admin edit view model: the record keys the
  * whole method relies on, the custom code that runs before and after
  * modelling, the JSON fields that are folded back into strings, the
  * permission guards on each guarded item, and the encryption each
  * configured cryption type applies.
- *
+ * 
  * Only how the current user is reached for a permission check differs
  * between Joomla targets, so that is the extension point the target
  * variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ItemSave implements ItemSaveInterface
@@ -439,3 +439,4 @@ class ItemSave implements ItemSaveInterface
 		};
 	}
 }
+

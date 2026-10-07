@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Api Serializer Relations Class.
- *
+ * 
  * Builds the relationship methods of a resource serializer, one per
  * relationship the view has, named the way Joomla's JSON API serializer
  * resolves them from the relationship name.
- *
+ * 
  * @since 6.1.7
  */
 final class Relations
@@ -113,3 +113,4 @@ final class Relations
 		return $name;
 	}
 }
+

@@ -13,17 +13,17 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListBody as ExtendingListBody;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface;
 
 
 /**
  * Admin View List Body Class for Joomla 3
- *
+ * 
  * Joomla 3 has no user factory in the container, so the user who has an item
  * checked out is loaded from the global factory by id. It also has no modal
  * admin list view, so the permission tests carry no modal guard.
- *
+ * 
  * @since 6.1.7
  */
 final class ListBody extends ExtendingListBody implements ListBodyInterface
@@ -51,3 +51,4 @@ final class ListBody extends ExtendingListBody implements ListBodyInterface
 		return '';
 	}
 }
+

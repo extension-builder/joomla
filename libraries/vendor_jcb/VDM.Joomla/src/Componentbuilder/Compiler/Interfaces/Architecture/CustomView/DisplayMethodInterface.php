@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomVie
 
 /**
  * Custom View Display Method Interface
- *
+ * 
  * @since  6.1.7
  */
 interface DisplayMethodInterface
@@ -31,3 +31,4 @@ interface DisplayMethodInterface
 	 */
 	public function get(array &$view): string;
 }
+

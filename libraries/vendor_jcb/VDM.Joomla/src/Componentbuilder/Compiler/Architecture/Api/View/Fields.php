@@ -22,11 +22,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Api View Fields Class.
- *
+ * 
  * Builds the fields to render of both JSON API views of a view: every column
  * of the table, taken from the component field map the compiler builds, plus
  * the default columns every table carries.
- *
+ * 
  * @since 6.1.7
  */
 final class Fields
@@ -184,3 +184,4 @@ final class Fields
 		}
 	}
 }
+

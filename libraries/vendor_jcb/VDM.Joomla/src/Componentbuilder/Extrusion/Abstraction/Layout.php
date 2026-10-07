@@ -17,12 +17,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\LayoutInterface;
 
 /**
  * Shared mechanics for every target-version layout.
- *
+ * 
  * The subclasses supply only the build-relative placement map, which is the
  * inverse of the compiler's own settings.json move map. Everything else --
  * token expansion and the build root to source root translation -- lives here,
  * so the version folders stay thin.
- *
+ * 
  * @since 6.1.6
  */
 abstract class Layout implements LayoutInterface
@@ -184,3 +184,4 @@ abstract class Layout implements LayoutInterface
 		return str_replace($search, $replace, $pattern);
 	}
 }
+

@@ -27,15 +27,15 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\List
 
 /**
  * Admin List View Head Class.
- *
+ * 
  * Generates the table head of an admin list view: the ordering and
  * check-all controls, one sortable or static heading per listed field,
  * and the status and id headings. While building it records the number
  * of rendered columns so the list footer can span them.
- *
+ * 
  * The shared implementation emits the modern sorting guard, which also
  * excludes modal layouts; the Joomla 3 variant overrides it.
- *
+ * 
  * @since  6.1.7
  */
 class ListHead implements ListHeadInterface
@@ -299,3 +299,4 @@ class ListHead implements ListHeadInterface
 		return "<?php if (!\$this->isModal && \$this->canEdit && \$this->canState): ?>";
 	}
 }
+

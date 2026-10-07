@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controlle
 
 /**
  * Controller Eximport Method Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface EximportMethodInterface
@@ -31,3 +31,4 @@ interface EximportMethodInterface
 	 */
 	public function get(string $nameSingleCode, string $nameListCode): string;
 }
+

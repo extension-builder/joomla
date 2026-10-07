@@ -14,12 +14,12 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Php;
 
 /**
  * A literal-only reader for one array-literal class property.
- *
+ * 
  * This class is a security boundary, not a convenience. A component source tree
  * may be an unzipped upload, so the file it describes is never included,
  * required, or evaluated, and the extracted literal is never handed to eval.
  * The only mechanism used is token_get_all, which lexes without executing.
- *
+ * 
  * The accepted token set is deliberately tiny: quoted strings, integers,
  * floats, square brackets, commas, double arrows, whitespace, comments, a unary
  * minus in front of a number, and the bare words NULL, true, and false. Anything
@@ -28,7 +28,7 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Php;
  * the whole parse and returns null. Nothing is partially trusted: a refusal
  * discards the entire result rather than the offending element, and reason()
  * explains what was seen so the run can drop to the next precedence tier.
- *
+ * 
  * @since 6.1.6
  */
 final class Literal
@@ -907,3 +907,4 @@ final class Literal
 			. chr(0x80 | ($code & 0x3F));
 	}
 }
+

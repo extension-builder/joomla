@@ -14,10 +14,10 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Field;
 
 /**
  * Field Clear Value Class.
- *
+ * 
  * Builds the one statement that empties a watched field, which is written the
  * way the kind of field it is expects.
- *
+ * 
  * @since 6.1.7
  */
 final class ClearValueScript
@@ -57,3 +57,4 @@ final class ClearValueScript
 		return $clear;
 	}
 }
+

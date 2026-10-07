@@ -18,12 +18,13 @@ use VDM\Joomla\Abstraction\Registry;
 
 /**
  * Uninstall Script Context Builder Class
- *
+ * 
  * The context string of everything the component registered that must be
  * removed when it is uninstalled, keyed by what registered it.
- *
+ * 
  * @since 6.1.7
  */
 final class UninstallScriptContext extends Registry implements Registryinterface
 {
 }
+

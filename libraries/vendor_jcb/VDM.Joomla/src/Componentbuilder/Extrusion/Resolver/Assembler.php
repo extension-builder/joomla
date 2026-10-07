@@ -22,13 +22,13 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Table;
 
 /**
  * Turns everything the readers gathered into one resolved definition set.
- *
+ * 
  * The assembler is the seam between reading and writing: it walks the tables the
  * schema and table-definition registries know about, asks the precedence engine
  * for each column, and then lets the role, tab, condition and relation resolvers
  * derive the structure around those fields. Writers read only what lands here, so
  * nothing downstream has to understand the source tree.
- *
+ * 
  * @since 6.1.6
  */
 final class Assembler
@@ -709,3 +709,4 @@ final class Assembler
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

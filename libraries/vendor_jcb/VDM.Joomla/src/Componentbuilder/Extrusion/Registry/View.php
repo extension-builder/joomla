@@ -12,17 +12,18 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion View Registry
- *
+ * 
  * Classified templates and layouts split into their PHP and HTML parts.
- *
+ * 
  * @since 6.1.6
  */
 final class View extends Registry implements Registryinterface
 {
 }
+

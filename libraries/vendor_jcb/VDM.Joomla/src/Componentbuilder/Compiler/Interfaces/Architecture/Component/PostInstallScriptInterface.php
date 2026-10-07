@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Post Install Script Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface PostInstallScriptInterface
@@ -28,3 +28,4 @@ interface PostInstallScriptInterface
 	 */
 	public function get(): string;
 }
+

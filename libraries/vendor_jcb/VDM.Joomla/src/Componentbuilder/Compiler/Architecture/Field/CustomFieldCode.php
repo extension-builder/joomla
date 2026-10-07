@@ -21,12 +21,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom Field Code Class.
- *
+ * 
  * Collects the PHP a custom field type carries, split into the code that
  * belongs above the generated class and the code that belongs inside it.
- *
+ * 
  * The collected code is the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomFieldCode
@@ -112,3 +112,4 @@ final class CustomFieldCode
 		return $code_bucket;
 	}
 }
+

@@ -43,16 +43,16 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 
 /**
  * Component Assembly Class.
- *
+ * 
  * Fills in everything the component needs once its views are built and before
  * its site views are: the headers each generated file opens with, the arrays
  * that name every view to the component, its menus, its install and uninstall
  * sql, its dashboard, its importer, its ajax, and the rules its forms validate
  * against.
- *
+ * 
  * It runs between the two halves of the build, so what it reads is what the
  * admin views left behind and what the site views are about to read.
- *
+ * 
  * @since 6.1.7
  */
 final class Assembly
@@ -596,3 +596,4 @@ final class Assembly
 	}
 	}
 }
+

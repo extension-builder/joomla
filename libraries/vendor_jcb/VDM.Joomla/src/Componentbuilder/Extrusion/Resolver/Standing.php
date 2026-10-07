@@ -19,18 +19,18 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Answers what already stands in the paired component for one column.
- *
+ * 
  * An update run is aimed at a component that already holds records, and the
  * intelligence owed there is recognition: a standing field this very engine
  * wrote for this very column is that column's record, and a standing field
  * whose stored properties hash to exactly what this run would write is the
  * same field by the strongest proof the properties can give. Both are the
  * record to reuse -- never a reason to write another.
- *
+ * 
  * Recognition is bounded to the paired component: its own linked views and
  * the fields those views link. A name in common elsewhere stays a suggestion
  * on the board, because only a person may say a lookalike is the same thing.
- *
+ * 
  * @since 6.1.9
  */
 final class Standing
@@ -447,3 +447,4 @@ final class Standing
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

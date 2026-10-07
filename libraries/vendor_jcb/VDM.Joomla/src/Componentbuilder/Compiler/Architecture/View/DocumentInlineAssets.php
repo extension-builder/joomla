@@ -12,22 +12,22 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\View;
 
 
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentInlineAssetsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\DocumentInlineAssetsInterface;
 
 
 /**
  * View Document Inline Assets Class.
- *
+ * 
  * Builds the statements a view runs to add its own stylesheet and its own
  * script to the document, straight into the page rather than into a file.
- *
+ * 
  * How a view reaches the document to add them is what the compile target
  * decides, and it is the two extension points below.
- *
+ * 
  * @since  6.1.7
  */
 class DocumentInlineAssets implements DocumentInlineAssetsInterface
@@ -158,3 +158,4 @@ class DocumentInlineAssets implements DocumentInlineAssetsInterface
 			. Indent::_(2) . '$this->getDocument()->getWebAssetManager()->addInlineScript("';
 	}
 }
+

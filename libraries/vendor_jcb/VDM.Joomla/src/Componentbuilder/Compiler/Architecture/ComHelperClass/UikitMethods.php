@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Component Helper Class UIkit Methods Class.
- *
+ * 
  * Generates the component helper's UIkit component map and the
  * `getUikitComp()` detection method used when the component ships with
  * UIkit version 2 support.
- *
+ * 
  * @since  6.1.7
  */
 final class UikitMethods
@@ -182,3 +182,4 @@ final class UikitMethods
 		return '';
 	}
 }
+

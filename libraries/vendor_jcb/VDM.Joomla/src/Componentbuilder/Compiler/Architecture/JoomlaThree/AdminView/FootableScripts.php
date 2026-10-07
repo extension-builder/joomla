@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as ExtendingFootableScripts;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\FootableScriptsInterface;
 
 
 /**
  * Admin View Footable Scripts Class for Joomla 3
- *
+ * 
  * Joomla 3 has no web asset manager, so an inline script is declared on the
  * document directly.
- *
+ * 
  * @since 6.1.7
  */
 final class FootableScripts extends ExtendingFootableScripts implements FootableScriptsInterface
@@ -40,3 +40,4 @@ final class FootableScripts extends ExtendingFootableScripts implements Footable
 			. PHP_EOL;
 	}
 }
+

@@ -29,8 +29,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Controller\Allow
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\Controller\AllowEditViews as J5ControllerAllowEditViews;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Controller\AllowEditViews as J4ControllerAllowEditViews;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\AllowEditViews as J3ControllerAllowEditViews;
-
-
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface as ControllerEximportMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\EximportMethod as SharedControllerEximportMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\EximportMethod as J3ControllerEximportMethod;
@@ -41,9 +39,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\Cust
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\CustomAdminDynamicButton as SharedControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\CustomAdminDynamicButton as J3ControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxTasks as ControllerAjaxTasks;
+
+
 /**
  * Architecture Controller Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class ArchitectureController implements ServiceProviderInterface
@@ -599,5 +599,5 @@ class ArchitectureController implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Dynamic.Buttons')
 		);
 	}
-
 }
+

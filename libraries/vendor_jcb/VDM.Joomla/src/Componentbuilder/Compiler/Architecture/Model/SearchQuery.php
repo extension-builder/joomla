@@ -20,13 +20,13 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Model Search Query Class.
- *
+ * 
  * Builds the search clause a list model applies when the user types into the
  * search box: one LIKE test per searchable field, plus the text column of any
  * custom field that is joined into the list.
- *
+ * 
  * The clause reads the same on every Joomla target, so this is one class.
- *
+ * 
  * @since  6.1.7
  */
 final class SearchQuery
@@ -120,3 +120,4 @@ final class SearchQuery
 		return '';
 	}
 }
+

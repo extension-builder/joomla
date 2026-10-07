@@ -14,13 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod as ExtendingDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface;
 
 
 /**
  * Admin List View Display Method Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMethodInterface
@@ -53,3 +53,4 @@ final class DisplayMethod extends ExtendingDisplayMethod implements DisplayMetho
 		return $script;
 	}
 }
+

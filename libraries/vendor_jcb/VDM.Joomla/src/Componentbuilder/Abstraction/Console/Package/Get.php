@@ -23,17 +23,17 @@ use VDM\Joomla\Componentbuilder\Abstraction\Console\Package;
 
 /**
  * Base Package Builder Get Command (Shared CLI infrastructure).
- *
+ * 
  * Provides:
  * - Consistent CLI options (items/repo/force/validate)
  * - Robust item parsing (inline, JSON, file, env fallback)
  * - Repo parsing (inline JSON, file, env fallback)
  * - Standard result rendering
  * - Safe exception handling and exit codes
- *
+ * 
  * Concrete commands MUST define:
  * - protected const ENTITY
- *
+ * 
  * @since  5.1.4
  */
 abstract class Get extends Package
@@ -513,3 +513,4 @@ abstract class Get extends Package
 		return in_array($value, ['1', 'true', 'yes', 'on'], true);
 	}
 }
+

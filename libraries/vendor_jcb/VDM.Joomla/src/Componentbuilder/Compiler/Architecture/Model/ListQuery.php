@@ -20,22 +20,22 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ListQueryInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ListQueryInterface;
 
 
 /**
  * Model List Query Class.
- *
+ * 
  * Builds the getListQuery method of an admin list view model: the select and
  * from clauses, the access join and view level guard, the category join, the
  * search and filter clauses, and the ordering.
- *
+ * 
  * Only how the user and the database are put in scope differs between Joomla
  * targets, so those are the extension points the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ListQuery implements ListQueryInterface
@@ -442,3 +442,4 @@ class ListQuery implements ListQueryInterface
 		return PHP_EOL . Indent::_(2) . "\$db = \$this->getDatabase();";
 	}
 }
+

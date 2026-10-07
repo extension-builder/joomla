@@ -18,10 +18,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * The document meta of a dynamic get list resource
- *
+ * 
  * The custom gets of a list view belong to the view and not to a row, so
  * they ride along as document meta, under the names the HTML view uses.
- *
+ * 
  * @since 6.1.7
  */
 class Meta
@@ -49,3 +49,4 @@ class Meta
 		return $body;
 	}
 }
+

@@ -14,14 +14,14 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Reader\Sql;
 
 /**
  * Splits one SQL dump into its individual statements.
- *
+ * 
  * The scan is literal aware. Single and double quoted strings, backtick
  * identifiers, line comments introduced by -- or #, and block comments each
  * swallow every semicolon they contain, so a statement is only ever cut on a
  * semicolon the parser can actually see. Comments are dropped from the emitted
  * statements, which hands the statement parsers clean input and keeps a dump's
  * decorative comment banners out of the captured seed data.
- *
+ * 
  * @since 6.1.6
  */
 final class Splitter
@@ -247,3 +247,4 @@ final class Splitter
 		return $position === false ? $length : $position + 2;
 	}
 }
+

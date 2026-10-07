@@ -24,10 +24,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Custom View Body Class.
- *
+ * 
  * Gives back the body a custom view was drawn with, with the pagination
  * pieces put where the view asked for them and its placeholders filled in.
- *
+ * 
  * @since 6.1.7
  */
 final class Body
@@ -241,3 +241,4 @@ final class Body
 		return '';
 	}
 }
+

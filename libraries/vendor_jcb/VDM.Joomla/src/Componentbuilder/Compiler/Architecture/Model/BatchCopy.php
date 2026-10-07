@@ -21,22 +21,22 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryCode;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface;
 
 
 /**
  * Model BatchCopy Class.
- *
+ * 
  * Builds the batchCopy method of an admin model: the guards that
  * decide whether the current user may copy, the per field value fixes the
  * copy needs, and the insert of the new record.
- *
+ * 
  * Only how the current user is put in scope differs between Joomla targets,
  * so that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class BatchCopy implements BatchCopyInterface
@@ -489,3 +489,4 @@ class BatchCopy implements BatchCopyInterface
 			. "\$this->user 		= Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
 }
+

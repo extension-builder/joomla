@@ -29,27 +29,27 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\SecondRunAdmin;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\TabCounter;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Unique;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface;
 
 
 /**
  * Admin Edit View Body Class.
- *
+ * 
  * Builds the edit template of an admin view: the tab set, the layouts each
  * tab renders, the side and title areas, and the trailing publishing,
  * metadata and permissions tabs.
- *
+ * 
  * The markup a Joomla target expects differs only in its grid and tab
  * vocabulary and in how the outer containers close, so those are the
  * extension points the target variants override. Everything else — which
  * fields land in which alignment, which layouts are emitted, and which
  * linked views are deferred to the second pass — is the same for every
  * target and lives here.
- *
+ * 
  * @since  6.1.7
  */
 class EditBody implements EditBodyInterface
@@ -1260,3 +1260,4 @@ class EditBody implements EditBodyInterface
 		return $tabs;
 	}
 }
+

@@ -16,6 +16,7 @@ use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
 use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
+use Joomla\CMS\Form\Form;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\ObjectHelper;
@@ -29,12 +30,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Minify;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Unique;
 use VDM\Joomla\Componentbuilder\Compiler\Helper\Fields;
-use Joomla\CMS\Form\Form;
 
 
 /**
  * Interpretation class
- *
+ * 
  * @deprecated 3.3
  */
 class Interpretation extends Fields
@@ -2844,3 +2844,4 @@ class Interpretation extends Fields
 			->inbetween($str, $start, $end);
 	}
 }
+

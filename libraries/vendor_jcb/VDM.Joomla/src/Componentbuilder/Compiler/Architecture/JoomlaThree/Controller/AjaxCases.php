@@ -17,10 +17,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxCases as Sh
 
 /**
  * Joomla 3 Controller Ajax Cases Class.
- *
+ * 
  * A Joomla 3 controller reaches its models without naming the side they belong
  * to, and answers a task it cannot run with false.
- *
+ * 
  * @since  6.1.7
  */
 final class AjaxCases extends SharedAjaxCases
@@ -51,3 +51,4 @@ final class AjaxCases extends SharedAjaxCases
 		return "\$ajaxModule = \$this->getModel('ajax');";
 	}
 }
+

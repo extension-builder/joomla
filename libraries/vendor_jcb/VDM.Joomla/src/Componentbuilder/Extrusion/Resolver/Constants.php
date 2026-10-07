@@ -17,22 +17,22 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Turns the language constants in harvested code back into their own text.
- *
+ * 
  * JCB stores code with the readable string inside its text calls, and its
  * compiler makes the constant: the language extractor takes what stands
- * between Text::_(' and ') and asks the language builder for a key, then
+ * between Text::_('COM_COMPONENTBUILDER_AND') and asks the language builder for a key, then
  * writes that key into the compiled code and the string into the language
  * file. Harvested code arrives the other way around -- the constant is
  * already there, because it came out of a compiled component -- so storing
  * it unchanged would have the compiler build a key from a key, and the
  * component would show a constant to its users.
- *
+ * 
  * The reversal is therefore what makes harvested code JCB's own again: every
  * constant the catalogue knows becomes the English it stands for, and the
  * compiler regenerates the constant and the language file entry from that.
  * A constant nothing can resolve is left exactly as it stands and reported,
  * because inventing text for it would be a lie about what the source said.
- *
+ * 
  * @since 6.1.8
  */
 final class Constants
@@ -197,3 +197,4 @@ final class Constants
 		return str_contains($text, $other) ? '' : $other;
 	}
 }
+

@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -21,24 +20,24 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 use VDM\Joomla\Interfaces\Database\LoadInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Links every written field to its admin view with its display behaviour.
- *
+ * 
  * The list, sort, search and filter flags come from the resolved roles rather
  * than from a positional guess, which is what removes the long standing defect
  * where the first configured list field silently lost every flag.
- *
+ * 
  * What the view already links is never replaced: an existing admin_fields row
  * is discovered and kept verbatim -- every field the person wired, on the tab
  * and in the order they chose -- and only fields not yet linked are appended.
- *
+ * 
  * @since 6.1.6
  */
 final class AdminFields extends Writer
 {
-
 	/**
 	 * The Source Registry.
 	 *
@@ -767,3 +766,4 @@ final class AdminFields extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

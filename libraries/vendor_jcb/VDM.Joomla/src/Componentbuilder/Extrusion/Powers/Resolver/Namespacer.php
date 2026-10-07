@@ -18,7 +18,7 @@ use VDM\Joomla\Utilities\String\NamespaceHelper;
 
 /**
  * Converts between a class's real namespace and the form a power row stores.
- *
+ * 
  * A stored power namespace describes a compiled name and placement, not GUID
  * identity. Its backslash segments name the vendor library folder, the dots in its last
  * segment name the folders below src, and its final dot part is the class
@@ -27,7 +27,7 @@ use VDM\Joomla\Utilities\String\NamespaceHelper;
  * file's location back into the dot form, and defer the resolved prefix and
  * component segments back to their placeholders. Matching an existing power
  * runs the same conversions the other way.
- *
+ * 
  * @since 6.1.7
  */
 final class Namespacer
@@ -372,7 +372,7 @@ final class Namespacer
 	 * Whether one namespace opens with the given segments, joined the same way.
 	 *
 	 * Two segments are the same when they resolve to the same word under the
-	 * run's placeholder values -- a concrete VDM and [[[NamespacePrefix]]]
+	 * run's placeholder values -- a concrete VDM and VDM
 	 * agree when that is what the prefix resolves to -- and case aside, as
 	 * PHP reads namespaces.
 	 *
@@ -1023,3 +1023,4 @@ final class Namespacer
 		);
 	}
 }
+

@@ -22,11 +22,11 @@ use VDM\Joomla\Utilities\GuidHelper;
 
 /**
  * Reads component-to-Power references without compiling or evaluating code.
- *
+ * 
  * Table relationships and the Package configs define the traversable records.
  * Compiler Power tokens and relationship selections define the Power edges.
  * A consumer is evidence of usage, never exclusive namespace ownership.
- *
+ * 
  * @since  6.2.0
  */
 final class References
@@ -1003,3 +1003,4 @@ final class References
 		return $result;
 	}
 }
+

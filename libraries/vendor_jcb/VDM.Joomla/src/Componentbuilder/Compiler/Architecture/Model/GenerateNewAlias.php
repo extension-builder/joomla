@@ -24,10 +24,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Generate New Alias Class.
- *
+ * 
  * Builds the method an admin model runs when an item is copied, to give the
  * copy an alias of its own rather than the one it was copied from.
- *
+ * 
  * @since 6.1.7
  */
 final class GenerateNewAlias
@@ -163,3 +163,4 @@ final class GenerateNewAlias
 		return implode(PHP_EOL, $newFunction);
 	}
 }
+

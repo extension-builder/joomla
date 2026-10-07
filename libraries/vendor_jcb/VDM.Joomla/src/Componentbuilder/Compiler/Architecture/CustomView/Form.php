@@ -15,19 +15,19 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminViewListId;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomForm;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\FormInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\FormInterface;
 
 
 /**
  * Custom View Form Class.
- *
+ * 
  * Builds the form tag a custom view is wrapped in, and the hidden fields and
  * token that close it. Only a view that was found to carry a form gets one.
- *
+ * 
  * Where a site form posts to is what the compile target decides, and it is the
  * extension point below.
- *
+ * 
  * @since  6.1.7
  */
 class Form implements FormInterface
@@ -153,3 +153,4 @@ class Form implements FormInterface
 			. PHP_EOL;
 	}
 }
+

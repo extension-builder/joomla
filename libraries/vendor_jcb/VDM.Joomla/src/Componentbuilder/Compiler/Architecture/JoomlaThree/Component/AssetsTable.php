@@ -14,18 +14,18 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Componen
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\AssetsTable as ExtendingAssetsTable;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\AssetsTableInterface;
 
 
 /**
  * Component Assets Table Intelligent Fix Class for Joomla 3.
- *
+ * 
  * Joomla 3 carries the whole treatment in the generated script.php, so
  * the install and uninstall sides emit the column checks and ALTER
  * statements themselves through the shared code emitter.
- *
+ * 
  * @since  6.1.7
  */
 final class AssetsTable extends ExtendingAssetsTable implements AssetsTableInterface
@@ -166,3 +166,4 @@ final class AssetsTable extends ExtendingAssetsTable implements AssetsTableInter
 		return PHP_EOL . implode(PHP_EOL, $script);
 	}
 }
+

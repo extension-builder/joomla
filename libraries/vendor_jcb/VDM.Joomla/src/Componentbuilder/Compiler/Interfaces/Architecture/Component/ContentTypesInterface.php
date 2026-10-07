@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Content Types Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ContentTypesInterface
@@ -55,3 +55,4 @@ interface ContentTypesInterface
 	 */
 	public function categoryContentType(string $view, string $views, string $component): array;
 }
+

@@ -12,22 +12,22 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * The extrusion message bus.
- *
+ * 
  * An extrusion run rarely fails outright and rarely succeeds completely: it works
  * with whatever the source gave it and falls short wherever the source was thin.
  * That makes "what did this achieve" the only question worth answering, and this
  * is where the answer accumulates.
- *
+ * 
  * Messages are gathered, never rendered. Each one is stored as plain data under a
  * level, so the caller decides what becomes a Joomla enqueue, what becomes HTML,
  * and what is merely logged. No formatting belongs in here.
- *
+ * 
  * @since 6.1.6
  */
 final class Message extends Registry implements Registryinterface
@@ -266,3 +266,4 @@ final class Message extends Registry implements Registryinterface
 		return $this->total(self::ERROR) > 0;
 	}
 }
+

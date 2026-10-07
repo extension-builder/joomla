@@ -22,7 +22,7 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Resolves the namespace placeholder values one run works against.
- *
+ * 
  * A power's stored namespace defers its vendor prefix and component segment to
  * placeholders, so recognising a harvested class as an existing power means
  * knowing what those placeholders resolve to right now. The values come from
@@ -30,7 +30,7 @@ use VDM\Joomla\Utilities\StringHelper;
  * named (its own prefix only when add_namespace_prefix allows it), the global
  * configuration otherwise, and the component placeholder overrides last, so
  * they outrank both -- mirroring Compiler\Component\Placeholder.
- *
+ * 
  * @since 6.1.7
  */
 final class Placeholders
@@ -349,7 +349,7 @@ final class Placeholders
 	 * component's code three ways, its language prefix once, the vendor
 	 * prefix, and the path a component loads its powers through. A record a
 	 * person wrote through them -- a seed statement naming
-	 * `#__[[[component]]]_item` -- reads as the compiled source only once
+	 * `#__componentbuilder_item` -- reads as the compiled source only once
 	 * these are resolved the compiler's way.
 	 *
 	 * @return  array<string, string>  Placeholder keyed to its value.
@@ -928,3 +928,4 @@ final class Placeholders
 		return $target;
 	}
 }
+

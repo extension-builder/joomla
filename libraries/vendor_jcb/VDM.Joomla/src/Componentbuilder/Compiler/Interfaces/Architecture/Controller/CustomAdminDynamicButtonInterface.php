@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controlle
 
 /**
  * Controller Custom Admin Dynamic Button Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface CustomAdminDynamicButtonInterface
@@ -30,3 +30,4 @@ interface CustomAdminDynamicButtonInterface
 	 */
 	public function get($nameListCode): string;
 }
+

@@ -22,23 +22,23 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\EximportView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewsDefaultOrdering;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface as ItemsStringFix;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsMethodInterface;
 
 
 /**
  * Model Items Method Class.
- *
+ * 
  * Builds the getItems or getExportData method of an admin list view model:
  * the query it runs, the access guard, the ordering, the string fixes applied
  * to every loaded item, and the export translations.
- *
+ * 
  * Only how the user and the database are put in scope differs between Joomla
  * targets, so those are the extension points the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class ItemsMethod implements ItemsMethodInterface
@@ -460,3 +460,4 @@ class ItemsMethod implements ItemsMethodInterface
 		return PHP_EOL . Indent::_($indent) . "\$db = \$this->getDatabase();";
 	}
 }
+

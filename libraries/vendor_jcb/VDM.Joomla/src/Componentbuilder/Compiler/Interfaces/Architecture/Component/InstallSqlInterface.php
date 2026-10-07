@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Install Sql Interface
- *
+ * 
  * @since  6.1.7
  */
 interface InstallSqlInterface
@@ -28,3 +28,4 @@ interface InstallSqlInterface
 	 */
 	public function get(): string;
 }
+

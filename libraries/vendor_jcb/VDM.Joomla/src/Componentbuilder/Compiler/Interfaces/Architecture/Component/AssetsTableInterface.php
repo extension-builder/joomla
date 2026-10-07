@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Assets Table Intelligent Fix Interface
- *
+ * 
  * @since  6.1.7
  */
 interface AssetsTableInterface
@@ -37,3 +37,4 @@ interface AssetsTableInterface
 	 */
 	public function uninstall(): string;
 }
+

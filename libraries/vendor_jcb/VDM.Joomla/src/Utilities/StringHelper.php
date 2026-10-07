@@ -498,3 +498,4 @@ abstract class StringHelper
 		return implode($key);
 	}
 }
+

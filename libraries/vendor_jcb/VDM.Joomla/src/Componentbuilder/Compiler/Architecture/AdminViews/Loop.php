@@ -21,7 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Every admin view the component was given.
- *
+ * 
  * @since 6.1.7
  */
 final class Loop
@@ -194,3 +194,4 @@ final class Loop
 		return [$viewarray, $site_edit_view_array];
 	}
 }
+

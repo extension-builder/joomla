@@ -40,12 +40,12 @@ use VDM\Joomla\Componentbuilder\Power\Parser;
 
 /**
  * Extrusion Powers Service Provider
- *
+ * 
  * The powers branch of the extrusion engine: everything that harvests PHP
  * library classes into JCB powers. The shared run state, scanner and identity
  * resolver are reused from the sibling providers, so both branches of a run
  * see one configuration, one report, and one message bus.
- *
+ * 
  * @since 6.1.7
  */
 class Powers implements ServiceProviderInterface
@@ -378,5 +378,5 @@ class Powers implements ServiceProviderInterface
 			$container->get('Extrusion.Resolver.Guid')
 		);
 	}
-
 }
+

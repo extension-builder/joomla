@@ -19,7 +19,7 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * The site view file headers, keyed on the main get type the view was given.
- *
+ * 
  * @since 6.1.7
  */
 final class Headers
@@ -140,3 +140,4 @@ final class Headers
 		}
 	}
 }
+

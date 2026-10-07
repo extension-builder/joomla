@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsStringFix as ExtendingItemsStringFix;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemsStringFixInterface;
 
 
 /**
  * Model Items String Fix Class for Joomla 3
- *
+ * 
  * Joomla 3 models have no getCurrentUser(), so the user comes from the
  * global factory instead.
- *
+ * 
  * @since 6.1.7
  */
 final class ItemsStringFix extends ExtendingItemsStringFix implements ItemsStringFixInterface
@@ -41,3 +41,4 @@ final class ItemsStringFix extends ExtendingItemsStringFix implements ItemsStrin
 			. "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
 	}
 }
+

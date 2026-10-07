@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedVie
 
 /**
  * Linked View List Query Interface
- *
+ * 
  * @since  6.1.7
  */
 interface ListQueryInterface
@@ -38,3 +38,4 @@ interface ListQueryInterface
 	public function get($nameSingleCode, $nameListCode,
 		$functionName, $key, $_key, $parentKey, $parent_key, $globalKey);
 }
+

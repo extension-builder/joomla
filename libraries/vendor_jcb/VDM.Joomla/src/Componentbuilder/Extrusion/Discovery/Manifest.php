@@ -19,11 +19,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Source;
 
 /**
  * Establishes the identity of the component being extruded.
- *
+ * 
  * The manifest supplies the component code name, which is what lets a view name
  * be recovered from a prefixed table name and what prefixes every language
  * constant. It also supplies the structural signals that choose a layout family.
- *
+ * 
  * @since 6.1.6
  */
 final class Manifest
@@ -707,3 +707,4 @@ final class Manifest
 		return $found;
 	}
 }
+

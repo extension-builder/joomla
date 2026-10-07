@@ -17,15 +17,15 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Field Target Relation Script Class.
- *
+ * 
  * Chains a form condition to the other conditions of the same view that steer
  * one of its target fields, so the fields they share are decided by one
  * javascript function instead of several that overwrite each other.
- *
+ * 
  * The pairs already claimed for a target are remembered for the length of the
  * build, because a pair may only be chained once: the second condition to
  * reach the same target through the same match is not chained again.
- *
+ * 
  * @since  6.1.7
  */
 final class TargetRelationScript
@@ -161,3 +161,4 @@ final class TargetRelationScript
 		return false;
 	}
 }
+

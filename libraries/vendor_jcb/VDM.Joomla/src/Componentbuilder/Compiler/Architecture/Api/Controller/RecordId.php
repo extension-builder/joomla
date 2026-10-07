@@ -23,11 +23,11 @@ use VDM\Joomla\Utilities\String\TypeHelper;
 
 /**
  * Api Controller Record Id Class.
- *
+ * 
  * Builds the getRecordId method of the item API controller: the primary key
  * when the request carries it, else the record resolved through the first
  * unique key of the table the request carries.
- *
+ * 
  * @since 6.1.7
  */
 final class RecordId
@@ -255,3 +255,4 @@ final class RecordId
 		return (string) FieldHelper::safe($name);
 	}
 }
+

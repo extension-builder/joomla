@@ -77,7 +77,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AjaxMethods as Model
 
 /**
  * Architecture Model Service Provider
- *
+ * 
  * @since 3.2.0
  */
 class ArchitectureModel implements ServiceProviderInterface
@@ -1416,5 +1416,5 @@ class ArchitectureModel implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Database.Unique.Keys')
 		);
 	}
-
 }
+

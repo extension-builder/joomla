@@ -13,20 +13,20 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterSet as ExtendingFilterSet;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterSetInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterSetInterface;
 
 
 /**
  * Joomla 3 Admin Views Filter Set Class.
- *
+ * 
  * A Joomla 3 filter field submits its form from an onchange attribute of its
  * own rather than the class every later target gives it, is styled by a class
  * named after what it holds, and knows nothing of the fancy select layout or
  * of picking a value through a modal.
- *
+ * 
  * @since 6.1.7
  */
 final class FilterSet extends ExtendingFilterSet implements FilterSetInterface
@@ -193,3 +193,4 @@ final class FilterSet extends ExtendingFilterSet implements FilterSetInterface
 		return $lines;
 	}
 }
+

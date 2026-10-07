@@ -822,3 +822,4 @@ final class GetItem
 		return $line;
 	}
 }
+

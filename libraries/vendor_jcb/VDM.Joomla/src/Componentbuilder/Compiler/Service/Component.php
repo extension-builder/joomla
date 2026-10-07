@@ -343,3 +343,4 @@ class Component implements ServiceProviderInterface
 		return $container->get('Component.J' . $this->targetVersion . '.Settings');
 	}
 }
+

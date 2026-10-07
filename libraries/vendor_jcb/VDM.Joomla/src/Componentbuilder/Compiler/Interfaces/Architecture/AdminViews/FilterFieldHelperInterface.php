@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin View Filter Field Helper Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface FilterFieldHelperInterface
@@ -31,3 +31,4 @@ interface FilterFieldHelperInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode);
 }
+

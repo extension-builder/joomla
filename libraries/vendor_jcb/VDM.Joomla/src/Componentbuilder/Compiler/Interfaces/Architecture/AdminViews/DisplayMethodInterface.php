@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin List View Display Method Interface
- *
+ * 
  * @since  6.1.7
  */
 interface DisplayMethodInterface
@@ -30,3 +30,4 @@ interface DisplayMethodInterface
 	 */
 	public function get(string $nameListCode): string;
 }
+

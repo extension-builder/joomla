@@ -22,10 +22,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Sort Fields Class.
- *
+ * 
  * Builds the method a list model runs to say which of its fields a list may be
  * ordered by.
- *
+ * 
  * @since 6.1.7
  */
 final class SortFields
@@ -111,3 +111,4 @@ final class SortFields
 		return $fields;
 	}
 }
+

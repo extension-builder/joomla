@@ -21,12 +21,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Selection Translation Method Class.
- *
+ * 
  * Generates the selectionTranslation() method a list model carries, which
  * maps a stored selection value onto its language string. Each translatable
  * field contributes one lookup array; a value with no entry is returned
  * unchanged.
- *
+ * 
  * @since  6.1.7
  */
 final class SelectionTranslationMethod
@@ -137,3 +137,4 @@ final class SelectionTranslationMethod
 		return $fix;
 	}
 }
+

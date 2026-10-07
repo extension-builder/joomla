@@ -22,13 +22,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Api View Relationships Class.
- *
+ * 
  * Maps the relationships of a view's resource from the component field map:
  * every field that links to another table, every user and category field,
  * the users who created and last changed the record, and the tags. The map
  * feeds the relationship list of the JSON API views and the methods of the
  * resource serializer.
- *
+ * 
  * @since 6.1.7
  */
 final class Relationships
@@ -304,3 +304,4 @@ final class Relationships
 		return ($name === '') ? strtolower(trim($table, '#_')) : $name;
 	}
 }
+

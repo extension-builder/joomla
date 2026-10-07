@@ -14,13 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as ExtendingViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface;
 
 
 /**
  * Admin List View Body Class for Joomla 3.
- *
+ * 
  * @since  6.1.7
  */
 final class ViewBody extends ExtendingViewBody implements ViewBodyInterface
@@ -80,3 +80,4 @@ final class ViewBody extends ExtendingViewBody implements ViewBodyInterface
 		];
 	}
 }
+

@@ -23,10 +23,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Model Unique Fields Class.
- *
+ * 
  * Builds the statements an admin model runs to keep the fields a view was
  * built to hold unique from clashing with what is already stored.
- *
+ * 
  * @since 6.1.7
  */
 final class UniqueFields
@@ -118,3 +118,4 @@ final class UniqueFields
 		return implode(PHP_EOL, $fields);
 	}
 }
+

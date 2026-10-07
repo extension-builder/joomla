@@ -27,15 +27,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Site Router Class.
- *
+ * 
  * Builds the members of the generated site router that name the component's
  * own views: the case each view takes when a URL is parsed, the test that says
  * a view is one the router builds, and the map from a category extension to
  * the view that owns it.
- *
+ * 
  * Nothing here is decided by the Joomla version being compiled for, so there
  * is one class for every target.
- *
+ * 
  * @since  6.1.7
  */
 final class SiteRouter
@@ -402,3 +402,4 @@ final class SiteRouter
 		return '';
 	}
 }
+

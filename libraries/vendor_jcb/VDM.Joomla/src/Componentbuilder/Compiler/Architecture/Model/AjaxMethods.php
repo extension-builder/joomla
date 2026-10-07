@@ -21,10 +21,10 @@ use VDM\Joomla\Utilities\ArrayHelper;
 
 /**
  * Model Ajax Methods Class.
- *
+ * 
  * The ajax model of a target carries the methods every view of that target was
  * given to answer with, each one saying which view asked for it.
- *
+ * 
  * @since 6.1.7
  */
 final class AjaxMethods
@@ -95,3 +95,4 @@ final class AjaxMethods
 		return $methods;
 	}
 }
+

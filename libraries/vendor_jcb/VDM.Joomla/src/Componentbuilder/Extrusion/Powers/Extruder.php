@@ -13,7 +13,6 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Powers;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Power as PowerWriter;
 use VDM\Joomla\Componentbuilder\Extrusion\Powers\Writer\Vendor as VendorWriter;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Harvest;
@@ -22,11 +21,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Commit;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\PowersExtruderInterface;
 
 
 /**
  * The entry point that consumes PHP library classes into JCB powers.
- *
+ * 
  * This is the powers branch of the extrusion engine: aim it at one or more
  * library folders anywhere on the installed system, and every class,
  * interface and trait below them becomes a power candidate. The run is two
@@ -34,12 +34,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Scope;
  * without writing, so a caller can present the candidate tree and collect
  * approval; extrude then assembles and writes what was approved -- narrowed by
  * the include and exclude filters when the caller passes an approval back.
- *
+ * 
  * Identity is the namespace: a candidate whose class an existing power already
  * resolves to updates that power, anything else is created, and the skip
  * policy turns updates into mentions. As everywhere in this engine, findings
  * accumulate in the report, and only this class turns them into messages.
- *
+ * 
  * @since 6.1.7
  */
 final class Extruder implements PowersExtruderInterface
@@ -651,3 +651,4 @@ final class Extruder implements PowersExtruderInterface
 		return $this->report;
 	}
 }
+

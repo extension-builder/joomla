@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldHelper as ExtendingFilterFieldHelper;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface;
 
 
 /**
  * Admin View Filter Field Helper Class for Joomla 3
- *
+ * 
  * Joomla 3 has no database driver or user factory in the container, so both
  * are taken from the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class FilterFieldHelper extends ExtendingFilterFieldHelper implements FilterFieldHelperInterface
@@ -56,3 +56,4 @@ final class FilterFieldHelper extends ExtendingFilterFieldHelper implements Filt
 		];
 	}
 }
+

@@ -14,13 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\Module;
 
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\HelperInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\HelperInterface;
 
 
 /**
  * Module Helper Code Joomla 4
- *
+ * 
  * @since 5.1.2
  */
 final class Helper implements HelperInterface
@@ -148,3 +148,4 @@ final class Helper implements HelperInterface
 			|| str_contains($body, 'use DatabaseAwareTrait;');
 	}
 }
+

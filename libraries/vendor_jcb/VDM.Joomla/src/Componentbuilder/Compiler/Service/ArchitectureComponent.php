@@ -61,7 +61,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Finalise as Comp
 
 /**
  * Architecture Component Helper Class Service Provider
- *
+ * 
  * @since 5.0.2
  */
 class ArchitectureComponent implements ServiceProviderInterface
@@ -1088,5 +1088,5 @@ class ArchitectureComponent implements ServiceProviderInterface
 			$container->get('Language')
 		);
 	}
-
 }
+

@@ -20,26 +20,26 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\Foota
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface as ListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface as ListQuery;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\BuilderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Unique;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\BuilderInterface;
 
 
 /**
  * Linked View Builder Class.
- *
+ * 
  * Assembles everything a linked admin view needs inside its parent's edit
  * tab: the header script that works out the referral, the table head and
  * body, the getter that loads the items, and the Footable assets.
- *
+ * 
  * Three things differ between Joomla targets — how the input object is
  * acquired, which referral block is emitted, and which task a new record
  * link points at — so those are the extension points the target variants
  * override.
- *
+ * 
  * @since  6.1.7
  */
 class Builder implements BuilderInterface
@@ -424,3 +424,4 @@ class Builder implements BuilderInterface
 		return 'add';
 	}
 }
+

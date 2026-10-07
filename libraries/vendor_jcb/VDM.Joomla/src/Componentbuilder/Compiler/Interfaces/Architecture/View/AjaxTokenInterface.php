@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View;
 
 /**
  * View Ajax Token Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface AjaxTokenInterface
@@ -30,3 +30,4 @@ interface AjaxTokenInterface
 	 */
 	public function get(string &$view): string;
 }
+

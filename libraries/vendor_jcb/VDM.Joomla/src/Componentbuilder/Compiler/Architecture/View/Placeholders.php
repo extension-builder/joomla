@@ -19,13 +19,13 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * View Placeholders Class.
- *
+ * 
  * Names one view to everything built for it: the single name, the list name,
  * and the three casings of each that the generated code is written with.
- *
+ * 
  * A view that has only one of the two names is named by that one alone, and
  * whatever is built for it never asks for the other.
- *
+ * 
  * @since 6.1.7
  */
 final class Placeholders
@@ -142,3 +142,4 @@ final class Placeholders
 		}
 	}
 }
+

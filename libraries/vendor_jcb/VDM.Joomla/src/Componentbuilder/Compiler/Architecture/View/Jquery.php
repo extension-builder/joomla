@@ -18,9 +18,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * View jQuery Class.
- *
+ * 
  * Builds the statement a view loads jQuery with.
- *
+ * 
  * @since 6.1.7
  */
 final class Jquery
@@ -47,3 +47,4 @@ final class Jquery
 		return $addJQuery;
 	}
 }
+

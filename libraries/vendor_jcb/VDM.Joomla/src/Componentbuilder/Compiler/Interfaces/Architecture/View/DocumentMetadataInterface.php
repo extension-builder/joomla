@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View;
 
 /**
  * View Document Metadata Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface DocumentMetadataInterface
@@ -30,3 +30,4 @@ interface DocumentMetadataInterface
 	 */
 	public function get(array &$view): string;
 }
+

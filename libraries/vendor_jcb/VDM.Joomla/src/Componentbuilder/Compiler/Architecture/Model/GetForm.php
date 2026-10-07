@@ -17,23 +17,23 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Groups as FieldGroups;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionFields;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface;
 
 
 /**
  * Model Get Form Class.
- *
+ * 
  * Builds the getForm method of an admin edit view model, including the per
  * field permission guards that unset a field the current user may not edit,
  * access or view.
- *
+ * 
  * Only how the current user is put in scope differs between Joomla targets,
  * so that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class GetForm implements GetFormInterface
@@ -596,3 +596,4 @@ class GetForm implements GetFormInterface
 			. "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
 }
+

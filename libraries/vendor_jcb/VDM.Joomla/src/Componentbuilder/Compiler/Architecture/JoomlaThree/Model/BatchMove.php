@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\BatchMove as ExtendingBatchMove;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchMoveInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchMoveInterface;
 
 
 /**
  * Model BatchMove Class for Joomla 3
- *
+ * 
  * Joomla 3 has no application identity, so the current user is taken from
  * the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class BatchMove extends ExtendingBatchMove implements BatchMoveInterface
@@ -39,3 +39,4 @@ final class BatchMove extends ExtendingBatchMove implements BatchMoveInterface
 			. "\$this->user		= Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
 	}
 }
+

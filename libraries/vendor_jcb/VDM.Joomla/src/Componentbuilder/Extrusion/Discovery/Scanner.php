@@ -19,12 +19,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Plan;
 
 /**
  * A bounded, contained walk of an untrusted component source tree.
- *
+ * 
  * The tree being scanned may be an unzipped upload, so every path this class
  * hands back has been resolved and proven to sit below the source root. The
  * walk is also bounded by an explicit depth and file-count cap so a pathological
  * tree cannot turn discovery into a denial of service.
- *
+ * 
  * @since 6.1.6
  */
 final class Scanner
@@ -310,3 +310,4 @@ final class Scanner
 		return $content === false ? null : $content;
 	}
 }
+

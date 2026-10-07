@@ -19,12 +19,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Edit View Tab Layout Fields Class.
- *
+ * 
  * Generates the PHP array literal a view's edit template uses to look up
  * which fields belong to each alignment of each tab. Tabs, alignments and
  * fields are each emitted in key order so the generated array is stable
  * between compiles.
- *
+ * 
  * @since  6.1.7
  */
 final class TabLayoutFields
@@ -114,3 +114,4 @@ final class TabLayoutFields
 		return 'array()';
 	}
 }
+

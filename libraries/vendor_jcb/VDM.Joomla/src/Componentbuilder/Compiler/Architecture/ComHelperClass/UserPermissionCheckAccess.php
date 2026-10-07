@@ -24,10 +24,10 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Component Helper User Permission Check Access Class.
- *
+ * 
  * Builds the access check the component helper runs before it lets a user
  * reach a view.
- *
+ * 
  * @since 6.1.7
  */
 final class UserPermissionCheckAccess
@@ -153,3 +153,4 @@ final class UserPermissionCheckAccess
 		return '';
 	}
 }
+

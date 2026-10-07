@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model Get Form Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface GetFormInterface
@@ -31,3 +31,4 @@ interface GetFormInterface
 	 */
 	public function get($nameSingleCode, $nameListCode);
 }
+

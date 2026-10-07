@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Service;
 
+
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\AdminFields;
@@ -26,12 +27,13 @@ use VDM\Joomla\Componentbuilder\Extrusion\Writer\SiteView;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Dispatcher;
 use VDM\Joomla\Componentbuilder\Extrusion\Writer\Field;
 
+
 /**
  * Extrusion Writer Service Provider
- *
+ * 
  * Each writer receives the shared JCB data item service, which is what resolves
  * insert against update from the GUID and applies the declared storage encoding.
- *
+ * 
  * @since 6.1.6
  */
 class Writer implements ServiceProviderInterface
@@ -357,3 +359,4 @@ class Writer implements ServiceProviderInterface
 		);
 	}
 }
+

@@ -18,11 +18,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * View Custom CSS Class.
- *
+ * 
  * Gives back the stylesheet a view was built with, with its placeholders
  * filled in. It is written to a file of its own, which is why it is not laid
  * out the way the inline styles are.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomCSS
@@ -71,3 +71,4 @@ final class CustomCSS
 		return '';
 	}
 }
+

@@ -12,21 +12,21 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Component;
 
 
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderScriptInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\MoveFolderScriptInterface;
 
 
 /**
  * Component Move Folder Script Class.
- *
+ * 
  * The install script of a component that has folders to copy calls the method
  * that copies them, and this is the call.
- *
+ * 
  * What that method is named, and what the target hands it, is what the compile
  * target decides, and it is the one extension point below.
- *
+ * 
  * @since 6.1.7
  */
 class MoveFolderScript implements MoveFolderScriptInterface
@@ -91,3 +91,4 @@ class MoveFolderScript implements MoveFolderScriptInterface
 		return 'moveFolders($adapter)';
 	}
 }
+

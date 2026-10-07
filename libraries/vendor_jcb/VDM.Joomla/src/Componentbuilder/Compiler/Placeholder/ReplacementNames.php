@@ -19,11 +19,11 @@ use VDM\Joomla\Utilities\FileHelper;
 
 /**
  * Placeholder Replacement Names Class.
- *
+ * 
  * Reads every file the compiler has written so far and reports the placeholder
  * names still standing in them, which is how a developer finds the name of one
  * they want to fill.
- *
+ * 
  * @since 6.1.7
  */
 final class ReplacementNames
@@ -148,3 +148,4 @@ final class ReplacementNames
 		return $matches[1];
 	}
 }
+

@@ -13,19 +13,19 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminVie
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\EditBody as ExtendingEditBody;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\EditBodyInterface;
 
 
 /**
  * Admin Edit View Body Class for Joomla 3
- *
+ * 
  * Joomla 3 lays the edit view out with the Bootstrap 2 grid and the
  * `bootstrap` tab helper, keeps its side areas unpadded, and closes the
  * outer form container from the body whether or not the view has sides.
  * Its access control tab renders each rule field by hand instead of asking
  * the form for one rules input.
- *
+ * 
  * @since 6.1.7
  */
 final class EditBody extends ExtendingEditBody implements EditBodyInterface
@@ -163,3 +163,4 @@ final class EditBody extends ExtendingEditBody implements EditBodyInterface
 		return $tabs;
 	}
 }
+

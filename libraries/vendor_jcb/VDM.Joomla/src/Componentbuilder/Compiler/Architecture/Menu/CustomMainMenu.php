@@ -20,15 +20,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Menu Custom Main Menu Class.
- *
+ * 
  * Builds the admin menu entries a component declares for its custom admin
  * views and its own custom menus, and registers each entry's label for
  * translation.
- *
+ * 
  * An entry that names no view to sit before cannot be placed while the views
  * are still being walked, so it is held back. The caller collects those with
  * takeDeferred() once the walk is done and appends them last.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomMainMenu
@@ -274,3 +274,4 @@ final class CustomMainMenu
 		return $deferred;
 	}
 }
+

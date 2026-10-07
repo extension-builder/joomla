@@ -14,19 +14,19 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 /**
  * Reads two texts line by line and says what changed between them.
- *
+ * 
  * The line is the unit a person reads a change in, so it is the unit here: how
  * many lines a change adds, how many it takes away, and where. What comes back
  * is the shape of a unified diff -- hunks of changed lines with a little of the
  * unchanged text around them -- because that is the shape every developer
  * already knows how to read.
- *
+ * 
  * Two bounds keep a very large text honest rather than expensive: the lines
  * both texts share at the start and the end are recognised before anything is
  * compared, which is the whole of a typical edit; and a middle too large to
  * line up exactly is reported as replaced rather than matched line by line,
  * which is true, just less precise.
- *
+ * 
  * @since 6.2.0
  */
 final class Diff
@@ -447,3 +447,4 @@ final class Diff
 		];
 	}
 }
+

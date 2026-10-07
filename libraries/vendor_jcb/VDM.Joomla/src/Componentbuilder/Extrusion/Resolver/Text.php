@@ -14,13 +14,13 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
 
 /**
  * Turns a source identifier into readable text.
- *
+ * 
  * This deliberately does not use the shared string helper. That helper reaches
  * into the running Joomla application for its transliteration parameters, and the
  * extrusion readers and resolvers are specified to work without an application so
  * they stay unit testable against a fixture tree. Humanising an identifier needs
  * none of that machinery.
- *
+ * 
  * @since 6.1.6
  */
 final class Text
@@ -121,3 +121,4 @@ final class Text
 		return trim(strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '_', trim($name))), '_');
 	}
 }
+

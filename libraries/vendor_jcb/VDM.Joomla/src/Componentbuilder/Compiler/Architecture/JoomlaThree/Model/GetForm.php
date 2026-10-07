@@ -13,16 +13,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetForm as ExtendingGetForm;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\GetFormInterface;
 
 
 /**
  * Model Get Form Class for Joomla 3
- *
+ * 
  * Joomla 3 has no application identity, so the current user is taken from
  * the global factory.
- *
+ * 
  * @since 6.1.7
  */
 final class GetForm extends ExtendingGetForm implements GetFormInterface
@@ -39,3 +39,4 @@ final class GetForm extends ExtendingGetForm implements GetFormInterface
 			. "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getUser();";
 	}
 }
+

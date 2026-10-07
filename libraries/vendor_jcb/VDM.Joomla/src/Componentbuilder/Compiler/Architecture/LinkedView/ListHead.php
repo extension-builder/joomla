@@ -24,15 +24,15 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Linked View List Head Class.
- *
+ * 
  * Builds the table head a linked admin view renders inside an edit tab,
  * together with the new-record buttons above it.
- *
+ * 
  * Which Footable release the component uses decides the responsive
  * attributes of every column, so both releases are built here. Columns are
  * hidden progressively as the table grows: the first three stay on every
  * screen, the next three drop on phones, and the rest drop entirely.
- *
+ * 
  * @since  6.1.7
  */
 final class ListHead
@@ -304,3 +304,4 @@ final class ListHead
 		return $head . PHP_EOL . '<?php endif; ?>' . PHP_EOL;
 	}
 }
+

@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model List Query Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface ListQueryInterface
@@ -31,3 +31,4 @@ interface ListQueryInterface
 	 */
 	public function get(&$nameSingleCode, &$nameListCode);
 }
+

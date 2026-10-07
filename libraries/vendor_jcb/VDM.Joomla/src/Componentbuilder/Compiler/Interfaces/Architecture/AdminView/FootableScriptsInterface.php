@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView
 
 /**
  * Admin View Footable Scripts Interface
- *
+ * 
  * @since  6.1.7
  */
 interface FootableScriptsInterface
@@ -30,3 +30,4 @@ interface FootableScriptsInterface
 	 */
 	public function get(bool $init = true): string;
 }
+

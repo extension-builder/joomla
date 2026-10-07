@@ -13,25 +13,25 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Abstraction;
 
 
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
-use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Interfaces\WriterInterface;
 
 
 /**
  * Shared mechanics for every writer that persists into JCB.
- *
+ * 
  * Writing goes through the shared Data pipeline, which resolves insert against
  * update from the GUID and applies the storage encoding declared in JCB's own
  * table definition class. Two consequences shape every subclass: a writer must
  * pass raw values, because encoding here would double-encode; and idempotency is
  * a property of the identity supplied, not of anything the writer does.
- *
+ * 
  * A dry run stops at exactly this boundary, so a caller can see the whole report
  * before any definition table is touched.
- *
+ * 
  * @since 6.1.6
  */
 abstract class Writer implements WriterInterface
@@ -347,3 +347,4 @@ abstract class Writer implements WriterInterface
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

@@ -12,17 +12,18 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Registry;
 
 
-use VDM\Joomla\Abstraction\Registry;
 use VDM\Joomla\Interfaces\Registryinterface;
+use VDM\Joomla\Abstraction\Registry;
 
 
 /**
  * Extrusion Inventory Registry
- *
+ * 
  * Located source artifacts and the discovery tier that found each one.
- *
+ * 
  * @since 6.1.6
  */
 final class Inventory extends Registry implements Registryinterface
 {
 }
+

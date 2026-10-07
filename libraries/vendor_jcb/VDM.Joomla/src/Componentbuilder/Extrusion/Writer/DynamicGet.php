@@ -11,7 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
+
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -21,10 +21,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Guid;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
+
 
 /**
  * Writes the dynamic get every recovered front end and custom view feeds from.
- *
+ * 
  * In JCB a view without a dynamic get displays nothing: the main_get column is
  * the view's whole data source. A recovered view named after an admin view of
  * this same run gets the real relationship -- a back end source aimed at that
@@ -32,7 +34,7 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  * A view no admin view answers for still gets its dynamic get, as a custom-get
  * scaffold that names the method the author completes; what it can never get
  * is nothing, because a view left without a source is a view left unrelated.
- *
+ * 
  * @since 6.1.8
  */
 final class DynamicGet extends Writer
@@ -354,3 +356,4 @@ final class DynamicGet extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

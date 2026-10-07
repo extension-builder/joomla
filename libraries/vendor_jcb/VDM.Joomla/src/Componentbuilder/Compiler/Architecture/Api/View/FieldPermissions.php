@@ -20,11 +20,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Api View Field Permissions Class.
- *
+ * 
  * Builds the guards that drop a field from the rendered field list of a
  * JSON API view when the user lacks its access or view permission, the
  * permissions the admin form removes or hides the same field on.
- *
+ * 
  * @since 6.1.7
  */
 final class FieldPermissions
@@ -164,3 +164,4 @@ final class FieldPermissions
 		return $guarded;
 	}
 }
+

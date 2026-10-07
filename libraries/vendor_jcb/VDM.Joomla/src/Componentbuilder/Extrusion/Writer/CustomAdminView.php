@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -24,11 +23,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Text;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Writes the administrator views a component builds outside its tables.
- *
+ * 
  * An import screen, a dashboard, a wizard: administrator views with no table
  * behind them are JCB's custom admin views, and their whole body is the
  * template the reader recovered. Every recovered administrator template is a
@@ -36,7 +36,7 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  * generated output and are passed over, and what remains is written whole --
  * body, php, name and its dynamic get -- so the component's administrator
  * arrives with every screen it really has, not only the tables.
- *
+ * 
  * @since 6.1.8
  */
 final class CustomAdminView extends Writer
@@ -402,3 +402,4 @@ HTML;
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

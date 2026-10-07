@@ -17,22 +17,22 @@ use VDM\Joomla\Componentbuilder\Compiler\Language;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\EximportView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ImportCustomScripts;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Utilities\StringHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\EximportMethodInterface;
 
 
 /**
  * Controller Eximport Method Class.
- *
+ * 
  * Builds the exportData and importData methods of an admin list view
  * controller: the token check, the permission guard, the spreadsheet export,
  * and the session hand-off into the import view.
- *
+ * 
  * Only how the current user is put in scope differs between Joomla targets, so
  * that is the extension point the target variants override.
- *
+ * 
  * @since  6.1.7
  */
 class EximportMethod implements EximportMethodInterface
@@ -276,3 +276,4 @@ class EximportMethod implements EximportMethodInterface
 		return Indent::_(2) . "\$user = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
 }
+

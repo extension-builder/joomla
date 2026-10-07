@@ -12,7 +12,6 @@
 namespace VDM\Joomla\Componentbuilder\Extrusion\Writer;
 
 
-use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 use VDM\Joomla\Componentbuilder\Extrusion\Config;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
@@ -23,11 +22,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Record;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Delta;
 use VDM\Joomla\Componentbuilder\Extrusion\Resolver\Placeholder;
 use VDM\Joomla\Interfaces\Data\ItemInterface;
+use VDM\Joomla\Componentbuilder\Extrusion\Abstraction\Writer;
 
 
 /**
  * Writes one JCB field definition per resolved column.
- *
+ * 
  * The record itself -- the field type, the database shape and the stored form
  * element -- is composed by the record resolver, so what is written here is
  * byte for byte what the identity rules hashed and compared. The stored values
@@ -35,7 +35,7 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
  * pipeline, so applying it here would encode twice. The identity is the GUID
  * the source supplied where it had one, which is what lets a component that
  * came out of JCB line back up with its own definitions.
- *
+ * 
  * @since 6.1.6
  */
 final class Field extends Writer
@@ -417,3 +417,4 @@ final class Field extends Writer
 		return (string) $this->source->get('code_name', '');
 	}
 }
+

@@ -18,11 +18,11 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Resolved;
 
 /**
  * Decides which fields are the title, alias, description and list columns.
- *
+ * 
  * When the source is a JCB-built component the table definition class states
  * these outright, and that answer is used. Otherwise they are inferred from the
  * column names, which is a guess and is recorded as one.
- *
+ * 
  * @since 6.1.6
  */
 final class Role
@@ -292,3 +292,4 @@ final class Role
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
+

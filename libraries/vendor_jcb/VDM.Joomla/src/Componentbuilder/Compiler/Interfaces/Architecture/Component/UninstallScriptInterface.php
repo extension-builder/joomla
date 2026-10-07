@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component
 
 /**
  * Component Uninstall Script Interface
- *
+ * 
  * @since  6.1.7
  */
 interface UninstallScriptInterface
@@ -31,3 +31,4 @@ interface UninstallScriptInterface
 	 */
 	public function get(array $uninstallScriptBuilder = [], array $uninstallScriptFields = []): string;
 }
+

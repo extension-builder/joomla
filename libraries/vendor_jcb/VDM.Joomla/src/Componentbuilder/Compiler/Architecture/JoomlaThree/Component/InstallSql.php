@@ -13,17 +13,17 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Componen
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\InstallSql as ExtendingInstallSql;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Component\InstallSqlInterface;
 
 
 /**
  * Component Install Sql Class for Joomla 3.
- *
+ * 
  * Joomla 3 carries no sql header and keeps the zero-date defaults its
  * database accepted, so its default column definitions differ from the
  * shared form.
- *
+ * 
  * @since  6.1.7
  */
 final class InstallSql extends ExtendingInstallSql implements InstallSqlInterface
@@ -159,3 +159,4 @@ final class InstallSql extends ExtendingInstallSql implements InstallSqlInterfac
 			. "`metadata` TEXT NULL,";
 	}
 }
+

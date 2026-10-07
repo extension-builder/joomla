@@ -25,10 +25,10 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 /**
  * Validate the complete operation, then commit its exact effective Data payloads.
- *
+ * 
  * A dependency may be referenced without permission to mutate it. Approval is
  * checked only for actual changed fields, and is bound to the plan fingerprint.
- *
+ * 
  * @since  6.2.0
  */
 final class Commit
@@ -508,3 +508,4 @@ final class Commit
 		return false;
 	}
 }
+

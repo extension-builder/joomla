@@ -22,12 +22,12 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Component Uninstall Sql Class.
- *
+ * 
  * Generates the uninstall.sql of the component: the drop statements the
  * database uninstall builder gathered, the component's own custom sql
  * uninstall dump, and the assets table reversals when the component
  * compiled with the sql fix option.
- *
+ * 
  * @since  6.1.7
  */
 class UninstallSql
@@ -153,3 +153,4 @@ class UninstallSql
 		return $db;
 	}
 }
+

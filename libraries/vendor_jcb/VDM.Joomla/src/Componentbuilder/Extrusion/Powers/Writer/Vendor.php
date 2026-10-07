@@ -26,11 +26,11 @@ use VDM\Joomla\Interfaces\Data\ItemInterface;
 
 /**
  * Propose component-local namespace values from validated, approved source roles.
- *
+ * 
  * A word match or an informal witness never grants a configuration write.
  * Shared, skipped, ignored and unresolved definitions do not supply ownership
  * evidence, conflicting values do not vote, and no global placeholder is written.
- *
+ * 
  * @since  6.1.9
  */
 final class Vendor
@@ -366,3 +366,4 @@ final class Vendor
 		}
 	}
 }
+

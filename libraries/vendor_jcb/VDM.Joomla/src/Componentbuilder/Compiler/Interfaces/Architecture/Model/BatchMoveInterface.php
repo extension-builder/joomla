@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model;
 
 /**
  * Model BatchMove Interface.
- *
+ * 
  * @since 6.1.7
  */
 interface BatchMoveInterface
@@ -30,3 +30,4 @@ interface BatchMoveInterface
 	 */
 	public function get($nameSingleCode);
 }
+

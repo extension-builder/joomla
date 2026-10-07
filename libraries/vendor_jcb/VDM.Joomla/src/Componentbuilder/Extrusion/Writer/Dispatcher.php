@@ -19,12 +19,12 @@ use VDM\Joomla\Componentbuilder\Extrusion\Registry\Report;
 
 /**
  * Runs the writers in dependency order.
- *
+ * 
  * Fields must exist before anything can reference them, views before the links
  * that point at them, and the component link last of all. Getting that order
  * wrong would produce definitions that reference identities not yet written, so
  * the order is stated here once rather than assumed by each writer.
- *
+ * 
  * @since 6.1.6
  */
 final class Dispatcher
@@ -237,3 +237,4 @@ final class Dispatcher
 		return $order;
 	}
 }
+

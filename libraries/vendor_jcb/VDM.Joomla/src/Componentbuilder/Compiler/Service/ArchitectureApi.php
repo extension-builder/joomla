@@ -36,10 +36,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Dynamic\Resource as Dy
 
 /**
  * Architecture Api Service Provider
- *
+ * 
  * The renderers of the API area of a component. Their output is the same for
  * every Joomla target that has an API, so none of them is version selected.
- *
+ * 
  * @since 6.1.7
  */
 class ArchitectureApi implements ServiceProviderInterface
@@ -409,3 +409,4 @@ class ArchitectureApi implements ServiceProviderInterface
 		);
 	}
 }
+

@@ -19,11 +19,11 @@ use VDM\Joomla\Utilities\StringHelper;
 
 /**
  * Edit View Custom Tabs Class.
- *
+ * 
  * Returns the custom tab markup a view has registered for one tab number and
  * one position within that tab. A view may register several custom tabs for
  * the same slot, in which case they are emitted in registration order.
- *
+ * 
  * @since  6.1.7
  */
 final class CustomTabs
@@ -92,3 +92,4 @@ final class CustomTabs
 		return false;
 	}
 }
+

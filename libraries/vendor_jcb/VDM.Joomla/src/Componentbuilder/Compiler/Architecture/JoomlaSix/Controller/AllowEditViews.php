@@ -240,3 +240,4 @@ final class AllowEditViews implements AllowEditViewsInterface
 		return null;
 	}
 }
+
