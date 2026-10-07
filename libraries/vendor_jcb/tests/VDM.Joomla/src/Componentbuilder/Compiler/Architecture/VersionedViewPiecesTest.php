@@ -12,6 +12,9 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Factory;
+use Joomla\Input\Input;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
@@ -50,13 +53,13 @@ final class VersionedViewPiecesTest extends ArchitectureTestCase
 
 
 		// Set the empty published item to data
-		if (!isset($data['published']))
+		if (!isset($data['published']) && !($input->getMethod() === 'PATCH' && Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient('api')))
 		{
 			$data['published'] = '';
 		}
 
 		// Set the empty featured item to data
-		if (!isset($data['featured']))
+		if (!isset($data['featured']) && !($input->getMethod() === 'PATCH' && Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient('api')))
 		{
 			$data['featured'] = '';
 		}
@@ -218,6 +221,55 @@ GEN;
 		$view = 'demo';
 
 		$this->assertSame('', $subject->get($view));
+	}
+
+	/**
+	 * API PATCH omission is preserved; complete forms still clear unchecked boxes.
+	 *
+	 * @param   bool    $api       Whether the request is an API request.
+	 * @param   string  $method    The HTTP method.
+	 * @param   array   $data      Validated input, possibly filtered by ACL.
+	 * @param   array   $expected  Data presented to the remaining save pipeline.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('checkboxRequests')]
+	public function testCheckboxDefaultsRespectPartialUpdates(bool $api, string $method, array $data, array $expected): void
+	{
+		$app = $this->createMock(CMSApplication::class);
+		$app->method('isClient')->with('api')->willReturn($api);
+		Factory::$application = $app;
+		$input = new Input([]);
+		$input->server->set('REQUEST_METHOD', $method);
+		$boxes = new CheckBox();
+		$boxes->set('demo', ['featured']);
+		$view = 'demo';
+		$code = $this->renderer(CheckboxSave::class, ['checkbox' => $boxes])->get($view);
+		$code = str_replace('Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power', '\\Joomla\\CMS\\Factory', $code);
+		$save = eval('return static function (array $data, $input): array {' . $code . ' return $data; };');
+
+		$this->assertSame($expected, $save($data, $input));
+	}
+
+	/**
+	 * Missing and explicitly supplied checkbox values across request types.
+	 *
+	 * @return  array<string, array{bool,string,array,array}>
+	 * @since   6.2.0
+	 */
+	public static function checkboxRequests(): array
+	{
+		return [
+			'API omission' => [true, 'PATCH', [], []],
+			'API null' => [true, 'PATCH', ['featured' => null], ['featured' => null]],
+			'API false' => [true, 'PATCH', ['featured' => false], ['featured' => false]],
+			'API zero' => [true, 'PATCH', ['featured' => 0], ['featured' => 0]],
+			'API clearing' => [true, 'PATCH', ['featured' => []], ['featured' => []]],
+			'API create default' => [true, 'POST', [], ['featured' => '']],
+			'administrator form' => [false, 'POST', [], ['featured' => '']],
+			'administrator PATCH' => [false, 'PATCH', [], ['featured' => '']],
+		];
 	}
 
 	/**
