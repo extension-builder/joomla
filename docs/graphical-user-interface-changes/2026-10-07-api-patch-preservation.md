@@ -3,7 +3,7 @@
 ## Change identity and permission
 
 - Date: 2026-10-07; implementer: Codex; PR: #58.
-- Status: Implemented; installed verification in progress on PR #58.
+- Status: Implemented; installed API verification passed on PR #58.
 - The active request explicitly approves the API compiler preservation plan,
   including generated controller/model code, for the stable 6.2.0 rollout.
 - Authorized protected path: `admin/compiler/joomla_4/API_VIEW_CONTROLLER.php`.
@@ -38,12 +38,13 @@ controllers gain the hook; Joomla 3 has no generated API area. The normal
 authorization, form filtering/validation and save lifecycle remains in place.
 
 The real Joomla API controller/form lifecycle regression passes 12 tests and
-126 assertions. Generated save-code regressions pass 27 tests and 91 assertions,
+126 assertions. Generated save-code regressions pass 29 tests and 95 assertions,
 including JSON scalars/null, Base64, ciphertext, custom derivations, expert
 mutations, ACL filtering, failed reads, and normal create/administrator behavior.
 The installed fixture exercises repeated ID/GUID updates, exact storage bytes,
 decoded readback, explicit replacement and clearing on both Demo resource names.
-Its hosted result is recorded in the PR; local execution requires Joomla/MySQL.
+The installed checks pass on both resources: 80 partial-PATCH checks in
+[run 37682336445](https://github.com/extension-builder/joomla/actions/runs/37682336445).
 No full JCB self-compilation result is claimed.
 GUI spec files: none, because this template changes API request preparation and
 does not alter a graphical view. Its executable coverage is in the compiler
