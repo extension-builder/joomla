@@ -70,7 +70,8 @@ final class CheckboxSave
 					. Line::_(__LINE__, __CLASS__) . " Set the empty " . $checkbox
 					. " item to data";
 				$script .= PHP_EOL . Indent::_(2) . "if (!isset(\$data['"
-					. $checkbox . "']))";
+					. $checkbox . "']) && !(\$input->getMethod() === 'PATCH'"
+					. " && Joomla__" . "_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient('api')))";
 				$script .= PHP_EOL . Indent::_(2) . "{";
 				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $checkbox
 					. "'] = '';";

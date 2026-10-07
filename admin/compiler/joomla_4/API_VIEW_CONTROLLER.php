@@ -101,6 +101,74 @@ class ###View###Controller extends ApiController
 	}
 
 	/**
+	 * Prepare inherited PATCH values in the edit model's input representation.
+	 *
+	 * @param   array  $data  Submitted values plus Joomla's raw stored-column merge.
+	 *
+	 * @return  array
+	 * @throws  \RuntimeException  When the existing record cannot be loaded.
+	 * @since   6.2.0
+	 */
+	protected function preprocessSaveData(array $data): array
+	{
+		$data = parent::preprocessSaveData($data);
+
+		if ($this->input->getMethod() !== 'PATCH')
+		{
+			return $data;
+		}
+
+		$model = $this->getModel();
+		$table = $model->getTable();
+		$key = $table->getKeyName();
+		$id = (int) ($data[$key] ?? 0);
+
+		if ($id < 1)
+		{
+			return $data;
+		}
+
+		// Keep the original payload separate: null and empty values are explicit input.
+		$submitted = $this->input->get('data', json_decode($this->input->json->getRaw(), true), 'array');
+		$submitted = is_array($submitted) ? $submitted : [];
+		$item = $model->getItem($id);
+
+		if (!is_object($item))
+		{
+			throw new \RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 500);
+		}
+
+		// getItem owns the inverse of each generated or expert storage transformation.
+		// Limit hydration to table columns; computed display properties are not input.
+		foreach ($table->getFields() as $field)
+		{
+			$name = $field->Field;
+
+			if ($name !== $key && !array_key_exists($name, $submitted) && property_exists($item, $name))
+			{
+				$data[$name] = $item->{$name};
+			}
+		}
+
+		// Tags are related data and therefore are absent from Joomla's table merge.
+		if (!array_key_exists('tags', $submitted) && isset($item->tags))
+		{
+			$tags = $item->tags;
+
+			if ($tags instanceof \Joomla\CMS\Helper\TagsHelper)
+			{
+				$data['tags'] = empty($tags->tags) ? [] : explode(',', $tags->tags);
+			}
+			elseif (is_array($tags))
+			{
+				$data['tags'] = $tags;
+			}
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Removes an item.
 	 *
 	 * @param   integer  $id  The primary key to delete item.

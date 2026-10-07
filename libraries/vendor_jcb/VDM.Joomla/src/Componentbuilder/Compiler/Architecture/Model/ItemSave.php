@@ -227,6 +227,7 @@ class ItemSave implements ItemSaveInterface
 		// the record keys come first, so every custom code, field script
 		// and generated line after them reads the shape it expects
 		$script = $this->recordkeyfix->get((string) $view);
+		$script .= $this->patchSnapshot();
 		// get component name
 		$Component = $this->contentone->get('Component');
 		$component = $this->config->component_code_name;
@@ -234,6 +235,7 @@ class ItemSave implements ItemSaveInterface
 		$script .= $this->dispenser->get(
 			'php_before_save', $view, PHP_EOL . PHP_EOL
 		);
+		$script .= $this->patchRetainUnchanged();
 		// turn array into JSON string
 		if ($this->jsonitem->exists($view))
 		{
@@ -244,7 +246,7 @@ class ItemSave implements ItemSaveInterface
 					. " items to data.";
 				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
 					. $jsonItem . "']) && is_array(\$data['" . $jsonItem
-					. "']))";
+					. "']) && !array_key_exists('" . $jsonItem . "', \$jcbPatchStored))";
 				$script .= PHP_EOL . Indent::_(2) . "{";
 				$script .= PHP_EOL . Indent::_(3) . "\$" . $jsonItem
 					. " = new Registry;";
@@ -275,12 +277,15 @@ class ItemSave implements ItemSaveInterface
 							$view, $permission_option, $jsonItem, $component
 						);
 					}
-					$script .= ")";
+					$script .= " && !(\$input->getMethod() === 'PATCH'"
+						. " && Joomla__" . "_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient('api')))";
 				}
 				else
 				{
 					$script .= PHP_EOL . Indent::_(2)
-						. "elseif (!isset(\$data['" . $jsonItem . "']))";
+						. "elseif (!isset(\$data['" . $jsonItem . "'])"
+						. " && !(\$input->getMethod() === 'PATCH'"
+						. " && Joomla__" . "_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient('api')))";
 				}
 				$script .= PHP_EOL . Indent::_(2) . "{";
 				$script .= PHP_EOL . Indent::_(3) . "//" . Line::_(
@@ -300,7 +305,7 @@ class ItemSave implements ItemSaveInterface
 					. Line::_(__Line__, __Class__) . " Set the " . $jsonString
 					. " string to JSON string.";
 				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-					. $jsonString . "']))";
+					. $jsonString . "']) && !array_key_exists('" . $jsonString . "', \$jcbPatchStored))";
 				$script .= PHP_EOL . Indent::_(2) . "{";
 				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $jsonString
 					. "'] = (string) json_encode(\$data['" . $jsonString
@@ -317,7 +322,7 @@ class ItemSave implements ItemSaveInterface
 					. Line::_(__Line__, __Class__) . " Set the " . $baseString
 					. " string to base64 string.";
 				$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
-					. $baseString . "']))";
+					. $baseString . "']) && !array_key_exists('" . $baseString . "', \$jcbPatchStored))";
 				$script .= PHP_EOL . Indent::_(2) . "{";
 				$script .= PHP_EOL . Indent::_(3) . "\$data['" . $baseString
 					. "'] = base64_encode(\$data['" . $baseString . "']);";
@@ -350,7 +355,7 @@ class ItemSave implements ItemSaveInterface
 							. $baseString . ".";
 						$script .= PHP_EOL . Indent::_(2) . "if (isset(\$data['"
 							. $baseString . "']) && \$" . $cryptionType
-							. "key)";
+							. "key && !array_key_exists('" . $baseString . "', \$jcbPatchStored))";
 						$script .= PHP_EOL . Indent::_(2) . "{";
 						$script .= PHP_EOL . Indent::_(3) . "\$data['"
 							. $baseString . "'] = \$" . $cryptionType
@@ -360,14 +365,24 @@ class ItemSave implements ItemSaveInterface
 				}
 				else
 				{
+					$expertGuards = [];
+
+					foreach (array_keys($cryptionFields->get($view)) as $expertField)
+					{
+						$expertGuards[] = "!array_key_exists('" . $expertField . "', \$jcbPatchStored)";
+					}
+
+					$script .= PHP_EOL . PHP_EOL . Indent::_(2) . 'if (' . ($expertGuards === [] ? 'true' : implode(' || ', $expertGuards)) . ')';
+					$script .= PHP_EOL . Indent::_(2) . '{';
+
 					if ($this->modelexpertfieldinitiator->
 						exists("{$view}.save"))
 					{
 						foreach ($this->modelexpertfieldinitiator->
 							get("{$view}.save") as $block)
 						{
-							$script .= PHP_EOL . Indent::_(2) . implode(
-								PHP_EOL . Indent::_(2), $block
+							$script .= PHP_EOL . Indent::_(3) . implode(
+								PHP_EOL . Indent::_(3), $block
 							);
 						}
 					}
@@ -377,21 +392,122 @@ class ItemSave implements ItemSaveInterface
 						$_placeholder_for_field
 							= array('[[[field]]]' => "\$data['"
 							. $baseString . "']");
+						$script .= PHP_EOL . Indent::_(3)
+							. "if (!array_key_exists('" . $baseString . "', \$jcbPatchStored))";
+						$script .= PHP_EOL . Indent::_(3) . '{';
 						$script .= $this->placeholder->update(
-							PHP_EOL . Indent::_(2) . implode(
-								PHP_EOL . Indent::_(2), $locker_['save']
+							PHP_EOL . Indent::_(4) . implode(
+								PHP_EOL . Indent::_(4), $locker_['save']
 							), $_placeholder_for_field
 						);
+						$script .= PHP_EOL . Indent::_(3) . '}';
 					}
+					$script .= PHP_EOL . Indent::_(2) . '}';
 				}
 			}
 		}
+		$script .= PHP_EOL . PHP_EOL . Indent::_(2)
+			. '// Restore unchanged omitted columns without a lossy decode/encode round trip.';
+		$script .= PHP_EOL . Indent::_(2) . 'foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)';
+		$script .= PHP_EOL . Indent::_(2) . '{';
+		$script .= PHP_EOL . Indent::_(3) . 'if (array_key_exists($jcbPatchName, $data)';
+		$script .= PHP_EOL . Indent::_(4) . '&& serialize($data[$jcbPatchName]) === $jcbPatchInput[$jcbPatchName])';
+		$script .= PHP_EOL . Indent::_(3) . '{';
+		$script .= PHP_EOL . Indent::_(4) . '$data[$jcbPatchName] = $jcbPatchValue;';
+		$script .= PHP_EOL . Indent::_(3) . '}';
+		$script .= PHP_EOL . Indent::_(2) . '}';
+
 		// add custom PHP to the save method
 		$script .= $this->dispenser->get(
 			'php_save', $view, PHP_EOL . PHP_EOL
 		);
 
 		return $script;
+	}
+
+	/**
+	 * Snapshot raw omitted columns and validated input before custom save modelling.
+	 *
+	 * The request payload determines presence; null and empty values are supplied.
+	 * Only existing API PATCH records use this boundary. The primary key and guid
+	 * remain owned by RecordKeyFix, and ACL-filtered columns stay absent.
+	 *
+	 * @return  string  The generated snapshot block.
+	 * @since   6.2.0
+	 */
+	private function patchSnapshot(): string
+	{
+		$code = <<<'PHP'
+
+
+		// Preserve omitted API PATCH values in their original storage representation.
+		$jcbPatchStored = [];
+		$jcbPatchInput = [];
+		$jcbPatchId = $data['id'];
+
+		if ($input->getMethod() === 'PATCH' && [[[JCB_API_FACTORY]]]::getApplication()->isClient('api') && $jcbPatchId > 0)
+		{
+			$jcbPatchSubmitted = $input->get('data', json_decode($input->json->getRaw(), true), 'array');
+			$jcbPatchSubmitted = is_array($jcbPatchSubmitted) ? $jcbPatchSubmitted : [];
+			$jcbPatchTable = $this->getTable();
+
+			if (!$jcbPatchTable->load($jcbPatchId))
+			{
+				$this->setError(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'));
+
+				return false;
+			}
+
+			foreach ($jcbPatchTable->getFields() as $jcbPatchField)
+			{
+				$jcbPatchName = $jcbPatchField->Field;
+
+				if ($jcbPatchName !== $jcbPatchTable->getKeyName() && $jcbPatchName !== 'guid'
+					&& !array_key_exists($jcbPatchName, $jcbPatchSubmitted)
+					&& array_key_exists($jcbPatchName, $data))
+				{
+					$jcbPatchStored[$jcbPatchName] = $jcbPatchTable->{$jcbPatchName};
+					$jcbPatchInput[$jcbPatchName] = serialize($data[$jcbPatchName]);
+				}
+			}
+		}
+PHP;
+
+		return str_replace(
+			'[[[JCB_API_FACTORY]]]',
+			'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
+			$code
+		);
+	}
+
+	/**
+	 * Keep custom before-save derivations and copy operations authoritative.
+	 *
+	 * @return  string  The generated comparison block.
+	 * @since   6.2.0
+	 */
+	private function patchRetainUnchanged(): string
+	{
+		return <<<'PHP'
+
+
+		// A copy or a custom derivation must follow the normal storage transforms.
+		if ((int) $data['id'] !== $jcbPatchId)
+		{
+			$jcbPatchStored = [];
+		}
+		else
+		{
+			foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)
+			{
+				if (!array_key_exists($jcbPatchName, $data)
+					|| serialize($data[$jcbPatchName]) !== $jcbPatchInput[$jcbPatchName])
+				{
+					unset($jcbPatchStored[$jcbPatchName]);
+				}
+			}
+		}
+PHP;
 	}
 
 	/**
