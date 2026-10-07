@@ -81,7 +81,11 @@ jobs:
             if [[ ! -f "$summary" ]]; then
               echo "The comparison did not get as far as producing a summary. Read the job log."
             elif [[ -s "$summary" ]]; then
-              echo "The two compilers produced **different** components:"
+              if grep -qx 'result=reviewed' .golden-master/comparison.txt 2>/dev/null; then
+                echo "The output exactly matches the **reviewed baseline-specific change**:"
+              else
+                echo "The two compilers produced **different** components:"
+              fi
               echo
               echo '```'
               cat "$summary"
@@ -91,6 +95,13 @@ jobs:
               echo "in the job log too, under *The diff between the two compiles*."
             else
               echo "The two compilers produced the **same** component, byte for byte."
+            fi
+
+            if [[ -f .golden-master/comparison.txt ]]; then
+              echo
+              echo '```'
+              cat .golden-master/comparison.txt
+              echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -102,6 +113,7 @@ jobs:
           path: |
             .golden-master/summary.txt
             .golden-master/full.diff
+            .golden-master/comparison.txt
             .golden-master/warmup.log
             .golden-master/baseline.log
             .golden-master/candidate.log

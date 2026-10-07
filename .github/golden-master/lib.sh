@@ -10,6 +10,67 @@ say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
 compose() { docker compose -f "${COMPOSE_FILE}" "$@"; }
 
+# Compare the staged candidate with the baseline, or an explicitly reviewed
+# baseline-specific change. A matching expectation also rejects a full revert.
+# No compiler output is normalized, and the caller still runs every other gate.
+#
+# $1 generated-output git repository; $2 reviewed expectations directory
+# $3 baseline source SHA; $4 component GUID; $5 repository GUID
+# $6 generated target; $7 exact common compile options
+compare_output() (
+	local golden="$1" expectations="$2" baseline="$3" component="$4"
+	local repository="$5" target="$6" options="$7"
+	local baseline_tree candidate_tree expected_tree expected_work expected_index fixture=''
+
+	baseline_tree="$(git -C "${golden}" rev-parse 'HEAD^{tree}')" || return 1
+	candidate_tree="$(git -C "${golden}" write-tree)" || return 1
+	printf 'baseline_tree=%s\ncandidate_tree=%s\n' "${baseline_tree}" "${candidate_tree}"
+
+	if [[ "${baseline}" =~ ^[0-9a-f]{40}$ && "${component}" =~ ^[0-9a-f-]{36}$ && "${target}" =~ ^[3456]$ ]]
+	then
+		fixture="${expectations}/${baseline}/${component}/joomla-${target}"
+	fi
+
+	if [[ -n "${fixture}" && -f "${fixture}.context" ]]
+	then
+		if ! cmp -s "${fixture}.context" <(printf 'baseline=%s\nbaseline_tree=%s\ncomponent=%s\nrepository=%s\ntarget=%s\noptions=%s\n' \
+			"${baseline}" "${baseline_tree}" "${component}" "${repository}" "${target}" "${options}")
+		then
+			printf 'Reviewed output context does not match this compilation.\n' >&2
+			return 1
+		fi
+
+		if [[ ! -s "${fixture}.patch.base64" ]]
+		then
+			printf 'Reviewed output patch is missing or empty: %s.patch.base64\n' "${fixture}" >&2
+			return 1
+		fi
+
+		expected_work="$(mktemp -d)" || return 1
+		expected_index="${expected_work}/index"
+		trap 'rm -rf "${expected_work}"' EXIT
+		base64 --decode "${fixture}.patch.base64" > "${expected_work}/change.patch" || return 1
+		GIT_INDEX_FILE="${expected_index}" git -C "${golden}" read-tree HEAD || return 1
+		GIT_INDEX_FILE="${expected_index}" git -C "${golden}" apply --cached --whitespace=nowarn "${expected_work}/change.patch" || return 1
+		expected_tree="$(GIT_INDEX_FILE="${expected_index}" git -C "${golden}" write-tree)" || return 1
+		printf 'expected_tree=%s\nfixture=%s\n' "${expected_tree}" "${fixture}.patch.base64"
+
+		if [[ "${candidate_tree}" != "${expected_tree}" ]]
+		then
+			printf 'Compiler output does not exactly match the reviewed change.\n' >&2
+			return 1
+		fi
+
+		printf 'result=reviewed\n'
+	elif [[ "${candidate_tree}" == "${baseline_tree}" ]]
+	then
+		printf 'result=identical\n'
+	else
+		printf 'Compiler output differs without a matching reviewed expectation.\n' >&2
+		return 1
+	fi
+)
+
 cleanup() {
 	if [[ "${KEEP_STACK}" != "1" ]]
 	then

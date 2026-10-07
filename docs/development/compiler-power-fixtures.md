@@ -65,3 +65,30 @@ PHP lint, Bash syntax checks, disposable-driver rejection and the existing
 golden-harness self-test can run without Docker. Full dependency resolution and
 the installed API scenarios require their hosted Joomla/MySQL jobs; complete
 golden compilation requires Docker/Compose.
+
+## Public blueprint authentication
+
+In [run 37682336456](https://github.com/extension-builder/joomla/actions/runs/37682336456),
+Joomla 4 stopped before warmup because GitHub rate-limited the blueprint fetch.
+The shipped Packages repository row inherits `access_repo=1` and `token=''`.
+Its explicit empty token replaces the workflow token with an anonymous request.
+The other three targets completed both compiles and produced exactly the same
+archive entries as run 37682020469, including contents and modes.
+
+The disposable console wrapper now resolves the known Packages GUID, verifies
+its GitHub provider, API base, owner and repository, and omits the empty token
+from an in-memory descriptor passed to the native `--repo` option. It refuses
+unexpected identities or a stored repository credential. The global read-only
+workflow token is retained by the existing GitHub client; it never enters the
+descriptor, command arguments or database. Other repository selections continue
+through the original command unchanged.
+
+Joomla exposes its console input without a setter. The wrapper reinitializes
+the existing native `ArgvInput` through its public constructor before execution
+starts; the normal application and command then bind the sanitized arguments.
+
+Offline verification exercises the real repository modeling and GitHub HTTP
+client with a dummy token: the shipped empty override removes Authorization,
+whereas the fixture descriptor preserves it. The native argv input is bound
+again to the command definition to verify the sanitized repository option.
+Unknown identities and nonempty repository credentials are rejected.
