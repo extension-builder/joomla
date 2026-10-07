@@ -56,6 +56,12 @@ $config->set('show_advanced_options', true);
 $config->set('backup', 0);
 $config->set('repository', 0);
 $config->set('add_super_powers', false);
+
+foreach (require __DIR__ . '/power-repositories.php' as $key => $paths)
+{
+	$config->set($key, $paths);
+}
+
 $started = hrtime(true);
 
 try

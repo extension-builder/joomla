@@ -23,6 +23,7 @@ on:
       - 'admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php'
       - 'libraries/vendor_jcb/tests/api/**'
       - '.github/api-tests/**'
+      - '.github/golden-master/power-repositories.php'
       - '.github/workflows/api-tests.yml'
 
 permissions:
@@ -60,6 +61,7 @@ jobs:
           JCB_DB_USER: root
           JCB_DB_PASS: root
           JCB_API_HAMMER: ${{ inputs.hammer || '25' }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/api-tests/run.sh "${GITHUB_WORKSPACE}/.api-tests"
 
       - name: Keep the logs

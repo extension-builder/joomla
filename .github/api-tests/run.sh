@@ -74,6 +74,12 @@ console() {
 	php -d memory_limit=1G "${SITE}/cli/joomla.php" "$@"
 }
 
+compile() {
+	JCB_DISPOSABLE_TEST=1 JCB_API_SITE_ROOT="${SITE}" \
+		php -d memory_limit=1G "${REPO_ROOT}/.github/api-tests/compile.php" \
+		componentbuilder:compile:component "$@"
+}
+
 live_site() {
 	sed -i "s#public \$live_site = '[^']*';#public \$live_site = '$1';#" "${SITE}/configuration.php"
 }
@@ -126,9 +132,12 @@ cmp -s "${REPO_ROOT}/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compil
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
 
+say "Adding optional encoded fields to the disposable Demo source definition"
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
+
 say "Compiling the demo component for Joomla 6"
 rm -f "${SITE}"/tmp/*.zip
-console componentbuilder:compile:component --component="${DEMO_COMPONENT}" --joomla-version=6 \
+compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
 	--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/compile.log" 2>&1 || true
 ls -1 "${SITE}"/tmp/*.zip > /dev/null 2>&1 || { echo "The compile left no package."; cat "${OUT_DIR}/compile.log"; exit 1; }
 
@@ -203,6 +212,7 @@ else
 	say "Driving v1/demo/looks"
 	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/looks --hammer="${JCB_API_HAMMER}"
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/looks
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/partial-patch.php" "${SITE}" "${BASE_URL}" "${TOKEN}" v1/demo/looks
 
 	# Recompile source definitions with a plural word in the middle of the list
 	# name. Item tasks must select Library_configModel, while list tasks select
@@ -215,7 +225,7 @@ else
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-model-role.php" "${SITE}" "${DEMO_COMPONENT}"
 	rm -f "${SITE}"/tmp/*.zip
 	say "Compiling Library Config / Libraries Config through the native compiler"
-	console componentbuilder:compile:component --component="${DEMO_COMPONENT}" --joomla-version=6 \
+	compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
 		--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/model-role-compile.log" 2>&1
 
 	for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
@@ -256,4 +266,5 @@ else
 	say "Driving v1/demo/libraries_config with native model-role and read permissions"
 	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/libraries_config --hammer="${JCB_API_HAMMER}"
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/libraries_config
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/partial-patch.php" "${SITE}" "${BASE_URL}" "${TOKEN}" v1/demo/libraries_config
 fi
