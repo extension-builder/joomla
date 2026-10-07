@@ -356,6 +356,59 @@ PHP;
 	}
 
 	/**
+	 * Ordered expert derivations may originate from an initializer or an earlier field.
+	 *
+	 * @return  array<string, array{bool}>
+	 * @since   6.2.0
+	 */
+	public static function expertDerivationStages(): array
+	{
+		return [
+			'initializer' => [true],
+			'earlier field' => [false],
+		];
+	}
+
+	/**
+	 * A derived omitted expert field must still undergo its own storage conversion.
+	 *
+	 * @param   bool  $inInitializer  Whether initialization changes the later field.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('expertDerivationStages')]
+	public function testOrderedExpertDerivationsAreEncodedAtTheirOwnTurn(bool $inInitializer): void
+	{
+		$overrides = $this->storageFields();
+		$encode = "[[[field]]] = 'encoded:' . [[[field]]];";
+		$derive = "\$data['second'] = 'derived';";
+		$overrides['modelexpertfield']->set('article', [
+			'expert' => ['save' => $inInitializer ? [$encode] : [$derive, $encode]],
+			'second' => ['save' => [$encode]],
+			'untouched' => ['save' => [$encode]],
+		]);
+		$overrides['modelexpertfieldinitiator']->set(
+			'article.save',
+			[$inInitializer ? ['$this->expertInitializers++;', $derive] : ['$this->expertInitializers++;']]
+		);
+		$fixture = new GeneratedSaveModelFixture(
+			['id' => 7, 'expert' => 'encoded:old', 'second' => 'encoded:oldsecond', 'untouched' => 'original-storage'],
+			['expert' => 'replacement']
+		);
+		$save = $this->executableSave($fixture, 'JoomlaSix', $overrides);
+		$saved = $save(['id' => 7, 'expert' => 'replacement', 'second' => 'oldsecond', 'untouched' => 'decoded']);
+
+		$this->assertSame([
+			'id' => 7,
+			'expert' => 'encoded:replacement',
+			'second' => 'encoded:derived',
+			'untouched' => 'original-storage',
+		], $saved);
+		$this->assertSame(1, $fixture->expertInitializers);
+	}
+
+	/**
 	 * An empty expert registry cannot generate an invalid conditional expression.
 	 *
 	 * @return  void
@@ -537,11 +590,6 @@ PHP;
 
 		$view = 'article';
 		$out = $subject->get($view);
-
-		if (getenv('DUMP_SAVE'))
-		{
-			file_put_contents(getenv('DUMP_SAVE'), $out);
-		}
 
 		return $out;
 	}
