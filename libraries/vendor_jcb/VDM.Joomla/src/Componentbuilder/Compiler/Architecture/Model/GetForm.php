@@ -111,6 +111,7 @@ class GetForm implements GetFormInterface
 	 * @return  string
 	 *
 	 * @since   6.1.7
+	 * @since   6.2.0 Preserve denied and omitted PATCH metadata in API forms.
 	 */
 	public function get($nameSingleCode, $nameListCode)
 	{
@@ -227,18 +228,23 @@ class GetForm implements GetFormInterface
 				. "if (!\$user->authorise('core.edit.created_by', 'com_" . $component . "'))";
 		}
 		$getForm[] = Indent::_(2) . "{";
-		$getForm[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " Disable fields for display.";
-		$getForm[] = Indent::_(3)
+		$getForm[] = Indent::_(3) . "if (\$app->isClient('api'))";
+		$getForm[] = Indent::_(3) . "{";
+		$getForm[] = Indent::_(4) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Exclude protected metadata from API validation and binding.";
+		$getForm[] = Indent::_(4) . "\$form->removeField('created_by');";
+		$getForm[] = Indent::_(3) . "}";
+		$getForm[] = Indent::_(3) . "else";
+		$getForm[] = Indent::_(3) . "{";
+		$getForm[] = Indent::_(4) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Retain disabled metadata controls in administrator forms.";
+		$getForm[] = Indent::_(4)
 			. "\$form->setFieldAttribute('created_by', 'disabled', 'true');";
-		$getForm[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " Disable fields for display.";
-		$getForm[] = Indent::_(3)
+		$getForm[] = Indent::_(4)
 			. "\$form->setFieldAttribute('created_by', 'readonly', 'true');";
-		$getForm[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " Disable fields while saving.";
-		$getForm[] = Indent::_(3)
+		$getForm[] = Indent::_(4)
 			. "\$form->setFieldAttribute('created_by', 'filter', 'unset');";
+		$getForm[] = Indent::_(3) . "}";
 		$getForm[] = Indent::_(2) . "}";
 		$getForm[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__)
 			. " Modify the form based on Edit Creaded Date access controls.";
@@ -259,14 +265,36 @@ class GetForm implements GetFormInterface
 				. $component . "'))";
 		}
 		$getForm[] = Indent::_(2) . "{";
-		$getForm[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " Disable fields for display.";
-		$getForm[] = Indent::_(3)
+		$getForm[] = Indent::_(3) . "if (\$app->isClient('api'))";
+		$getForm[] = Indent::_(3) . "{";
+		$getForm[] = Indent::_(4) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Exclude protected metadata from API validation and binding.";
+		$getForm[] = Indent::_(4) . "\$form->removeField('created');";
+		$getForm[] = Indent::_(3) . "}";
+		$getForm[] = Indent::_(3) . "else";
+		$getForm[] = Indent::_(3) . "{";
+		$getForm[] = Indent::_(4) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Retain disabled metadata controls in administrator forms.";
+		$getForm[] = Indent::_(4)
 			. "\$form->setFieldAttribute('created', 'disabled', 'true');";
-		$getForm[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
-			. " Disable fields while saving.";
-		$getForm[] = Indent::_(3)
+		$getForm[] = Indent::_(4)
 			. "\$form->setFieldAttribute('created', 'filter', 'unset');";
+		$getForm[] = Indent::_(3) . "}";
+		$getForm[] = Indent::_(2) . "}";
+		$getForm[] = PHP_EOL . Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Omitted PATCH metadata must not be filtered or rebound from storage.";
+		$getForm[] = Indent::_(2) . "if (\$app->isClient('api') && \$jinput->getMethod() === 'PATCH')";
+		$getForm[] = Indent::_(2) . "{";
+		$getForm[] = Indent::_(3)
+			. "\$submittedApiData = \$jinput->get('data', json_decode(\$jinput->json->getRaw(), true), 'array');";
+		$getForm[] = Indent::_(3) . "foreach (['created', 'created_by'] as \$metadataField)";
+		$getForm[] = Indent::_(3) . "{";
+		$getForm[] = Indent::_(4)
+			. "if (!is_array(\$submittedApiData) || !array_key_exists(\$metadataField, \$submittedApiData))";
+		$getForm[] = Indent::_(4) . "{";
+		$getForm[] = Indent::_(5) . "\$form->removeField(\$metadataField);";
+		$getForm[] = Indent::_(4) . "}";
+		$getForm[] = Indent::_(3) . "}";
 		$getForm[] = Indent::_(2) . "}";
 		// check if the item has access permissions.
 		if ($this->permission->actionExist($nameSingleCode, 'core.edit.access'))

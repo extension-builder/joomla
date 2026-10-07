@@ -12,10 +12,19 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\Language\Language;
+use Joomla\CMS\User\User;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Input\Input;
+use Joomla\Input\Json;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionFields;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 
 
 /**
@@ -210,6 +219,368 @@ final class VersionedModelGetFormTest extends ArchitectureTestCase
 		);
 		// but nothing for a field the view never guarded
 		$this->assertStringNotContainsString('secret', $code);
+	}
+
+	/**
+	 * Every target keeps metadata protection inside its existing ACL branches.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testMetadataIsRemovedOnlyFromApiValidationForms(string $version, int $major): void
+	{
+		$code = $this->form($version);
+
+		foreach (['created', 'created_by'] as $field)
+		{
+			$this->assertStringContainsString(
+				"if (!\$user->authorise('core.edit.{$field}', 'com_demo'))\n"
+				. "\t\t{\n\t\t\tif (\$app->isClient('api'))\n\t\t\t{",
+				$code
+			);
+			$this->assertStringContainsString("\$form->removeField('{$field}');", $code);
+			$this->assertStringContainsString(
+				"\$form->setFieldAttribute('{$field}', 'disabled', 'true');", $code
+			);
+			$this->assertStringContainsString(
+				"\$form->setFieldAttribute('{$field}', 'filter', 'unset');", $code
+			);
+		}
+	}
+
+	/**
+	 * Generated ACL decisions filter forbidden metadata without blocking edits.
+	 *
+	 * @param   bool  $api          Whether the model serves an API request.
+	 * @param   bool  $recordAcl    Whether metadata actions are record-scoped.
+	 * @param   bool  $editCreated  Whether the caller may change the date.
+	 * @param   bool  $editOwner    Whether the caller may change the owner.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('metadataPermissions')]
+	public function testMetadataPermissionsFollowTheClientAndActualRecord(bool $api, bool $recordAcl, bool $editCreated, bool $editOwner): void
+	{
+		$actions = $recordAcl
+			? ['article.edit.created' => $editCreated, 'article.edit.created_by' => $editOwner]
+			: ['core.edit.created' => $editCreated, 'core.edit.created_by' => $editOwner];
+		$checks = [];
+		$user = $this->createStub(User::class);
+		$user->method('authorise')->willReturnCallback(
+			static function (string $action, string $asset) use ($actions, &$checks): bool
+			{
+				$checks[$action] = $asset;
+
+				return $actions[$action] ?? true;
+			}
+		);
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('isClient')->willReturnCallback(
+			static fn(string $client): bool => $client === ($api ? 'api' : 'administrator')
+		);
+		$input = new Input(['id' => 999, 'a_id' => 999]);
+		$input->server->set('REQUEST_METHOD', 'PATCH');
+		$app->method('getInput')->willReturn($input);
+		$app->method('getIdentity')->willReturn($user);
+		$permission = $recordAcl
+			? $this->permissionWith(
+				[
+					'article|core.edit.created' => 'article.edit.created',
+					'article|core.edit.created_by' => 'article.edit.created_by',
+				],
+				[
+					'article.edit.created|article' => 'article',
+					'article.edit.created_by|article' => 'article',
+				]
+			)
+			: $this->permission();
+		$data = [
+			'id' => 42,
+			'name' => 'Renamed record',
+			'created' => '2026-10-07 12:30:00',
+			'created_by' => 23,
+		];
+		$input->set('data', $data);
+		$form = $this->generatedModel($app, $permission)->getForm($data);
+
+		foreach (['created' => $editCreated, 'created_by' => $editOwner] as $field => $allowed)
+		{
+			$this->assertSame(
+				$api && !$allowed ? null : $field,
+				$form->getFieldAttribute($field, 'name')
+			);
+			$action = ($recordAcl ? 'article' : 'core') . '.edit.' . $field;
+			$this->assertSame($recordAcl ? 'com_demo.article.42' : 'com_demo', $checks[$action]);
+
+			if (!$api && !$allowed)
+			{
+				$this->assertSame('true', $form->getFieldAttribute($field, 'disabled'));
+				$this->assertSame('unset', $form->getFieldAttribute($field, 'filter'));
+			}
+			elseif ($allowed)
+			{
+				$this->assertNull($form->getFieldAttribute($field, 'disabled'));
+			}
+		}
+
+		if (!$api && !$editOwner)
+		{
+			$this->assertSame('true', $form->getFieldAttribute('created_by', 'readonly'));
+		}
+
+		// The browser excludes disabled controls; PATCH supplies stored values
+		// for omitted columns and may also explicitly submit forbidden values.
+		if (!$api)
+		{
+			foreach (['created' => $editCreated, 'created_by' => $editOwner] as $field => $allowed)
+			{
+				if (!$allowed)
+				{
+					unset($data[$field]);
+				}
+			}
+		}
+
+		$previousApplication = Factory::$application;
+		Factory::$application = $app;
+
+		try
+		{
+			$filtered = $form->filter($data);
+			$this->assertTrue($form->validate($filtered));
+		}
+		finally
+		{
+			Factory::$application = $previousApplication;
+		}
+
+		$this->assertSame(42, $filtered['id']);
+		$this->assertSame('Renamed record', $filtered['name']);
+
+		foreach (['created' => $editCreated, 'created_by' => $editOwner] as $field => $allowed)
+		{
+			if ($allowed)
+			{
+				$this->assertSame($data[$field], $filtered[$field]);
+			}
+			else
+			{
+				$this->assertArrayNotHasKey($field, $filtered);
+			}
+		}
+	}
+
+	/**
+	 * Omitted metadata never goes through a timezone filter or an update bind.
+	 *
+	 * @param   bool    $rawJson        Whether input comes from the raw JSON body.
+	 * @param   string  $dateFilter     The calendar timezone filter.
+	 * @param   bool    $submitCreated  Whether the PATCH explicitly sets the date.
+	 * @param   bool    $submitOwner    Whether the PATCH explicitly sets the owner.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('patchMetadata')]
+	public function testPatchOnlyFiltersExplicitMetadata(bool $rawJson, string $dateFilter, bool $submitCreated, bool $submitOwner): void
+	{
+		$data = [
+			'id' => 42,
+			'name' => 'Renamed record',
+			'created' => '2026-10-07 12:30:00',
+			'created_by' => 23,
+		];
+		$submitted = ['name' => $data['name']];
+
+		if ($submitCreated)
+		{
+			$submitted['created'] = $data['created'];
+		}
+
+		if ($submitOwner)
+		{
+			$submitted['created_by'] = 0;
+			$data['created_by'] = 0;
+		}
+
+		$json = $this->createStub(Json::class);
+		$json->method('getRaw')->willReturn(json_encode($submitted, JSON_THROW_ON_ERROR));
+		$server = new Input(['REQUEST_METHOD' => 'PATCH']);
+		$input = $this->getMockBuilder(Input::class)
+			->setConstructorArgs([$rawJson ? [] : ['data' => $submitted]])
+			->onlyMethods(['__get'])
+			->getMock();
+		$input->expects($this->atLeastOnce())->method('__get')->willReturnMap([['json', $json], ['server', $server]]);
+		$user = $this->createStub(User::class);
+		$user->method('authorise')->willReturn(true);
+		$user->method('getParam')->willReturn('Africa/Windhoek');
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('isClient')->willReturnCallback(static fn(string $client): bool => $client === 'api');
+		$app->method('getInput')->willReturn($input);
+		$app->method('getIdentity')->willReturn($user);
+		$app->method('get')->willReturn('Africa/Windhoek');
+		$form = $this->generatedModel($app, $this->permission(), $dateFilter)->getForm($data);
+		$previousApplication = Factory::$application;
+		$previousDatabase = Factory::$database;
+		$previousDates = Factory::$dates;
+		$previousLanguage = Factory::$language;
+		$database = $this->createStub(DatabaseInterface::class);
+		$database->method('getDateFormat')->willReturn('Y-m-d H:i:s');
+		$language = $this->createStub(Language::class);
+		$language->method('getTag')->willReturn('en-GB');
+		Factory::$application = $app;
+		Factory::$database = $database;
+		Factory::$language = $language;
+
+		try
+		{
+			$filtered = $form->filter($data);
+			$this->assertTrue($form->validate($filtered));
+		}
+		finally
+		{
+			Factory::$application = $previousApplication;
+			Factory::$database = $previousDatabase;
+			Factory::$dates = $previousDates;
+			Factory::$language = $previousLanguage;
+		}
+
+		$this->assertSame('Renamed record', $filtered['name']);
+
+		if ($submitCreated)
+		{
+			$this->assertSame('2026-10-07 10:30:00', $filtered['created']);
+		}
+		else
+		{
+			$this->assertArrayNotHasKey('created', $filtered);
+		}
+
+		if ($submitOwner)
+		{
+			$this->assertSame(0, $filtered['created_by']);
+		}
+		else
+		{
+			$this->assertArrayNotHasKey('created_by', $filtered);
+		}
+
+		$this->assertSame($submitted, $input->get('data', json_decode($input->json->getRaw(), true), 'array'));
+	}
+
+	/**
+	 * Both native payload sources and timezone filters retain PATCH presence.
+	 *
+	 * @return  iterable<string, array{bool, string, bool, bool}>  Payload and fields.
+	 * @since   6.2.0
+	 */
+	public static function patchMetadata(): iterable
+	{
+		foreach ([false, true] as $rawJson)
+		{
+			foreach (['user_utc', 'server_utc'] as $dateFilter)
+			{
+				foreach ([false, true] as $submitCreated)
+				{
+					foreach ([false, true] as $submitOwner)
+					{
+						$name = ($rawJson ? 'json' : 'data') . ' ' . $dateFilter
+							. ' date:' . (int) $submitCreated . ' owner:' . (int) $submitOwner;
+						yield $name => [$rawJson, $dateFilter, $submitCreated, $submitOwner];
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * New records keep their normal metadata fields and owner defaults.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testApiCreatesKeepAuthorisedMetadataFields(): void
+	{
+		$user = $this->createStub(User::class);
+		$user->id = 7;
+		$user->method('authorise')->willReturn(true);
+		$input = new Input(['data' => ['name' => 'New record']]);
+		$input->server->set('REQUEST_METHOD', 'POST');
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('isClient')->willReturnCallback(static fn(string $client): bool => $client === 'api');
+		$app->method('getInput')->willReturn($input);
+		$app->method('getIdentity')->willReturn($user);
+		$form = $this->generatedModel($app, $this->permission())->getForm(['name' => 'New record']);
+
+		$this->assertSame('created', $form->getFieldAttribute('created', 'name'));
+		$this->assertSame('created_by', $form->getFieldAttribute('created_by', 'name'));
+		$this->assertSame(7, $form->getValue('created_by'));
+	}
+
+	/**
+	 * Both metadata rights vary independently under both permission scopes.
+	 *
+	 * @return  iterable<string, array{bool, bool, bool, bool}>  Client and rights.
+	 * @since   6.2.0
+	 */
+	public static function metadataPermissions(): iterable
+	{
+		foreach ([false, true] as $api)
+		{
+			foreach ([false, true] as $recordAcl)
+			{
+				foreach ([false, true] as $editCreated)
+				{
+					foreach ([false, true] as $editOwner)
+					{
+						$name = ($api ? 'api' : 'administrator') . ($recordAcl ? ' record' : ' component')
+							. ' date:' . (int) $editCreated . ' owner:' . (int) $editOwner;
+						yield $name => [$api, $recordAcl, $editCreated, $editOwner];
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Execute generated source while substituting only application/form loading.
+	 *
+	 * @param   CMSApplication  $app         The bounded request application.
+	 * @param   Permission      $permission  The compiler's metadata actions.
+	 * @param   string          $dateFilter  The calendar's input date filter.
+	 *
+	 * @return  GeneratedFormModelFixture  The executable generated model.
+	 * @since   6.2.0
+	 */
+	private function generatedModel(CMSApplication $app, Permission $permission, string $dateFilter = 'raw'): GeneratedFormModelFixture
+	{
+		$form = new Form('metadata');
+		$form->setDatabase($this->createStub(DatabaseInterface::class));
+		$form->setCurrentUser($app->getIdentity());
+		$this->assertTrue($form->load(
+			'<form><field name="id" type="text" filter="integer" label="ID" translateLabel="false" />'
+			. '<field name="name" type="text" filter="string" required="true" label="Name" translateLabel="false" />'
+			. '<field name="created" type="calendar" filter="' . $dateFilter . '" label="Created" translateLabel="false" />'
+			. '<field name="created_by" type="text" filter="integer" label="Owner" translateLabel="false" /></form>'
+		));
+		$subject = $this->renderer($this->targetClass('JoomlaSix', 'Model\\GetForm', ['JoomlaThree']), [
+			'permission' => $permission,
+			'permissionfields' => new PermissionFields(),
+		]);
+		$body = str_replace(
+			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()',
+			'$this->getApplication()',
+			$subject->get('article', 'articles')
+		);
+		$method = "public function getForm(array \$data, array \$options = []): \\Joomla\\CMS\\Form\\Form\n{\n"
+			. $body . "\n}";
+
+		return eval('return new class($form, $app) extends \\' . GeneratedFormModelFixture::class . ' {' . $method . '};');
 	}
 
 	/**
