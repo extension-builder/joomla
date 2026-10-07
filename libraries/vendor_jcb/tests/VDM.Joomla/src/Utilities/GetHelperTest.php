@@ -68,22 +68,37 @@ final class GetHelperTest extends TestCase
 		yield 'empty' => ['prefix <> suffix', '<', '>', 'fallback', ''];
 		yield 'missing opener' => ['value>', '<', '>', 'fallback', 'fallback'];
 		yield 'missing closer' => ['<value', '<', '>', 'fallback', 'fallback'];
+		yield 'multicharacter delimiters' => ['x<!--body-->y', '<!--', '-->', '', 'body'];
 	}
 
 	/**
 	 * Extract unique non-empty values in discovery order.
 	 *
+	 * @param   string      $content   Content to inspect.
+	 * @param   array|null  $expected  Expected extracted values.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testAllBetweenReturnsUniqueValuesInDiscoveryOrder(): void
+	#[DataProvider('provideAllBetweenCases')]
+	public function testAllBetweenReturnsUniqueValuesInDiscoveryOrder(string $content, ?array $expected): void
 	{
-		$this->assertSame(
-			['alpha', 'beta'],
-			GetHelper::allBetween('[[alpha]][[beta]][[alpha]]', '[[', ']]')
-		);
-		$this->assertNull(GetHelper::allBetween('plain content', '[[', ']]'));
-		$this->assertNull(GetHelper::allBetween('[[]][[later]]', '[[', ']]'));
+		$this->assertSame($expected, GetHelper::allBetween($content, '[[', ']]'));
+	}
+
+	/**
+	 * Retain delimiter cases previously duplicated by the removed extrusion helper.
+	 *
+	 * @return  iterable<string, array{string, array|null}>
+	 * @since   6.2.0
+	 */
+	public static function provideAllBetweenCases(): iterable
+	{
+		yield 'several values' => ['[[alpha]] text [[beta]] text [[gamma]]', ['alpha', 'beta', 'gamma']];
+		yield 'duplicates collapse' => ['[[alpha]][[beta]][[alpha]]', ['alpha', 'beta']];
+		yield 'absent' => ['plain content', null];
+		yield 'incomplete closing delimiter' => ['[[alpha', null];
+		yield 'empty first segment stops scan' => ['[[]][[later]]', null];
 	}
 
 	/**

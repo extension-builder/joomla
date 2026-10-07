@@ -106,7 +106,9 @@ final class ExtrusionImportAccessTest extends JoomlaTestCase
 	 */
 	private function model(bool $allowed): AjaxModel
 	{
-		$this->setJoomlaFactoryProperty('language', new Language('en-GB'));
+		$language = new Language('en-GB');
+		$this->assertTrue($language->load('com_componentbuilder', dirname(__DIR__, 4) . '/admin', 'en-GB', true, false));
+		$this->setJoomlaFactoryProperty('language', $language);
 		$user = $this->getMockBuilder(User::class)->disableOriginalConstructor()
 			->onlyMethods(['authorise'])->getMock();
 		$user->expects($this->once())->method('authorise')

@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\UsesNamespace;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Error\JsonApi\NotAllowedExceptionHandler;
+use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\View\JsonApiView;
 use Joomla\CMS\User\User;
 use Tobscure\JsonApi\ErrorHandler;
@@ -67,7 +68,7 @@ GEN;
 GEN;
 
 	/**
-	 * The original shared item-model block for a component without API views.
+	 * The stable shared item-model block for a component without API views.
 	 * Space markers preserve legacy indentation without adding whitespace errors.
 	 *
 	 * @var    string
@@ -78,8 +79,8 @@ GEN;
 			// check edit access permissions
 			if (!empty($item->id) && !$this->allowEdit((array) $item))
 			{
-<ONE_SPACE>				$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
-<TWO_SPACES>				$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');
+<ONE_SPACE>				$app = Factory::getApplication();
+<TWO_SPACES>				$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');
 				$app->redirect('index.php?option=com_demo');
 				return false;
 			}
@@ -129,12 +130,12 @@ GEN;
 	}
 
 	/**
-	 * Views without API resources retain the original complete template bytes.
+	 * Views without API resources retain the stable complete template bytes.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testNonApiItemGuardPreservesTheOriginalTemplateBytes(): void
+	public function testNonApiItemGuardPreservesTheStableTemplateBytes(): void
 	{
 		$subject = $this->renderer(AllowView::class);
 
@@ -502,7 +503,13 @@ GEN;
 		]);
 		$method = preg_replace('/###[A-Z_]+###/', '', $method);
 		$item = (object) ['id' => 42, 'access' => $access];
+		$language = new Language('en-GB');
+		$this->assertTrue($language->load('com_componentbuilder', dirname(__DIR__, 10) . '/admin', 'en-GB', true, false));
+		$this->setJoomlaFactoryProperty('language', $language);
+		$this->setJoomlaFactoryProperty('application', $app);
 
-		return eval('return new class($item, $app, $editable) extends \\' . GeneratedItemModelFixture::class . ' {' . $method . '};');
+		// The stable import emits native aliases supplied by the complete model header.
+		return eval('use Joomla\\CMS\\Factory; use Joomla\\CMS\\Language\\Text; '
+			. 'return new class($item, $app, $editable) extends \\' . GeneratedItemModelFixture::class . ' {' . $method . '};');
 	}
 }

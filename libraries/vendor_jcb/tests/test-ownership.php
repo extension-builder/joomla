@@ -1941,8 +1941,8 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewGuardsTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ValidationFix.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewGuardsTest.php'
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ValidationFixTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Component/ImportCustomScripts.php' => [
 		'mode' => 'contract',
@@ -5875,10 +5875,6 @@ return [
 	'VDM.Joomla/src/Utilities/GetHelper.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Utilities/GetHelperTest.php'
-	],
-	'VDM.Joomla/src/Utilities/GetHelperExtrusion.php' => [
-		'mode' => 'unit',
-		'owner' => 'VDM.Joomla/src/Utilities/GetHelperExtrusionTest.php'
 	],
 	'VDM.Joomla/src/Utilities/GuidHelper.php' => [
 		'mode' => 'unit',
