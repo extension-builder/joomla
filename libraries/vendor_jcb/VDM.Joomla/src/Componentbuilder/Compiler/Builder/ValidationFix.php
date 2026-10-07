@@ -69,4 +69,3 @@ final class ValidationFix extends Registry implements Registryinterface
 		return $this->conditions[$view] ?? [];
 	}
 }
-
