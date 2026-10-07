@@ -66,8 +66,12 @@ Super Power/Joomla Power identities and placements. Compiler and extrusion PRs
 run the public Hello World blueprint on a Joomla 6 host for targets 3, 4, 5 and 6.
 The baseline is the PR base commit, installed and verified before compilation.
 Both measured builds read the same database snapshot, after one dependency
-warmup. Differences fail the workflow; they are never automatically normalized
-away. The harness records identities before and after `Compiler::run()` so late
+warmup. Differences fail unless they exactly match a reviewed patch pinned to
+the baseline SHA and output tree, blueprint, repository, target and compile options; they are
+never automatically normalized away. A matching expectation is enforced even
+when the candidate has reverted to the baseline. See
+[reviewed output changes](../../.github/golden-master/expected/README.md).
+The harness records identities before and after `Compiler::run()` so late
 loads remain visible, and hashes every deployed first-party library file.
 
 The public Hello World definition is GUID

@@ -192,5 +192,88 @@ grep -q '1 more changed file' <<< "${OUT}" \
 	|| check "says nothing when nothing changed" fail
 
 echo
+echo "compare_output"
+GOLDEN="${WORK}/golden"
+EXPECTATIONS="${WORK}/expected"
+BASELINE_SHA=1111111111111111111111111111111111111111
+COMPONENT=11111111-1111-1111-1111-111111111111
+REPOSITORY=22222222-2222-2222-2222-222222222222
+OPTIONS='--debug-line-nr=0 --add-build-date=2 --build-date=2026-01-01'
+FIXTURE="${EXPECTATIONS}/${BASELINE_SHA}/${COMPONENT}/joomla-6"
+mkdir -p "${GOLDEN}" "$(dirname "${FIXTURE}")"
+git -C "${GOLDEN}" init -q
+printf '* -text -filter -ident -working-tree-encoding\n' > "${GOLDEN}/.git/info/attributes"
+printf 'ignored-output.txt\n' > "${GOLDEN}/.gitignore"
+printf 'old\r\n' > "${GOLDEN}/model.php"
+printf '\0old\n' > "${GOLDEN}/binary.dat"
+printf 'run\n' > "${GOLDEN}/run.sh"
+git -C "${GOLDEN}" add --force -A
+git -C "${GOLDEN}" -c user.name=test -c user.email=test@example.invalid commit -qm baseline
+printf 'new\r\n' > "${GOLDEN}/model.php"
+printf '\0new\n' > "${GOLDEN}/binary.dat"
+chmod +x "${GOLDEN}/run.sh"
+git -C "${GOLDEN}" add --force -A
+CANDIDATE_TREE="$(git -C "${GOLDEN}" write-tree)"
+git -C "${GOLDEN}" diff --cached --binary --full-index --no-renames | base64 > "${FIXTURE}.patch.base64"
+printf 'baseline=%s\nbaseline_tree=%s\ncomponent=%s\nrepository=%s\ntarget=6\noptions=%s\n' \
+	"${BASELINE_SHA}" "$(git -C "${GOLDEN}" rev-parse 'HEAD^{tree}')" "${COMPONENT}" "${REPOSITORY}" "${OPTIONS}" > "${FIXTURE}.context"
+
+review_compare() {
+	compare_output "${GOLDEN}" "${EXPECTATIONS}" "${BASELINE_SHA}" "${COMPONENT}" "${REPOSITORY}" 6 "${OPTIONS}"
+}
+
+expect_exit "accepts exactly reviewed text, binary and executable changes" 0 review_compare
+[[ "$(git -C "${GOLDEN}" write-tree)" == "${CANDIDATE_TREE}" ]] \
+	&& check "comparison preserves the candidate index" pass \
+	|| check "comparison preserves the candidate index" fail
+git -C "${GOLDEN}" read-tree HEAD
+expect_exit "rejects a full revert under the matching expectation" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+printf 'unexpected\n' > "${GOLDEN}/extra.txt"
+git -C "${GOLDEN}" add extra.txt
+expect_exit "rejects an extra generated file" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+rm "${GOLDEN}/extra.txt"
+printf 'unexpected ignored output\n' > "${GOLDEN}/ignored-output.txt"
+git -C "${GOLDEN}" add --force -A
+expect_exit "rejects an extra file hidden by generated ignore rules" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+rm "${GOLDEN}/ignored-output.txt"
+git -C "${GOLDEN}" reset -q HEAD -- model.php
+expect_exit "rejects a missing intended text change" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+printf '\0wrong\n' > "${GOLDEN}/binary.dat"
+git -C "${GOLDEN}" add binary.dat
+expect_exit "rejects unexpected binary bytes" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+git -C "${GOLDEN}" update-index --chmod=-x run.sh
+expect_exit "rejects an unexpected file mode" 1 review_compare
+git -C "${GOLDEN}" read-tree "${CANDIDATE_TREE}"
+expect_exit "rejects a different baseline" 1 compare_output "${GOLDEN}" "${EXPECTATIONS}" \
+	2222222222222222222222222222222222222222 "${COMPONENT}" "${REPOSITORY}" 6 "${OPTIONS}"
+expect_exit "rejects a different blueprint" 1 compare_output "${GOLDEN}" "${EXPECTATIONS}" \
+	"${BASELINE_SHA}" "${REPOSITORY}" "${REPOSITORY}" 6 "${OPTIONS}"
+expect_exit "rejects a different repository" 1 compare_output "${GOLDEN}" "${EXPECTATIONS}" \
+	"${BASELINE_SHA}" "${COMPONENT}" "${COMPONENT}" 6 "${OPTIONS}"
+expect_exit "rejects a different target" 1 compare_output "${GOLDEN}" "${EXPECTATIONS}" \
+	"${BASELINE_SHA}" "${COMPONENT}" "${REPOSITORY}" 5 "${OPTIONS}"
+expect_exit "rejects different compile options" 1 compare_output "${GOLDEN}" "${EXPECTATIONS}" \
+	"${BASELINE_SHA}" "${COMPONENT}" "${REPOSITORY}" 6 '--debug-line-nr=1'
+cp "${FIXTURE}.context" "${WORK}/reviewed.context"
+sed -i 's/^baseline_tree=.*/baseline_tree=0000000000000000000000000000000000000000/' "${FIXTURE}.context"
+expect_exit "rejects a different measured baseline tree" 1 review_compare
+mv "${WORK}/reviewed.context" "${FIXTURE}.context"
+mv "${FIXTURE}.patch.base64" "${WORK}/reviewed.patch.base64"
+expect_exit "rejects a missing reviewed patch" 1 review_compare
+printf 'invalid patch\n' | base64 > "${FIXTURE}.patch.base64"
+expect_exit "rejects an unapplicable reviewed patch" 1 review_compare
+printf 'invalid base64!\n' > "${FIXTURE}.patch.base64"
+expect_exit "rejects corrupt patch encoding" 1 review_compare
+mv "${WORK}/reviewed.patch.base64" "${FIXTURE}.patch.base64"
+git -C "${GOLDEN}" read-tree HEAD
+expect_exit "keeps strict equality for contexts without an expectation" 0 compare_output \
+	"${GOLDEN}" "${WORK}/no-expectations" "${BASELINE_SHA}" "${COMPONENT}" "${REPOSITORY}" 6 "${OPTIONS}"
+
+echo
 printf '%d passed, %d failed\n' "${PASSED}" "${FAILED}"
 (( FAILED == 0 ))
