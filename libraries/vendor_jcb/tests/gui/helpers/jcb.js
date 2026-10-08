@@ -1,6 +1,8 @@
 // @ts-check
 'use strict';
 
+const { expect } = require('@playwright/test');
+
 /**
  * Small helpers every JCB GUI spec shares.
  *
@@ -45,7 +47,7 @@ async function setRadio(page, name, value) {
 		await input.check({ force: true });
 	}
 
-	await input.isChecked();
+	await expect(input, `${name} selects the requested value ${value}`).toBeChecked();
 }
 
 module.exports = { openView, setRadio };
