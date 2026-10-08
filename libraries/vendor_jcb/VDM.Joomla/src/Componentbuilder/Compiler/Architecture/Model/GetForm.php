@@ -407,6 +407,11 @@ class GetForm implements GetFormInterface
 		$getForm[] = Indent::_(2) . "}" . $this->dispenser->get(
 				'php_getform', $nameSingleCode, PHP_EOL
 			);
+		// Keep the actual form so native validation plugins remain authoritative.
+		$getForm[] = Indent::_(2) . "if (\$app->isClient('api') && \$jinput->getMethod() === 'PATCH')";
+		$getForm[] = Indent::_(2) . "{";
+		$getForm[] = Indent::_(3) . "\$this->setState('jcb.api.patch.form', \$form);";
+		$getForm[] = Indent::_(2) . "}";
 		// setup the default script
 		$getForm[] = Indent::_(2) . "return \$form;";
 

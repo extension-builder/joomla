@@ -24,6 +24,14 @@ use Joomla\CMS\Form\Form;
 class GeneratedFormModelFixture
 {
 	/**
+	 * Model state shared between form construction and persistence.
+	 *
+	 * @var    array<string, mixed>
+	 * @since  6.2.0
+	 */
+	public array $state = [];
+
+	/**
 	 * The real Joomla validation form supplied by the test.
 	 *
 	 * @var    Form
@@ -50,6 +58,20 @@ class GeneratedFormModelFixture
 	{
 		$this->form = $form;
 		$this->app = $app;
+	}
+
+	/**
+	 * Retain the form reference across the native validation lifecycle.
+	 *
+	 * @param   string  $key    State name.
+	 * @param   mixed   $value  State value.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function setState(string $key, mixed $value): void
+	{
+		$this->state[$key] = $value;
 	}
 
 	/**

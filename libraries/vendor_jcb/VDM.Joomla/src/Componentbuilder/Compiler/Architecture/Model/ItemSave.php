@@ -482,6 +482,17 @@ class ItemSave implements ItemSaveInterface
 		{
 			$jcbPatchSubmitted = $input->get('data', json_decode($input->json->getRaw(), true), 'array');
 			$jcbPatchSubmitted = is_array($jcbPatchSubmitted) ? $jcbPatchSubmitted : [];
+			// Joomla's API inserts an empty tags array after validation. It must not
+			// clear omitted relationships or bypass the form's field permissions.
+			$jcbPatchForm = $this->getState('jcb.api.patch.form');
+			if (!array_key_exists('tags', $jcbPatchSubmitted)
+				|| ($jcbPatchForm !== null && (!$jcbPatchForm->getField('tags')
+					|| strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'filter', '')) === 'unset'
+					|| in_array(strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'disabled', '')), ['true', '1'], true))))
+			{
+				unset($data['tags']);
+			}
+
 			$jcbPatchTable = $this->getTable();
 
 			if (!$jcbPatchTable->load($jcbPatchId))

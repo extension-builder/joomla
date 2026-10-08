@@ -306,7 +306,9 @@ final class VersionedModelGetFormTest extends ArchitectureTestCase
 			'created_by' => 23,
 		];
 		$input->set('data', $data);
-		$form = $this->generatedModel($app, $permission)->getForm($data);
+		$model = $this->generatedModel($app, $permission);
+		$form = $model->getForm($data);
+		$this->assertSame($api ? $form : null, $model->state['jcb.api.patch.form'] ?? null);
 
 		foreach (['created' => $editCreated, 'created_by' => $editOwner] as $field => $allowed)
 		{
@@ -515,7 +517,9 @@ final class VersionedModelGetFormTest extends ArchitectureTestCase
 		$app->method('isClient')->willReturnCallback(static fn(string $client): bool => $client === 'api');
 		$app->method('getInput')->willReturn($input);
 		$app->method('getIdentity')->willReturn($user);
-		$form = $this->generatedModel($app, $this->permission())->getForm(['name' => 'New record']);
+		$model = $this->generatedModel($app, $this->permission());
+		$form = $model->getForm(['name' => 'New record']);
+		$this->assertArrayNotHasKey('jcb.api.patch.form', $model->state);
 
 		$this->assertSame('created', $form->getFieldAttribute('created', 'name'));
 		$this->assertSame('created_by', $form->getFieldAttribute('created_by', 'name'));
