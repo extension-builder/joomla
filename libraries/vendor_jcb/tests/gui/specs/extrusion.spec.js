@@ -326,9 +326,8 @@ test.describe('the extrusion view', () => {
 		await expect(modal).toBeVisible();
 		await modal.locator('#extrusion-modal-search').fill('zzz-nothing-matches-this');
 		const options = modal.locator('.extrusion-modal-row');
-		if (await options.count() === 0) {
-			await expect(modal.locator('.extrusion-modal-empty')).toBeVisible();
-		}
+		await expect(options, 'an unmatched target search leaves no selectable result').toHaveCount(0);
+		await expect(modal.locator('.extrusion-modal-empty')).toBeVisible();
 		await modal.locator('#extrusion-modal-close').click();
 		await expect(modal).toBeHidden();
 
