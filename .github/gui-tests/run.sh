@@ -30,6 +30,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/.github/gui-tests/docker-compose.yml"
 OUT_DIR="${1:-${REPO_ROOT}/.gui-tests}"
 SUITE_DIR="${REPO_ROOT}/libraries/vendor_jcb/tests/gui"
+INFRA_DIR="${REPO_ROOT}/.github/test-infra"
 
 JCB_BASE_URL="${JCB_BASE_URL:-http://localhost:8080}"
 JCB_ADMIN_USER="${JCB_ADMIN_USER:-jcbgui}"
@@ -39,6 +40,7 @@ KEEP_STACK="${KEEP_STACK:-0}"
 
 WEBROOT=/var/www/html
 INSTALL_TIMEOUT=900
+PROOF_NAME=""
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
@@ -47,6 +49,11 @@ compose() { docker compose -f "${COMPOSE_FILE}" "$@"; }
 cleanup() {
 	local status=$?
 	trap - EXIT
+	if [[ -n "${PROOF_NAME}" ]]
+	then
+		compose exec -T joomla rm -f "${WEBROOT}/${PROOF_NAME}" >/dev/null 2>&1 || true
+		rm -f "${OUT_DIR}/${PROOF_NAME}"
+	fi
 	if [[ "${ACL_FIXTURES_STARTED:-0}" == "1" ]]
 	then
 		if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
@@ -135,6 +142,7 @@ run_cli() {
 trap cleanup EXIT
 
 mkdir -p "${OUT_DIR}"
+OUT_DIR="$(cd "${OUT_DIR}" && pwd)"
 rm -rf "${OUT_DIR:?}/"*
 
 say "Starting Joomla, which installs the released JCB"
@@ -151,7 +159,7 @@ PACKAGE="${OUT_DIR}/jcb-under-test.zip"
 	# The test suites carry composer and npm trees that are no part of what
 	# JCB installs — the same exclusions the golden master packages with.
 	zip -qr "${PACKAGE}" . \
-		-x '.git/*' '.github/*' '.golden-master/*' '.gui-tests/*' \
+		-x '.git/*' '.github/*' '.golden-master/*' '.gui-tests/*' '.api-tests/*' \
 			'libraries/vendor_jcb/tests/*'
 )
 say "Packaged $(du -h "${PACKAGE}" | cut -f1)"
@@ -170,19 +178,15 @@ fi
 
 tail -5 "${OUT_DIR}/install.log"
 
-# Prove the install deployed this working tree, rather than trusting that it
-# did: a view file the released JCB does not have must now answer inside the
-# container, byte for byte.
-PROOF_FILE=admin/src/View/Extrusion/HtmlView.php
-LOCAL_SUM="$(md5sum "${REPO_ROOT}/${PROOF_FILE}" | cut -d' ' -f1)"
-CONTAINER_SUM="$(compose exec -T joomla md5sum \
-	"${WEBROOT}/administrator/components/com_componentbuilder/src/View/Extrusion/HtmlView.php" \
-	2>/dev/null | cut -d' ' -f1 | tr -d '\r' || true)"
-
-if [[ "${LOCAL_SUM}" != "${CONTAINER_SUM}" ]]
+# Check the archive's complete declared runtime files and shipped first-party
+# libraries, including compiler templates, admin controllers/views and API.
+python3 "${INFRA_DIR}/package-manifest.py" "${PACKAGE}" > "${OUT_DIR}/tree-installed.sha256"
+compose cp "${OUT_DIR}/tree-installed.sha256" "joomla:/tmp/jcb-tree-installed.sha256"
+if ! compose exec -T joomla sh -c 'cd /var/www/html && sha256sum --check /tmp/jcb-tree-installed.sha256' \
+	> "${OUT_DIR}/tree-verify.log" 2>&1
 then
 	say "The install did not deploy this working tree"
-	printf '  working tree: %s\n  container:    %s\n' "${LOCAL_SUM}" "${CONTAINER_SUM:-missing}"
+	cat "${OUT_DIR}/tree-verify.log"
 	exit 1
 fi
 
@@ -216,18 +220,16 @@ compose exec -T joomla sh -c \
 		> /usr/local/etc/php/conf.d/zz-gui-tests.ini && apache2ctl -k graceful' \
 	|| say "Could not raise the PHP limits; the image defaults stand"
 
-say "Waiting for the site to answer over HTTP"
-DEADLINE=$(( SECONDS + 120 ))
-until curl -fsS -o /dev/null "${JCB_BASE_URL}/administrator/index.php"
-do
-	if (( SECONDS > DEADLINE ))
-	then
-		say "The site never answered at ${JCB_BASE_URL}"
-		exit 1
-	fi
-
-	sleep 3
-done
+say "Proving the HTTP target serves this installed container"
+PROOF="$(python3 "${INFRA_DIR}/site-proof.py" create "${OUT_DIR}")"
+read -r PROOF_NAME PROOF_VALUE <<< "${PROOF}"
+compose cp "${OUT_DIR}/${PROOF_NAME}" "joomla:${WEBROOT}/${PROOF_NAME}"
+if ! python3 "${INFRA_DIR}/site-proof.py" verify "${JCB_BASE_URL}" "${PROOF_NAME}" "${PROOF_VALUE}" \
+	--timeout 120 > "${OUT_DIR}/site-provenance.log" 2>&1
+then
+	cat "${OUT_DIR}/site-provenance.log"
+	exit 1
+fi
 
 say "Seeding and verifying disposable extrusion definitions"
 compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
@@ -268,6 +270,8 @@ set +e
 	cd "${SUITE_DIR}"
 	JCB_EXTRUSION_FIXTURES="${OUT_DIR}/extrusion-fixtures.json" \
 	JCB_BASE_URL="${JCB_BASE_URL}" \
+	JCB_PROVENANCE_PATH="/${PROOF_NAME}" \
+	JCB_PROVENANCE_VALUE="${PROOF_VALUE}" \
 	JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
 	JCB_ADMIN_PASS="${JCB_ADMIN_PASS}" \
 	npx playwright test

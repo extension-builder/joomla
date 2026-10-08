@@ -36,6 +36,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="${1:-${REPO_ROOT}/.api-tests}"
 SUITE_DIR="${REPO_ROOT}/libraries/vendor_jcb/tests/api"
+INFRA_DIR="${REPO_ROOT}/.github/test-infra"
 
 JCB_DB_HOST="${JCB_DB_HOST:-127.0.0.1}"
 JCB_DB_USER="${JCB_DB_USER:-root}"
@@ -54,10 +55,15 @@ BASE_URL="http://127.0.0.1:${JCB_API_PORT}"
 API_USER=jcbapi
 API_PASS='Jcb-Api-Tests-2026!'
 SERVER_PID=""
+PROOF_NAME=""
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
 cleanup() {
+	if [[ -n "${PROOF_NAME}" ]]
+	then
+		rm -f "${SITE}/${PROOF_NAME}"
+	fi
 	if [[ -n "${SERVER_PID}" && "${KEEP_SITE}" != "1" ]]
 	then
 		kill "${SERVER_PID}" >/dev/null 2>&1 || true
@@ -84,7 +90,31 @@ live_site() {
 	sed -i "s#public \$live_site = '[^']*';#public \$live_site = '$1';#" "${SITE}/configuration.php"
 }
 
+verify_package() {
+	local package="$1" label="$2"
+	python3 "${INFRA_DIR}/package-manifest.py" "${package}" > "${OUT_DIR}/${label}-installed.sha256"
+	(cd "${SITE}" && sha256sum --check "${OUT_DIR}/${label}-installed.sha256") > "${OUT_DIR}/${label}-verify.log" 2>&1 \
+		|| { cat "${OUT_DIR}/${label}-verify.log"; return 1; }
+}
+
+start_server() {
+	local label="$1" proof
+	# An unrelated listener must never satisfy readiness or receive API tokens.
+	python3 "${INFRA_DIR}/site-proof.py" port "${JCB_API_PORT}"
+	if [[ -n "${PROOF_NAME}" ]]; then rm -f "${SITE}/${PROOF_NAME}"; fi
+	proof="$(python3 "${INFRA_DIR}/site-proof.py" create "${SITE}")"
+	read -r PROOF_NAME PROOF_VALUE <<< "${proof}"
+	live_site "${BASE_URL}"
+	php -S "127.0.0.1:${JCB_API_PORT}" -t "${SITE}" > "${OUT_DIR}/${label}.log" 2>&1 &
+	SERVER_PID=$!
+	python3 "${INFRA_DIR}/site-proof.py" verify "${BASE_URL}" "${PROOF_NAME}" "${PROOF_VALUE}" \
+		--pid "${SERVER_PID}" --timeout 30 > "${OUT_DIR}/${label}-provenance.log" 2>&1 \
+		|| { cat "${OUT_DIR}/${label}-provenance.log" "${OUT_DIR}/${label}.log"; return 1; }
+}
+
 mkdir -p "${OUT_DIR}"
+OUT_DIR="$(cd "${OUT_DIR}" && pwd)"
+SITE="${OUT_DIR}/site"
 
 say "Joomla ${JCB_JOOMLA} into ${SITE}"
 if [[ ! -s "${OUT_DIR}/joomla.zip" ]]
@@ -125,9 +155,7 @@ PACKAGE="${OUT_DIR}/jcb-under-test.zip"
 )
 console extension:install --path "${PACKAGE}" --no-interaction > "${OUT_DIR}/tree-install.log" 2>&1
 grep -q "installed successfully" "${OUT_DIR}/tree-install.log" || { cat "${OUT_DIR}/tree-install.log"; exit 1; }
-cmp -s "${REPO_ROOT}/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ItemSave.php" \
-	"${SITE}/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ItemSave.php" \
-	|| { echo "The site does not carry this working tree's compiler."; exit 1; }
+verify_package "${PACKAGE}" tree
 
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
@@ -137,8 +165,12 @@ JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
 
 say "Compiling the demo component for Joomla 6"
 rm -f "${SITE}"/tmp/*.zip
-compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
-	--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/compile.log" 2>&1 || true
+if ! compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
+	--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/compile.log" 2>&1
+then
+	cat "${OUT_DIR}/compile.log"
+	exit 1
+fi
 ls -1 "${SITE}"/tmp/*.zip > /dev/null 2>&1 || { echo "The compile left no package."; cat "${OUT_DIR}/compile.log"; exit 1; }
 
 # A power the compiler could not fetch leaves its placeholder in the output,
@@ -166,6 +198,7 @@ say "Installing the compiled demo and its webservices plugin"
 for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
 do
 	console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/demo-install.log" 2>&1
+	verify_package "${package}" "demo-$(basename "${package}" .zip)"
 	printf '    %s\n' "$(basename "${package}")"
 done
 php -r '
@@ -179,7 +212,7 @@ echo "webservices plugin enabled\n";
 
 say "A user with an API token"
 console user:add --username="${API_USER}" --name="API Tests" --password="${API_PASS}" \
-	--email="${API_USER}@jcb.invalid" --usergroup="Super Users" --no-interaction > "${OUT_DIR}/user.log" 2>&1 || true
+	--email="${API_USER}@jcb.invalid" --usergroup="Super Users" --no-interaction > "${OUT_DIR}/user.log" 2>&1
 TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" "${API_USER}")"
 
 say "Native read-only and denied API users"
@@ -192,17 +225,7 @@ READER_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapireader)"
 DENIED_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapidenied)"
 
 say "Serving the site on ${BASE_URL}"
-live_site "${BASE_URL}"
-php -S "127.0.0.1:${JCB_API_PORT}" -t "${SITE}" > "${OUT_DIR}/server.log" 2>&1 &
-SERVER_PID=$!
-for _ in $(seq 1 30)
-do
-	if curl -s -o /dev/null "${BASE_URL}/api/index.php/v1/users" -H "X-Joomla-Token: ${TOKEN}"
-	then
-		break
-	fi
-	sleep 1
-done
+start_server server
 
 if [[ "${JCB_API_REPRODUCE}" == "1" ]]
 then
@@ -240,6 +263,7 @@ else
 			fi
 		done < <(unzip -Z1 "${package}" | grep '\.php$' || true)
 		console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/model-role-install.log" 2>&1
+		verify_package "${package}" "model-role-$(basename "${package}" .zip)"
 	done
 
 	for file in Library_configModel.php Libraries_configModel.php
@@ -252,17 +276,7 @@ else
 	grep -Fq "\$name = 'libraries_config';" "${SITE}/api/components/com_demo/src/Controller/Libraries_configController.php" \
 		|| { echo "List controller does not select the native plural model."; exit 1; }
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-read-roles.php" "${SITE}"
-	live_site "${BASE_URL}"
-	php -S "127.0.0.1:${JCB_API_PORT}" -t "${SITE}" > "${OUT_DIR}/model-role-server.log" 2>&1 &
-	SERVER_PID=$!
-	for _ in $(seq 1 30)
-	do
-		if curl -s -o /dev/null "${BASE_URL}/api/index.php/v1/demo/libraries_config" -H "X-Joomla-Token: ${TOKEN}"
-		then
-			break
-		fi
-		sleep 1
-	done
+	start_server model-role-server
 	say "Driving v1/demo/libraries_config with native model-role and read permissions"
 	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/libraries_config --hammer="${JCB_API_HAMMER}"
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/libraries_config
