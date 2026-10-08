@@ -126,7 +126,8 @@ $check = static function (string $label, bool $ok) use (&$passes, &$failures): v
 $stored = static function (int $id) use ($db, $table): array
 {
 	$stmt = $db->prepare(
-		"SELECT guid, description, patch_code, patch_json, created, created_by FROM `{$table}` WHERE id = ?"
+		"SELECT guid, description, patch_code, patch_json, created, created_by, validation_mode, validation_details"
+		. " FROM `{$table}` WHERE id = ?"
 	);
 	$stmt->bind_param('i', $id);
 	$stmt->execute();
@@ -223,6 +224,42 @@ try
 	$baseline['patch_json'] = json_encode($json, JSON_THROW_ON_ERROR);
 	$check('explicit empty JSON text clears only that field', $changed['status'] === 200 && $stored($id) === $baseline);
 	$preserved($idUrl, $baseline, $code, $json, $name . ' cleared JSON');
+
+	// Exercise the emitted native FormRule through filtering, validation and persistence.
+	$changed = $request('PATCH', $idUrl, ['validation_mode' => 0, 'validation_details' => '']);
+	$baseline = $stored($id);
+	$check('inactive conditional field accepts explicit empty details', $changed['status'] === 200
+		&& (int) $baseline['validation_mode'] === 0 && $baseline['validation_details'] === '');
+
+	$changed = $request('PATCH', $guidUrl, ['validation_mode' => '6garbage', 'validation_details' => '']);
+	$check('INT-filtered active selector rejects empty details before saving', $changed['status'] === 400
+		&& !empty($changed['body']['errors']) && $stored($id) === $baseline);
+
+	$changed = $request('PATCH', $idUrl, [
+		'validation_mode' => 6,
+		'validation_details' => '',
+		'not_required' => 'validation_details',
+	]);
+	$check('forged browser not_required cannot bypass active server validation', $changed['status'] === 400
+		&& !empty($changed['body']['errors']) && $stored($id) === $baseline);
+
+	$details = 'Required details supplied through the API.';
+	$changed = $request('PATCH', $guidUrl, ['validation_mode' => '6garbage', 'validation_details' => $details]);
+	$baseline['validation_mode'] = 6;
+	$baseline['validation_details'] = $details;
+	$check('filtered active selector with valid details saves normalized values', $changed['status'] === 200
+		&& $stored($id) === $baseline);
+	$preserved($idUrl, $baseline, $code, $json, $name . ' hydrated conditional details');
+
+	$changed = $request('PATCH', $guidUrl, ['validation_details' => '']);
+	$check('omitted active selector is hydrated and still rejects empty details', $changed['status'] === 400
+		&& !empty($changed['body']['errors']) && $stored($id) === $baseline);
+
+	$changed = $request('PATCH', $idUrl, ['validation_mode' => 0, 'validation_details' => '']);
+	$baseline['validation_mode'] = 0;
+	$baseline['validation_details'] = '';
+	$check('deactivating the condition permits an explicit clear', $changed['status'] === 200
+		&& $stored($id) === $baseline);
 }
 catch (Throwable $error)
 {
