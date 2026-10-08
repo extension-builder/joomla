@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
 use Joomla\Input\Input;
+use Joomla\CMS\Form\Form;
 
 
 /**
@@ -22,6 +23,14 @@ use Joomla\Input\Input;
  */
 final class GeneratedSaveModelFixture
 {
+	/**
+	 * The form retained by getForm and subsequently mutated by validation plugins.
+	 *
+	 * @var    Form|null
+	 * @since  6.2.0
+	 */
+	public ?Form $form = null;
+
 	/**
 	 * The submitted request data and method.
 	 *
@@ -108,6 +117,20 @@ final class GeneratedSaveModelFixture
 		$this->stored = $stored;
 		$this->input = new Input(['data' => $submitted]);
 		$this->input->server->set('REQUEST_METHOD', $method);
+	}
+
+	/**
+	 * Resolve the validation form at the native model-state boundary.
+	 *
+	 * @param   string  $key      State key.
+	 * @param   mixed   $default  Missing-value fallback.
+	 *
+	 * @return  mixed
+	 * @since   6.2.0
+	 */
+	public function getState(string $key, mixed $default = null): mixed
+	{
+		return $key === 'jcb.api.patch.form' ? $this->form : $default;
 	}
 
 	/**

@@ -16,6 +16,9 @@ use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use Closure;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\User\User;
+use Joomla\Database\DatabaseInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\RecordKeyFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Alias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\BaseSixFour;
@@ -293,6 +296,54 @@ GEN;
 		$this->assertSame(1, $fixture->encryptions);
 		$this->assertSame(1, $fixture->expertInitializers);
 		$this->assertSame(1, $fixture->expertConversions);
+	}
+
+	/**
+	 * Only explicit tag changes accepted by the final form reach native binding.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testPatchTagsRespectPresenceAndFinalForm(string $version, int $major): void
+	{
+		$this->config()->set('joomla_version', $major);
+		$fixture = new GeneratedSaveModelFixture(['id' => 7], ['tags' => []]);
+		$form = new Form('tags');
+		$form->setDatabase($this->createStub(DatabaseInterface::class));
+		$form->setCurrentUser($this->createStub(User::class));
+		$this->assertTrue($form->load('<form><field name="tags" type="text" filter="raw" label="Tags" translateLabel="false" /></form>'));
+		$fixture->form = $form;
+		$save = $this->executableSave($fixture, $version);
+		$this->assertSame(['id' => 7, 'tags' => []], $save(['id' => 7, 'tags' => []]));
+
+		// A native validation plugin can change the same form after getForm.
+		$form->setFieldAttribute('tags', 'filter', 'unset');
+		$this->assertSame(['id' => 7], $save(['id' => 7, 'tags' => []]));
+		$form->setFieldAttribute('tags', 'filter', 'raw');
+		$form->setFieldAttribute('tags', 'disabled', 'true');
+		$this->assertSame(['id' => 7], $save(['id' => 7, 'tags' => []]));
+		$form->removeField('tags');
+		$this->assertSame(['id' => 7], $save(['id' => 7, 'tags' => []]));
+		$fixture->input->set('data', []);
+		$this->assertSame(['id' => 7], $save(['id' => 7, 'tags' => []]));
+	}
+
+	/**
+	 * Authored server-side modelling may intentionally set omitted relationships.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testCustomSaveCodeCanSetOmittedTags(): void
+	{
+		$fixture = new GeneratedSaveModelFixture(['id' => 7], []);
+		$save = $this->executableSave($fixture, 'JoomlaSix', $this->storageFields("\$data['tags'] = ['99'];"));
+
+		$this->assertSame(['99'], $save(['id' => 7, 'tags' => []])['tags']);
 	}
 
 	/**
