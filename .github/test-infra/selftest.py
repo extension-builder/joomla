@@ -98,6 +98,13 @@ class PackageProvenanceTest(unittest.TestCase):
         (self.site / "libraries/vendor_jcb/autoload.php").unlink()
         self.assertNotEqual(self.verify().returncode, 0)
 
+    def test_installer_can_consume_archive_after_manifest_is_captured(self):
+        self.installed()
+        self.package.unlink()
+        self.assertEqual(self.verify().returncode, 0)
+        (self.site / "api/components/com_sample/src/Controller.php").write_text("different installed source")
+        self.assertNotEqual(self.verify().returncode, 0)
+
     def test_missing_declared_package_folder_fails(self):
         del self.entries["api/src/Controller.php"]
         self.assertNotEqual(self.build().returncode, 0)

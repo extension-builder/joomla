@@ -10,7 +10,10 @@ administrator, site and API files, media, and JCB's shipped `vendor_jcb`
 libraries. This includes admin controllers, models, views, templates and
 compiler templates. Both harnesses verify the installed working-tree package;
 the API harness also verifies each generated component and webservices plugin
-after both installations. They retain the checksum manifests and verification
+after both installations. The API harness captures each checksum manifest before
+installation, because Joomla may consume the ZIP from its temporary directory.
+Verification then reads only that retained manifest and the installed files.
+The harnesses retain the checksum manifests and verification
 logs. Missing or different files fail the run. Languages, installer-only files,
 and obsolete files left by an earlier release are outside this check.
 
