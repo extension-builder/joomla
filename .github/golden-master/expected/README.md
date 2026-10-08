@@ -28,6 +28,15 @@ requires fresh review; unrecognized contexts retain strict tree equality.
 The measured baseline tree also prevents a changed upstream blueprint or
 dependency from silently altering an existing reviewed expectation.
 
+For the reviewed Hello World component and public repository below, the harness
+pins the imported component and its linked administrator, site and custom
+administrator view `created` inputs to `2026-10-07 00:00:00` before warmup and
+the shared database snapshot. The importer otherwise uses the current date;
+`--build-date` controls the last build date separately. The guarded disposable
+driver records the exact affected GUIDs in `fixture-created-date.json`. Other
+components and repositories retain their original inputs. Generated files are
+never rewritten or normalized.
+
 ## 6.2.0 partial-update preservation
 
 Source baseline: `f748af3b0ebf6ae319571b3cce86f0f76c8c2c86`.
@@ -65,3 +74,38 @@ All eight generated models pass PHP syntax checking. Both sides of all four
 targets passed all 1,664 installed-source hashes and have byte-identical final
 Power evidence. These first comparisons stopped at the output-difference gate;
 the scale probe must still pass after the reviewed change is accepted.
+
+## Audit follow-up: tag permissions and denial messages
+
+The current patches supersede the initial preservation patches above. Reviewed
+candidate: `9a69230802f23bb7998d94316fc671f200cc0aa5`, compiled by PR merge commit
+`fe637ae1e8bca2dbec96f1dd22111458e6de1be6`.
+Evidence: [workflow run 37741432763](https://github.com/extension-builder/joomla/actions/runs/37741432763).
+
+| Target | Artifact | Compared files | Changed files | README line count |
+| --- | --- | ---: | ---: | --- |
+| Joomla 3 | `11533868466` | 1,369 | 4 | 29,178 → 29,378 |
+| Joomla 4 | `11533149231` | 291 | 4 | 30,188 → 30,388 |
+| Joomla 5 | `11534200699` | 296 | 4 | 30,448 → 30,648 |
+| Joomla 6 | `11534270011` | 252 | 4 | 30,420 → 30,620 |
+
+All four baseline trees exactly match their original checked-in contexts; every
+baseline file byte and executable mode also matches the first reviewed build.
+The creation-date input fixture restores that reproducibility across dates.
+All four `.context` files remain unchanged.
+
+Each greeting model adds four lines retaining its actual PATCH validation form
+and eleven lines preventing omitted or forbidden tags from reaching Joomla's
+automatic empty-tag fallback. Joomla 4–6 administrator greeting models also
+replace the unavailable JCB denial translation with core `JERROR_ALERTNOAUTHOR`.
+These are the only model changes beyond the first review. The same four paths
+per target change; no additional generated files change in this blueprint.
+
+The two README files now reflect 200 additional lines. All changed hours, days,
+weeks and months were recomputed from the unchanged valuation formulas, including
+the Joomla 5 office estimate increasing from 12 to 13 hours. All eight generated
+models pass PHP syntax checks, and baseline/candidate Power evidence is identical
+for every target. The full raw hosted diffs were encoded without modification;
+applying each decoded patch to its exact baseline reproduces the measured
+candidate tree, including every byte and executable mode. The hosted scale probes
+still run after the exact output gate accepts these reviewed changes.
