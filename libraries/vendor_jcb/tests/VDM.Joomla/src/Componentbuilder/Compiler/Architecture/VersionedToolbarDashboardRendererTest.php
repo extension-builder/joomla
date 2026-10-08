@@ -64,20 +64,6 @@ final class VersionedToolbarDashboardRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Custom-admin list implementations without a title-variable regression.
-	 *
-	 * @return  array<string, array{string,int}>
-	 * @since   6.1.6
-	 */
-	public static function workingCustomAdminListVersions(): array
-	{
-		return array_filter(
-			self::versions(),
-			static fn (array $version): bool => $version[1] <= 5
-		);
-	}
-
-	/**
 	 * Toolbar families with their valid code-name setting.
 	 *
 	 * @return  array<string, array{string,string}>
@@ -384,7 +370,7 @@ final class VersionedToolbarDashboardRendererTest extends ArchitectureTestCase
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	#[DataProvider('workingCustomAdminListVersions')]
+	#[DataProvider('versions')]
 	public function testCustomAdminListToolbarPreservesTitleAndPreferences(string $version, int $major): void
 	{
 		$subject = $this->renderer($this->rendererClass($version, 'CustomAdminViews/AddToolBar'));
@@ -431,15 +417,11 @@ final class VersionedToolbarDashboardRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Document the Joomla 6 custom-admin list title-variable regression.
-	 *
-	 * `buildTitle()` receives `$langView` but interpolates the undefined
-	 * `$langViews`, leaving the title language key empty.
+	 * Keep the imported Joomla 6 title-variable correction in the blocking suite.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	#[Group('known-defect')]
 	public function testJoomlaSixCustomAdminListToolbarUsesItsTitleArgument(): void
 	{
 		$subject = $this->renderer(
