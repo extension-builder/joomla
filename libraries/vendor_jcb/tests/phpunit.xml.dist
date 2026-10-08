@@ -67,6 +67,9 @@
 			<file>../VDM.Joomla/src/Componentbuilder/Compiler/Helper/Interpretation.php</file>
 		</exclude>
 	</source>
+	<extensions>
+		<bootstrap class="VDM\Tests\Support\KnownDefectAudit"/>
+	</extensions>
 	<coverage includeUncoveredFiles="true"/>
 	<php>
 		<ini name="display_errors" value="1"/>
