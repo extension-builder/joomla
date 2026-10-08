@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
 use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
 use ReflectionProperty;
@@ -392,6 +393,48 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		])]));
 
 		$this->assertSame(self::EXPECTED_TEXT_FILE, $this->scripts->get('look.fileScript'));
+	}
+
+	/**
+	 * Both consumers receive normalized keywords from the authored condition.
+	 *
+	 * @param   int     $behavior  Case-insensitive all or any matching.
+	 * @param   string  $operator  The browser's conjunction between keywords.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('caseInsensitiveKeywordBehaviors')]
+	public function testMixedCaseKeywordsProduceMatchingBrowserAndServerRules(int $behavior, string $operator): void
+	{
+		$this->subject()->get(self::view([self::condition([
+			'match_type' => 'text',
+			'match_behavior' => $behavior,
+			'match_options' => 'keywords="Red, BLUE"',
+			'target_field' => [['name' => 'colour', 'type' => 'text', 'required' => 'yes']],
+		])]));
+
+		$groups = $this->fixes->getConditions('look');
+		$this->assertCount(1, $groups);
+		$this->assertSame($behavior, $groups[0]['matches'][0]['behavior']);
+		$this->assertSame(['red', 'blue'], $groups[0]['matches'][0]['options']['keywords']);
+		$this->assertFalse($groups[0]['matches'][0]['array']);
+		$this->assertStringContainsString(
+			'if (kind_vvvvvvv.toLowerCase().indexOf("red") >= 0 ' . $operator
+			. ' kind_vvvvvvv.toLowerCase().indexOf("blue") >= 0)',
+			$this->scripts->get('look.fileScript')
+		);
+	}
+
+	/**
+	 * Case-insensitive match modes use different operators over the same keywords.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.0
+	 */
+	public static function caseInsensitiveKeywordBehaviors(): array
+	{
+		return ['all keywords' => [8, '&&'], 'any keyword' => [9, '||']];
 	}
 
 	/**

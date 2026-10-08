@@ -544,6 +544,39 @@ PHP;
 	}
 
 	/**
+	 * An unfinished attribute cannot become an argument by matching its suffix.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testParserRejectsIncompleteAttributeWithoutChangingOtherArgumentTypes(): void
+	{
+		$code = <<<'PHP'
+<?php
+class Demo
+{
+	public function unfinished(int $before = 7, #[Broken string $ghost): void
+	{
+	}
+
+	public function valid(#[Map] ?\Domain\First &$value, string|int $count = 0): void
+	{
+	}
+}
+PHP;
+		$methods = (new Parser())->code($code)['methods'];
+
+		$this->assertSame(['unfinished', 'valid'], array_column($methods, 'name'));
+		$this->assertSame([
+			'$before' => ['name' => '$before', 'type' => 'int', 'default' => '7'],
+		], $methods[0]['arguments']);
+		$this->assertSame([
+			'$value' => ['name' => '$value', 'type' => '?\\Domain\\First', 'default' => null],
+			'$count' => ['name' => '$count', 'type' => 'string|int', 'default' => '0'],
+		], $methods[1]['arguments']);
+	}
+
+	/**
 	 * Unsupported parenthesized expressions must never succeed at a type suffix.
 	 *
 	 * @return  void
