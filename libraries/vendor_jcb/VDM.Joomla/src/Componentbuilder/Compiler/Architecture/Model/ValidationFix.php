@@ -14,15 +14,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Utilities\ArrayHelper;
 
 
 /**
  * Model Validation Fix Class.
- * 
+ *
  * Builds server-side conditional requirements from the same normalized
  * definitions used by the administrator form script.
- * 
+ *
  * @since 6.1.7
  */
 final class ValidationFix
@@ -36,15 +37,34 @@ final class ValidationFix
 	protected ValidationFixRegistry $validationfix;
 
 	/**
+	 * The compiler registry for generated validation rule files.
+	 *
+	 * @var    Registry
+	 * @since  6.2.0
+	 */
+	protected Registry $registry;
+
+	/**
+	 * The native conditional rule emitter.
+	 *
+	 * @var    ConditionalRule
+	 * @since  6.2.0
+	 */
+	protected ConditionalRule $conditionalrule;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param ValidationFixRegistry  $validationfix  The Validation Fix Builder Class.
-	 *
-	 * @since 6.1.7
+	 * @param   ValidationFixRegistry  $validationfix   Normalized condition definitions.
+	 * @param   Registry               $registry        Generated rule registry.
+	 * @param   ConditionalRule        $conditionalrule Native rule emitter.
+	 * @since   6.2.0
 	 */
-	public function __construct(ValidationFixRegistry $validationfix)
+	public function __construct(ValidationFixRegistry $validationfix, Registry $registry, ConditionalRule $conditionalrule)
 	{
 		$this->validationfix = $validationfix;
+		$this->registry = $registry;
+		$this->conditionalrule = $conditionalrule;
 	}
 
 	/**
@@ -87,13 +107,106 @@ final class ValidationFix
 			$fix .= PHP_EOL . Indent::_(1)
 				. "public function validate(\$form, \$data, \$group = null)";
 			$fix .= PHP_EOL . Indent::_(1) . "{";
-			$fix .= $this->conditions($view);
-			$fix .= PHP_EOL . Indent::_(2)
-				. "return parent::validate(\$form, \$data, \$group);";
+			$fix .= $this->validationfix->getConditions($view) === []
+				? PHP_EOL . Indent::_(2) . "return parent::validate(\$form, \$data, \$group);"
+				: $this->lifecycle($view);
 			$fix .= PHP_EOL . Indent::_(1) . "}";
 		}
 
 		return $fix;
+	}
+
+	/**
+	 * Keep native model events, filtering, validation and post-processing intact.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function lifecycle(string $view): string
+	{
+		$this->registry->set('validation.rules.jcbconditionalrequired', $this->conditionalrule->get());
+		$code = PHP_EOL . <<<'PHP'
+		$conditionRule = \Joomla\CMS\Form\FormHelper::loadRuleType('jcbconditionalrequired');
+		$conditionField = '__jcb_conditional_required';
+		if (!$conditionRule || $form->getFieldXml($conditionField, $group) !== false)
+		{
+			return false;
+		}
+		$conditionRan = false;
+		$conditionAttributes = [];
+		$conditionCallback = function (array $data) use ($form, $group, &$conditionRan, &$conditionAttributes): bool
+		{
+			if ($conditionRan)
+			{
+				return false;
+			}
+			$conditionRan = true;
+PHP;
+		$code .= str_replace(PHP_EOL . Indent::_(2), PHP_EOL . Indent::_(3), $this->conditions($view));
+		$code .= PHP_EOL . <<<'PHP'
+			return true;
+		};
+		if (!$conditionRule::attach($form, $conditionCallback, $group, $conditionField))
+		{
+			return false;
+		}
+		$conditionNode = null;
+		try
+		{
+			$element = new \SimpleXMLElement('<field name="__jcb_conditional_required" type="hidden" filter="unset" validate="jcbconditionalrequired" />');
+			if (!$form->setField($element, $group))
+			{
+				return false;
+			}
+			$element = $form->getFieldXml($conditionField, $group);
+			if ($element === false)
+			{
+				return false;
+			}
+			$conditionNode = dom_import_simplexml($element);
+			$container = $conditionNode->parentNode;
+			while ($container->nodeName !== 'form' && $container->nodeName !== 'fields')
+			{
+				$container = $container->parentNode;
+			}
+			$container->insertBefore($conditionNode, $container->firstChild);
+			// The internal rule needs no submitted value and must never reach persistence.
+			$conditionPath = $group ? $group . '.' . $conditionField : $conditionField;
+			$conditionInput = new \Joomla\Registry\Registry($data);
+			$conditionInput->remove($conditionPath);
+			$result = parent::validate($form, $conditionInput->toArray(), $group);
+			if (!$conditionRan || $result === false)
+			{
+				return false;
+			}
+			$conditionOutput = new \Joomla\Registry\Registry($result);
+			$conditionOutput->remove($conditionPath);
+			return $conditionOutput->toArray();
+		}
+		finally
+		{
+			if ($conditionNode !== null && $conditionNode->parentNode !== null)
+			{
+				$conditionNode->parentNode->removeChild($conditionNode);
+			}
+			foreach ($conditionAttributes as [$conditionElement, $conditionRequired])
+			{
+				if ($conditionRequired === null)
+				{
+					unset($conditionElement['required']);
+				}
+				else
+				{
+					$conditionElement['required'] = $conditionRequired;
+				}
+			}
+			$form->removeField($conditionField, $group);
+			$conditionRule::detach($form);
+		}
+PHP;
+		return $code;
 	}
 
 	/**
@@ -115,8 +228,11 @@ final class ValidationFix
 		$code = PHP_EOL . Indent::_(2) . '$conditionGroups = ' . $this->export($groups) . ';';
 		$code .= PHP_EOL . <<<'PHP'
 		// The browser's not_required list is informational, never an authority.
-		$conditionData = $data;
+		$conditionInput = new \Joomla\Registry\Registry($data);
+		$conditionData = $group ? (array) $conditionInput->get($group, []) : $data;
 		$conditionStored = [];
+		$conditionApp = \Joomla\CMS\Factory::getApplication();
+		$conditionPatch = $conditionApp->isClient('api') && $conditionApp->getInput()->getMethod() === 'PATCH';
 		$recordId = (int) ($data['id'] ?? $this->getState($this->getName() . '.id', 0));
 		if ($recordId > 0)
 		{
@@ -125,8 +241,8 @@ final class ValidationFix
 			{
 				return false;
 			}
-			$conditionStored = (array) $stored;
-			$conditionData = array_replace($conditionStored, $conditionData);
+			$conditionStored = new \Joomla\Registry\Registry((array) $stored);
+			$conditionStored = $group ? (array) $conditionStored->get($group, []) : $conditionStored->toArray();
 		}
 		$conditionPresent = static function ($value): bool
 		{
@@ -243,11 +359,25 @@ final class ValidationFix
 				$disabled = strtolower((string) $form->getFieldAttribute($rule['name'], 'disabled', '', $group));
 				$filter = strtolower((string) $form->getFieldAttribute($rule['name'], 'filter', '', $group));
 				$available = $form->getFieldAttribute($rule['name'], 'name', null, $group) !== null;
-				$values = !$available || in_array($disabled, ['true', '1', 'disabled'], true) || $filter === 'unset'
-					? $conditionStored : $conditionData;
-				$value = array_key_exists($rule['name'], $values)
-					? $values[$rule['name']]
-					: $form->getFieldAttribute($rule['name'], 'default', null, $group);
+				$protected = !$available || in_array($disabled, ['true', '1', 'disabled'], true) || $filter === 'unset';
+				$values = $protected ? $conditionStored : $conditionData;
+				if (array_key_exists($rule['name'], $values))
+				{
+					$value = $values[$rule['name']];
+				}
+				elseif (!$protected && $conditionPatch && array_key_exists($rule['name'], $conditionStored))
+				{
+					$value = $conditionStored[$rule['name']];
+				}
+				elseif (!$protected && $rule['checkbox'])
+				{
+					// Native unchecked checkboxes omit their key on ordinary form submissions.
+					$value = false;
+				}
+				else
+				{
+					$value = $form->getFieldAttribute($rule['name'], 'default', null, $group);
+				}
 				if ($rule['checkbox'])
 				{
 					$value = (bool) $value;
@@ -282,7 +412,13 @@ final class ValidationFix
 		}
 		foreach ($conditionalRequired as $field => $required)
 		{
-			$form->setFieldAttribute($field, 'required', $required ? 'true' : 'false', $group);
+			$conditionElement = $form->getFieldXml($field, $group);
+			if ($conditionElement !== false)
+			{
+				// Snapshot after native validation plugins have finished changing the form.
+				$conditionAttributes[] = [$conditionElement, isset($conditionElement['required']) ? (string) $conditionElement['required'] : null];
+				$form->setFieldAttribute($field, 'required', $required ? 'true' : 'false', $group);
+			}
 		}
 		// Inactive fields keep their values; ordinary filtering and validation still apply.
 PHP;

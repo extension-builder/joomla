@@ -14,6 +14,15 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Model;
 
 use Closure;
 use RuntimeException;
+use ReflectionProperty;
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Event\Model\BeforeValidateDataEvent;
+use Joomla\CMS\Form\FormHelper;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\Event\Dispatcher;
+use Joomla\Input\Input;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ConditionalRule;
+use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Language;
@@ -33,6 +42,7 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
  */
 #[CoversClass(ValidationFix::class)]
 #[CoversClass(ValidationFixRegistry::class)]
+#[CoversClass(ConditionalRule::class)]
 final class ValidationFixTest extends ArchitectureTestCase
 {
 	/**
@@ -42,6 +52,15 @@ final class ValidationFixTest extends ArchitectureTestCase
 	 * @since  6.2.0
 	 */
 	private $language;
+
+	/**
+	 * Process globals restored after native lifecycle tests.
+	 *
+	 * @var    array
+	 * @since  6.2.0
+	 */
+	private array $globals = [];
+
 
 	/**
 	 * Install a local language without booting an application or database.
@@ -54,6 +73,19 @@ final class ValidationFixTest extends ArchitectureTestCase
 		parent::setUp();
 		$this->language = Factory::$language;
 		Factory::$language = new Language('en-GB');
+		$this->globals['application'] = Factory::$application;
+		foreach ([[PluginHelper::class, 'plugins'], [FormHelper::class, 'prefixes']] as [$class, $property])
+		{
+			$reflection = new ReflectionProperty($class, $property);
+			$this->globals[$class . ':' . $property] = [$reflection, $reflection->getValue()];
+		}
+		(new ReflectionProperty(PluginHelper::class, 'plugins'))->setValue(null, []);
+		FormHelper::addRulePrefix(__NAMESPACE__);
+		if (!class_exists(__NAMESPACE__ . '\\JcbconditionalrequiredRule', false))
+		{
+			eval('namespace ' . __NAMESPACE__ . '; use Joomla\\CMS\\Form\\Form; use Joomla\\Registry\\Registry; '
+				. 'class JcbconditionalrequiredRule extends \\Joomla\\CMS\\Form\\FormRule {' . (new ConditionalRule())->get() . '}');
+		}
 	}
 
 	/**
@@ -65,6 +97,12 @@ final class ValidationFixTest extends ArchitectureTestCase
 	protected function tearDown(): void
 	{
 		Factory::$language = $this->language;
+		Factory::$application = $this->globals['application'];
+		unset($this->globals['application']);
+		foreach ($this->globals as [$reflection, $value])
+		{
+			$reflection->setValue(null, $value);
+		}
 		parent::tearDown();
 	}
 
@@ -81,7 +119,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$data = ['id' => 9, 'name' => 'Renamed', 'details' => 'original decoded code'];
 
 		$this->assertSame($data, $validate($form, $data));
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$this->assertSame($data, $validate($form, $data));
 	}
 
@@ -163,7 +201,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$data = ['id' => 9, 'name' => 'Two', 'mode' => 'plain', 'details' => 'keep this'];
 		$this->assertSame($data, $validate($form, $data));
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 	}
 
 	/**
@@ -210,7 +248,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 
 		$data = ['name' => 'One', 'mode' => ['plain', 'expert'], 'level' => ['low']];
 		$this->assertSame($data, $validate($form, $data));
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$this->assertFalse($validate($form, array_replace($data, ['level' => ['low', 'high']])));
 	}
 
@@ -231,9 +269,19 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$group['matches'] = [self::rule($rule)];
 		$validate = $this->validator([$group], []);
 		$form = $this->form();
-		$validate($form, ['name' => 'Record', 'mode' => $value, 'details' => 'saved']);
+		$form->setFieldAttribute('mode', 'default', '');
+		$data = ['name' => 'Record', 'mode' => $value];
+		$result = $validate($form, $data);
 
-		$this->assertSame($required ? 'true' : 'false', $form->getFieldAttribute('details', 'required'));
+		if ($required)
+		{
+			$this->assertFalse($result);
+		}
+		else
+		{
+			$this->assertSame($data, $result);
+		}
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 	}
 
 	/**
@@ -283,93 +331,335 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$form = $this->form();
 
 		$this->assertSame(['name' => 'Hidden', 'mode' => 'expert'], $validate($form, ['name' => 'Hidden', 'mode' => 'expert']));
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$this->assertFalse($validate($form, ['name' => 'Visible', 'mode' => 'plain']));
 	}
 
 	/**
-	 * Build the emitted validate method and replace only the parent lifecycle boundary.
+	 * The condition must inspect the INT value that Joomla actually validates.
 	 *
-	 * @param   array  $groups  Normalized condition groups.
-	 * @param   array|false  $stored  Decoded existing form values or a failed load.
-	 *
-	 * @return  Closure
+	 * @return  void
 	 * @since   6.2.0
 	 */
-	private function validator(array $groups, array|false $stored): Closure
+	public function testFilteredSelectorCannotBypassRequiredTarget(): void
 	{
-		$registry = new ValidationFixRegistry();
-		$registry->set('record', ['details']);
-		$registry->setConditions('record', $groups);
-		$method = (new ValidationFix($registry))->get('record', 'Demo');
-		$this->assertStringContainsString('return parent::validate($form, $data, $group);', $method);
-		$this->assertStringNotContainsString('->filter(', $method);
-		$method = substr($method, strpos($method, 'public function validate'));
-		$method = str_replace('public function validate', 'function', $method);
-		$method = str_replace('parent::validate($form, $data, $group)', '$form->process($data, $group)', $method);
-		$validate = eval('use Joomla\\String\\StringHelper; return ' . $method . ';');
-		$record = new class($stored)
+		$group = self::group();
+		$group['matches'] = [self::rule(['options' => ['6'], 'array' => false])];
+		$validate = $this->validator([$group], []);
+		$form = $this->form();
+		$form->setFieldAttribute('mode', 'filter', 'int');
+
+		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => '6garbage']));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame(
+			['name' => 'Record', 'mode' => 6, 'details' => 'present'],
+			$validate($form, ['name' => 'Record', 'mode' => '6garbage', 'details' => 'present'])
+		);
+	}
+
+	/**
+	 * Group selectors follow Joomla's nested Registry paths.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testGroupedSelectorUsesNestedFilteredValue(): void
+	{
+		$validate = $this->validator([self::group()], []);
+		$form = $this->form();
+		$form->load('<form><fields name="settings">'
+			. '<field name="mode" type="text" default="plain" filter="raw" />'
+			. '<field name="details" type="text" required="true" filter="raw" />'
+			. '</fields></form>');
+
+		$this->assertFalse($validate($form, ['settings' => ['mode' => 'expert']], 'settings'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required', null, 'settings'));
+		$this->assertSame(
+			['settings' => ['mode' => 'plain']],
+			$validate($form, ['settings' => ['mode' => 'plain']], 'settings')
+		);
+	}
+
+	/**
+	 * Native plugins change the actual form and submitted selector before filtering.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testNativePluginChangesAreEvaluatedAndAttributesRestored(): void
+	{
+		$form = $this->form();
+		$dispatcher = new Dispatcher();
+		$calls = 0;
+		$dispatcher->addListener('onContentBeforeValidateData', function (BeforeValidateDataEvent $event) use ($form, &$calls): void
+		{
+			$this->assertSame($form, $event->getForm());
+			$calls++;
+			$form->setFieldAttribute('details', 'required', 'false');
+			$event->updateData(array_replace($event->getData(), ['mode' => 'expert']));
+		});
+		$validate = $this->validator([self::group()], [], true, $dispatcher);
+
+		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
+		$this->assertSame(1, $calls);
+		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertSame(
+			['name' => 'Record', 'mode' => 'expert', 'details' => 'present'],
+			$validate($form, ['name' => 'Record', 'details' => 'present'])
+		);
+		$this->assertSame(2, $calls);
+	}
+
+	/**
+	 * Missing normal-form checkboxes mean unchecked; omitted PATCH values retain state.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testUncheckedAdministratorCheckboxDoesNotReuseStoredSelection(): void
+	{
+		$group = self::group();
+		$group['matches'] = [self::rule(['options' => ['true'], 'checkbox' => true, 'array' => false])];
+		$form = $this->form();
+		$form->setFieldAttribute('mode', 'type', 'checkbox');
+		$data = ['id' => 9, 'name' => 'Record'];
+		$admin = $this->validator([$group], ['id' => 9, 'mode' => 1], false);
+		$this->assertSame($data, $admin($form, $data));
+		$patch = $this->validator([$group], ['id' => 9, 'mode' => 1]);
+		$this->assertFalse($patch($form, $data));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+	}
+
+	/**
+	 * Missing or reordered internal rules fail closed and leave a reusable form.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testPluginCannotRemoveOrMoveInternalRuleAfterFields(): void
+	{
+		foreach (['remove', 'move'] as $change)
+		{
+			$form = $this->form();
+			$dispatcher = new Dispatcher();
+			$dispatcher->addListener('onContentBeforeValidateData', static function (BeforeValidateDataEvent $event) use ($change): void
+			{
+				$form = $event->getForm();
+				if ($change === 'remove')
+				{
+					$form->removeField('__jcb_conditional_required');
+				}
+				else
+				{
+					$node = dom_import_simplexml($form->getFieldXml('__jcb_conditional_required'));
+					$node->parentNode->appendChild($node);
+				}
+			});
+			$validate = $this->validator([self::group()], [], true, $dispatcher);
+			$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', 'details' => 'present']));
+			$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+			$validate = $this->validator([self::group()], []);
+			$this->assertSame(['name' => 'Record', 'mode' => 'plain'], $validate($form, ['name' => 'Record', 'mode' => 'plain']));
+		}
+	}
+
+	/**
+	 * Exceptions release the callback and internal field without losing plugin edits.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testPluginExceptionCleansTemporaryState(): void
+	{
+		$form = $this->form();
+		$dispatcher = new Dispatcher();
+		$dispatcher->addListener('onContentBeforeValidateData', static function (BeforeValidateDataEvent $event): void
+		{
+			throw new RuntimeException('plugin failure');
+		});
+		$validate = $this->validator([self::group()], [], true, $dispatcher);
+		try
+		{
+			$validate($form, ['name' => 'Record', 'mode' => 'plain']);
+			$this->fail('The native plugin exception must remain observable.');
+		}
+		catch (RuntimeException $error)
+		{
+			$this->assertSame('plugin failure', $error->getMessage());
+		}
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$validate = $this->validator([self::group()], []);
+		$this->assertSame(['name' => 'Record', 'mode' => 'plain'], $validate($form, ['name' => 'Record', 'mode' => 'plain']));
+	}
+
+	/**
+	 * Internal input is discarded and missing required attributes are restored exactly.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testInternalInputNeverReachesPersistenceAndAbsentAttributesStayAbsent(): void
+	{
+		$validate = $this->validator([self::group()], []);
+		$form = $this->form();
+		unset($form->getFieldXml('details')['required']);
+		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', '__jcb_conditional_required' => 'forged']));
+		$this->assertNull($form->getFieldAttribute('details', 'required', null));
+		$this->assertSame(
+			['name' => 'Record', 'mode' => 'plain'],
+			$validate($form, ['name' => 'Record', 'mode' => 'plain', '__jcb_conditional_required' => 'forged'])
+		);
+		$this->assertNull($form->getFieldAttribute('details', 'required', null));
+	}
+
+	/**
+	 * Custom form methods keep their original identity and execute once per request.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testCustomFormLifecycleRunsOnceAndRestoresStateAfterPostProcessException(): void
+	{
+		$form = new class('custom-conditional') extends Form
 		{
 			/**
-			 * Decoded model state supplied at the persistence boundary.
+			 * Native lifecycle calls, in order.
 			 *
 			 * @var    array
 			 * @since  6.2.0
 			 */
-			private array|false $stored;
+			public array $calls = [];
 
 			/**
-			 * @param   array  $stored  Decoded model state.
-			 * @since   6.2.0
+			 * Whether the custom post-processor throws after validation succeeds.
+			 *
+			 * @var    bool
+			 * @since  6.2.0
 			 */
-			public function __construct(array|false $stored)
-			{
-				$this->stored = $stored;
-			}
+			public bool $throw = false;
 
 			/**
-			 * @param   int  $id  Requested record.
-			 * @return  object
-			 * @since   6.2.0
-			 */
-			public function getItem(int $id): object|false
-			{
-				return $this->stored === false ? false : (object) $this->stored;
-			}
-
-			/**
-			 * @return  string
-			 * @since   6.2.0
-			 */
-			public function getName(): string
-			{
-				return 'record';
-			}
-
-			/**
-			 * @param   string  $name     State name.
-			 * @param   mixed   $default  Default value.
+			 * Transform the selector exactly once through a custom form filter.
+			 *
+			 * @param   mixed   $data   Submitted values.
+			 * @param   string  $group  Selected group.
 			 * @return  mixed
 			 * @since   6.2.0
 			 */
-			public function getState(string $name, $default)
+			public function filter($data, $group = null)
 			{
-				return $default;
+				$this->calls[] = 'filter';
+				$data['mode'] = 'expert';
+				return parent::filter($data, $group);
+			}
+
+			/**
+			 * Retain custom validation on the original Form instance.
+			 *
+			 * @param   mixed   $data   Filtered values.
+			 * @param   string  $group  Selected group.
+			 * @return  bool
+			 * @since   6.2.0
+			 */
+			public function validate($data, $group = null)
+			{
+				$this->calls[] = 'validate';
+				return parent::validate($data, $group);
+			}
+
+			/**
+			 * Keep post-processing changes and exceptions observable.
+			 *
+			 * @param   mixed   $data   Validated values.
+			 * @param   string  $group  Selected group.
+			 * @return  mixed
+			 * @throws  RuntimeException  When the test requests a post-process failure.
+			 * @since   6.2.0
+			 */
+			public function postProcess($data, $group = null)
+			{
+				$this->calls[] = 'postProcess';
+				if ($this->throw)
+				{
+					throw new RuntimeException('post-process failure');
+				}
+				$data = parent::postProcess($data, $group);
+				$data['name'] .= ' processed';
+				return $data;
 			}
 		};
+		$this->form($form);
+		$form->setFieldAttribute('details', 'required', 'false');
+		$validate = $this->validator([self::group()], []);
+		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
+		$this->assertSame(['filter', 'validate'], $form->calls);
+		$form->calls = [];
+		$this->assertSame(
+			['name' => 'Record processed', 'mode' => 'expert', 'details' => 'present'],
+			$validate($form, ['name' => 'Record', 'mode' => 'plain', 'details' => 'present'])
+		);
+		$this->assertSame(['filter', 'validate', 'postProcess'], $form->calls);
+		$form->throw = true;
+		try
+		{
+			$validate($form, ['name' => 'Record', 'details' => 'present']);
+			$this->fail('The custom form exception must remain observable.');
+		}
+		catch (RuntimeException $error)
+		{
+			$this->assertSame('post-process failure', $error->getMessage());
+		}
+		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$form->throw = false;
+		$this->assertIsArray($validate($form, ['name' => 'Record', 'details' => 'present']));
+	}
 
-		return $validate->bindTo($record, $record);
+	/**
+	 * Execute the generated override on the real FormModel parent lifecycle.
+	 *
+	 * @param   array            $groups      Normalized condition groups.
+	 * @param   array|false      $stored      Decoded values or a failed load.
+	 * @param   bool             $patch       Whether this is an API PATCH request.
+	 * @param   Dispatcher|null  $dispatcher  Native validation plugin dispatcher.
+	 *
+	 * @return  Closure
+	 * @since   6.2.0
+	 */
+	private function validator(array $groups, array|false $stored, bool $patch = true, ?Dispatcher $dispatcher = null): Closure
+	{
+		$registry = new ValidationFixRegistry();
+		$registry->set('record', ['details']);
+		$registry->setConditions('record', $groups);
+		$compiler = new CompilerRegistry();
+		$method = (new ValidationFix($registry, $compiler, new ConditionalRule()))->get('record', 'Demo');
+		$this->assertStringContainsString('parent::validate(', $method);
+		$this->assertStringNotContainsString('->filter(', $method);
+		$this->assertSame((new ConditionalRule())->get(), $compiler->get('validation.rules.jcbconditionalrequired'));
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $patch && $client === 'api');
+		$input = new Input([]);
+		$input->server->set('REQUEST_METHOD', $patch ? 'PATCH' : 'POST');
+		$app->method('getInput')->willReturn($input);
+		Factory::$application = $app;
+		$dispatcher ??= new Dispatcher();
+		$record = eval('use Joomla\\String\\StringHelper; return new class($stored, $dispatcher) extends \\'
+			. GeneratedConditionalModelFixture::class . ' {' . $method . '};');
+
+		return Closure::fromCallable([$record, 'validate']);
 	}
 
 	/**
 	 * Build a real Joomla form with persistence and user boundaries isolated.
 	 *
+	 * @param   Form|null  $form  Optional custom Form implementation.
 	 * @return  Form
 	 * @since   6.2.0
 	 */
-	private function form(): Form
+	private function form(?Form $form = null): Form
 	{
-		$form = new Form('conditional');
+		$form ??= new Form('conditional');
 		$form->setDatabase($this->createStub(DatabaseInterface::class));
 		$form->setCurrentUser(new User());
 		$form->load('<form>'
