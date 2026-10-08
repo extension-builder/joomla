@@ -164,7 +164,7 @@ final class AllowView
 				. PHP_EOL . Indent::_(3) . 'if (!empty($item->id) && !$this->allowEdit((array) $item))'
 				. PHP_EOL . Indent::_(3) . '{'
 				. PHP_EOL . ' ' . Indent::_(4) . '$app = Factory::getApplication();'
-				. PHP_EOL . '  ' . Indent::_(4) . "\$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');"
+				. PHP_EOL . '  ' . Indent::_(4) . "\$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');"
 				. PHP_EOL . Indent::_(4) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
 				. PHP_EOL . Indent::_(4) . 'return false;'
 				. PHP_EOL . Indent::_(3) . '}';
@@ -179,7 +179,7 @@ final class AllowView
 			. PHP_EOL . Indent::_(4) . '}'
 			. PHP_EOL . Indent::_(4) . 'elseif (!$this->allowEdit((array) $item))'
 			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . "\$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');"
+			. PHP_EOL . Indent::_(5) . "\$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');"
 			. PHP_EOL . Indent::_(5) . "\$app->redirect('index.php?option=com_" . $this->component . "');"
 			. PHP_EOL . Indent::_(5) . 'return false;'
 			. PHP_EOL . Indent::_(4) . '}'
@@ -204,4 +204,3 @@ final class AllowView
 			. $action . "', 'com_" . $this->component . "'))";
 	}
 }
-

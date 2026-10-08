@@ -68,7 +68,7 @@ GEN;
 GEN;
 
 	/**
-	 * The stable shared item-model block for a component without API views.
+	 * The shared item-model block for a component without API views.
 	 * Space markers preserve legacy indentation without adding whitespace errors.
 	 *
 	 * @var    string
@@ -80,7 +80,7 @@ GEN;
 			if (!empty($item->id) && !$this->allowEdit((array) $item))
 			{
 <ONE_SPACE>				$app = Factory::getApplication();
-<TWO_SPACES>				$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');
+<TWO_SPACES>				$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
 				$app->redirect('index.php?option=com_demo');
 				return false;
 			}
@@ -130,12 +130,12 @@ GEN;
 	}
 
 	/**
-	 * Views without API resources retain the stable complete template bytes.
+	 * Views without API resources use the core denial message in their edit guard.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testNonApiItemGuardPreservesTheStableTemplateBytes(): void
+	public function testNonApiItemGuardUsesTheCoreDenialMessage(): void
 	{
 		$subject = $this->renderer(AllowView::class);
 
@@ -144,7 +144,7 @@ GEN;
 	}
 
 	/**
-	 * The original block remains authoritative on an API-disabled component.
+	 * API-disabled components translate edit denials without JCB being installed.
 	 *
 	 * @return  void
 	 * @since   6.1.7
@@ -154,7 +154,10 @@ GEN;
 		$app = $this->createMock(CMSApplication::class);
 		$app->expects($this->never())->method('isClient');
 		$app->expects($this->never())->method('getIdentity');
-		$app->expects($this->once())->method('enqueueMessage')->with('Not authorised!', 'error');
+		$app->expects($this->once())->method('enqueueMessage')->with(
+			"You don't have permission to access this. Please contact a website administrator if this is incorrect.",
+			'error'
+		);
 		$app->expects($this->once())->method('redirect')->with('index.php?option=com_demo');
 		$model = $this->generatedModel($app, [], false, 1, false);
 
@@ -381,7 +384,10 @@ GEN;
 		$app = $this->createMock(CMSApplication::class);
 		$app->method('isClient')->willReturn(false);
 		$app->expects($this->never())->method('getIdentity');
-		$app->expects($this->once())->method('enqueueMessage')->with('Not authorised!', 'error');
+		$app->expects($this->once())->method('enqueueMessage')->with(
+			"You don't have permission to access this. Please contact a website administrator if this is incorrect.",
+			'error'
+		);
 		$app->expects($this->once())->method('redirect')->with('index.php?option=com_demo');
 		$model = $this->generatedModel($app);
 
@@ -504,7 +510,9 @@ GEN;
 		$method = preg_replace('/###[A-Z_]+###/', '', $method);
 		$item = (object) ['id' => 42, 'access' => $access];
 		$language = new Language('en-GB');
-		$this->assertTrue($language->load('com_componentbuilder', dirname(__DIR__, 10) . '/admin', 'en-GB', true, false));
+		$this->assertTrue($language->load('joomla', JPATH_ADMINISTRATOR, 'en-GB', true, false));
+		$this->assertTrue($language->hasKey('JERROR_ALERTNOAUTHOR'));
+		$this->assertFalse($language->hasKey('COM_COMPONENTBUILDER_NOT_AUTHORISED'));
 		$this->setJoomlaFactoryProperty('language', $language);
 		$this->setJoomlaFactoryProperty('application', $app);
 
