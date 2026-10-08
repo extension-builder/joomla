@@ -19,7 +19,7 @@ test('Compiler identifies its page and keeps all supported target versions selec
 test('Compiler explains a missing component without submitting a build', async ({ page }) => {
 	await openView(page, 'compiler');
 	await page.locator('#component_id').selectOption('');
-	await page.getByRole('button', { name: 'Compile Component', exact: true }).click();
+	await page.locator('#compilerForm').getByRole('button', { name: /Compile Component$/ }).click();
 	await expect(page.getByText('You must select a component!', { exact: true }),
 		'an empty selection gives the operator an actionable validation message').toBeVisible();
 	await expect(page.locator('#compilerForm')).toBeVisible();
