@@ -114,6 +114,7 @@ jobs:
             .golden-master/summary.txt
             .golden-master/full.diff
             .golden-master/comparison.txt
+            .golden-master/fixture-created-date.json
             .golden-master/warmup.log
             .golden-master/baseline.log
             .golden-master/candidate.log

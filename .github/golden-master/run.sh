@@ -119,7 +119,7 @@ wait_for_log \
 	'the released JCB is installed'
 
 compose exec -T joomla touch /tmp/jcb-disposable-gui-stack
-for driver in bootstrap cli compile-evidence power-repositories public-package-repository
+for driver in bootstrap cli compile-evidence power-repositories public-package-repository fixture-created-date
 do
 	compose cp "${REPO_ROOT}/.github/golden-master/${driver}.php" "joomla:/tmp/${driver}.php"
 done
@@ -209,6 +209,12 @@ then
 	fi
 	tail -20 "${OUT_DIR}/fetch.log"
 fi
+
+# Pin the importer's creation-date inputs before either compiler observes them.
+# This changes disposable definitions, never generated output or its comparison.
+compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php /tmp/fixture-created-date.php "${COMPONENT}" "${REPOSITORY}" \
+	> "${OUT_DIR}/fixture-created-date.json"
+cat "${OUT_DIR}/fixture-created-date.json"
 
 # Populate any missing public dependencies once, then pin the exact database
 # snapshot for both measured compiles. Fetching never occurs inside harvest.
