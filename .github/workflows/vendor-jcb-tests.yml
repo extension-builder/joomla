@@ -138,21 +138,19 @@ jobs:
         id: known-defects
         if: matrix.php == '8.3'
         continue-on-error: true
-        run: composer --working-dir=libraries/vendor_jcb/tests test:known-defects
-
-      - name: Report known-contract status
-        if: matrix.php == '8.3' && always()
         env:
-          KNOWN_DEFECT_OUTCOME: ${{ steps.known-defects.outcome }}
+          JCB_KNOWN_DEFECT_AUDIT: ${{ github.workspace }}/libraries/vendor_jcb/tests/build/known-defects.json
         run: |
-          if [[ "$KNOWN_DEFECT_OUTCOME" == "failure" ]]; then
-            echo "### Known contract defects remain reproducible" >> "$GITHUB_STEP_SUMMARY"
-            echo "The non-blocking known-defect suite failed as documented. Review its output before changing related production code." >> "$GITHUB_STEP_SUMMARY"
-          elif [[ "$KNOWN_DEFECT_OUTCOME" == "success" ]]; then
-            echo "### Known contract defects now pass" >> "$GITHUB_STEP_SUMMARY"
-            echo "Remove obsolete known-defect grouping and make the recovered contract blocking." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+          rm -f "$JCB_KNOWN_DEFECT_AUDIT"
+          composer --working-dir=libraries/vendor_jcb/tests test:known-defects
+
+      - name: Audit individual known-contract recoveries
+        if: matrix.php == '8.3' && always()
+        working-directory: libraries/vendor_jcb/tests
+        run: |
+          set -o pipefail
+          echo "### Known contract recovery audit" >> "$GITHUB_STEP_SUMMARY"
+          php bin/check-known-defect-recoveries.php build/known-defects.json 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Verify test runtime cleanup
         if: always()

@@ -80,6 +80,19 @@ its method-level group; if a class-level group covers other failing contracts,
 move those annotations to the remaining methods or split the class. A passing
 assertion must never remain hidden in the non-blocking lane.
 
+CI records native PHPUnit events for each selected case in
+`build/known-defects.json`. Its blocking recovery audit rejects every clean
+pass, including an individual data-provider case whose siblings still fail.
+Passes accompanied by warnings, notices, deprecations or risky-test diagnostics
+are not clean recoveries. A missing, interrupted or inconsistent report also
+fails the audit. To reproduce both steps locally, run the following commands
+separately so the expected non-zero test status does not skip the checker:
+
+```bash
+JCB_KNOWN_DEFECT_AUDIT="$PWD/build/known-defects.json" composer test:known-defects
+php bin/check-known-defect-recoveries.php build/known-defects.json
+```
+
 ## Graphical user interface suite
 
 The browser-driven Playwright suite is a separate track from this PHPUnit
@@ -543,9 +556,9 @@ requests use the pull request base SHA; pushes use the event's pre-push SHA.
 Composer then validates the test project, installs the reviewed lock, and
 checks actual platform requirements before auditing the complete locked
 dependency graph and starting PHPUnit. PHP 8.3 also runs the known-defect group
-with `continue-on-error` and writes its expected failure to the workflow
-summary; if that group becomes entirely green, the reporting step fails so the
-recovered contracts must be promoted into the blocking suite. This visibility
+with `continue-on-error`, then audits its native per-case outcomes in a blocking
+step. Every clean recovered case must be promoted into the blocking suite even
+while other documented defects remain reproducible. This visibility
 must not be interpreted as permission to add new known defects. A final
 always-run hygiene step also rejects any per-process Joomla cache root left by
 the normal, coverage, or known-defect run.
