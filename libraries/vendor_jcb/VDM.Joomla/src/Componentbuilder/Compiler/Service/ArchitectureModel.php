@@ -69,6 +69,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetItemMethod as Mod
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewTitle as ModelGenerateNewTitle;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewAlias as ModelGenerateNewAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix as ModelValidationFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ConditionalRule as ModelConditionalRule;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\UniqueFields as ModelUniqueFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CheckboxSave as ModelCheckboxSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Table\Constructor as TableConstructor;
@@ -270,6 +271,9 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(ModelGenerateNewAlias::class, 'Architecture.Model.GenerateNewAlias')
 			->share('Architecture.Model.GenerateNewAlias', [$this, 'getModelGenerateNewAlias'], true);
+
+		$container->alias(ModelConditionalRule::class, 'Architecture.Model.ConditionalRule')
+			->share('Architecture.Model.ConditionalRule', [$this, 'getModelConditionalRule'], true);
 
 		$container->alias(ModelValidationFix::class, 'Architecture.Model.ValidationFix')
 			->share('Architecture.Model.ValidationFix', [$this, 'getModelValidationFix'], true);
@@ -1388,6 +1392,19 @@ class ArchitectureModel implements ServiceProviderInterface
 	}
 
 	/**
+	 * Get the native conditional rule emitter.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ModelConditionalRule
+	 * @since   6.2.0
+	 */
+	public function getModelConditionalRule(Container $container): ModelConditionalRule
+	{
+		return new ModelConditionalRule();
+	}
+
+	/**
 	 * Get The Model ValidationFix Class.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -1398,7 +1415,9 @@ class ArchitectureModel implements ServiceProviderInterface
 	public function getModelValidationFix(Container $container): ModelValidationFix
 	{
 		return new ModelValidationFix(
-			$container->get('Compiler.Builder.Validation.Fix')
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Registry'),
+			$container->get('Architecture.Model.ConditionalRule')
 		);
 	}
 

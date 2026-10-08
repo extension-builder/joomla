@@ -1940,6 +1940,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedViewGuardsTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ConditionalRule.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ValidationFixTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ValidationFix.php' => [
 		'mode' => 'integration',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ValidationFixTest.php'
