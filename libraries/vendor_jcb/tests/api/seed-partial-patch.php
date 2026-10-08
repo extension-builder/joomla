@@ -10,7 +10,7 @@
  */
 
 /**
- * Add optional Base64 and JSON fields to the disposable Demo source definition.
+ * Add encoded fields and a conditional requirement to the Demo source definition.
  *
  * The compiler, installer and HTTP API generate and exercise these fields through
  * their normal paths. No emitted controller, model, form or table is patched.
@@ -51,6 +51,8 @@ $sourceGuid = '749a9917-90c3-49c4-9e72-aa33b0683a87';
 $fixtures = [
 	['patch_code', '3e4563e5-9361-4cf0-adb4-b64246cc2808', 2],
 	['patch_json', '7420ed82-7108-4217-a0ca-03f75e46f8ae', 1],
+	['validation_mode', 'dbb7ae5d-71c3-4131-bd6f-4cae8f1d7257', 0],
+	['validation_details', 'c65dc692-25c0-45e4-b03c-d2d8c44313b6', 0],
 ];
 
 try
@@ -65,6 +67,15 @@ try
 	if (!$source || (int) $source['store'] !== 0 || $source['datatype'] !== 'TEXT')
 	{
 		throw new RuntimeException('The shipped description textarea must retain its plain TEXT storage definition.');
+	}
+
+	$listTypes = $db->query(
+		"SELECT guid FROM `{$prefix}componentbuilder_fieldtype` WHERE LOWER(name) = 'list' AND published = 1"
+	)->fetch_all(MYSQLI_ASSOC);
+
+	if (count($listTypes) !== 1)
+	{
+		throw new RuntimeException('The conditional fixture requires one published native List field type.');
 	}
 
 	$stmt = $db->prepare(
@@ -90,8 +101,16 @@ try
 
 	foreach ($fixtures as [$name, $guid, $store])
 	{
+		$required = $name === 'validation_details' ? 'true' : 'false';
 		$xml = '<field type="textarea" name="' . $name . '" label="' . $name
-			. '" rows="5" cols="40" filter="RAW" required="false" />';
+			. '" rows="5" cols="40" filter="RAW" required="' . $required . '" />';
+
+		if ($name === 'validation_mode')
+		{
+			$xml = '<field type="list" name="validation_mode" label="validation_mode"'
+				. ' filter="INT" default="0" required="false" option="0|Inactive,6|Active" />';
+		}
+
 		$encodedXml = json_encode($xml, JSON_THROW_ON_ERROR);
 		$stmt = $db->prepare("SELECT guid, xml, store FROM `{$prefix}componentbuilder_field` WHERE guid = ?");
 		$stmt->bind_param('s', $guid);
@@ -118,6 +137,17 @@ try
 			$record['version'] = 1;
 			$record['created'] = gmdate('Y-m-d H:i:s');
 			$record['modified'] = null;
+
+			if ($name === 'validation_mode')
+			{
+				$record['fieldtype'] = $listTypes[0]['guid'];
+				$record['datatype'] = 'INT';
+				$record['datalenght'] = '11';
+				$record['datalenght_other'] = '';
+				$record['datadefault'] = '0';
+				$record['datadefault_other'] = '';
+			}
+
 			$columns = array_keys($record);
 
 			foreach ($columns as $column)
@@ -158,8 +188,58 @@ try
 	$stmt->bind_param('si', $json, $id);
 	$stmt->execute();
 	$stmt->close();
+
+	// Link the native definitions so the compiler emits both browser and server rules.
+	$condition = [
+		'target_field' => ['c65dc692-25c0-45e4-b03c-d2d8c44313b6'],
+		'target_behavior' => 1,
+		'target_relation' => 0,
+		'match_field' => 'dbb7ae5d-71c3-4131-bd6f-4cae8f1d7257',
+		'match_behavior' => 1,
+		'match_options' => '6',
+	];
+	$stmt = $db->prepare(
+		"SELECT id, addconditions FROM `{$prefix}componentbuilder_admin_fields_conditions`"
+		. ' WHERE admin_view = ? FOR UPDATE'
+	);
+	$stmt->bind_param('s', $viewGuid);
+	$stmt->execute();
+	$conditionRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+	$stmt->close();
+
+	if (count($conditionRows) > 1)
+	{
+		throw new RuntimeException('The disposable Look view has ambiguous conditional definitions.');
+	}
+
+	$conditions = $conditionRows === [] || !$conditionRows[0]['addconditions']
+		? [] : json_decode($conditionRows[0]['addconditions'], true, 512, JSON_THROW_ON_ERROR);
+	if (!in_array($condition, $conditions, true))
+	{
+		$conditions[] = $condition;
+	}
+	$json = json_encode($conditions, JSON_THROW_ON_ERROR);
+
+	if ($conditionRows === [])
+	{
+		$stmt = $db->prepare(
+			"INSERT INTO `{$prefix}componentbuilder_admin_fields_conditions` (admin_view, addconditions, published) VALUES (?, ?, 1)"
+		);
+		$stmt->bind_param('ss', $viewGuid, $json);
+	}
+	else
+	{
+		$id = (int) $conditionRows[0]['id'];
+		$stmt = $db->prepare(
+			"UPDATE `{$prefix}componentbuilder_admin_fields_conditions` SET addconditions = ?, published = 1 WHERE id = ?"
+		);
+		$stmt->bind_param('si', $json, $id);
+	}
+
+	$stmt->execute();
+	$stmt->close();
 	$db->commit();
-	echo "Demo Look definition includes optional patch_code (Base64) and patch_json (JSON) fields.\n";
+	echo "Demo Look includes encoded fields and validation_details required only when validation_mode is 6.\n";
 }
 catch (Throwable $error)
 {
