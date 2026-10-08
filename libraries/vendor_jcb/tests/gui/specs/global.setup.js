@@ -15,6 +15,17 @@ const USER = process.env.JCB_ADMIN_USER || 'jcbgui';
 const PASS = process.env.JCB_ADMIN_PASS || 'Jcb-Gui-Tests-2026!';
 
 setup('log into the Joomla administrator', async ({ page }) => {
+	const provenancePath = process.env.JCB_PROVENANCE_PATH;
+	const provenanceValue = process.env.JCB_PROVENANCE_VALUE;
+
+	if (provenancePath !== undefined || provenanceValue !== undefined) {
+		expect(provenancePath, 'the harness supplies the installed site marker path').toBeTruthy();
+		expect(provenanceValue, 'the harness supplies the installed site marker value').toBeTruthy();
+		const response = await page.request.get(provenancePath, { maxRedirects: 0 });
+		expect(response.status(), 'the browser target serves the installed working tree marker').toBe(200);
+		expect(await response.text(), 'the browser target matches the verified disposable installation').toBe(provenanceValue);
+	}
+
 	await page.goto('/administrator/index.php');
 
 	// The Atum login module. The field names are stable across Joomla 4-6

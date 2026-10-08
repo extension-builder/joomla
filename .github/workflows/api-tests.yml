@@ -23,6 +23,7 @@ on:
       - 'admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php'
       - 'libraries/vendor_jcb/tests/api/**'
       - '.github/api-tests/**'
+      - '.github/test-infra/**'
       - '.github/golden-master/power-repositories.php'
       - '.github/workflows/api-tests.yml'
 
@@ -50,6 +51,9 @@ jobs:
           coverage: none
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Test provenance guards
+        run: python3 .github/test-infra/selftest.py
+
       # The runner ships MySQL stopped, with root/root; Joomla's installer
       # creates the database itself once it can reach the server.
       - name: Start the runner's MySQL
@@ -71,6 +75,7 @@ jobs:
           name: api-tests-logs
           path: |
             .api-tests/*.log
+            .api-tests/*-installed.sha256
           if-no-files-found: ignore
           # The output directory is hidden, and the action skips hidden paths unless told otherwise.
           include-hidden-files: true

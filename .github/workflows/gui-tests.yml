@@ -25,6 +25,7 @@ on:
       - 'libraries/vendor_jcb/VDM.Joomla/**'
       - 'libraries/vendor_jcb/tests/gui/**'
       - '.github/gui-tests/**'
+      - '.github/test-infra/**'
       - '.github/workflows/gui-tests.yml'
   workflow_dispatch:
 
@@ -54,6 +55,9 @@ jobs:
           set -euo pipefail
           git bundle create "$RUNNER_TEMP/gui-source.bundle" HEAD
           git rev-parse HEAD > "$RUNNER_TEMP/gui-source-revision.txt"
+
+      - name: Test provenance guards
+        run: python3 .github/test-infra/selftest.py
 
       - name: Keep source provenance
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -98,6 +102,9 @@ jobs:
             .gui-tests/test-results
             .gui-tests/container.log
             .gui-tests/install.log
+            .gui-tests/tree-installed.sha256
+            .gui-tests/tree-verify.log
+            .gui-tests/site-provenance.log
             .gui-tests/extrusion-*.log
             .gui-tests/extrusion-*.json
           # Only the explicit evidence files above, never session/auth state.
