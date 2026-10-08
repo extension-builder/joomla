@@ -90,9 +90,15 @@ live_site() {
 	sed -i "s#public \$live_site = '[^']*';#public \$live_site = '$1';#" "${SITE}/configuration.php"
 }
 
-verify_package() {
+prepare_package() {
 	local package="$1" label="$2"
+	# Joomla consumes ZIPs under its temporary directory during installation.
+	# Capture the expected files while the archive still exists.
 	python3 "${INFRA_DIR}/package-manifest.py" "${package}" > "${OUT_DIR}/${label}-installed.sha256"
+}
+
+verify_package() {
+	local label="$1"
 	(cd "${SITE}" && sha256sum --check "${OUT_DIR}/${label}-installed.sha256") > "${OUT_DIR}/${label}-verify.log" 2>&1 \
 		|| { cat "${OUT_DIR}/${label}-verify.log"; return 1; }
 }
@@ -153,9 +159,10 @@ PACKAGE="${OUT_DIR}/jcb-under-test.zip"
 	rm -f "${PACKAGE}"
 	zip -qr "${PACKAGE}" . -x '.git/*' '.github/*' '.api-tests/*' '.golden-master/*' '.gui-tests/*' 'libraries/vendor_jcb/tests/*'
 )
+prepare_package "${PACKAGE}" tree
 console extension:install --path "${PACKAGE}" --no-interaction > "${OUT_DIR}/tree-install.log" 2>&1
 grep -q "installed successfully" "${OUT_DIR}/tree-install.log" || { cat "${OUT_DIR}/tree-install.log"; exit 1; }
-verify_package "${PACKAGE}" tree
+verify_package tree
 
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
@@ -197,8 +204,10 @@ fi
 say "Installing the compiled demo and its webservices plugin"
 for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
 do
+	label="demo-$(basename "${package}" .zip)"
+	prepare_package "${package}" "${label}"
 	console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/demo-install.log" 2>&1
-	verify_package "${package}" "demo-$(basename "${package}" .zip)"
+	verify_package "${label}"
 	printf '    %s\n' "$(basename "${package}")"
 done
 php -r '
@@ -262,8 +271,10 @@ else
 				exit 1
 			fi
 		done < <(unzip -Z1 "${package}" | grep '\.php$' || true)
+		label="model-role-$(basename "${package}" .zip)"
+		prepare_package "${package}" "${label}"
 		console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/model-role-install.log" 2>&1
-		verify_package "${package}" "model-role-$(basename "${package}" .zip)"
+		verify_package "${label}"
 	done
 
 	for file in Library_configModel.php Libraries_configModel.php
