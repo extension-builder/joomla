@@ -175,14 +175,29 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * The import hands its headers and its origin to the session.
+	 * The import uses the target session API and preserves its hand-off keys.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testTheImportHandsItsHeadersAndOriginToTheSession(): void
+	#[DataProvider('versions')]
+	public function testTheImportHandsItsHeadersAndOriginToTheSession(string $version,
+		int $major): void
 	{
-		$code = $this->method('JoomlaSix');
+		$code = $this->method($version);
+		$session = $major === 6
+			? '$session = $this->app->getSession();'
+			: '$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();';
+
+		$this->assertStringContainsString("\t\t\t\t" . $session, $code);
+
+		if ($major === 6)
+		{
+			$this->assertStringNotContainsString('___Power::getSession()', $code);
+		}
 
 		$this->assertStringContainsString(
 			'$headers = $model->getExImPortHeaders();', $code
@@ -196,6 +211,30 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 		$this->assertStringContainsString(
 			"\$session->set('dataType_VDM_IMPORTINTO', 'article');", $code
 		);
+	}
+
+	/**
+	 * Joomla 6 changes only session access for standard and custom imports.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlaSixPreservesTheRestOfBothImportVariants(): void
+	{
+		foreach ([false, true] as $custom)
+		{
+			$shared = $this->method('JoomlaFive', $custom);
+
+			$this->assertSame($shared, $this->method('JoomlaFour', $custom));
+			$this->assertSame(
+				str_replace(
+					'$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();',
+					'$session = $this->app->getSession();',
+					$shared
+				),
+				$this->method('JoomlaSix', $custom)
+			);
+		}
 	}
 
 	/**
@@ -272,9 +311,8 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 	private function method(string $version, bool $custom = false,
 		bool $port = true): string
 	{
-		// only Joomla 3 takes the current user from the global factory
 		$class = $this->targetClass(
-			$version, 'Controller\\EximportMethod', ['JoomlaThree']
+			$version, 'Controller\\EximportMethod', ['JoomlaThree', 'JoomlaSix']
 		);
 
 		$contentone = new ContentOne();

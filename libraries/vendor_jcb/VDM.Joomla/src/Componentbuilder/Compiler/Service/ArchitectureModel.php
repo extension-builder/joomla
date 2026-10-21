@@ -18,6 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\CustomQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FieldRelation;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\FilterQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\AliasTitleFix as J6ModelAliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface as ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as SharedModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemSave as J3ModelItemSave;
@@ -156,6 +157,11 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(AliasTitleFix::class, 'Architecture.Model.AliasTitleFix')
 			->share('Architecture.Model.AliasTitleFix', [$this, 'getModelAliasTitleFix'], true);
+
+		$container->share('Architecture.Model.Shared.AliasTitleFix', [$this, 'getSharedModelAliasTitleFix'], true);
+
+		$container->alias(J6ModelAliasTitleFix::class, 'Architecture.Model.J6.AliasTitleFix')
+			->share('Architecture.Model.J6.AliasTitleFix', [$this, 'getJ6ModelAliasTitleFix'], true);
 
 		$container->alias(ModelBatchCopy::class, 'Architecture.Model.BatchCopy')
 			->share('Architecture.Model.BatchCopy', [$this, 'getModelBatchCopy'], true);
@@ -784,7 +790,49 @@ class ArchitectureModel implements ServiceProviderInterface
 	 */
 	public function getModelAliasTitleFix(Container $container): AliasTitleFix
 	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.Model.J6.AliasTitleFix');
+		}
+
+		return $container->get('Architecture.Model.Shared.AliasTitleFix');
+	}
+
+	/**
+	 * Get the title and alias fix shared by Joomla 3, 4, and 5.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AliasTitleFix
+	 * @since   6.1.7
+	 */
+	public function getSharedModelAliasTitleFix(Container $container): AliasTitleFix
+	{
 		return new AliasTitleFix(
+			$container->get('Compiler.Builder.Alias'),
+			$container->get('Compiler.Builder.Title'),
+			$container->get('Compiler.Builder.Custom.Alias'),
+			$container->get('Compiler.Builder.Category.Code'),
+			$container->get('Compiler.Builder.Content.One')
+		);
+	}
+
+	/**
+	 * Get the title and alias fix for Joomla 6.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ModelAliasTitleFix
+	 * @since   6.1.7
+	 */
+	public function getJ6ModelAliasTitleFix(Container $container): J6ModelAliasTitleFix
+	{
+		return new J6ModelAliasTitleFix(
 			$container->get('Compiler.Builder.Alias'),
 			$container->get('Compiler.Builder.Title'),
 			$container->get('Compiler.Builder.Custom.Alias'),

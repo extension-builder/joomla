@@ -12,30 +12,97 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\AliasTitleFix as J6AliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Alias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryCode;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
+use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel;
 
 
 /**
  * Generated model title and alias uniqueness fix contracts.
  *
- * The fix reads the same on every Joomla target, so this is one class with
- * no target variants at all.
+ * Joomla 6 reads Unicode-slug configuration from the active application;
+ * Joomla 3, 4, and 5 retain their existing generated configuration access.
  *
  * @since  6.1.7
  */
 #[CoversClass(AliasTitleFix::class)]
+#[CoversClass(J6AliasTitleFix::class)]
 #[UsesNamespace('VDM\Joomla\Componentbuilder\Compiler')]
 #[UsesNamespace('VDM\Joomla\Abstraction')]
 #[UsesNamespace('VDM\Joomla\Utilities')]
 final class ModelAliasTitleFixTest extends ArchitectureTestCase
 {
+	/**
+	 * Supported targets and their configuration access.
+	 *
+	 * @return  array<string, array{string, string}>
+	 * @since   6.1.7
+	 */
+	public static function versions(): array
+	{
+		return [
+			'Joomla 3' => ['JoomlaThree', "getConfig()->get('unicodeslugs')"],
+			'Joomla 4' => ['JoomlaFour', "getConfig()->get('unicodeslugs')"],
+			'Joomla 5' => ['JoomlaFive', "getConfig()->get('unicodeslugs')"],
+			'Joomla 6' => ['JoomlaSix', "getApplication()->get('unicodeslugs')"],
+		];
+	}
+
+	/**
+	 * Alias generation reads the target's configuration and keeps both slug paths.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   string  $lookup   Expected application or factory configuration lookup.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('versions')]
+	public function testUnicodeSlugConfigurationFollowsTheTarget(string $version,
+		string $lookup): void
+	{
+		$code = $this->fix(true, true, null, $version);
+
+		$this->assertStringContainsString(
+			"\t\t\t\tif (Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::"
+			. $lookup . ' == 1)', $code
+		);
+		$this->assertStringContainsString("OutputFilter::stringURLUnicodeSlug(\$data['title']);", $code);
+		$this->assertStringContainsString("OutputFilter::stringURLSafe(\$data['title']);", $code);
+
+		if ($version === 'JoomlaSix')
+		{
+			$this->assertStringNotContainsString('::getConfig()', $code);
+		}
+	}
+
+	/**
+	 * Joomla 6 changes only the configuration lookup in the complete alias fix.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlaSixPreservesTheRestOfTheAliasFix(): void
+	{
+		$shared = $this->fix();
+
+		$this->assertSame($shared, $this->fix(true, true, null, 'JoomlaThree'));
+		$this->assertSame($shared, $this->fix(true, true, null, 'JoomlaFour'));
+		$this->assertSame(
+			str_replace("::getConfig()->get('unicodeslugs')", "::getApplication()->get('unicodeslugs')", $shared),
+			$this->fix(true, true, null, 'JoomlaSix')
+		);
+	}
+
 	/**
 	 * The unique field fix is emitted even when there is no alias.
 	 *
@@ -148,12 +215,13 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	 * @param   bool         $withAlias  Whether the view has an alias field.
 	 * @param   bool         $withTitle  Whether the view has a title field.
 	 * @param   string|null  $category   The category code, when categorised.
+	 * @param   string       $version    Target namespace segment.
 	 *
 	 * @return  string
 	 * @since   6.1.7
 	 */
 	private function fix(bool $withAlias = true, bool $withTitle = true,
-		?string $category = null): string
+		?string $category = null, string $version = 'JoomlaFive'): string
 	{
 		$alias = new Alias();
 
@@ -179,9 +247,22 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 		$contentone = new ContentOne();
 		$contentone->set('Component', 'Demo');
 
-		$subject = new AliasTitleFix(
-			$alias, $title, new CustomAlias(), $categorycode, $contentone
-		);
+		$targets = ['JoomlaThree' => 3, 'JoomlaFour' => 4, 'JoomlaFive' => 5, 'JoomlaSix' => 6];
+		$this->config()->set('joomla_version', $targets[$version]);
+
+		$container = new Container();
+		$container->share('Config', $this->config(), true);
+		$container->share('Compiler.Builder.Alias', $alias, true);
+		$container->share('Compiler.Builder.Title', $title, true);
+		$container->share('Compiler.Builder.Custom.Alias', new CustomAlias(), true);
+		$container->share('Compiler.Builder.Category.Code', $categorycode, true);
+		$container->share('Compiler.Builder.Content.One', $contentone, true);
+		(new ArchitectureModel())->register($container);
+
+		$subject = $container->get('Architecture.Model.AliasTitleFix');
+
+		$this->assertSame($subject, $container->get(AliasTitleFix::class));
+		$this->assertSame($subject, $container->get('Architecture.Model.AliasTitleFix'));
 
 		return $subject->get('article');
 	}
