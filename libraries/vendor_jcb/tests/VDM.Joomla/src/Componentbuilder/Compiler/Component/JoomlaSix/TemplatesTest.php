@@ -128,6 +128,12 @@ final class TemplatesTest extends TestCase
 			$changes[$name][] = ['$this->get(\'Errors\')', '$model->getErrors()', 1];
 		}
 
+		$changes['INSTALLER_SCRIPT.php'][] = [
+			"\t}###INSTALLERMETHODS###\n}\n",
+			"\t}###INSTALLERMETHODS###\n}\n\nreturn new Com_###Component###InstallerScript();\n",
+			1,
+		];
+
 		foreach ($changes as $name => $replacements)
 		{
 			yield $name => [$name, $replacements];
