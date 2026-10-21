@@ -12,9 +12,17 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Extension\PluginInterface;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\Database\DatabaseInterface;
+use Joomla\DI\Container;
+use Joomla\Event\Dispatcher;
+use Joomla\Event\Event;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\LibraryInterface;
@@ -501,6 +509,27 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		$this->assertStringContainsString("PluginHelper::getPlugin('system', 'articles')", $code);
 		$this->assertStringContainsString('$plugin = new ArticlesPlugin(', $code);
 
+		$constructor = '$plugin = new ArticlesPlugin(' . PHP_EOL;
+
+		if ($major === 4)
+		{
+			$constructor .= "\t\t\t\t\t" . '$dispatcher, $params' . PHP_EOL;
+			$this->assertStringContainsString('$dispatcher = $container->get(DispatcherInterface::class);', $code);
+		}
+		elseif ($major === 5)
+		{
+			$constructor .= "\t\t\t\t\t" . '$container->get(DispatcherInterface::class),' . PHP_EOL
+				. "\t\t\t\t\t(array) PluginHelper::getPlugin('system', 'articles')" . PHP_EOL;
+		}
+		else
+		{
+			$constructor .= "\t\t\t\t\t(array) PluginHelper::getPlugin('system', 'articles')" . PHP_EOL;
+			$this->assertStringNotContainsString('DispatcherInterface', $code);
+		}
+
+		$constructor .= "\t\t\t\t);";
+		$this->assertStringContainsString($constructor, $code);
+
 		if ($major === 4)
 		{
 			$this->assertStringContainsString('$app = Factory::getApplication();', $code);
@@ -512,6 +541,119 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		}
 		$this->assertStringContainsString('$plugin->boot();', $code);
 		$this->assertStringEndsWith('};' . PHP_EOL, $code);
+	}
+
+	/**
+	 * Native plugin constructors with inherited or definition-owned initialization.
+	 *
+	 * @return  array<string, array{bool}>
+	 * @since   6.2.0
+	 */
+	public static function nativePluginConstructors(): array
+	{
+		return [
+			'inherited CMSPlugin constructor' => [false],
+			'custom config constructor' => [true],
+		];
+	}
+
+	/**
+	 * Execute generated Joomla 6 plugin code against CMSPlugin without a dispatcher service.
+	 *
+	 * The native event handler observes configuration, application and database
+	 * injection. A definition-owned constructor remains intact and receives the
+	 * same configuration array as the inherited CMSPlugin constructor.
+	 *
+	 * @param   bool  $customConstructor  Whether the definition supplies its constructor.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('nativePluginConstructors')]
+	public function testJoomlaSixPluginProviderExecutesNativeConstruction(bool $customConstructor): void
+	{
+		$className = $customConstructor ? 'GeneratedConfigPlugin' : 'GeneratedInheritedPlugin';
+		$body = <<<'PHP'
+	use \Joomla\Database\DatabaseAwareTrait;
+
+	public static function getSubscribedEvents(): array
+	{
+		return ['onGather' => 'gather'];
+	}
+
+	public function gather(\Joomla\Event\EventInterface $event): void
+	{
+		$event->setArgument('enabled', $this->params->get('enabled'));
+		$event->setArgument('application', $this->getApplication());
+		$event->setArgument('database', $this->getDatabase());
+	}
+PHP;
+		$constructor = <<<'PHP'
+
+	public function __construct(array $config = [])
+	{
+		parent::__construct($config);
+		$this->params->set('custom_constructor', true);
+	}
+PHP;
+		$plugin = (object) [
+			'group' => 'SYSTEM',
+			'context_name' => 'native_fixture',
+			'class_name' => $className,
+			'comment' => '/** Native plugin lifecycle fixture. */',
+			'extends' => '\\Joomla\\CMS\\Plugin\\CMSPlugin',
+			'main_class_code' => $body . ($customConstructor ? $constructor : ''),
+			'service_provider' => "\t\t\t\t" . '$plugin->setDatabase($container->get(\\Joomla\\Database\\DatabaseInterface::class));',
+		];
+		$extension = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Extension'))->get($plugin);
+
+		if ($customConstructor)
+		{
+			$this->assertStringContainsString($constructor, $extension);
+		}
+
+		eval('namespace ' . __NAMESPACE__ . '; ' . str_replace(
+			'Joomla___c06c5116_6b9d_487c_9b09_5094ec4506a3___Power',
+			'\\Joomla\\Event\\SubscriberInterface',
+			$extension
+		));
+
+		$code = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Provider'))->get($plugin);
+		$provider = eval('namespace ' . __NAMESPACE__ . '; '
+			. 'use Joomla\\CMS\\Factory; use Joomla\\CMS\\Plugin\\PluginHelper; '
+			. 'use Joomla\\CMS\\Extension\\PluginInterface; use Joomla\\DI\\Container; '
+			. 'use Joomla\\DI\\ServiceProviderInterface; use Joomla\\Event\\DispatcherInterface; ' . $code);
+		$application = $this->createStub(CMSApplication::class);
+		$database = $this->createStub(DatabaseInterface::class);
+		$this->setJoomlaFactoryProperty('application', $application);
+		$container = new Container();
+		$container->share(DatabaseInterface::class, $database);
+		$provider->register($container);
+		$plugins = new ReflectionProperty(PluginHelper::class, 'plugins');
+		$previousPlugins = $plugins->getValue();
+		$plugins->setValue(null, [(object) [
+			'type' => 'system',
+			'name' => 'native_fixture',
+			'params' => '{"enabled":true}',
+		]]);
+
+		try
+		{
+			$instance = $container->get(PluginInterface::class);
+			$this->assertSame($customConstructor, $instance->params->get('custom_constructor', false));
+			$dispatcher = new Dispatcher();
+			$dispatcher->addSubscriber($instance);
+			$event = new Event('onGather');
+			$dispatcher->dispatch('onGather', $event);
+
+			$this->assertTrue($event->getArgument('enabled'));
+			$this->assertSame($application, $event->getArgument('application'));
+			$this->assertSame($database, $event->getArgument('database'));
+		}
+		finally
+		{
+			$plugins->setValue(null, $previousPlugins);
+		}
 	}
 
 	/**
