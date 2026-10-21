@@ -109,3 +109,42 @@ for every target. The full raw hosted diffs were encoded without modification;
 applying each decoded patch to its exact baseline reproduces the measured
 candidate tree, including every byte and executable mode. The hosted scale probes
 still run after the exact output gate accepts these reviewed changes.
+
+## Joomla 6 native compiler APIs
+
+Source baseline: `2dab8eb3249185d18b11a55694adb559c349addc`.
+Reviewed candidate: `14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61`, compiled by PR
+merge commit `c077364827a1a49210f0da2c377217819d890bd4`.
+Evidence: [workflow run 39592250958](https://github.com/extension-builder/joomla/actions/runs/39592250958),
+Joomla 6 artifact `12341678243` (`golden-master-j6`). The downloaded artifact's
+SHA-256 is `9277e46f92bd3bbf7cc42bb08cee179b92e91af16f799bee00c1407217797780`.
+
+Both archived component packages contain 252 compared files. The complete
+`full.diff` changes 18 paths, with 80 added and 75 removed lines:
+
+- 36 fresh database query calls use `createQuery()`; the check-in probe sets its
+  one-row limit on the query before calling `setQuery()`.
+- Five session lookups use the application session, ten single-key removals use
+  `remove()`, and six global configuration lookups use the application.
+- Nine view data/error lookups call their model explicitly, with two local model
+  initializations where needed.
+- The installer file returns its `InstallerScriptInterface` implementation.
+- Six leading-space cleanups in the administrator/site greeting model templates
+  are retained exactly: four array-closing lines and two site denial-path lines.
+  Their PHP tokens and behavior are unchanged.
+- The two README files record the five additional generated lines, changing
+  30,620 to 30,625. Their other metrics remain unchanged.
+
+No generated manifest, asset, Power, file mode, or additional path changes.
+This blueprint emits one component package; module and plugin changes have
+separate focused regression coverage. The same hosted workflow's Joomla 3,
+4 and 5 jobs passed strict output equality.
+
+Both sides of all 16 changed PHP files pass syntax checks. The hosted source
+verification accepted all 1,665 baseline and 1,700 candidate source hashes;
+final Power evidence is byte-identical. Re-extracting the archived packages
+reproduces baseline tree `bf6de0d9ff6d1e78caf16d4d8fbb626a7e68c69b` and candidate
+tree `08c591c004edb3fef81bc016049d13274289833b`. Applying the unmodified raw diff
+to the baseline produces exactly that candidate tree. The fixture encodes those
+original 29,018 diff bytes, including CRLF, without normalization. The hosted
+installed scale probe still runs after the exact output gate accepts this change.
