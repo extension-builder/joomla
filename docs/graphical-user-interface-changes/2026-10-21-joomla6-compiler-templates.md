@@ -1112,7 +1112,7 @@ Created (no existing administrator files modified or deleted):
 - Custom compiler roots: Joomla 6 uses `<compiler_path>/joomla_6/settings.json` or the existing component-specific settings filename in that directory.
 - Visual/accessibility impact: none; these are compiler source templates, not the installed administrator views.
 - GUI spec changes: none, because no installed interface behavior changes. Full compilation tests exercise the source templates and generated installation.
-- Focused verification: 133 tests / 1,684 assertions pass for settings, templates, structure, installer and target selection; generated runtime checks use the Joomla Power injector. Hosted compilation results are recorded in the PR audit.
+- Focused verification: 190 tests / 18,027 assertions pass for settings, templates, installer, provider and target selection; structure checks also pass. Generated runtime checks use the Joomla Power injector. Hosted compilation confirms unchanged Joomla 3–5 output and only ten additional whitespace-line changes across five Joomla 6 output files. The exact reviewed expectation and rerun are recorded in the PR audit.
 - JCB self-compilation: not performed; requires the maintainer's complete definition package.
 - Rollback: revert the template-convention correction commit as a unit, including folder-key selection and resolver removal.
 
