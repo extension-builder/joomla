@@ -31,7 +31,10 @@ the pinned Joomla 6.1.2 source checkout in `.runtime/joomla-cms`;
 `JPATH_LIBRARIES` and component administrator constants point to this
 repository's deployable library and `admin` trees. The test Composer project
 installs the Joomla Framework and CMS-runtime packages required by the imported
-class graph, using constraints synchronized with Joomla 6.1.2. Its PSR-4 map
+class graph, using constraints synchronized with Joomla 6.1.2, except for security fixes
+in the test-only dependency graph: `enshrined/svg-sanitize` requires `^1.1.1`
+and `symfony/yaml` requires `^6.4.45`. These patched dependencies do not change
+the pinned CMS source or the dependencies shipped in the JCB package. Its PSR-4 map
 loads `Joomla\CMS` classes from the separate source checkout. The bootstrap
 rejects a checkout whose reported Joomla version is not exactly 6.1.2.
 

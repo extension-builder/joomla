@@ -132,6 +132,7 @@ jobs:
         run: composer --working-dir=libraries/vendor_jcb/tests audit --locked
 
       - name: Run unit tests
+        id: unit-tests
         run: composer --working-dir=libraries/vendor_jcb/tests ${{ matrix.script }}
 
       - name: Run documented known-contract failures
@@ -145,7 +146,7 @@ jobs:
           composer --working-dir=libraries/vendor_jcb/tests test:known-defects
 
       - name: Audit individual known-contract recoveries
-        if: matrix.php == '8.3' && always()
+        if: always() && matrix.php == '8.3' && steps.known-defects.outcome != 'skipped' && steps.known-defects.outcome != 'cancelled'
         working-directory: libraries/vendor_jcb/tests
         run: |
           set -o pipefail
@@ -164,7 +165,7 @@ jobs:
           fi
 
       - name: Upload coverage report
-        if: matrix.coverage == 'pcov' && always()
+        if: always() && matrix.coverage == 'pcov' && steps.unit-tests.outcome != 'skipped' && steps.unit-tests.outcome != 'cancelled'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: vendor-jcb-coverage-php-${{ matrix.php }}
