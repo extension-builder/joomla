@@ -20,9 +20,13 @@ Production changes are confined to compiler source, accompanied by tests and doc
 
 Providers select the new JoomlaSix renderers from the compile target, not the host version. Existing shared implementations remain available for earlier targets. Callers continue to use the established logical aliases.
 
-The template-selection prerequisite is [`e0ab577`](https://github.com/extension-builder/joomla/commit/e0ab57782ff6b6f2a6e76f555e26e40dd08ccc36): `Component.Template` selects the shared resolver or [JoomlaSix/Template.php:73](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Template.php#L73). Eighteen changed templates live under `Component/JoomlaSix/Templates/*.php.tpl`; other templates still come from the existing shared directory. The `.tpl` suffix is input-only. No generated filename or placeholder pipeline changes.
+Joomla 6 uses the complete [`admin/compiler/joomla_6`](https://github.com/extension-builder/joomla/tree/deprecation/joomla6-native-compiler/admin/compiler/joomla_6) template set and its own `settings.json`. `Config::getJoomlaversions()` selects folder key `6`; the existing `Utilities/Paths`, `Component/JoomlaSix/Settings`, and structure builders load and copy those files. Joomla 3 keeps folder `3`; Joomla 4 and 5 keep folder `4`.
 
-Configured custom compiler roots and explicit custom/full template sources keep precedence. Their owners must adopt the desired API changes themselves; they are not rewritten. Copies retain existing source apart from the reviewed API changes and six indentation-only whitespace corrections required by the repository gate.
+The earlier library template resolver, interface, registrations and overlay files have been removed. The 155-file set contains the eighteen reviewed Joomla 6 API variants, plus whitespace-only indentation corrections needed when copying seven existing templates. All other files, including the complete settings manifest, retain the Joomla 4 source. No additional source-loading mechanism or filename suffix is introduced.
+
+Custom compiler roots use their own `joomla_6/settings.json` (or the existing `settings_<component>.json` override) and ordinary template files. The existing full/custom source rules remain unchanged.
+
+Joomla Power tokens remain in template and generated-fragment source. The existing extractor/injector still resolves target namespaces, adds imports and handles alias collisions. Runtime fixture tests run that same injector before executing generated PHP; unresolved compiler input is not treated as invalid PHP. FOF and other legacy runtime work are outside this Joomla 6 deprecation change.
 
 ## Database locations
 
@@ -46,18 +50,18 @@ The 35 direct template substitutions are:
 
 | Joomla 6 template | `createQuery()` lines |
 | --- | --- |
-| [ADMIN_HELPER_CLASS:220,238,398](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_HELPER_CLASS.php.tpl#L220) | 220,238,398 |
-| [ADMIN_HELPER_CONTROLLER:88](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_HELPER_CONTROLLER.php.tpl#L88) | 88 |
-| [ADMIN_IMPORT_MODEL:444](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_IMPORT_MODEL.php.tpl#L444) | 444 |
-| [ADMIN_IMPORT_MODEL_CUSTOM:334](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_IMPORT_MODEL_CUSTOM.php.tpl#L334) | 334 |
-| [ADMIN_VIEW_MODEL:251](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_VIEW_MODEL.php.tpl#L251) | 251 |
-| [ADMIN_VIEW_TABLE:266](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_VIEW_TABLE.php.tpl#L266) | 266 |
-| [FORM_MODAL_SELECT_FIELD:49](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/FORM_MODAL_SELECT_FIELD.php.tpl#L49) | 49 |
-| [INSTALLER_SCRIPT:438,498,540,586,624,716,742,773,796,839,866,886,926,961,991,1018,1026,1058,1088,1116](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/INSTALLER_SCRIPT.php.tpl#L438) | 438,498,540,586,624,716,742,773,796,839,866,886,926,961,991,1018,1026,1058,1088,1116 |
-| [SITE_ADMIN_VIEW_MODEL:262](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/SITE_ADMIN_VIEW_MODEL.php.tpl#L262) | 262 |
-| [SITE_FORM_MODAL_SELECT_FIELD:49](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/SITE_FORM_MODAL_SELECT_FIELD.php.tpl#L49) | 49 |
-| [SITE_HELPER_CLASS:276,501,519](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/SITE_HELPER_CLASS.php.tpl#L276) | 276,501,519 |
-| [SITE_HELPER_CONTROLLER:88](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/SITE_HELPER_CONTROLLER.php.tpl#L88) | 88 |
+| [ADMIN_HELPER_CLASS:220,238,398](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_HELPER_CLASS.php#L220) | 220,238,398 |
+| [ADMIN_HELPER_CONTROLLER:88](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_HELPER_CONTROLLER.php#L88) | 88 |
+| [ADMIN_IMPORT_MODEL:444](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_IMPORT_MODEL.php#L444) | 444 |
+| [ADMIN_IMPORT_MODEL_CUSTOM:334](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_IMPORT_MODEL_CUSTOM.php#L334) | 334 |
+| [ADMIN_VIEW_MODEL:251](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_VIEW_MODEL.php#L251) | 251 |
+| [ADMIN_VIEW_TABLE:266](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_VIEW_TABLE.php#L266) | 266 |
+| [FORM_MODAL_SELECT_FIELD:49](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/FORM_MODAL_SELECT_FIELD.php#L49) | 49 |
+| [INSTALLER_SCRIPT:438,498,540,586,624,716,742,773,796,839,866,886,926,961,991,1018,1026,1058,1088,1116](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/INSTALLER_SCRIPT.php#L438) | 438,498,540,586,624,716,742,773,796,839,866,886,926,961,991,1018,1026,1058,1088,1116 |
+| [SITE_ADMIN_VIEW_MODEL:262](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/SITE_ADMIN_VIEW_MODEL.php#L262) | 262 |
+| [SITE_FORM_MODAL_SELECT_FIELD:49](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/SITE_FORM_MODAL_SELECT_FIELD.php#L49) | 49 |
+| [SITE_HELPER_CLASS:276,501,519](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/SITE_HELPER_CLASS.php#L276) | 276,501,519 |
+| [SITE_HELPER_CONTROLLER:88](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/SITE_HELPER_CONTROLLER.php#L88) | 88 |
 
 No-argument `getQuery()` remains valid and was not replaced. Host-side compiler database access and commented/earlier-target-only emissions were not changed.
 
@@ -68,21 +72,21 @@ No-argument `getQuery()` remains valid and was not replaced. Host-side compiler 
 | [Architecture/JoomlaSix/Model/AliasTitleFix.php:32–35](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/AliasTitleFix.php#L32) | Application `get('unicodeslugs')`; shared emission at `Architecture/Model/AliasTitleFix.php:215`. |
 | [Architecture/JoomlaSix/Controller/EximportMethod.php:32–34](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Controller/EximportMethod.php#L32) | Controller `$this->app->getSession()`; shared emission at `Architecture/Controller/EximportMethod.php:214`. |
 | [Architecture/JoomlaSix/ComHelperClass/ExcelMethods.php:32–35](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/ComHelperClass/ExcelMethods.php#L32) | Factory Power `getApplication()->getSession()`; shared emission at `Architecture/ComHelperClass/ExcelMethods.php:287`. |
-| [ADMIN_IMPORT_MODEL.php.tpl:89,121–123,164,176,186,227,237–240,357,382,400](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_IMPORT_MODEL.php.tpl#L89) | Application session/config; nine single-key removals, retaining their original keys. |
-| [ADMIN_IMPORT_MODEL_CUSTOM.php.tpl:116,126–129,246,270,290](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_IMPORT_MODEL_CUSTOM.php.tpl#L116) | Application session/config; three single-key removals. |
-| [ADMIN_IMPORT_HTML.php.tpl:52–53,67,76,80](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_IMPORT_HTML.php.tpl#L52) | Direct model state/errors; application session and single-key removal. |
-| [API_VIEW_CONTROLLER.php.tpl:209,216](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/API_VIEW_CONTROLLER.php.tpl#L209) | Remove only the original HTTP-status session keys. |
-| [DASH_VIEW_HTML.php.tpl:95–98,108](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/DASH_VIEW_HTML.php.tpl#L95) | Direct model icons, styles, scripts and errors. Asset loading itself is unchanged. |
-| [ADMIN_VIEW_HTML.php.tpl:209](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_VIEW_HTML.php.tpl#L209) | Direct model error retrieval; existing error branch retained. |
-| [ADMIN_VIEWS_HTML.php.tpl:192](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/ADMIN_VIEWS_HTML.php.tpl#L192) | Direct model error retrieval; existing error branch retained. |
-| [SITE_ADMIN_VIEW_HTML.php.tpl:199](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/SITE_ADMIN_VIEW_HTML.php.tpl#L199) | Direct model error retrieval; existing error branch retained. |
+| [ADMIN_IMPORT_MODEL.php:89,121–123,164,176,186,227,237–240,357,382,400](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_IMPORT_MODEL.php#L89) | Application session/config; nine single-key removals, retaining their original keys. |
+| [ADMIN_IMPORT_MODEL_CUSTOM.php:116,126–129,246,270,290](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_IMPORT_MODEL_CUSTOM.php#L116) | Application session/config; three single-key removals. |
+| [ADMIN_IMPORT_HTML.php:52–53,67,76,80](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_IMPORT_HTML.php#L52) | Direct model state/errors; application session and single-key removal. |
+| [API_VIEW_CONTROLLER.php:209,216](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/API_VIEW_CONTROLLER.php#L209) | Remove only the original HTTP-status session keys. |
+| [DASH_VIEW_HTML.php:95–98,108](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/DASH_VIEW_HTML.php#L95) | Direct model icons, styles, scripts and errors. Asset loading itself is unchanged. |
+| [ADMIN_VIEW_HTML.php:209](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_VIEW_HTML.php#L209) | Direct model error retrieval; existing error branch retained. |
+| [ADMIN_VIEWS_HTML.php:192](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/ADMIN_VIEWS_HTML.php#L192) | Direct model error retrieval; existing error branch retained. |
+| [SITE_ADMIN_VIEW_HTML.php:199](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/SITE_ADMIN_VIEW_HTML.php#L199) | Direct model error retrieval; existing error branch retained. |
 
 Joomla Power identifiers remain intact. No raw import substitution or user-source rewriting was introduced.
 
 ## Plugins and installers
 
 - Plugin provider: [Architecture/JoomlaSix/Plugin/Provider.php:88–91](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Plugin/Provider.php#L88). Generated plugins receive `(array) PluginHelper::getPlugin(...)` as their sole constructor argument. **A stored custom constructor that still requires a dispatcher must be migrated in its definition** to the config-only contract; the compiler does not rewrite its body.
-- Component installer: [INSTALLER_SCRIPT.php.tpl:1203](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/INSTALLER_SCRIPT.php.tpl#L1203). Returns the existing no-argument class, which already implements `InstallerScriptInterface`; lifecycle/custom placeholders stay in place.
+- Component installer: [INSTALLER_SCRIPT.php:1203](https://github.com/extension-builder/joomla/blob/deprecation/joomla6-native-compiler/admin/compiler/joomla_6/INSTALLER_SCRIPT.php#L1203). Returns the existing no-argument class, which already implements `InstallerScriptInterface`; lifecycle/custom placeholders stay in place.
 - Module/plugin installer: [Extension/JoomlaSix/InstallScript.php:166–173,255–257,279–297,343–351,412–434,465–467](https://github.com/extension-builder/joomla/blob/14fd71c16e64d8aaf6b60bb3adbf7f59e7bd2e61/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Extension/JoomlaSix/InstallScript.php#L166). Native output is used when no enabled, nonempty custom constructor/lifecycle hook was collected. Empty native lifecycle methods return `true`; existing version checks and file cleanup remain. Each build resets this selection.
 
 ## Remaining migration boundaries
@@ -95,15 +99,12 @@ These are confirmed deprecations left visible, not additional general-improvemen
 
 ## Validation
 
-- **381 focused tests / 14,397 assertions pass**, covering affected generators, provider selection, template copy paths, exact reviewed template differences and generated plugin/installer runtime contracts.
-- Interface conformance plus template tests: **98 tests / 485 assertions pass**.
-- Full local `composer test`: **4,875 tests / 61,055 assertions; 40 errors and 33 failures**. The untouched base has exactly the same 73 failing/error case identities. No new failing cases were introduced; unrelated failures were not fixed or hidden.
-- PHP style, whitespace, test ownership (**1,503 declarations; zero unowned debt**), moved-condition and container-key gates pass. The separate known-defect recovery audit passes: 84 cases, no clean quarantined passes.
-- Hosted [full compilation comparison](https://github.com/extension-builder/joomla/actions/runs/39593147373) **passes for all four targets**: Joomla 3, 4 and 5 output is unchanged, and Joomla 6 matches the [exact reviewed expectation](https://github.com/extension-builder/joomla/commit/a683d42a64582a9132cd14c8550131d4da2d4d54). The public Hello World blueprint's complete Joomla 6 diff was reviewed; applying its unchanged bytes reproduces the measured candidate tree exactly. The installed scale probe also passes.
-- Hosted [API](https://github.com/extension-builder/joomla/actions/runs/39592250914) and [browser](https://github.com/extension-builder/joomla/actions/runs/39592251133) checks pass.
-- CI follow-up: updated the test-only SVG sanitizer to 1.1.1 and Symfony YAML to 6.4.48; the locked-dependency security audit now passes locally. Generated-code runtime fixtures now resolve their emitted Joomla Power placeholders before execution (60 affected tests pass). Follow-up workflow steps run only when their producing test step ran.
-- The blocking unit suite still exposes three pre-existing production defects outside this deprecation scope: `Service/Crypt::getFOF()` constructor wiring, Markdown image/link conversion, and search bundle ordering versus the ID cursor. These tests remain blocking; no assertions or exclusions were changed.
-- Full JCB self-compilation and installation testing still require the maintainer's complete definition package; the public fixture is not JCB. Source-line diagnostic comments are disabled in the golden comparison.
+- Focused template loading, source parity, structure, installer and target selection checks pass: 133 tests / 1,684 assertions.
+- The 60 generated-code runtime tests pass using the real Joomla Power extractor/injector, including namespace alias collisions and import reuse.
+- The test-only dependency audit passes after the SVG sanitizer/YAML security updates. No audit check or test assertion was disabled.
+- A full-suite result is reported separately from these compiler checks. Legacy FOF failures do not authorize FOF changes and are outside this scope.
+- Hosted full-compilation checks are rerun for Joomla 3–6 after this correction. The golden comparison retains the previously reviewed API changes and records only the additional whitespace differences from copying the complete template set.
+- JCB self-compilation still requires the maintainer's complete definition package; the public Hello World fixture does not prove it.
 
 ## Core evidence
 

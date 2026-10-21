@@ -219,10 +219,11 @@ Config's supported catalogue maps targets as follows:
 | Joomla 3 | 3 | 3.10 |
 | Joomla 4 | 4 | 4.0 |
 | Joomla 5 | 4 | 5.0 |
-| Joomla 6 | 4 | 6.0 |
+| Joomla 6 | 6 | 6.0 |
 
-Joomla 4–6 currently reuse the same broad template-folder family while keeping
-separate concrete PHP services. Target input is read as an integer; external
+Joomla 4 and 5 reuse `admin/compiler/joomla_4`; Joomla 6 uses its own complete
+`admin/compiler/joomla_6` set and `settings.json`. The existing Paths and Settings
+services select and load each set, including under a configured custom compiler root. Target input is read as an integer; external
 entry points should validate it against the supported catalogue before a
 dynamic service key is constructed.
 

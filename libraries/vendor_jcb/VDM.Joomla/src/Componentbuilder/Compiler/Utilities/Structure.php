@@ -19,7 +19,6 @@ use Joomla\Filesystem\File as JoomlaFile;
 use Joomla\Filesystem\Folder;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface as Settings;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\TemplateInterface as Template;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\File;
@@ -50,14 +49,6 @@ class Structure
 	 * @since 3.2.0
 	 */
 	protected Settings $settings;
-
-	/**
-	 * Component template source resolver.
-	 *
-	 * @var    Template
-	 * @since  6.2.0
-	 */
-	protected Template $template;
 
 	/**
 	 * The Paths Class.
@@ -108,17 +99,15 @@ class Structure
 	 * @param Counter               $counter       The Counter Class.
 	 * @param File                  $file          The File Class.
 	 * @param Files                 $files         The Files Class.
-	 * @param Template              $template      The component template resolver.
 	 * @param CMSApplication|null   $app           The CMS Application object.
 	 *
 	 * @since 3.2.0
 	 */
 	public function __construct(Placeholder $placeholder, Settings $settings, Paths $paths,
-		Counter $counter, File $file, Files $files, Template $template, ?CMSApplication $app = null)
+		Counter $counter, File $file, Files $files, ?CMSApplication $app = null)
 	{
 		$this->placeholder = $placeholder;
 		$this->settings = $settings;
-		$this->template = $template;
 		$this->paths = $paths;
 		$this->counter = $counter;
 		$this->file = $file;
@@ -234,7 +223,7 @@ class Structure
 		{
 			// move the file to its place
 			JoomlaFile::copy(
-				$this->template->get($item),
+				$this->paths->template_path . '/' . $item,
 				$path . '/' . $new_name
 			);
 
@@ -350,3 +339,4 @@ class Structure
 		return $this->placeholder->update_($item);
 	}
 }
+

@@ -26,7 +26,7 @@ use PHPUnit\Framework\TestCase;
 final class TemplatesTest extends TestCase
 {
 	/**
-	 * Each override changes only the reviewed API calls, including their counts.
+	 * Each changed template changes only the reviewed API calls, including their counts.
 	 *
 	 * @param   string  $name          Original compiler template filename.
 	 * @param   array   $replacements  Reviewed old/new source and occurrence counts.
@@ -39,7 +39,7 @@ final class TemplatesTest extends TestCase
 	{
 		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR);
 		$expected = file_get_contents($root . '/admin/compiler/joomla_4/' . $name);
-		$actual = file_get_contents($root . '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Templates/' . $name . '.tpl');
+		$actual = file_get_contents($root . '/admin/compiler/joomla_6/' . $name);
 		$this->assertIsString($expected);
 		$this->assertIsString($actual);
 
@@ -50,10 +50,42 @@ final class TemplatesTest extends TestCase
 		}
 
 		$this->assertSame($expected, $actual, $name);
+		preg_match_all('/Joomla___[a-f0-9_]+___Power/', file_get_contents($root . '/admin/compiler/joomla_4/' . $name), $originalPowers);
+		preg_match_all('/Joomla___[a-f0-9_]+___Power/', $actual, $nativePowers);
+		$this->assertSame($originalPowers[0], $nativePowers[0], 'Joomla Power identities and occurrence order remain intact.');
 	}
 
 	/**
-	 * Exact source differences approved for each Joomla 6 override.
+	 * The Joomla 6 set is complete and retains the established settings mapping.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testCompleteTemplateSetPreservesSettingsAndUnchangedSources(): void
+	{
+		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler/';
+		$previous = glob($root . 'joomla_4/*');
+		$current = glob($root . 'joomla_6/*');
+		$this->assertSame(array_map('basename', $previous), array_map('basename', $current));
+		$changed = array_keys(iterator_to_array(self::templates()));
+
+		foreach ($previous as $source)
+		{
+			$name = basename($source);
+			if (!in_array($name, $changed, true))
+			{
+				$this->assertFileEquals($source, $root . 'joomla_6/' . $name);
+			}
+		}
+
+		$settings = json_decode(file_get_contents($root . 'joomla_6/settings.json'), true, 512, JSON_THROW_ON_ERROR);
+		$this->assertArrayHasKey('create', $settings);
+		$this->assertArrayHasKey('static', $settings['move']);
+		$this->assertArrayHasKey('dynamic', $settings['move']);
+	}
+
+	/**
+	 * Exact source differences approved for each Joomla 6 template.
 	 *
 	 * @return  iterable<string, array{string, array}>
 	 * @since   6.2.0
@@ -138,6 +170,13 @@ final class TemplatesTest extends TestCase
 			"\t}###INSTALLERMETHODS###\n}\n\nreturn new Com_###Component###InstallerScript();\n",
 			1,
 		];
+
+		foreach (['ADMIN_VIEWS_MODEL.php', 'CUSTOM_ADMIN_VIEWS_MODEL.php', 'CUSTOM_ADMIN_VIEW_MODEL.php', 'DASH_MODEL.php', 'SITE_VIEWS_MODEL.php', 'SITE_VIEW_MODEL.php'] as $name)
+		{
+			$changes[$name][] = ["\n \t", "\n\t", 2];
+		}
+
+		$changes['SITE_DISPLAY_CONTROLLER.php'][] = ["\t * \n", "\t *\n", 2];
 
 		foreach ($changes as $name => $replacements)
 		{

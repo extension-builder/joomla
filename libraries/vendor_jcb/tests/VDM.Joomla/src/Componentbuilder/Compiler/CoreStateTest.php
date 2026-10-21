@@ -70,7 +70,7 @@ final class CoreStateTest extends CompilerDomainTestCase
 				3 => ['folder_key' => 3, 'xml_version' => '3.10'],
 				4 => ['folder_key' => 4, 'xml_version' => '4.0'],
 				5 => ['folder_key' => 4, 'xml_version' => '5.0'],
-				6 => ['folder_key' => 4, 'xml_version' => '6.0'],
+				6 => ['folder_key' => 6, 'xml_version' => '6.0'],
 			],
 			$config->joomla_versions
 		);

@@ -245,9 +245,10 @@ Therefore:
 
 JCB currently recognizes Joomla 3, 4, 5, and 6 as compile targets in
 [`Compiler\Config`](../../libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Config.php).
-Joomla 4 through 6 can share a broad template family where their structures
-are identical, while distinct version services preserve their independent
-identity and future evolution.
+Joomla 4 and 5 share `admin/compiler/joomla_4`; Joomla 6 has its own
+`admin/compiler/joomla_6` set and `settings.json`. The existing target catalogue
+and Paths/Settings services select these directories. Distinct version services
+preserve each target’s identity and future evolution.
 
 Two version axes must remain explicit:
 

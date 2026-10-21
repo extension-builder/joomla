@@ -126,6 +126,55 @@ final class SettingsTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * Real target paths load complete built-in manifests through the existing loader.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testBuiltInTargetDirectoriesLoadThroughExistingSettings(): void
+	{
+		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler';
+		$targets = [
+			3 => [3, JoomlaThreeSettings::class],
+			4 => [4, JoomlaFourSettings::class],
+			5 => [4, JoomlaFiveSettings::class],
+			6 => [6, JoomlaSixSettings::class],
+		];
+
+		foreach ($targets as $target => [$folder, $class])
+		{
+			$config = $this->compilerConfig([
+				'compiler_path' => $root,
+				'joomla_version' => $target,
+				'component_code_name' => 'example',
+			]);
+			$component = $this->component();
+			$component->set('name_code', 'example');
+			$component->set('sales_name', 'Example');
+			$component->set('component_version', '1.0.0');
+			$paths = new Paths($config, $component);
+			$this->assertSame($root . '/joomla_' . $folder, $paths->template_path);
+			$event = $this->createMock(EventInterface::class);
+			$event->expects($this->once())->method('trigger')
+				->with('jcb_ce_onAfterSetJoomlaVersionData', $this->isArray());
+			$subject = new $class(
+				$config,
+				new Registry(),
+				$event,
+				new Placeholder($config),
+				$component,
+				$paths,
+				$this->createStub(Dynamicpath::class),
+				$this->createStub(Pathfix::class)
+			);
+			$this->assertTrue($subject->exists());
+			$this->assertObjectHasProperty('admin', $subject->structure());
+			$this->assertObjectHasProperty('admin', $subject->multiple());
+			$this->assertNotEmpty((array) $subject->single());
+		}
+	}
+
+	/**
 	 * Invalid template JSON cannot activate settings or trigger the loaded event.
 	 *
 	 * @return  void
