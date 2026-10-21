@@ -83,6 +83,11 @@ final class VersionedFilterFieldHelperTest extends ArchitectureTestCase
 			$this->filterField('status'),
 		]));
 
+		$this->assertStringContainsString(
+			$major === 6 ? '$query = $db->createQuery();' : '$query = $db->getQuery(true);',
+			$code
+		);
+
 		if ($major === 3)
 		{
 			$this->assertStringContainsString('___Power::getDbo();', $code);
@@ -156,7 +161,7 @@ final class VersionedFilterFieldHelperTest extends ArchitectureTestCase
 			$this->filterField('status'),
 		]));
 
-		$this->assertStringContainsString('$query = $db->getQuery(true);', $code);
+		$this->assertStringContainsString('$query = $db->createQuery();', $code);
 		$this->assertStringContainsString(
 			"\$query->select(\$db->quoteName('status'));", $code
 		);
@@ -165,6 +170,35 @@ final class VersionedFilterFieldHelperTest extends ArchitectureTestCase
 		);
 		$this->assertStringContainsString('$db->setQuery($query);', $code);
 		$this->assertStringContainsString('$_results = $db->loadColumn();', $code);
+	}
+
+	/**
+	 * Custom user filters use the same target-native fresh-query factory.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testCustomUserFilterCreatesTheTargetQuery(string $version, int $major): void
+	{
+		$field = $this->filterField('owner', 'owners');
+		$field['custom'] = [
+			'extends' => 'user',
+			'text' => 'name',
+			'id' => 'id',
+			'table' => '#__users',
+		];
+		$code = $this->helper($version, $this->filter([$field]));
+
+		$this->assertStringContainsString(
+			$major === 6 ? '$query = $db->createQuery();' : '$query = $db->getQuery(true);',
+			$code
+		);
+		$this->assertStringContainsString("quoteName('#__users', 'a')", $code);
+		$this->assertStringContainsString('$results = $db->loadObjectList();', $code);
 	}
 
 	/**
@@ -178,9 +212,9 @@ final class VersionedFilterFieldHelperTest extends ArchitectureTestCase
 	 */
 	private function helper(string $version, Filter $filter): string
 	{
-		// only Joomla 3 takes its database and user from the global factory
+		// Joomla 3 resolves globals; Joomla 6 creates queries without deprecated arguments.
 		$class = $this->targetClass(
-			$version, 'AdminViews\\FilterFieldHelper', ['JoomlaThree']
+			$version, 'AdminViews\\FilterFieldHelper', ['JoomlaThree', 'JoomlaSix']
 		);
 
 		$subject = $this->renderer($class, [

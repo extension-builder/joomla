@@ -37,7 +37,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\Router;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterConstructorDefault;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterConstructorManual;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterMethodsDefault;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\RouterMethodsDefault as J6RouterMethodsDefault;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterMethodsManual;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\RouterMethodsManual as J6RouterMethodsManual;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\FieldsetExtension;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\FieldsetString;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\FieldsetXML;
@@ -49,6 +51,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\FieldAsString;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Creator\Fieldtypeinterface as FieldType;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Creator\Fieldsetinterface as Fieldset;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Helper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\Helper as J6Helper;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\EmailHelper;
 
 
@@ -59,6 +62,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\EmailHelper;
  */
 class Creator implements ServiceProviderInterface
 {
+	/**
+	 * Compile target selected for this build scope.
+	 *
+	 * @var   int
+	 * @since 6.2.0
+	 */
+	protected int $targetVersion;
+
 	/**
 	 * Registers the service provider with a DI container.
 	 *
@@ -141,8 +152,18 @@ class Creator implements ServiceProviderInterface
 		$container->alias(RouterMethodsDefault::class, 'Compiler.Creator.Router.Methods.Default')
 			->share('Compiler.Creator.Router.Methods.Default', [$this, 'getRouterMethodsDefault'], true);
 
+		$container->share('Compiler.Creator.Router.Methods.Shared.Default', [$this, 'getSharedRouterMethodsDefault'], true);
+
+		$container->alias(J6RouterMethodsDefault::class, 'Compiler.Creator.Router.Methods.J6.Default')
+			->share('Compiler.Creator.Router.Methods.J6.Default', [$this, 'getJ6RouterMethodsDefault'], true);
+
 		$container->alias(RouterMethodsManual::class, 'Compiler.Creator.Router.Methods.Manual')
 			->share('Compiler.Creator.Router.Methods.Manual', [$this, 'getRouterMethodsManual'], true);
+
+		$container->share('Compiler.Creator.Router.Methods.Shared.Manual', [$this, 'getSharedRouterMethodsManual'], true);
+
+		$container->alias(J6RouterMethodsManual::class, 'Compiler.Creator.Router.Methods.J6.Manual')
+			->share('Compiler.Creator.Router.Methods.J6.Manual', [$this, 'getJ6RouterMethodsManual'], true);
 
 		$container->alias(FieldsetString::class, 'Compiler.Creator.Fieldset.String')
 			->share('Compiler.Creator.Fieldset.String', [$this, 'getFieldsetString'], true);
@@ -173,6 +194,11 @@ class Creator implements ServiceProviderInterface
 
 		$container->alias(Helper::class, 'Compiler.Creator.Helper')
 			->share('Compiler.Creator.Helper', [$this, 'getHelper'], true);
+
+		$container->share('Compiler.Creator.Shared.Helper', [$this, 'getSharedHelper'], true);
+
+		$container->alias(J6Helper::class, 'Compiler.Creator.J6.Helper')
+			->share('Compiler.Creator.J6.Helper', [$this, 'getJ6Helper'], true);
 
 		$container->alias(EmailHelper::class, 'Compiler.Creator.Email.Helper')
 			->share('Compiler.Creator.Email.Helper', [$this, 'getEmailHelper'], true);
@@ -661,7 +687,45 @@ class Creator implements ServiceProviderInterface
 	 */
 	public function getRouterMethodsDefault(Container $container): RouterMethodsDefault
 	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Compiler.Creator.Router.Methods.J6.Default');
+		}
+
+		return $container->get('Compiler.Creator.Router.Methods.Shared.Default');
+	}
+
+	/**
+	 * Build the RouterMethodsDefault renderer for shared targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  RouterMethodsDefault
+	 * @since   6.2.0
+	 */
+	public function getSharedRouterMethodsDefault(Container $container): RouterMethodsDefault
+	{
 		return new RouterMethodsDefault(
+			$container->get('Compiler.Builder.Router')
+		);
+	}
+
+	/**
+	 * Build the RouterMethodsDefault renderer for Joomla 6 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6RouterMethodsDefault
+	 * @since   6.2.0
+	 */
+	public function getJ6RouterMethodsDefault(Container $container): J6RouterMethodsDefault
+	{
+		return new J6RouterMethodsDefault(
 			$container->get('Compiler.Builder.Router')
 		);
 	}
@@ -676,7 +740,45 @@ class Creator implements ServiceProviderInterface
 	 */
 	public function getRouterMethodsManual(Container $container): RouterMethodsManual
 	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Compiler.Creator.Router.Methods.J6.Manual');
+		}
+
+		return $container->get('Compiler.Creator.Router.Methods.Shared.Manual');
+	}
+
+	/**
+	 * Build the RouterMethodsManual renderer for shared targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  RouterMethodsManual
+	 * @since   6.2.0
+	 */
+	public function getSharedRouterMethodsManual(Container $container): RouterMethodsManual
+	{
 		return new RouterMethodsManual(
+			$container->get('Compiler.Builder.Router')
+		);
+	}
+
+	/**
+	 * Build the RouterMethodsManual renderer for Joomla 6 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6RouterMethodsManual
+	 * @since   6.2.0
+	 */
+	public function getJ6RouterMethodsManual(Container $container): J6RouterMethodsManual
+	{
+		return new J6RouterMethodsManual(
 			$container->get('Compiler.Builder.Router')
 		);
 	}
@@ -909,7 +1011,48 @@ class Creator implements ServiceProviderInterface
 	 */
 	public function getHelper(Container $container): Helper
 	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Compiler.Creator.J6.Helper');
+		}
+
+		return $container->get('Compiler.Creator.Shared.Helper');
+	}
+
+	/**
+	 * Build the Helper renderer for shared targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  Helper
+	 * @since   6.2.0
+	 */
+	public function getSharedHelper(Container $container): Helper
+	{
 		return new Helper(
+			$container->get('Config'),
+			$container->get('Utilities.Structure'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi')
+		);
+	}
+
+	/**
+	 * Build the Helper renderer for Joomla 6 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6Helper
+	 * @since   6.2.0
+	 */
+	public function getJ6Helper(Container $container): J6Helper
+	{
+		return new J6Helper(
 			$container->get('Config'),
 			$container->get('Utilities.Structure'),
 			$container->get('Compiler.Builder.Content.One'),
@@ -936,4 +1079,3 @@ class Creator implements ServiceProviderInterface
 		);
 	}
 }
-

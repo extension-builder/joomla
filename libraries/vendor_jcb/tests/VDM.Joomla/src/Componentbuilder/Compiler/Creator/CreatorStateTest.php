@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Creator;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesTrait;
@@ -42,6 +43,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\TabCounter;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\CustomButtonPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Helper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\Helper as J6Helper;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Layout;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\SiteFieldData;
@@ -58,6 +60,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
  */
 #[CoversClass(CustomButtonPermissions::class)]
 #[CoversClass(Helper::class)]
+#[CoversClass(J6Helper::class)]
 #[CoversClass(Layout::class)]
 #[CoversClass(Permission::class)]
 #[CoversClass(SiteFieldData::class)]
@@ -88,6 +91,23 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 #[UsesTrait(PathCount::class)]
 final class CreatorStateTest extends CreatorTestCase
 {
+	/**
+	 * Compile targets and the exact fresh-query API they emit.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.0
+	 */
+	public static function queryTargets(): array
+	{
+		return [
+			'Joomla 3' => [3, 'getQuery(true)'],
+			'Joomla 4' => [4, 'getQuery(true)'],
+			'Joomla 5' => [5, 'getQuery(true)'],
+			'Joomla 6' => [6, 'createQuery()'],
+		];
+	}
+
+
 	/**
 	 * Register decode, UIkit, and textarea metadata without duplicate decoders.
 	 *
@@ -219,11 +239,16 @@ final class CreatorStateTest extends CreatorTestCase
 	/**
 	 * Build both help structures and inject version-aware generated methods.
 	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testHelperBuildsStructuresAndInjectsGeneratedMethods(): void
+	#[DataProvider('queryTargets')]
+	public function testHelperBuildsStructuresAndInjectsGeneratedMethods(int $major, string $queryMethod): void
 	{
+		$helperClass = $major === 6 ? J6Helper::class : Helper::class;
 		$buildCalls = [];
 		$structure = $this->createStub(Structure::class);
 		$structure->method('build')->willReturnCallback(
@@ -236,9 +261,9 @@ final class CreatorStateTest extends CreatorTestCase
 		);
 		$contentOne = new ContentOne();
 		$contentMulti = new ContentMulti();
-		$subject = new Helper(
+		$subject = new $helperClass(
 			$this->config([
-				'joomla_version' => 5,
+				'joomla_version' => $major,
 				'component_code_name' => 'demo'
 			]),
 			$structure,
@@ -252,7 +277,9 @@ final class CreatorStateTest extends CreatorTestCase
 			[['admin' => 'help'], 'help'],
 			[['site' => 'help'], 'help']
 		], $buildCalls);
-		$this->assertStringContainsString('getApplication()->getIdentity()', $contentOne->get('HELP'));
+		$this->assertStringContainsString($major === 3 ? '::getUser();' : 'getApplication()->getIdentity()', $contentOne->get('HELP'));
+		$this->assertStringContainsString('->' . $queryMethod . ';', $contentOne->get('HELP'));
+		$this->assertStringContainsString('->' . $queryMethod . ';', $contentOne->get('HELP_SITE'));
 		$this->assertStringContainsString("a.admin_view = ", $contentOne->get('HELP'));
 		$this->assertStringContainsString("a.site_view = ", $contentOne->get('HELP_SITE'));
 		$this->assertSame('blabla', $contentMulti->get('help|BLABLA'));

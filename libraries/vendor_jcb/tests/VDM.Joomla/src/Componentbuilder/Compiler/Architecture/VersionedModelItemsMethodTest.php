@@ -39,6 +39,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Creator\CustomFieldTypeFileI
 final class VersionedModelItemsMethodTest extends ArchitectureTestCase
 {
 	/**
+	 * Joomla 6 changes only the fresh-query call in the shared modern output.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testJoomlaSixPreservesEveryOtherQueryFragment(): void
+	{
+		$this->assertSame(
+			str_replace('->getQuery(true)', '->createQuery()', $this->method('JoomlaFive')),
+			$this->method('JoomlaSix')
+		);
+	}
+
+	/**
 	 * Supported Joomla target namespace segments.
 	 *
 	 * @return  array<string, array{string,int}>
@@ -67,6 +81,11 @@ final class VersionedModelItemsMethodTest extends ArchitectureTestCase
 	public function testTheUserAndDatabaseLookupFollowsTheTarget(string $version, int $major): void
 	{
 		$code = $this->method($version);
+
+		$this->assertStringContainsString(
+			$major === 6 ? '$query = $db->createQuery();' : '$query = $db->getQuery(true);',
+			$code
+		);
 
 		if ($major === 3)
 		{
@@ -126,7 +145,7 @@ final class VersionedModelItemsMethodTest extends ArchitectureTestCase
 	{
 		$code = $this->method('JoomlaSix');
 
-		$this->assertStringContainsString('$query = $db->getQuery(true);', $code);
+		$this->assertStringContainsString('$query = $db->createQuery();', $code);
 		$this->assertStringContainsString(
 			"\$query->from(\$db->quoteName('#__demo_article', 'a'));", $code
 		);
@@ -214,9 +233,9 @@ final class VersionedModelItemsMethodTest extends ArchitectureTestCase
 	private function method(string $version, array $overrides = [],
 		?array $config = null): string
 	{
-		// only Joomla 3 takes its user and database from the global factory
+		// Joomla 3 resolves globals; Joomla 6 creates queries without deprecated arguments.
 		$class = $this->targetClass(
-			$version, 'Model\\ItemsMethod', ['JoomlaThree']
+			$version, 'Model\\ItemsMethod', ['JoomlaThree', 'JoomlaSix']
 		);
 
 		$contentone = new ContentOne();

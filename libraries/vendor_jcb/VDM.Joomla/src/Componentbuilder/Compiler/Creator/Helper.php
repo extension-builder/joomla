@@ -32,7 +32,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
  * 
  * @since 5.1.4
  */
-final class Helper
+class Helper
 {
 	/**
 	 * The Config Class.
@@ -65,6 +65,14 @@ final class Helper
 	 * @since 5.1.4
 	 */
 	protected ContentMulti $contentmulti;
+
+	/**
+	 * Fresh-query method emitted by this target renderer.
+	 *
+	 * @var   string
+	 * @since 6.2.0
+	 */
+	protected string $queryMethod = 'getQuery(true)';
 
 	/**
 	 * Constructor.
@@ -201,7 +209,7 @@ final class Helper
 			$help[] = Indent::_(2) . "\$db	= Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getContainer()->get(Joomla__"."_7bd29d76_73c9_4c07_a5da_4f7a32aff78f___Power::class);";
 		}
 
-		$help[] = Indent::_(2) . "\$query	= \$db->getQuery(true);";
+		$help[] = Indent::_(2) . "\$query	= \$db->{$this->queryMethod};";
 		$help[] = Indent::_(2) . "\$query->select(array('a.id','a.groups','a.target','a.type','a.article','a.url'));";
 		$help[] = Indent::_(2) . "\$query->from('#__" . $this->config->component_code_name . "_help_document AS a');";
 		$help[] = Indent::_(2) . "\$query->where('a." . $target . " = '.\$db->quote(\$view));";
@@ -266,4 +274,3 @@ final class Helper
 		return implode(PHP_EOL, $help);
 	}
 }
-

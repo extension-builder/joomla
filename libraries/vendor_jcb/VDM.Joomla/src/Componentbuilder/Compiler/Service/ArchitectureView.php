@@ -63,6 +63,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead as Lin
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface as LinkedViewListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListQuery as SharedLinkedViewListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListQuery as J3LinkedViewListQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\LinkedView\ListQuery as J6LinkedViewListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListBodyInterface as LinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListBody as SharedLinkedViewListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\LinkedView\ListBody as J3LinkedViewListBody;
@@ -93,6 +94,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldFile
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\FilterFieldHelperInterface as AdminViewsFilterFieldHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\FilterFieldHelper as SharedAdminViewsFilterFieldHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\FilterFieldHelper as J3AdminViewsFilterFieldHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\FilterFieldHelper as J6AdminViewsFilterFieldHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListBodyInterface as AdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListBody as SharedAdminViewsListBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ListBody as J3AdminViewsListBody;
@@ -336,6 +338,9 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(J3LinkedViewListQuery::class, 'Architecture.LinkedView.J3.ListQuery')
 			->share('Architecture.LinkedView.J3.ListQuery', [$this, 'getJ3LinkedViewListQuery'], true);
 
+		$container->alias(J6LinkedViewListQuery::class, 'Architecture.LinkedView.J6.ListQuery')
+			->share('Architecture.LinkedView.J6.ListQuery', [$this, 'getJ6LinkedViewListQuery'], true);
+
 		$container->alias(LinkedViewListBody::class, 'Architecture.LinkedView.ListBody')
 			->share('Architecture.LinkedView.ListBody', [$this, 'getLinkedViewListBody'], true);
 
@@ -476,6 +481,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J3AdminViewsFilterFieldHelper::class, 'Architecture.AdminViews.J3.FilterFieldHelper')
 			->share('Architecture.AdminViews.J3.FilterFieldHelper', [$this, 'getJ3AdminViewsFilterFieldHelper'], true);
+
+		$container->alias(J6AdminViewsFilterFieldHelper::class, 'Architecture.AdminViews.J6.FilterFieldHelper')
+			->share('Architecture.AdminViews.J6.FilterFieldHelper', [$this, 'getJ6AdminViewsFilterFieldHelper'], true);
 
 		$container->alias(AdminViewsListBody::class, 'Architecture.AdminViews.ListBody')
 			->share('Architecture.AdminViews.ListBody', [$this, 'getAdminViewsListBody'], true);
@@ -1443,6 +1451,11 @@ class ArchitectureView implements ServiceProviderInterface
 			return $container->get('Architecture.LinkedView.J3.ListQuery');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.LinkedView.J6.ListQuery');
+		}
+
 		return $container->get('Architecture.LinkedView.Shared.ListQuery');
 	}
 
@@ -1483,6 +1496,33 @@ class ArchitectureView implements ServiceProviderInterface
 	public function getJ3LinkedViewListQuery(Container $container): J3LinkedViewListQuery
 	{
 		return new J3LinkedViewListQuery(
+			$container->get('Config'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Field.Database.Name'),
+			$container->get('Architecture.Model.CustomQuery'),
+			$container->get('Architecture.Model.ItemsStringFix'),
+			$container->get('Architecture.Model.SelectionTranslation'),
+			$container->get('Architecture.Model.SelectionTranslationMethod'),
+			$container->get('Compiler.Builder.Access.Switch'),
+			$container->get('Compiler.Builder.Category'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Field.Names'),
+			$container->get('Compiler.Builder.Views.Default.Ordering')
+		);
+	}
+
+
+	/**
+	 * Get The LinkedView ListQuery Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6LinkedViewListQuery
+	 * @since   6.2.0
+	 */
+	public function getJ6LinkedViewListQuery(Container $container): J6LinkedViewListQuery
+	{
+		return new J6LinkedViewListQuery(
 			$container->get('Config'),
 			$container->get('Customcode.Dispenser'),
 			$container->get('Field.Database.Name'),
@@ -2584,6 +2624,11 @@ class ArchitectureView implements ServiceProviderInterface
 			return $container->get('Architecture.AdminViews.J3.FilterFieldHelper');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.AdminViews.J6.FilterFieldHelper');
+		}
+
 		return $container->get('Architecture.AdminViews.Shared.FilterFieldHelper');
 	}
 
@@ -2618,6 +2663,27 @@ class ArchitectureView implements ServiceProviderInterface
 	public function getJ3AdminViewsFilterFieldHelper(Container $container): J3AdminViewsFilterFieldHelper
 	{
 		return new J3AdminViewsFilterFieldHelper(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Filter'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Compiler.Builder.Selection.Translation'),
+			$container->get('Architecture.Field.CustomFieldCode'),
+			$container->get('Architecture.AdminViews.FilterFieldFile')
+		);
+	}
+
+
+	/**
+	 * Get The AdminViews FilterFieldHelper Class for Joomla 6.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6AdminViewsFilterFieldHelper
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewsFilterFieldHelper(Container $container): J6AdminViewsFilterFieldHelper
+	{
+		return new J6AdminViewsFilterFieldHelper(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Filter'),
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
@@ -3781,4 +3847,3 @@ class ArchitectureView implements ServiceProviderInterface
 		);
 	}
 }
-

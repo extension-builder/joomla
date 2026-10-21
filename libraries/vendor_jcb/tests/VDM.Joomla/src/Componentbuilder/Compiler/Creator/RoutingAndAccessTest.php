@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Creator;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesTrait;
 use VDM\Joomla\Abstraction\ActiveRegistry;
@@ -28,7 +29,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\Router;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterConstructorDefault;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterConstructorManual;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterMethodsDefault;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\RouterMethodsDefault as J6RouterMethodsDefault;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterMethodsManual;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\RouterMethodsManual as J6RouterMethodsManual;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
@@ -48,7 +51,9 @@ use VDM\Joomla\Utilities\StringHelper;
 #[CoversClass(RouterConstructorDefault::class)]
 #[CoversClass(RouterConstructorManual::class)]
 #[CoversClass(RouterMethodsDefault::class)]
+#[CoversClass(J6RouterMethodsDefault::class)]
 #[CoversClass(RouterMethodsManual::class)]
+#[CoversClass(J6RouterMethodsManual::class)]
 #[UsesClass(CategoryCode::class)]
 #[UsesClass(RequestBuilder::class)]
 #[UsesClass(RouterBuilder::class)]
@@ -62,6 +67,23 @@ use VDM\Joomla\Utilities\StringHelper;
 #[UsesTrait(IsArray::class)]
 final class RoutingAndAccessTest extends CreatorTestCase
 {
+	/**
+	 * Compile targets and the exact fresh-query API they emit.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.0
+	 */
+	public static function queryTargets(): array
+	{
+		return [
+			'Joomla 3' => [3, 'getQuery(true)'],
+			'Joomla 4' => [4, 'getQuery(true)'],
+			'Joomla 5' => [5, 'getQuery(true)'],
+			'Joomla 6' => [6, 'createQuery()'],
+		];
+	}
+
+
 	/**
 	 * Emit category permissions only for the category mapped to this view.
 	 *
@@ -168,11 +190,17 @@ final class RoutingAndAccessTest extends CreatorTestCase
 	/**
 	 * Generate routing methods only for views with both key and alias metadata.
 	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testRouterMethodStrategiesBuildKeyedMethodsAndSkipLists(): void
+	#[DataProvider('queryTargets')]
+	public function testRouterMethodStrategiesBuildKeyedMethodsAndSkipLists(int $major, string $queryMethod): void
 	{
+		$routerMethodsManualClass = $major === 6 ? J6RouterMethodsManual::class : RouterMethodsManual::class;
+		$routerMethodsDefaultClass = $major === 6 ? J6RouterMethodsDefault::class : RouterMethodsDefault::class;
 		$builder = new RouterBuilder();
 		$builder->set('views', [
 			(object) [
@@ -190,10 +218,11 @@ final class RoutingAndAccessTest extends CreatorTestCase
 				'table' => '#__demo_article'
 			]
 		]);
-		$default = (new RouterMethodsDefault($builder))->get();
-		$manual = (new RouterMethodsManual($builder))->get();
+		$default = (new $routerMethodsDefaultClass($builder))->get();
+		$manual = (new $routerMethodsManualClass($builder))->get();
 
 		$this->assertSame($default, $manual);
+		$this->assertSame(2, substr_count($default, '$dbquery = $this->db->' . $queryMethod . ';'));
 		$this->assertStringContainsString('public function getArticleId($segment, $query)', $default);
 		$this->assertStringContainsString("->from(\$this->db->quoteName('#__demo_article'))", $default);
 		$this->assertStringContainsString("\$this->db->quoteName('alias') . ' = :alias'", $default);

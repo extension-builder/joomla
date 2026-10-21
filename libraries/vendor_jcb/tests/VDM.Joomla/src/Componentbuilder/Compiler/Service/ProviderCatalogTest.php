@@ -75,9 +75,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '9441e4b653baea61fae9536896c4121bb56b9fde3bbc259ce20b57bf08cbba03'
 		]];
 		yield 'architecture model' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel::class, [
-			'aliases' => 60,
-			'services' => 60,
-			'hash' => '9b80de2f8ec70d4406b497efd41b27faeb2b5f3264efaf60af62aac9fa3bf31c'
+			'aliases' => 62,
+			'services' => 62,
+			'hash' => '6dbf3d678b536702e75f4847e11e00ade0ff9653d284f6d14d09492b55db1962'
 		]];
 		yield 'architecture module' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModule::class, [
 			'aliases' => 30,
@@ -90,9 +90,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '74ef0d41f9435d40a407239201ab42e9a06a0062048300d55fb3f3254ad007da'
 		]];
 		yield 'architecture view' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class, [
-			'aliases' => 155,
-			'services' => 155,
-			'hash' => 'b446d74f6ae5f9e36ae9251999ba744f92aee414ac36f6f982becf117a188f57'
+			'aliases' => 157,
+			'services' => 157,
+			'hash' => '98fa071f1205c3550cdece7151c93b3d0ac830a9394bc771aa029d8c57c8a81c'
 		]];
 		yield 'builder A-J' => [\VDM\Joomla\Componentbuilder\Compiler\Service\BuilderAJ::class, [
 			'aliases' => 57,
@@ -115,9 +115,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '41760cddcc1913b67f2843aa97a6cc9b127a4a53902286156681cc0a6f243069'
 		]];
 		yield 'creator' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Creator::class, [
-			'aliases' => 36,
-			'services' => 36,
-			'hash' => 'e466ab8a4c8e2ba42afaec5a750b1cb9f6f38ec00bbeb3516242bcad59b90639'
+			'aliases' => 39,
+			'services' => 42,
+			'hash' => '95309f9f399725ebba1a21064763d976bec231962bbcbb3fa12845ddc6d9d2e7'
 		]];
 		yield 'custom code' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Customcode::class, [
 			'aliases' => 8,
@@ -125,9 +125,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '7a58f40d2e5c46a240a18f67a6c2922acddc5cbd791bf6c9793c70e9fafc7013'
 		]];
 		yield 'custom view' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Customview::class, [
-			'aliases' => 20,
-			'services' => 20,
-			'hash' => 'fc0c05935c931e9cf0da3f285176450eb555034f3eb9e2a9c9681123557549d3'
+			'aliases' => 23,
+			'services' => 26,
+			'hash' => '1d05c9622709c57c71dd42a32da60fab400425ff46a4d3c2fd3981ad2bdee8ef'
 		]];
 		yield 'event' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Event::class, [
 			'aliases' => 5,
