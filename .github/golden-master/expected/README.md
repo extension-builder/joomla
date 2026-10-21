@@ -148,3 +148,27 @@ tree `08c591c004edb3fef81bc016049d13274289833b`. Applying the unmodified raw dif
 to the baseline produces exactly that candidate tree. The fixture encodes those
 original 29,018 diff bytes, including CRLF, without normalization. The hosted
 installed scale probe still runs after the exact output gate accepts this change.
+
+## Joomla 6 conventional template set
+
+The Joomla 6 patch above now includes the reviewed result from candidate
+`08687700715eeb364e500bcdddf6c11c57e92c84`, which moves the template inputs into
+the existing `admin/compiler/joomla_6` directory/settings convention.
+Evidence: [workflow run 39613078343](https://github.com/extension-builder/joomla/actions/runs/39613078343),
+artifact `12352151236` (`golden-master-j6`), SHA-256
+`ce479a1c1359ce2644787e4a17e39aa163ffc51cead8d7e6746c072a00769dd6`.
+
+The 252-file baseline remains byte- and mode-identical. Relative to the previous
+reviewed candidate, only ten whitespace lines change across five PHP files:
+eight leading spaces before array-closing brackets in administrator
+`GreetingsModel`/`HelloworldModel` and site `GreetModel`/`GreetingsModel`, plus
+two trailing spaces on blank docblock lines in site `DisplayController`.
+These came from enforcing the repository whitespace gate on the copied inputs.
+There are no additional semantic changes, path changes, executable-mode changes,
+or Power evidence changes. Joomla 3, 4 and 5 pass strict output equality.
+
+The complete unmodified hosted diff is now 32,182 bytes, covering 20 paths with
+90 added and 85 removed lines. Decoding and applying the fixture to baseline
+tree `bf6de0d9ff6d1e78caf16d4d8fbb626a7e68c69b` reproduces candidate tree
+`42329c022992d2be6a404558714c1aaea72582f8` exactly. The context is unchanged.
+The subsequent installed scale probe remains required on the rerun.
