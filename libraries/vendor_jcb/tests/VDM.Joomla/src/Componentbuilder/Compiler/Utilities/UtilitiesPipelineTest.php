@@ -15,12 +15,15 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Utilities;
 use FilesystemIterator;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
+use VDM\Joomla\Componentbuilder\Compiler\Component\Template;
+use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaSix\Template as JoomlaSixTemplate;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data as ComponentData;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface;
@@ -306,10 +309,14 @@ final class UtilitiesPipelineTest extends CompilerDomainTestCase
 	/**
 	 * Structure copies matching templates and records the generated file contract.
 	 *
+	 * @param   bool  $native  Use the Joomla 6 source resolver.
+	 * @param   bool  $custom  Preserve custom source precedence.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testStructureBuildsMatchingTemplateAndClearsTemporaryPlaceholders(): void
+	#[DataProvider('templateSources')]
+	public function testStructureBuildsMatchingTemplateAndClearsTemporaryPlaceholders(bool $native, bool $custom): void
 	{
 		$root = sys_get_temp_dir() . '/jcb-structure-' . bin2hex(random_bytes(5));
 		$template = $root . '/templates';
@@ -332,6 +339,13 @@ final class UtilitiesPipelineTest extends CompilerDomainTestCase
 			if (file_put_contents($template . '/template.php', 'template-content') === false)
 			{
 				throw new RuntimeException('Unable to write the structure template fixture.');
+			}
+
+			$overlay = $root . '/overlay';
+			if (!mkdir($overlay, 0700)
+				|| file_put_contents($overlay . '/template.php.tpl', 'native-content') === false)
+			{
+				throw new RuntimeException('Unable to create the native template fixture.');
 			}
 
 			$config = $this->compilerConfig();
@@ -409,11 +423,12 @@ final class UtilitiesPipelineTest extends CompilerDomainTestCase
 				$counter,
 				$file,
 				$files,
+				$native ? new JoomlaSixTemplate($paths, $overlay, $custom ? $root . '/built-in' : $template) : new Template($paths),
 				$this->createStub(CMSApplicationInterface::class)
 			);
 
 			$this->assertTrue($subject->build(['main' => 'Article'], 'view', null, ['client' => 'admin']));
-			$this->assertSame('template-content', file_get_contents($root . '/admin/article/article.php'));
+			$this->assertSame($native && !$custom ? 'native-content' : 'template-content', file_get_contents($root . '/admin/article/article.php'));
 			$this->assertSame('article.php', $files->get('dynamic.article.0.name'));
 			$this->assertSame(['client' => 'admin'], $files->get('dynamic.article.0.config'));
 			$this->assertFalse($placeholder->exist('Name'));
@@ -428,6 +443,21 @@ final class UtilitiesPipelineTest extends CompilerDomainTestCase
 				$this->removeTemporaryDirectory($root);
 			}
 		}
+	}
+
+	/**
+	 * Shared, native, and explicit custom template source cases.
+	 *
+	 * @return  array<string, array{bool, bool}>
+	 * @since   6.1.7
+	 */
+	public static function templateSources(): array
+	{
+		return [
+			'shared' => [false, false],
+			'Joomla 6 native overlay' => [true, false],
+			'custom source precedence' => [true, true]
+		];
 	}
 
 	/**

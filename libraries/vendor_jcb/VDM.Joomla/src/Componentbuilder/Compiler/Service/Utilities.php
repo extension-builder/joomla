@@ -257,7 +257,8 @@ class Utilities implements ServiceProviderInterface
 			$container->get('Utilities.Paths'),
 			$container->get('Utilities.Counter'),
 			$container->get('Utilities.File'),
-			$container->get('Utilities.Files')
+			$container->get('Utilities.Files'),
+			$container->get('Component.Template')
 		);
 	}
 
@@ -371,4 +372,3 @@ class Utilities implements ServiceProviderInterface
 		return new Normalize();
 	}
 }
-
