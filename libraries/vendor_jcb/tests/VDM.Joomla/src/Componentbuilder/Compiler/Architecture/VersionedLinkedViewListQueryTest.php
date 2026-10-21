@@ -39,6 +39,20 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 final class VersionedLinkedViewListQueryTest extends ArchitectureTestCase
 {
 	/**
+	 * Joomla 6 changes only the fresh-query call in the shared modern output.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testJoomlaSixPreservesEveryOtherQueryFragment(): void
+	{
+		$this->assertSame(
+			str_replace('->getQuery(true)', '->createQuery()', $this->query('JoomlaFive')),
+			$this->query('JoomlaSix')
+		);
+	}
+
+	/**
 	 * Supported Joomla target namespace segments.
 	 *
 	 * @return  array<string, array{string,int}>
@@ -67,6 +81,11 @@ final class VersionedLinkedViewListQueryTest extends ArchitectureTestCase
 	public function testTheUserAndDatabaseLookupFollowTheTarget(string $version, int $major): void
 	{
 		$code = $this->query($version);
+
+		$this->assertStringContainsString(
+			$major === 6 ? '$query = $db->createQuery();' : '$query = $db->getQuery(true);',
+			$code
+		);
 
 		if ($major === 3)
 		{
@@ -246,9 +265,9 @@ final class VersionedLinkedViewListQueryTest extends ArchitectureTestCase
 	private function query(string $version, string $key = 'article',
 		array $overrides = []): string
 	{
-		// only Joomla 3 takes its user and database from the global factory
+		// Joomla 3 resolves globals; Joomla 6 creates queries without deprecated arguments.
 		$class = $this->targetClass(
-			$version, 'LinkedView\\ListQuery', ['JoomlaThree']
+			$version, 'LinkedView\\ListQuery', ['JoomlaThree', 'JoomlaSix']
 		);
 
 		$contentone = new ContentOne();

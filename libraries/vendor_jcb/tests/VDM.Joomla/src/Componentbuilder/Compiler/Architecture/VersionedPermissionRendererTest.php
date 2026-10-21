@@ -74,7 +74,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminView/FootableScripts' => $legacy,
 			'AdminViews/AddToolBar' => $all,
 			'AdminViews/DisplayMethod' => $legacy,
-			'AdminViews/FilterFieldHelper' => $legacy,
+			'AdminViews/FilterFieldHelper' => ['JoomlaThree', 'JoomlaSix'],
 			'AdminViews/ListBody' => $legacy,
 			'AdminViews/ListHead' => $legacy,
 			'AdminViews/ViewBody' => $legacy,
@@ -96,12 +96,12 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Model/BatchMove' => $legacy,
 			'Model/GetForm' => $legacy,
 			'Model/ItemSave' => $legacy,
-			'Model/ItemsMethod' => $legacy,
+			'Model/ItemsMethod' => ['JoomlaThree', 'JoomlaSix'],
 			'Model/ItemsStringFix' => $legacy,
-			'Model/ListQuery' => $legacy,
+			'Model/ListQuery' => ['JoomlaThree', 'JoomlaSix'],
 			'LinkedView/Builder' => ['JoomlaThree', 'JoomlaFour'],
 			'LinkedView/ListBody' => $legacy,
-			'LinkedView/ListQuery' => $legacy,
+			'LinkedView/ListQuery' => ['JoomlaThree', 'JoomlaSix'],
 			'Module/Dispatcher' => $all,
 			'Module/Helper' => $all,
 			'Module/Library' => $all,
@@ -277,6 +277,29 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 		);
 
 		$method = $subject->getMethod('articles', 'demo');
+
+		if ($major === 6)
+		{
+			$this->assertSame(2, substr_count($method, '$query = $db->createQuery();'));
+			$this->assertSame(1, substr_count($method, '$query->setLimit(1);'));
+			$this->assertStringContainsString(
+				"\t\t\t\$query->setLimit(1);" . PHP_EOL . "\t\t\t\$db->setQuery(\$query);",
+				$method
+			);
+			$this->assertStringNotContainsString('getQuery(true)', $method);
+			$this->assertStringNotContainsString('setQuery($query, 0, 1)', $method);
+			// The second, fresh query updates every expired checkout without a limit.
+			$update = substr($method, strrpos($method, '$query = $db->createQuery();'));
+			$this->assertStringContainsString('$query->update(', $update);
+			$this->assertStringNotContainsString('setLimit', $update);
+		}
+		else
+		{
+			$this->assertSame(2, substr_count($method, '$query = $db->getQuery(true);'));
+			$this->assertStringContainsString('$db->setQuery($query, 0, 1);', $method);
+			$this->assertStringNotContainsString('createQuery()', $method);
+		}
+
 
 		$this->assertStringContainsString("getParams('com_demo')->get('check_in')", $method);
 		$this->assertStringContainsString("quoteName('#__demo_articles')", $method);

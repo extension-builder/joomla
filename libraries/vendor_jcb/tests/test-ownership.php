@@ -908,6 +908,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedLinkedViewListQueryTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/LinkedView/ListQuery.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedLinkedViewListQueryTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/LinkedView/ListQuery.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedLinkedViewListQueryTest.php'
@@ -981,6 +985,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelGetFormTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/ItemsMethod.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemsMethodTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/ItemsMethod.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemsMethodTest.php'
 	],
@@ -1332,6 +1340,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelListQueryTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/ListQuery.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelListQueryTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Model/ListQuery.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelListQueryTest.php'
@@ -1353,6 +1365,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/FilterFieldSupportTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/FilterFieldHelper.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedFilterFieldHelperTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/FilterFieldHelper.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedFilterFieldHelperTest.php'
 	],
@@ -2720,6 +2736,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/CreatorStateTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaSix/Helper.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/CreatorStateTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/Layout.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/CreatorStateTest.php'
@@ -2748,7 +2768,15 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/RoutingAndAccessTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaSix/RouterMethodsDefault.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/RoutingAndAccessTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/RouterMethodsManual.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/RoutingAndAccessTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaSix/RouterMethodsManual.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/RoutingAndAccessTest.php'
 	],
@@ -2796,6 +2824,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ItemOrchestrationTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/JoomlaSix/CustomGetMethods.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ItemOrchestrationTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/CustomJoin.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/QueryCompositionTest.php'
@@ -2820,6 +2852,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ItemOrchestrationTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/JoomlaSix/GetItem.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ItemOrchestrationTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/GetItems.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ItemOrchestrationTest.php'
@@ -2833,6 +2869,10 @@ return [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/FieldRendererTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/ListQuery.php' => [
+		'mode' => 'contract',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/QueryCompositionTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/JoomlaSix/ListQuery.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Dynamicget/QueryCompositionTest.php'
 	],

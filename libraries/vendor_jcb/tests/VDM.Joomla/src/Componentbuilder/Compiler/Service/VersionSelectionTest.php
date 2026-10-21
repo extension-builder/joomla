@@ -28,6 +28,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModule;
 use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitecturePlugin;
 use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Component;
+use VDM\Joomla\Componentbuilder\Compiler\Service\Customview;
+use VDM\Joomla\Componentbuilder\Compiler\Service\Creator;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Event;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Extension;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Field;
@@ -53,6 +55,8 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(ArchitecturePlugin::class)]
 #[CoversClass(ArchitectureView::class)]
 #[CoversClass(Component::class)]
+#[CoversClass(Customview::class)]
+#[CoversClass(Creator::class)]
 #[CoversClass(Event::class)]
 #[CoversClass(Extension::class)]
 #[CoversClass(Field::class)]
@@ -205,6 +209,76 @@ final class VersionSelectionTest extends TestCase
 	 */
 	public static function collapsedTargetSelectors(): iterable
 	{
+		yield 'ArchitectureModel getModelListQuery fresh query' => [ArchitectureModel::class, 'getModelListQuery', [
+			3 => 'Architecture.Model.J3.ListQuery',
+			4 => 'Architecture.Model.Shared.ListQuery',
+			5 => 'Architecture.Model.Shared.ListQuery',
+			6 => 'Architecture.Model.J6.ListQuery',
+		]];
+
+		yield 'ArchitectureModel getModelItemsMethod fresh query' => [ArchitectureModel::class, 'getModelItemsMethod', [
+			3 => 'Architecture.Model.J3.ItemsMethod',
+			4 => 'Architecture.Model.Shared.ItemsMethod',
+			5 => 'Architecture.Model.Shared.ItemsMethod',
+			6 => 'Architecture.Model.J6.ItemsMethod',
+		]];
+
+		yield 'ArchitectureView getLinkedViewListQuery fresh query' => [ArchitectureView::class, 'getLinkedViewListQuery', [
+			3 => 'Architecture.LinkedView.J3.ListQuery',
+			4 => 'Architecture.LinkedView.Shared.ListQuery',
+			5 => 'Architecture.LinkedView.Shared.ListQuery',
+			6 => 'Architecture.LinkedView.J6.ListQuery',
+		]];
+
+		yield 'ArchitectureView getAdminViewsFilterFieldHelper fresh query' => [ArchitectureView::class, 'getAdminViewsFilterFieldHelper', [
+			3 => 'Architecture.AdminViews.J3.FilterFieldHelper',
+			4 => 'Architecture.AdminViews.Shared.FilterFieldHelper',
+			5 => 'Architecture.AdminViews.Shared.FilterFieldHelper',
+			6 => 'Architecture.AdminViews.J6.FilterFieldHelper',
+		]];
+
+		yield 'Creator getRouterMethodsDefault fresh query' => [Creator::class, 'getRouterMethodsDefault', [
+			3 => 'Compiler.Creator.Router.Methods.Shared.Default',
+			4 => 'Compiler.Creator.Router.Methods.Shared.Default',
+			5 => 'Compiler.Creator.Router.Methods.Shared.Default',
+			6 => 'Compiler.Creator.Router.Methods.J6.Default',
+		]];
+
+		yield 'Creator getRouterMethodsManual fresh query' => [Creator::class, 'getRouterMethodsManual', [
+			3 => 'Compiler.Creator.Router.Methods.Shared.Manual',
+			4 => 'Compiler.Creator.Router.Methods.Shared.Manual',
+			5 => 'Compiler.Creator.Router.Methods.Shared.Manual',
+			6 => 'Compiler.Creator.Router.Methods.J6.Manual',
+		]];
+
+		yield 'Creator getHelper fresh query' => [Creator::class, 'getHelper', [
+			3 => 'Compiler.Creator.Shared.Helper',
+			4 => 'Compiler.Creator.Shared.Helper',
+			5 => 'Compiler.Creator.Shared.Helper',
+			6 => 'Compiler.Creator.J6.Helper',
+		]];
+
+		yield 'Customview getGetItem fresh query' => [Customview::class, 'getGetItem', [
+			3 => 'Dynamicget.Shared.GetItem',
+			4 => 'Dynamicget.Shared.GetItem',
+			5 => 'Dynamicget.Shared.GetItem',
+			6 => 'Dynamicget.J6.GetItem',
+		]];
+
+		yield 'Customview getCustomGetMethods fresh query' => [Customview::class, 'getCustomGetMethods', [
+			3 => 'Dynamicget.Shared.CustomGetMethods',
+			4 => 'Dynamicget.Shared.CustomGetMethods',
+			5 => 'Dynamicget.Shared.CustomGetMethods',
+			6 => 'Dynamicget.J6.CustomGetMethods',
+		]];
+
+		yield 'Customview getListQuery fresh query' => [Customview::class, 'getListQuery', [
+			3 => 'Dynamicget.Shared.ListQuery',
+			4 => 'Dynamicget.Shared.ListQuery',
+			5 => 'Dynamicget.Shared.ListQuery',
+			6 => 'Dynamicget.J6.ListQuery',
+		]];
+
 		yield 'model allow edit' => [ArchitectureModel::class, 'getModelAllowEdit', [
 			3 => 'Architecture.Model.J3.AllowEdit',
 			4 => 'Architecture.Model.Shared.AllowEdit',

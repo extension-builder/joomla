@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Dynamicget;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\EventDispatcher;
@@ -27,11 +28,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\SiteDecrypt;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SiteFieldData;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\SiteFieldDecodeFilter;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\CustomGetMethods;
+use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\JoomlaSix\CustomGetMethods as J6CustomGetMethods;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\CustomJoin;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\DecodeColumn;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\FieldonContentPrepare;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\FilterColumn;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\GetItem;
+use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\JoomlaSix\GetItem as J6GetItem;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\GetItems;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\Globals;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\JoinStructure;
@@ -52,8 +55,10 @@ use VDM\Tests\Support\CompilerDomainTestCase;
  * @since  6.1.6
  */
 #[CoversClass(GetItem::class)]
+#[CoversClass(J6GetItem::class)]
 #[CoversClass(GetItems::class)]
 #[CoversClass(CustomGetMethods::class)]
+#[CoversClass(J6CustomGetMethods::class)]
 #[UsesClass(Globals::class)]
 #[UsesClass(JoinStructure::class)]
 #[UsesClass(ContentOne::class)]
@@ -66,19 +71,41 @@ use VDM\Tests\Support\CompilerDomainTestCase;
 final class ItemOrchestrationTest extends CompilerDomainTestCase
 {
 	/**
+	 * Compile targets and the exact fresh-query API they emit.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.0
+	 */
+	public static function queryTargets(): array
+	{
+		return [
+			'Joomla 3' => [3, 'getQuery(true)'],
+			'Joomla 4' => [4, 'getQuery(true)'],
+			'Joomla 5' => [5, 'getQuery(true)'],
+			'Joomla 6' => [6, 'createQuery()'],
+		];
+	}
+
+
+	/**
 	 * A custom single-item method uses the selected database API, fails safely, and returns data.
+	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testGetItemBuildsModernDatabaseFailSafeAndCustomReturn(): void
+	#[DataProvider('queryTargets')]
+	public function testGetItemBuildsModernDatabaseFailSafeAndCustomReturn(int $major, string $queryMethod): void
 	{
+		$getItemClass = $major === 6 ? J6GetItem::class : GetItem::class;
 		$config = $this->compilerConfig([
-			'joomla_version' => 6,
+			'joomla_version' => $major,
 			'cryption_types' => [],
 			'build_target' => 'site'
 		]);
-		$subject = new GetItem(
+		$subject = new $getItemClass(
 			$config,
 			new SiteDecrypt(),
 			new Placeholder($config),
@@ -103,8 +130,8 @@ final class ItemOrchestrationTest extends CompilerDomainTestCase
 
 		$output = $subject->get((object) ['configured' => true], 'article', '', 'custom');
 
-		$this->assertStringContainsString('$db = $this->getDatabase();', $output);
-		$this->assertStringContainsString('$query = $db->getQuery(true);', $output);
+		$this->assertStringContainsString($major === 3 ? '::getDbo();' : '$db = $this->getDatabase();', $output);
+		$this->assertStringContainsString('$query = $db->' . $queryMethod . ';', $output);
 		$this->assertStringContainsString('$data = $db->loadObject();', $output);
 		$this->assertStringContainsString('if (empty($data))', $output);
 		$this->assertStringContainsString('return false;', $output);
@@ -154,17 +181,22 @@ final class ItemOrchestrationTest extends CompilerDomainTestCase
 	/**
 	 * Joined custom gets emit a dedicated query method with a guarded result contract.
 	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testCustomGetMethodsBuildsJoinedQueryMethod(): void
+	#[DataProvider('queryTargets')]
+	public function testCustomGetMethodsBuildsJoinedQueryMethod(int $major, string $queryMethod): void
 	{
+		$customGetMethodsClass = $major === 6 ? J6CustomGetMethods::class : CustomGetMethods::class;
 		$config = $this->compilerConfig([
-			'joomla_version' => 6,
+			'joomla_version' => $major,
 			'cryption_types' => [],
 			'build_target' => 'site'
 		]);
-		$subject = new CustomGetMethods(
+		$subject = new $customGetMethodsClass(
 			$config,
 			new Placeholder($config),
 			$this->inertCompilerCollaborator(FieldonContentPrepare::class),
@@ -202,7 +234,8 @@ final class ItemOrchestrationTest extends CompilerDomainTestCase
 		$output = $subject->get((object) ['custom_get' => [$get]], 'article');
 
 		$this->assertMatchesRegularExpression('/public function getIdArticle_idComments[A-Za-z]{4}_B\(\$id\)/', $output);
-		$this->assertStringContainsString('$db = $this->getDatabase();', $output);
+		$this->assertStringContainsString($major === 3 ? '::getDbo();' : '$db = $this->getDatabase();', $output);
+		$this->assertStringContainsString('$query = $db->' . $queryMethod . ';', $output);
 		$this->assertStringContainsString("\$query->where('b.article_id = ' . \$db->quote(\$id));", $output);
 		$this->assertStringContainsString('$db->execute();', $output);
 		$this->assertStringContainsString('if ($db->getNumRows())', $output);

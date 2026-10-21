@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Dynamicget;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\GetAsLookup;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\OtherFilter;
@@ -32,6 +33,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\GetItem;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\GetItems;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\JoinStructure;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\ListQuery;
+use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\JoomlaSix\ListQuery as J6ListQuery;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\Methods;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\Queries;
 use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\QueryFilter;
@@ -52,6 +54,7 @@ use VDM\Tests\Support\CompilerDomainTestCase;
 #[CoversClass(CustomJoin::class)]
 #[CoversClass(Queries::class)]
 #[CoversClass(ListQuery::class)]
+#[CoversClass(J6ListQuery::class)]
 #[CoversClass(Methods::class)]
 #[UsesClass(JoinStructure::class)]
 #[UsesClass(GetAsLookup::class)]
@@ -60,6 +63,23 @@ use VDM\Tests\Support\CompilerDomainTestCase;
 #[UsesClass(OtherQuery::class)]
 final class QueryCompositionTest extends CompilerDomainTestCase
 {
+	/**
+	 * Compile targets and the exact fresh-query API they emit.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.0
+	 */
+	public static function queryTargets(): array
+	{
+		return [
+			'Joomla 3' => [3, 'getQuery(true)'],
+			'Joomla 4' => [4, 'getQuery(true)'],
+			'Joomla 5' => [5, 'getQuery(true)'],
+			'Joomla 6' => [6, 'createQuery()'],
+		];
+	}
+
+
 	/**
 	 * Custom joins emit inline calls for available aliases and queue unavailable parents.
 	 *
@@ -121,16 +141,21 @@ final class QueryCompositionTest extends CompilerDomainTestCase
 	/**
 	 * List-query generation preserves target database access, pagination, extensions, and return policy.
 	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testListQueryBuildsTargetDatabaseAndOptionalClausePipeline(): void
+	#[DataProvider('queryTargets')]
+	public function testListQueryBuildsTargetDatabaseAndOptionalClausePipeline(int $major, string $queryMethod): void
 	{
-		$config = $this->compilerConfig(['joomla_version' => 6, 'build_target' => 'site']);
+		$listQueryClass = $major === 6 ? J6ListQuery::class : ListQuery::class;
+		$config = $this->compilerConfig(['joomla_version' => $major, 'build_target' => 'site']);
 		$main = new SiteMainGet();
 		$dispenser = $this->createStub(Dispenser::class);
 		$dispenser->method('get')->willReturn(PHP_EOL . '\t\tCUSTOM_FILTER();');
-		$subject = new ListQuery(
+		$subject = new $listQueryClass(
 			$config,
 			$dispenser,
 			new Queries($config, new JoinStructure(), new SiteDynamicGet(), new OtherQuery(), new Placeholder($config)),
@@ -150,7 +175,8 @@ final class QueryCompositionTest extends CompilerDomainTestCase
 		$output = $subject->get($get, 'article');
 
 		$this->assertStringContainsString("\$this->setState('list.limit', 0);", $output);
-		$this->assertStringContainsString('$db = $this->getDatabase();', $output);
+		$this->assertStringContainsString($major === 3 ? '::getDbo();' : '$db = $this->getDatabase();', $output);
+		$this->assertStringContainsString('$query = $db->' . $queryMethod . ';', $output);
 		$this->assertStringContainsString('CUSTOM_FILTER();', $output);
 		$this->assertStringContainsString("\$query->where('a.published = 1');", $output);
 		$this->assertStringContainsString("\$query->order('a.title ASC');", $output);
