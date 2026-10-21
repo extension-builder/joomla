@@ -26,7 +26,7 @@ use VDM\Tests\Support\JoomlaTestCase;
 /**
  * The rendered component script returns a native installer to Joomla's loader.
  *
- * @since  6.1.6
+ * @since  6.2.0
  */
 #[CoversNothing]
 final class InstallerTemplateTest extends JoomlaTestCase
@@ -35,7 +35,7 @@ final class InstallerTemplateTest extends JoomlaTestCase
 	 * Evaluate the complete script against Joomla's actual installer interface.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.2.0
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState(false)]

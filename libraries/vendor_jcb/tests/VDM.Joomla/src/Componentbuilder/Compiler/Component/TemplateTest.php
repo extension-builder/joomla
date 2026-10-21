@@ -27,7 +27,7 @@ use VDM\Tests\Support\TestCase;
 /**
  * Component template source selection and custom directory precedence.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 #[CoversClass(Template::class)]
 #[CoversClass(JoomlaSixTemplate::class)]
@@ -38,7 +38,7 @@ final class TemplateTest extends TestCase
 	 * The overlay changes only existing leaf template sources from the default root.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testOverlayPreservesFallbackAndCustomSourcePaths(): void
 	{
@@ -98,7 +98,7 @@ final class TemplateTest extends TestCase
 	 * Every target key resolves one shared resolver and preserves configured input paths.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testProviderUsesTargetMajorAndStableSharedAliases(): void
 	{

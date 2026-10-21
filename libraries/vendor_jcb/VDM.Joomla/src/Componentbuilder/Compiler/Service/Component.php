@@ -366,7 +366,7 @@ class Component implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  Template  The target's template source resolver.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getTemplate(Container $container): Template
 	{
@@ -384,7 +384,7 @@ class Component implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  SharedTemplate  The configured template resolver.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getSharedTemplate(Container $container): SharedTemplate
 	{
@@ -397,7 +397,7 @@ class Component implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  J6Template  The Joomla 6 template resolver.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getJ6Template(Container $container): J6Template
 	{

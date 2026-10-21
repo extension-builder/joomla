@@ -387,7 +387,7 @@ class ExcelMethods implements ExcelMethodsInterface
 	 * Get the statement that loads the import-header reader's session.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getSessionObject(): string
 	{

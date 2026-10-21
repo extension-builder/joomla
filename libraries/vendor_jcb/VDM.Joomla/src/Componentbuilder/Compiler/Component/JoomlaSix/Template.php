@@ -22,7 +22,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
  * Explicit compiler directories remain authoritative, including their missing-file
  * behavior. Custom templates never silently fall back to the built-in overlay.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 final class Template extends SharedTemplate
 {
@@ -30,7 +30,7 @@ final class Template extends SharedTemplate
 	 * Directory containing Joomla 6 template source overrides.
 	 *
 	 * @var    string
-	 * @since  6.1.7
+	 * @since  6.2.0
 	 */
 	protected string $overlayPath;
 
@@ -38,7 +38,7 @@ final class Template extends SharedTemplate
 	 * Built-in template directory eligible for the Joomla 6 overlay.
 	 *
 	 * @var    string
-	 * @since  6.1.7
+	 * @since  6.2.0
 	 */
 	protected string $defaultTemplatePath;
 
@@ -49,7 +49,7 @@ final class Template extends SharedTemplate
 	 * @param   string  $overlayPath          Directory containing source overrides.
 	 * @param   string  $defaultTemplatePath  Built-in shared template directory.
 	 *
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function __construct(Paths $paths, string $overlayPath, string $defaultTemplatePath)
 	{
@@ -68,7 +68,7 @@ final class Template extends SharedTemplate
 	 * @param   string  $file  The template name from component settings.
 	 *
 	 * @return  string  The source path to copy.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function get(string $file): string
 	{

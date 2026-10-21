@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 /**
  * Admin list controller export and import methods for Joomla 6.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 final class EximportMethod extends ExtendingEximportMethod
 {
@@ -27,7 +27,7 @@ final class EximportMethod extends ExtendingEximportMethod
 	 * Get the import session from the controller's application.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getSessionObject(): string
 	{

@@ -107,7 +107,7 @@ final class Structuresingle
 	 * Component template source resolver.
 	 *
 	 * @var    Template
-	 * @since  6.1.7
+	 * @since  6.2.0
 	 */
 	protected Template $template;
 

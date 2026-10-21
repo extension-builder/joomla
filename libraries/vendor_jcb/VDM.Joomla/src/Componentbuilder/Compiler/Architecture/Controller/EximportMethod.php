@@ -279,7 +279,7 @@ class EximportMethod implements EximportMethodInterface
 	 * Get the statement that puts the import session in scope.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getSessionObject(): string
 	{

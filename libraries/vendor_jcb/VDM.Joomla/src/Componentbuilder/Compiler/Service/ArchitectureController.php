@@ -489,7 +489,7 @@ class ArchitectureController implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  J6ControllerEximportMethod
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getJ6ControllerEximportMethod(Container $container): J6ControllerEximportMethod
 	{

@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
 /**
  * Resolve templates from the configured compiler source directory.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 class Template implements TemplateInterface
 {
@@ -27,7 +27,7 @@ class Template implements TemplateInterface
 	 * Compiler source and output paths.
 	 *
 	 * @var    Paths
-	 * @since  6.1.7
+	 * @since  6.2.0
 	 */
 	protected Paths $paths;
 
@@ -36,7 +36,7 @@ class Template implements TemplateInterface
 	 *
 	 * @param   Paths  $paths  Compiler source and output paths.
 	 *
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function __construct(Paths $paths)
 	{
@@ -49,7 +49,7 @@ class Template implements TemplateInterface
 	 * @param   string  $file  The template name from component settings.
 	 *
 	 * @return  string  The source path to copy.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function get(string $file): string
 	{
