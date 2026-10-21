@@ -49,7 +49,8 @@ class HtmlView extends BaseHtmlView
 	{
 		$paths = new \StdClass;
 		$paths->first = '';
-		$state = $this->get('state');
+		$model = $this->getModel();
+		$state = $model->getState();
 
 		$this->paths = &$paths;
 		$this->state = &$state;
@@ -76,7 +77,7 @@ class HtmlView extends BaseHtmlView
 		}
 
 		// Check for errors.
-		if (count($errors = $this->get('Errors')))
+		if (count($errors = $model->getErrors()))
 		{
 			throw new \Exception(implode("\n", $errors), 500);
 		}
