@@ -281,6 +281,7 @@ final class VersionSelectionTest extends TestCase
 		yield 'custom admin view toolbar' => [ArchitectureView::class, 'getCustomAdminViewAddToolBar', 'Architecture.CustomAdminView.J%d.AddToolBar'];
 		yield 'custom admin views toolbar' => [ArchitectureView::class, 'getCustomAdminViewsAddToolBar', 'Architecture.CustomAdminViews.J%d.AddToolBar'];
 		yield 'component settings' => [Component::class, 'getSettings', 'Component.J%d.Settings'];
+		yield 'component template sources' => [Component::class, 'getTemplate', 'Component.J%d.Template'];
 		yield 'extension install script' => [Extension::class, 'getExtensionInstallScript', 'J%d.Extension.InstallScript'];
 		yield 'extension moved fields and rules' => [Extension::class, 'getMoveFieldsRules', 'J%d.Extension.MoveFieldsRules'];
 		yield 'field input button' => [Field::class, 'getInputButton', 'J%d.Field.Input.Button'];
