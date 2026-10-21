@@ -82,3 +82,4 @@ final class CheckboxSave
 		return $script;
 	}
 }
+

@@ -14,7 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 /**
  * Emit the small native FormRule bridge for conditional requirements.
- *
+ * 
  * @since  6.2.0
  */
 final class ConditionalRule
@@ -116,3 +116,4 @@ final class ConditionalRule
 PHP;
 	}
 }
+

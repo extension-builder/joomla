@@ -177,7 +177,11 @@ class Crypt implements ServiceProviderInterface
 	 */
 	public function getFOF(Container $container): FOF
 	{
-		return new FOF();
+		return new FOF(
+			$container->get('Crypt.AESCBC'),
+			$container->get('Crypt.Random')
+		);
 	}
 
 }
+

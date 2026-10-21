@@ -53,7 +53,7 @@
       <item>Fix JCB Search to prevent matching records from being skipped when processing successive batches.</item>
       <item>Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.</item>
       <item>Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.</item>
-      <item>Fix PHP warnings when the compiler’s placeholder report contains no results.</item>
+      <item>Fix PHP warnings when the compiler's placeholder report contains no results.</item>
       <item>Fix toolbar generation when descriptions are missing or null.</item>
     </fix>
     <language>
@@ -70,7 +70,7 @@
     <change>
       <item>Detect unchanged records and avoid unnecessary writes during repeated Extrusion runs.</item>
       <item>Protect Extrusion imports against ambiguous matches, conflicting compiler paths, and stale change previews.</item>
-      <item>Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
+      <item>Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
       <item>Preserve original source line endings when compiler processing leaves the content unchanged.</item>
     </change>
     <note>
@@ -110,7 +110,7 @@
       <item>Fix JCB Search to prevent matching records from being skipped when processing successive batches.</item>
       <item>Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.</item>
       <item>Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.</item>
-      <item>Fix PHP warnings when the compiler’s placeholder report contains no results.</item>
+      <item>Fix PHP warnings when the compiler's placeholder report contains no results.</item>
       <item>Fix toolbar generation when descriptions are missing or null.</item>
     </fix>
     <language>
@@ -127,7 +127,7 @@
     <change>
       <item>Detect unchanged records and avoid unnecessary writes during repeated Extrusion runs.</item>
       <item>Protect Extrusion imports against ambiguous matches, conflicting compiler paths, and stale change previews.</item>
-      <item>Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
+      <item>Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
       <item>Preserve original source line endings when compiler processing leaves the content unchanged.</item>
     </change>
     <note>
@@ -363,7 +363,7 @@
       <item>Fix JCB Search to prevent matching records from being skipped when processing successive batches.</item>
       <item>Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.</item>
       <item>Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.</item>
-      <item>Fix PHP warnings when the compiler’s placeholder report contains no results.</item>
+      <item>Fix PHP warnings when the compiler's placeholder report contains no results.</item>
       <item>Fix toolbar generation when descriptions are missing or null.</item>
     </fix>
     <language>
@@ -380,7 +380,7 @@
     <change>
       <item>Detect unchanged records and avoid unnecessary writes during repeated Extrusion runs.</item>
       <item>Protect Extrusion imports against ambiguous matches, conflicting compiler paths, and stale change previews.</item>
-      <item>Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
+      <item>Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.</item>
       <item>Preserve original source line endings when compiler processing leaves the content unchanged.</item>
     </change>
     <note>

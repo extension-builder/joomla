@@ -974,3 +974,4 @@ final class Parser
 		return preg_replace('/[^\n]/', ' ', $text) ?? $text;
 	}
 }
+

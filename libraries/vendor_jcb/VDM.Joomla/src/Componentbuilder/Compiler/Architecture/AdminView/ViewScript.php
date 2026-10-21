@@ -1067,3 +1067,4 @@ final class ViewScript
 		return $isSet;
 	}
 }
+

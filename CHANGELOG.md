@@ -35,11 +35,11 @@
 - Fix generated IIS library access configuration and add missing index.html files to compiled folders.
 - Complete extraction of generated-code logic from the legacy Fields, Interpretation, and Infusion helpers into dedicated compiler services.
 - Consolidate shared compiler logic across Joomla versions while retaining version-specific generation where required.
-- Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
+- Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
 - Fix JCB Search to prevent matching records from being skipped when processing successive batches.
 - Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.
 - Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.
-- Fix PHP warnings when the compiler’s placeholder report contains no results.
+- Fix PHP warnings when the compiler's placeholder report contains no results.
 - Fix toolbar generation when descriptions are missing or null.
 - Preserve original source line endings when compiler processing leaves the content unchanged.
 
@@ -224,11 +224,11 @@
 - Fix generated IIS library access configuration and add missing index.html files to compiled folders.
 - Complete extraction of generated-code logic from the legacy Fields, Interpretation, and Infusion helpers into dedicated compiler services.
 - Consolidate shared compiler logic across Joomla versions while retaining version-specific generation where required.
-- Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
+- Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
 - Fix JCB Search to prevent matching records from being skipped when processing successive batches.
 - Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.
 - Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.
-- Fix PHP warnings when the compiler’s placeholder report contains no results.
+- Fix PHP warnings when the compiler's placeholder report contains no results.
 - Fix toolbar generation when descriptions are missing or null.
 - Preserve original source line endings when compiler processing leaves the content unchanged.
 
@@ -269,11 +269,11 @@
 - Fix generated IIS library access configuration and add missing index.html files to compiled folders.
 - Complete extraction of generated-code logic from the legacy Fields, Interpretation, and Infusion helpers into dedicated compiler services.
 - Consolidate shared compiler logic across Joomla versions while retaining version-specific generation where required.
-- Refactor the Power parser to use PHP’s native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
+- Refactor the Power parser to use PHP's native lexer for reliable handling of modern syntax, multiline declarations, and complex types.
 - Fix JCB Search to prevent matching records from being skipped when processing successive batches.
 - Fix compilation of database-aware Joomla 4 modules caused by a missing utility class import.
 - Fix CLI repository resolution to report unresolved repository GUIDs without triggering a fatal error.
-- Fix PHP warnings when the compiler’s placeholder report contains no results.
+- Fix PHP warnings when the compiler's placeholder report contains no results.
 - Fix toolbar generation when descriptions are missing or null.
 - Preserve original source line endings when compiler processing leaves the content unchanged.
 

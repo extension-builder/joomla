@@ -36,6 +36,7 @@ use VDM\Joomla\Utilities\GuidHelper;
 use VDM\Joomla\Utilities\ArrayHelper as UtilitiesArrayHelper;
 use VDM\Joomla\Utilities\GetHelper;
 use VDM\Joomla\Utilities\String\ClassfunctionHelper;
+use Joomla\CMS\Access\Exception\NotAllowed;
 
 // No direct access to this file
 \defined('_JEXEC') or die;
@@ -221,12 +222,12 @@ class Class_methodModel extends AdminModel
 					$user = $app->getIdentity();
 					if (!($user->authorise('class_method.access', 'com_componentbuilder.class_method.' . $item->id) && $user->authorise('class_method.access', 'com_componentbuilder')) || (!$user->authorise('core.options', 'com_componentbuilder') && !in_array((int) $item->access, $user->getAuthorisedViewLevels())))
 					{
-						throw new \Joomla\CMS\Access\Exception\NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+						throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
 					}
 				}
 				elseif (!$this->allowEdit((array) $item))
 				{
-					$app->enqueueMessage(Text::_('COM_COMPONENTBUILDER_NOT_AUTHORISED'), 'error');
+					$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
 					$app->redirect('index.php?option=com_componentbuilder');
 					return false;
 				}
@@ -368,21 +369,47 @@ class Class_methodModel extends AdminModel
 		if ($id != 0 && (!$user->authorise('class_method.edit.created_by', 'com_componentbuilder.class_method.' . (int) $id))
 			|| ($id == 0 && !$user->authorise('class_method.edit.created_by', 'com_componentbuilder')))
 		{
-			// Disable fields for display.
-			$form->setFieldAttribute('created_by', 'disabled', 'true');
-			// Disable fields for display.
-			$form->setFieldAttribute('created_by', 'readonly', 'true');
-			// Disable fields while saving.
-			$form->setFieldAttribute('created_by', 'filter', 'unset');
+			if ($app->isClient('api'))
+			{
+				// Exclude protected metadata from API validation and binding.
+				$form->removeField('created_by');
+			}
+			else
+			{
+				// Retain disabled metadata controls in administrator forms.
+				$form->setFieldAttribute('created_by', 'disabled', 'true');
+				$form->setFieldAttribute('created_by', 'readonly', 'true');
+				$form->setFieldAttribute('created_by', 'filter', 'unset');
+			}
 		}
 		// Modify the form based on Edit Creaded Date access controls.
 		if ($id != 0 && (!$user->authorise('class_method.edit.created', 'com_componentbuilder.class_method.' . (int) $id))
 			|| ($id == 0 && !$user->authorise('class_method.edit.created', 'com_componentbuilder')))
 		{
-			// Disable fields for display.
-			$form->setFieldAttribute('created', 'disabled', 'true');
-			// Disable fields while saving.
-			$form->setFieldAttribute('created', 'filter', 'unset');
+			if ($app->isClient('api'))
+			{
+				// Exclude protected metadata from API validation and binding.
+				$form->removeField('created');
+			}
+			else
+			{
+				// Retain disabled metadata controls in administrator forms.
+				$form->setFieldAttribute('created', 'disabled', 'true');
+				$form->setFieldAttribute('created', 'filter', 'unset');
+			}
+		}
+
+		// Omitted PATCH metadata must not be filtered or rebound from storage.
+		if ($app->isClient('api') && $jinput->getMethod() === 'PATCH')
+		{
+			$submittedApiData = $jinput->get('data', json_decode($jinput->json->getRaw(), true), 'array');
+			foreach (['created', 'created_by'] as $metadataField)
+			{
+				if (!is_array($submittedApiData) || !array_key_exists($metadataField, $submittedApiData))
+				{
+					$form->removeField($metadataField);
+				}
+			}
 		}
 		// Only load these values if no id is found
 		if (0 == $id)
@@ -438,6 +465,10 @@ class Class_methodModel extends AdminModel
 			$form->setValue('guid', null, GuidHelper::get());
 		}
  
+		if ($app->isClient('api') && $jinput->getMethod() === 'PATCH')
+		{
+			$this->setState('jcb.api.patch.form', $form);
+		}
 		return $form;
 	}
 
@@ -763,6 +794,49 @@ class Class_methodModel extends AdminModel
 			$data['guid'] = (string) GuidHelper::get();
 		}
 
+		// Preserve omitted API PATCH values in their original storage representation.
+		$jcbPatchStored = [];
+		$jcbPatchInput = [];
+		$jcbPatchId = $data['id'];
+
+		if ($input->getMethod() === 'PATCH' && Factory::getApplication()->isClient('api') && $jcbPatchId > 0)
+		{
+			$jcbPatchSubmitted = $input->get('data', json_decode($input->json->getRaw(), true), 'array');
+			$jcbPatchSubmitted = is_array($jcbPatchSubmitted) ? $jcbPatchSubmitted : [];
+			// Joomla's API inserts an empty tags array after validation. It must not
+			// clear omitted relationships or bypass the form's field permissions.
+			$jcbPatchForm = $this->getState('jcb.api.patch.form');
+			if (!array_key_exists('tags', $jcbPatchSubmitted)
+				|| ($jcbPatchForm !== null && (!$jcbPatchForm->getField('tags')
+					|| strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'filter', '')) === 'unset'
+					|| in_array(strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'disabled', '')), ['true', '1'], true))))
+			{
+				unset($data['tags']);
+			}
+
+			$jcbPatchTable = $this->getTable();
+
+			if (!$jcbPatchTable->load($jcbPatchId))
+			{
+				$this->setError(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'));
+
+				return false;
+			}
+
+			foreach ($jcbPatchTable->getFields() as $jcbPatchField)
+			{
+				$jcbPatchName = $jcbPatchField->Field;
+
+				if ($jcbPatchName !== $jcbPatchTable->getKeyName() && $jcbPatchName !== 'guid'
+					&& !array_key_exists($jcbPatchName, $jcbPatchSubmitted)
+					&& array_key_exists($jcbPatchName, $data))
+				{
+					$jcbPatchStored[$jcbPatchName] = $jcbPatchTable->{$jcbPatchName};
+					$jcbPatchInput[$jcbPatchName] = serialize($data[$jcbPatchName]);
+				}
+			}
+		}
+
 		// make sure the name is safe to be used as a function name
 		$data['name'] = ClassfunctionHelper::safe($data['name']);
 
@@ -780,22 +854,67 @@ class Class_methodModel extends AdminModel
 			$data['guid'] = (string) GuidHelper::get();
 		}
 
+		// A copy or a custom derivation must follow the normal storage transforms.
+		if ((int) $data['id'] !== $jcbPatchId)
+		{
+			$jcbPatchStored = [];
+		}
+		else
+		{
+			foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)
+			{
+				if (!array_key_exists($jcbPatchName, $data)
+					|| serialize($data[$jcbPatchName]) !== $jcbPatchInput[$jcbPatchName])
+				{
+					unset($jcbPatchStored[$jcbPatchName]);
+				}
+			}
+		}
+
+		if (array_key_exists('code', $jcbPatchStored)
+			&& (!array_key_exists('code', $data) || serialize($data['code']) !== $jcbPatchInput['code']))
+		{
+			unset($jcbPatchStored['code']);
+		}
+
 		// Set the code string to base64 string.
-		if (isset($data['code']))
+		if (isset($data['code']) && !array_key_exists('code', $jcbPatchStored))
 		{
 			$data['code'] = base64_encode($data['code']);
 		}
 
+		if (array_key_exists('comment', $jcbPatchStored)
+			&& (!array_key_exists('comment', $data) || serialize($data['comment']) !== $jcbPatchInput['comment']))
+		{
+			unset($jcbPatchStored['comment']);
+		}
+
 		// Set the comment string to base64 string.
-		if (isset($data['comment']))
+		if (isset($data['comment']) && !array_key_exists('comment', $jcbPatchStored))
 		{
 			$data['comment'] = base64_encode($data['comment']);
 		}
 
+		if (array_key_exists('arguments', $jcbPatchStored)
+			&& (!array_key_exists('arguments', $data) || serialize($data['arguments']) !== $jcbPatchInput['arguments']))
+		{
+			unset($jcbPatchStored['arguments']);
+		}
+
 		// Set the arguments string to base64 string.
-		if (isset($data['arguments']))
+		if (isset($data['arguments']) && !array_key_exists('arguments', $jcbPatchStored))
 		{
 			$data['arguments'] = base64_encode($data['arguments']);
+		}
+
+		// Restore unchanged omitted columns without a lossy decode/encode round trip.
+		foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)
+		{
+			if (array_key_exists($jcbPatchName, $data)
+				&& serialize($data[$jcbPatchName]) === $jcbPatchInput[$jcbPatchName])
+			{
+				$data[$jcbPatchName] = $jcbPatchValue;
+			}
 		}
 
 		// Set the Params Items to data

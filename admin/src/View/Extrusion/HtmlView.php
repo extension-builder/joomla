@@ -456,6 +456,11 @@ class HtmlView extends BaseHtmlView
 		ToolbarHelper::title(Text::_('COM_COMPONENTBUILDER_EXTRUSION'), 'shuffle');
 		// add cpanel button
 		ToolbarHelper::custom('extrusion.dashboard', 'grid-2', '', 'COM_COMPONENTBUILDER_DASH', false);
+		if ($this->canDo->get('extrusion.health_check'))
+		{
+			// add Health Check button.
+			ToolbarHelper::custom('extrusion.healthCheck', 'health custom-button-healthcheck', '', 'COM_COMPONENTBUILDER_HEALTH_CHECK', false);
+		}
 		// set help url for this view if found
 		$this->help_url = ComponentbuilderHelper::getHelpUrl('extrusion');
 		if (StringHelper::check($this->help_url))

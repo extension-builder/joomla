@@ -2158,7 +2158,7 @@ INSERT INTO `#__componentbuilder_joomla_plugin` (`id`, `add_head`, `add_php_meth
 -- Dumping data for table `#__componentbuilder_joomla_power`
 -- --------------------------------------------------------
 
--- Batch 1 of 1 (22 rows)
+-- Batch 1 of 1 (23 rows)
 INSERT INTO `#__componentbuilder_joomla_power` (`id`, `description`, `guid`, `settings`, `system_name`, `params`, `published`, `created`, `modified`, `version`, `hits`, `access`, `ordering`) VALUES
 (1, 'The Joomla CMS Factory class', '39403062-84fb-46e0-bac4-0023f766e827', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Factory\",\"joomla_version\":\"0\"}}', 'JFactory', '{\"source\":{\"dfba58ef-f823-43d4-ab73-865fdaf09294\":\"cc80bc8a51e833273c7dcb92832ed36e6fba4e33\"}}', 1, '2024-04-09 15:00:24', '2024-07-08 20:19:50', 3, 0, 1, 1),
 (2, 'The core Joomla Text class.', 'ba6326ef-cb79-4348-80f4-ab086082e3c5', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Language\\\\Text\",\"joomla_version\":\"0\"}}', 'JText', NULL, 1, '2024-04-09 15:01:16', '0000-00-00 00:00:00', 1, 0, 1, 2),
@@ -2170,6 +2170,7 @@ INSERT INTO `#__componentbuilder_joomla_power` (`id`, `description`, `guid`, `se
 (10, 'Helper to render a Layout object, storing a base path', '7ab82272-0b3d-4bb1-af35-e63a096cfe0b', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Layout\\\\LayoutHelper\",\"joomla_version\":\"0\"}}', 'JLayoutHelper', NULL, 1, '2024-04-27 12:06:33', '0000-00-00 00:00:00', 1, 0, 1, 9),
 (11, 'Utility class for all HTML drawing classes', '34690c75-1090-47eb-8c06-7228dc7eedd6', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\HTML\\\\HTMLHelper\",\"joomla_version\":\"0\"}}', 'JHtml', NULL, 1, '2024-04-27 12:07:27', '0000-00-00 00:00:00', 1, 0, 1, 10),
 (17, '', '55e9e8f0-3c5e-483a-a063-7c7565b00ed7', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Filesystem\\\\File\",\"joomla_version\":\"3\"},\"settings1\":{\"namespace\":\"Joomla\\\\Filesystem\\\\File\",\"joomla_version\":\"0\"}}', 'JFile', NULL, 1, '2024-05-18 09:22:26', '2024-08-25 21:33:57', 2, 0, 1, 12),
+(80, '', '2fa1c08d-c4ff-4cb0-8338-7221e95c1fe4', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Access\\\\Exception\\\\NotAllowed\",\"joomla_version\":\"0\"}}', 'JAccessExceptionNotallowed', NULL, 1, '2024-05-18 09:51:57', '0000-00-00 00:00:00', 1, 0, 1, 75),
 (150, '', '0c1a176a-304f-433a-8233-37d01ff87815', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Toolbar\\\\ToolbarHelper\",\"joomla_version\":\"0\"}}', 'JToolbarHelper', NULL, 1, '2024-05-18 10:07:48', '0000-00-00 00:00:00', 1, 0, 1, 127),
 (259, 'The Joomla CMS User class', 'effdaf6d-2275-425d-9f52-d4952e564d34', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\User\\\\User\",\"joomla_version\":\"0\"}}', 'JUser', '{\"source\":{\"dfba58ef-f823-43d4-ab73-865fdaf09294-settings\":\"3d7e9377fb2a56e7e75142012284de73e574f313\",\"dfba58ef-f823-43d4-ab73-865fdaf09294-readme\":\"7cef9f314c12f5fc91b2040c24bd0d400934664c\"}}', 1, '2024-05-18 11:08:29', '2024-07-16 22:01:33', 2, 0, 1, 236),
 (264, '', '571422c4-0340-49f8-b846-5729c7af6ed7', '{\"settings0\":{\"namespace\":\"Joomla\\\\CMS\\\\Form\\\\FormHelper\",\"joomla_version\":\"0\"}}', 'JFormHelper', NULL, 1, '2024-05-18 11:10:22', '0000-00-00 00:00:00', 1, 0, 1, 241),

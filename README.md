@@ -196,9 +196,9 @@ JCB is developed by developers for developers. Its purpose is to democratize hig
 * **Company:** [Vast Development Method](https://dev.vdm.io)
 * **Author:** [Llewellyn van der Merwe](mailto:joomla@vdm.io)
 * **Component:** [Component Builder](https://git.vdm.dev/joomla/Component-Builder)
-* **Created:** 30th April, 2015 · **Last Build:** 7th October, 2026 · **Version:** 6.2.0
+* **Created:** 30th April, 2015 · **Last Build:** 8th October, 2026 · **Version:** 6.2.0
 * **License:** GNU General Public License version 2 or later; see LICENSE.txt · **Copyright:** Copyright (C) 2015 Vast Development Method. All rights reserved.
-* **Lines:** 1667160 · **Fields:** 2166 · **Files:** 11070 · **Folders:** 984
+* **Lines:** 1682442 · **Fields:** 2166 · **Files:** 11076 · **Folders:** 984
 
 > Generated with [JCB](https://www.joomlacomponentbuilder.com) — The Smartest Way to Build Joomla Extensions.
 

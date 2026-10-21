@@ -14,16 +14,16 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Model;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Componentbuilder\Compiler\Registry;
+use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
 use VDM\Joomla\Utilities\ArrayHelper;
 
 
 /**
  * Model Validation Fix Class.
- *
+ * 
  * Builds server-side conditional requirements from the same normalized
  * definitions used by the administrator form script.
- *
+ * 
  * @since 6.1.7
  */
 final class ValidationFix
@@ -39,10 +39,10 @@ final class ValidationFix
 	/**
 	 * The compiler registry for generated validation rule files.
 	 *
-	 * @var    Registry
+	 * @var    CompilerRegistry
 	 * @since  6.2.0
 	 */
-	protected Registry $registry;
+	protected CompilerRegistry $registry;
 
 	/**
 	 * The native conditional rule emitter.
@@ -56,11 +56,11 @@ final class ValidationFix
 	 * Constructor.
 	 *
 	 * @param   ValidationFixRegistry  $validationfix   Normalized condition definitions.
-	 * @param   Registry               $registry        Generated rule registry.
+	 * @param   CompilerRegistry       $registry        Generated rule registry.
 	 * @param   ConditionalRule        $conditionalrule Native rule emitter.
 	 * @since   6.2.0
 	 */
-	public function __construct(ValidationFixRegistry $validationfix, Registry $registry, ConditionalRule $conditionalrule)
+	public function __construct(ValidationFixRegistry $validationfix, CompilerRegistry $registry, ConditionalRule $conditionalrule)
 	{
 		$this->validationfix = $validationfix;
 		$this->registry = $registry;
@@ -127,8 +127,8 @@ final class ValidationFix
 	protected function lifecycle(string $view): string
 	{
 		$this->registry->set('validation.rules.jcbconditionalrequired', $this->conditionalrule->get());
-		$code = PHP_EOL . <<<'PHP'
-		$conditionRule = \Joomla\CMS\Form\FormHelper::loadRuleType('jcbconditionalrequired');
+		$code = $this->joomlaPowers(PHP_EOL . <<<'PHP'
+		$conditionRule = __JCB_VALIDATION_FORM_HELPER__::loadRuleType('jcbconditionalrequired');
 		$conditionField = '__jcb_conditional_required';
 		if (!$conditionRule || $form->getFieldXml($conditionField, $group) !== false)
 		{
@@ -143,9 +143,10 @@ final class ValidationFix
 				return false;
 			}
 			$conditionRan = true;
-PHP;
+PHP
+		);
 		$code .= str_replace(PHP_EOL . Indent::_(2), PHP_EOL . Indent::_(3), $this->conditions($view));
-		$code .= PHP_EOL . <<<'PHP'
+		$code .= $this->joomlaPowers(PHP_EOL . <<<'PHP'
 			return true;
 		};
 		if (!$conditionRule::attach($form, $conditionCallback, $group, $conditionField))
@@ -174,14 +175,14 @@ PHP;
 			$container->insertBefore($conditionNode, $container->firstChild);
 			// The internal rule needs no submitted value and must never reach persistence.
 			$conditionPath = $group ? $group . '.' . $conditionField : $conditionField;
-			$conditionInput = new \Joomla\Registry\Registry($data);
+			$conditionInput = new __JCB_VALIDATION_REGISTRY__($data);
 			$conditionInput->remove($conditionPath);
 			$result = parent::validate($form, $conditionInput->toArray(), $group);
 			if (!$conditionRan || $result === false)
 			{
 				return false;
 			}
-			$conditionOutput = new \Joomla\Registry\Registry($result);
+			$conditionOutput = new __JCB_VALIDATION_REGISTRY__($result);
 			$conditionOutput->remove($conditionPath);
 			return $conditionOutput->toArray();
 		}
@@ -205,7 +206,8 @@ PHP;
 			$form->removeField($conditionField, $group);
 			$conditionRule::detach($form);
 		}
-PHP;
+PHP
+		);
 		return $code;
 	}
 
@@ -226,12 +228,12 @@ PHP;
 		}
 
 		$code = PHP_EOL . Indent::_(2) . '$conditionGroups = ' . $this->export($groups) . ';';
-		$code .= PHP_EOL . <<<'PHP'
+		$code .= $this->joomlaPowers(PHP_EOL . <<<'PHP'
 		// The browser's not_required list is informational, never an authority.
-		$conditionInput = new \Joomla\Registry\Registry($data);
+		$conditionInput = new __JCB_VALIDATION_REGISTRY__($data);
 		$conditionData = $group ? (array) $conditionInput->get($group, []) : $data;
 		$conditionStored = [];
-		$conditionApp = \Joomla\CMS\Factory::getApplication();
+		$conditionApp = __JCB_VALIDATION_FACTORY__::getApplication();
 		$conditionPatch = $conditionApp->isClient('api') && $conditionApp->getInput()->getMethod() === 'PATCH';
 		$recordId = (int) ($data['id'] ?? $this->getState($this->getName() . '.id', 0));
 		if ($recordId > 0)
@@ -241,7 +243,7 @@ PHP;
 			{
 				return false;
 			}
-			$conditionStored = new \Joomla\Registry\Registry((array) $stored);
+			$conditionStored = new __JCB_VALIDATION_REGISTRY__($stored);
 			$conditionStored = $group ? (array) $conditionStored->get($group, []) : $conditionStored->toArray();
 		}
 		$conditionPresent = static function ($value): bool
@@ -421,9 +423,31 @@ PHP;
 			}
 		}
 		// Inactive fields keep their values; ordinary filtering and validation still apply.
-PHP;
+PHP
+		);
 
 		return $code;
+	}
+
+	/**
+	 * Insert Joomla Power keys into a static generated-code template.
+	 *
+	 * Keep the keys split in this compiler class so that compiling JCB itself
+	 * does not resolve them before the generated model is processed.
+	 * Apply this only to static templates, never to exported condition values.
+	 *
+	 * @param   string  $code  The static generated-code template.
+	 *
+	 * @return  string  The template containing deferred Joomla Power keys.
+	 * @since   6.2.0
+	 */
+	protected function joomlaPowers(string $code): string
+	{
+		return strtr($code, [
+			'__JCB_VALIDATION_FORM_HELPER__' => 'Joomla__' . '_571422c4_0340_49f8_b846_5729c7af6ed7___Power',
+			'__JCB_VALIDATION_REGISTRY__' => 'Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power',
+			'__JCB_VALIDATION_FACTORY__' => 'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
+		]);
 	}
 
 	/**
@@ -449,5 +473,5 @@ PHP;
 
 		return '[' . implode(', ', $items) . ']';
 	}
-
 }
+
