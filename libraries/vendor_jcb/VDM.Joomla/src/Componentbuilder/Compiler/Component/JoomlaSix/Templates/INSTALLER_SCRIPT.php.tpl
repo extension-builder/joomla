@@ -1199,3 +1199,5 @@ class Com_###Component###InstallerScript implements InstallerScriptInterface
 		return false;
 	}###INSTALLERMETHODS###
 }
+
+return new Com_###Component###InstallerScript();

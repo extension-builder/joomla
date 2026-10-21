@@ -36,6 +36,16 @@ final class InstallScript implements GetScriptInterface
 	protected object $extension;
 
 	/**
+	 * Use Joomla's native installer contract when no custom hooks need migration.
+	 *
+	 * Custom hooks retain their constructor context and legacy return semantics.
+	 *
+	 * @var    bool
+	 * @since  6.2.0
+	 */
+	protected bool $nativeInstaller = true;
+
+	/**
 	 * The methods
 	 *
 	 * @var     array
@@ -159,6 +169,9 @@ final class InstallScript implements GetScriptInterface
 						$extension->{$method . '_' . $type}
 					))
 				{
+					// Do not reinterpret user-authored constructor or lifecycle contracts.
+					$this->nativeInstaller = false;
+
 					// add to the main methods
 					if ('php_method' === $method || 'php_script' === $method)
 					{
@@ -191,6 +204,7 @@ final class InstallScript implements GetScriptInterface
 	 */
 	protected function rest(): void
 	{
+		$this->nativeInstaller = true;
 		$this->removeFilePaths = [];
 		$this->removeFolderPaths = [];
 		$this->construct = [];
@@ -238,6 +252,11 @@ final class InstallScript implements GetScriptInterface
 		// close the class
 		$script .= PHP_EOL . '}' . PHP_EOL;
 
+		if ($this->nativeInstaller)
+		{
+			$script .= PHP_EOL . 'return new ' . $this->extension->installer_class_name . '();' . PHP_EOL;
+		}
+
 		return $script;
 	}
 
@@ -256,6 +275,12 @@ final class InstallScript implements GetScriptInterface
 		$script = PHP_EOL . 'use Joomla\CMS\Factory;';
 		$script .= PHP_EOL . 'use Joomla\CMS\Version;';
 		$script .= PHP_EOL . 'use Joomla\CMS\Installer\InstallerAdapter;';
+
+		if ($this->nativeInstaller)
+		{
+			$script .= PHP_EOL . 'use Joomla\CMS\Installer\InstallerScriptInterface;';
+		}
+
 		$script .= PHP_EOL . 'use Joomla\CMS\Language\Text;';
 		$script .= PHP_EOL . 'use Joomla\Filesystem\File;';
 		$script .= PHP_EOL . 'use Joomla\Filesystem\Folder;' . PHP_EOL;
@@ -266,6 +291,12 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . ' * @package ' . $extension->class_name;
 		$script .= PHP_EOL . ' */';
 		$script .= PHP_EOL . 'class ' . $extension->installer_class_name;
+
+		if ($this->nativeInstaller)
+		{
+			$script .= ' implements InstallerScriptInterface';
+		}
+
 		$script .= PHP_EOL . '{';
 
 		return $script;
@@ -309,11 +340,15 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
 		$script .= PHP_EOL . Indent::_(1) . ' * Constructor';
 		$script .= PHP_EOL . Indent::_(1) . ' *';
-		$script .= PHP_EOL . Indent::_(1)
-			. ' * @param   InstallerAdapter  $adapter  The object responsible for running this script';
+		if (!$this->nativeInstaller)
+		{
+			$script .= PHP_EOL . Indent::_(1)
+				. ' * @param   InstallerAdapter  $adapter  The object responsible for running this script';
+		}
+
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1)
-			. 'public function __construct($adapter)';
+			. ($this->nativeInstaller ? 'public function __construct()' : 'public function __construct($adapter)');
 		$script .= PHP_EOL . Indent::_(1) . '{';
 
 		$script .= PHP_EOL . Indent::_(2) . '//' . Line::_(__Line__, __Class__)
@@ -374,7 +409,7 @@ final class InstallScript implements GetScriptInterface
 	protected function main(string $name): string
 	{
 		// return empty string if not set
-		if (!ArrayHelper::check($this->{$name}))
+		if (!$this->nativeInstaller && !ArrayHelper::check($this->{$name}))
 		{
 			return '';
 		}
@@ -389,11 +424,11 @@ final class InstallScript implements GetScriptInterface
 			. ' * @return  boolean  True on success';
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1) . 'public function '
-			. $name . '($adapter)';
+			. $name . ($this->nativeInstaller ? '(InstallerAdapter $adapter): bool' : '($adapter)');
 		$script .= PHP_EOL . Indent::_(1) . '{';
 		$script .= PHP_EOL . implode(PHP_EOL . PHP_EOL, $this->{$name});
 		// return true
-		if ('uninstall' !== $name)
+		if ($this->nativeInstaller || 'uninstall' !== $name)
 		{
 			$script .= PHP_EOL . Indent::_(2) . 'return true;';
 		}
@@ -427,7 +462,9 @@ final class InstallScript implements GetScriptInterface
 			. ' * @return  boolean  True on success';
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1) . 'public function '
-			. $name . '($route, $adapter)';
+			. $name . ($this->nativeInstaller
+				? '(string $route, InstallerAdapter $adapter): bool'
+				: '($route, $adapter)');
 		$script .= PHP_EOL . Indent::_(1) . '{';
 		$script .= PHP_EOL . Indent::_(2) . '//' . Line::_(__Line__, __Class__)
 			. ' set application to local method var, just use $this->app in future [we will drop $app in J6]';
@@ -525,4 +562,3 @@ final class InstallScript implements GetScriptInterface
 		return $script;
 	}
 }
-
