@@ -20,18 +20,6 @@
  * @since   1.0.0
  */
 return [
-	'VDM.Joomla/src/Componentbuilder/Compiler/Component/Template.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Component/TemplateTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Component/JoomlaSix/Template.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Component/TemplateTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Component/TemplateInterface.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Component/TemplateTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Commit.php' => [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CommitTest.php',
 		'mode' => 'integration'

@@ -21,11 +21,16 @@ use Joomla\CMS\Error\JsonApi\NotAllowedExceptionHandler;
 use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\View\JsonApiView;
 use Joomla\CMS\User\User;
+use Joomla\Database\DatabaseInterface;
 use Tobscure\JsonApi\ErrorHandler;
 use Tobscure\JsonApi\Exception\Handler\FallbackExceptionHandler;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor as JoomlaPowerExtractor;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector as JoomlaPowerInjector;
+use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -501,13 +506,7 @@ GEN;
 		$template = file_get_contents(dirname(__DIR__, 10) . '/admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php');
 		$this->assertSame(1, preg_match('/\tpublic function getItem\(\$pk = null\).*?\n\t\}###LINKEDVIEWMETHODS######LICENSE_LOCKED_SET_BOOL###/s', $template, $match));
 		$method = str_replace('###ADMIN_VIEW_MODEL_ITEM_ACCESS###', $subject->getItemGuard('demo', $apiEnabled), $match[0]);
-		$method = strtr($method, [
-			'###component###' => 'demo',
-			'Joomla___2fa1c08d_c4ff_4cb0_8338_7221e95c1fe4___Power' => '\\' . NotAllowed::class,
-			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power' => 'self',
-			'Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power' => 'self',
-			'Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power' => '\\Joomla\\Registry\\Registry',
-		]);
+		$method = str_replace('###component###', 'demo', $method);
 		$method = preg_replace('/###[A-Z_]+###/', '', $method);
 		$item = (object) ['id' => 42, 'access' => $access];
 		$language = new Language('en-GB');
@@ -517,8 +516,33 @@ GEN;
 		$this->setJoomlaFactoryProperty('language', $language);
 		$this->setJoomlaFactoryProperty('application', $app);
 
-		// The stable import emits native aliases supplied by the complete model header.
-		return eval('use Joomla\\CMS\\Factory; use Joomla\\CMS\\Language\\Text; '
-			. 'return new class($item, $app, $editable) extends \\' . GeneratedItemModelFixture::class . ' {' . $method . '};');
+		$power = $this->createStub(PowerInterface::class);
+		$power->method('get')->willReturnMap([
+			['2fa1c08d-c4ff-4cb0-8338-7221e95c1fe4', 0, (object) ['_namespace' => 'Joomla\CMS\Access\Exception', 'class_name' => 'NotAllowed', 'type' => 'class']],
+			['39403062-84fb-46e0-bac4-0023f766e827', 0, (object) ['_namespace' => 'Joomla\CMS', 'class_name' => 'Factory', 'type' => 'class']],
+			['ba6326ef-cb79-4348-80f4-ab086082e3c5', 0, (object) ['_namespace' => 'Joomla\CMS\Language', 'class_name' => 'Text', 'type' => 'class']],
+			['a87c432d-b5b4-428e-b7ff-14b51664c624', 0, (object) ['_namespace' => 'Joomla\Registry', 'class_name' => 'Registry', 'type' => 'class']],
+		]);
+		$injector = new JoomlaPowerInjector(
+			$power,
+			new JoomlaPowerExtractor($this->createStub(DatabaseInterface::class), 6),
+			new Parser(),
+			$this->placeholder()
+		);
+		$this->assertStringContainsString('Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power', $method);
+		// The occupied name proves the compiler resolves imports and collisions itself.
+		$code = '<?php' . "\nuse RuntimeException as NotAllowed;\n"
+			. 'use Joomla\CMS\Factory;' . "\nuse Joomla\CMS\Language\Text;\n"
+			. 'return new class($item, $app, $editable) extends \\' . GeneratedItemModelFixture::class . ' {' . $method . '};';
+		$code = $injector->power($code);
+		$this->assertStringNotContainsString('Joomla___', $code);
+
+		if (str_contains($method, 'Joomla___2fa1c08d_c4ff_4cb0_8338_7221e95c1fe4___Power'))
+		{
+			$this->assertStringContainsString('use Joomla\CMS\Access\Exception\NotAllowed as ExceptionNotAllowed;', $code);
+			$this->assertStringContainsString('throw new ExceptionNotAllowed(', $code);
+		}
+
+		return eval(substr($code, strlen('<?php')));
 	}
 }

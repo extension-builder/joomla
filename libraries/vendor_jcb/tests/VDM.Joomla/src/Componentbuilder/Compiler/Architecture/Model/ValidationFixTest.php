@@ -32,6 +32,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor as JoomlaPowerExtractor;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector as JoomlaPowerInjector;
+use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -644,13 +648,30 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$app->method('getInput')->willReturn($input);
 		Factory::$application = $app;
 		$dispatcher ??= new Dispatcher();
-		$method = strtr($method, [
-			'Joomla___571422c4_0340_49f8_b846_5729c7af6ed7___Power' => '\\' . FormHelper::class,
-			'Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power' => '\\Joomla\\Registry\\Registry',
-			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power' => '\\' . Factory::class,
+		$power = $this->createStub(PowerInterface::class);
+		$power->method('get')->willReturnMap([
+			['571422c4-0340-49f8-b846-5729c7af6ed7', 0, (object) ['_namespace' => 'Joomla\CMS\Form', 'class_name' => 'FormHelper', 'type' => 'class']],
+			['a87c432d-b5b4-428e-b7ff-14b51664c624', 0, (object) ['_namespace' => 'Joomla\Registry', 'class_name' => 'Registry', 'type' => 'class']],
+			['39403062-84fb-46e0-bac4-0023f766e827', 0, (object) ['_namespace' => 'Joomla\CMS', 'class_name' => 'Factory', 'type' => 'class']],
 		]);
-		$record = eval('use Joomla\\String\\StringHelper; return new class($stored, $dispatcher) extends \\'
-			. GeneratedConditionalModelFixture::class . ' {' . $method . '};');
+		$injector = new JoomlaPowerInjector(
+			$power,
+			new JoomlaPowerExtractor($this->createStub(DatabaseInterface::class), 6),
+			new Parser(),
+			$this->placeholder()
+		);
+		$this->assertStringContainsString('Joomla___571422c4_0340_49f8_b846_5729c7af6ed7___Power', $method);
+		$this->assertStringContainsString('Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power', $method);
+		$this->assertStringContainsString('Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power', $method);
+		$code = '<?php' . "\nuse Joomla\String\StringHelper;\n"
+			. 'use Joomla\Registry\Registry as StoredRegistry;' . "\n"
+			. 'return new class($stored, $dispatcher) extends \\' . GeneratedConditionalModelFixture::class . ' {' . $method . '};';
+		$code = $injector->power($code);
+		$this->assertStringNotContainsString('Joomla___', $code);
+		$this->assertStringContainsString('use Joomla\CMS\Form\FormHelper;', $code);
+		$this->assertStringContainsString('use Joomla\CMS\Factory;', $code);
+		$this->assertStringContainsString('new StoredRegistry(', $code);
+		$record = eval(substr($code, strlen('<?php')));
 
 		return Closure::fromCallable([$record, 'validate']);
 	}

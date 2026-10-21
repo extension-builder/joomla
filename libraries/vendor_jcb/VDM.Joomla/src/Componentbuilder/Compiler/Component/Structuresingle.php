@@ -21,7 +21,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface as Settings;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\TemplateInterface as Template;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne as Content;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
@@ -104,14 +103,6 @@ final class Structuresingle
 	protected Settings $settings;
 
 	/**
-	 * Component template source resolver.
-	 *
-	 * @var    Template
-	 * @since  6.2.0
-	 */
-	protected Template $template;
-
-	/**
 	 * The Component Class.
 	 *
 	 * @var   Component
@@ -179,8 +170,6 @@ final class Structuresingle
 	 * @param Counter               $counter       The Counter Class.
 	 * @param Paths                 $paths         The Paths Class.
 	 * @param Files                 $files         The Files Class.
-	 * @param Folder                $folder        The folder utility.
-	 * @param Template              $template      The component template resolver.
 	 * @param CMSApplication|null   $app           The CMS Application object.
 	 *
 	 * @since 3.2.0
@@ -188,14 +177,13 @@ final class Structuresingle
 	public function __construct(Config $config, Registry $registry,
 		Placeholder $placeholder, Settings $settings,
 		Component $component, Content $content, Counter $counter,
-		Paths $paths, Files $files, Folder $folder, Template $template,
+		Paths $paths, Files $files, Folder $folder,
 		?CMSApplication $app = null)
 	{
 		$this->config = $config;
 		$this->registry = $registry;
 		$this->placeholder = $placeholder;
 		$this->settings = $settings;
-		$this->template = $template;
 		$this->component = $component;
 		$this->content = $content;
 		$this->counter = $counter;
@@ -386,23 +374,14 @@ final class Structuresingle
 				);
 		}
 
-		// Resolve built-in sources through the target-specific template service.
-		if (empty($details->custom) && ($details->type ?? null) === 'file'
-			&& !preg_match('/^[a-z]:/i', (string) $details->naam))
-		{
-			$currentFullPath = $this->template->get((string) $details->naam);
-		}
-		else
-		{
-			// set the template folder path
-			$templatePath = (isset($details->custom) && $details->custom)
-				? (($details->custom !== 'full') ? $this->paths->template_path_custom
-					. '/' : '') : $this->paths->template_path . '/';
+		// set the template folder path
+		$templatePath = (isset($details->custom) && $details->custom)
+			? (($details->custom !== 'full') ? $this->paths->template_path_custom
+				. '/' : '') : $this->paths->template_path . '/';
 
-			// set the final paths
-			$currentFullPath = (preg_match('/^[a-z]:/i', (string) $details->naam)) ? $details->naam
-				: $templatePath . '/' . $details->naam;
-		}
+		// set the final paths
+		$currentFullPath = (preg_match('/^[a-z]:/i', (string) $details->naam)) ? $details->naam
+			: $templatePath . '/' . $details->naam;
 
 		$this->currentFullPath = str_replace('//', '/', (string) $currentFullPath);
 
@@ -677,3 +656,4 @@ final class Structuresingle
 		}
 	}
 }
+

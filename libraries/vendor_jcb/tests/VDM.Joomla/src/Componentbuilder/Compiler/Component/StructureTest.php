@@ -15,14 +15,11 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Component;
 use FilesystemIterator;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Resources;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
-use VDM\Joomla\Componentbuilder\Compiler\Component\Template;
-use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaSix\Template as JoomlaSixTemplate;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Structure;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Structuremultiple;
@@ -172,14 +169,10 @@ final class StructureTest extends CompilerDomainTestCase
 	/**
 	 * Static structure creation copies, renames, registers, and declares one template file.
 	 *
-	 * @param   bool         $native  Use the Joomla 6 source resolver.
-	 * @param   bool|string  $custom  Preserve custom source precedence.
-	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	#[DataProvider('templateSources')]
-	public function testSingleStructureCopiesAndRegistersTemplateFile(bool $native, bool|string $custom): void
+	public function testSingleStructureCopiesAndRegistersTemplateFile(): void
 	{
 		$root = sys_get_temp_dir() . '/jcb-single-' . bin2hex(random_bytes(6));
 		$template = $root . '/template';
@@ -205,13 +198,6 @@ final class StructureTest extends CompilerDomainTestCase
 				throw new RuntimeException('Unable to write the single-structure template fixture.');
 			}
 
-			$overlay = $root . '/overlay';
-			if (!mkdir($overlay, 0700)
-				|| file_put_contents($overlay . '/sample.txt.tpl', 'native-content') === false)
-			{
-				throw new RuntimeException('Unable to create the native template fixture.');
-			}
-
 			// the folder utility seeds every directory it makes from this file
 			if (file_put_contents($template . '/index.html', '<html><body bgcolor="#FFFFFF"></body></html>') === false)
 			{
@@ -227,12 +213,12 @@ final class StructureTest extends CompilerDomainTestCase
 			$settings->method('exists')->willReturn(true);
 			$settings->method('single')->willReturn((object) [
 				'sample' => (object) [
-					'naam' => $custom === 'full' ? $template . '/sample.txt' : 'sample.txt',
+					'naam' => 'sample.txt',
 					'path' => 'c0mp0n3nt/admin',
 					'rename' => 'new',
 					'newName' => 'renamed.txt',
 					'type' => 'file',
-					'custom' => $custom
+					'custom' => false
 				]
 			]);
 			$settings->method('standardFolder')->willReturnCallback(
@@ -272,14 +258,13 @@ final class StructureTest extends CompilerDomainTestCase
 				$paths,
 				$files,
 				new CompilerFolder($counter, new CompilerFile($counter, $paths)),
-				$native ? new JoomlaSixTemplate($paths, $overlay, $template) : new Template($paths),
 				$app
 			);
 
 			$this->assertTrue($subject->build());
 			$destination = $componentPath . '/admin/renamed.txt';
 			$this->assertFileExists($destination);
-			$this->assertSame($native && !$custom ? 'native-content' : 'template-content', file_get_contents($destination));
+			$this->assertSame('template-content', file_get_contents($destination));
 			// the moved file, plus the index.html seeded into the directory
 			// the build had to create for it
 			$this->assertSame(2, $counter->file);
@@ -301,22 +286,6 @@ final class StructureTest extends CompilerDomainTestCase
 				$this->removeTemporaryDirectory($root);
 			}
 		}
-	}
-
-	/**
-	 * Shared, native, and explicit custom template source cases.
-	 *
-	 * @return  array<string, array{bool, bool|string}>
-	 * @since   6.2.0
-	 */
-	public static function templateSources(): array
-	{
-		return [
-			'shared' => [false, false],
-			'Joomla 6 native overlay' => [true, false],
-			'custom source precedence' => [true, true],
-			'full custom source precedence' => [true, 'full']
-		];
 	}
 
 	/**

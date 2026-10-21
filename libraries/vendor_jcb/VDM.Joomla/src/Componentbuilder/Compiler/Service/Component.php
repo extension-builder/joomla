@@ -19,9 +19,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaThree\Settings as J3Set
 use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaFour\Settings as J4Settings;
 use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaFive\Settings as J5Settings;
 use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaSix\Settings as J6Settings;
-use VDM\Joomla\Componentbuilder\Compiler\Component\Template as SharedTemplate;
-use VDM\Joomla\Componentbuilder\Compiler\Component\JoomlaSix\Template as J6Template;
-use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\TemplateInterface as Template;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Dashboard;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
@@ -88,19 +85,6 @@ class Component implements ServiceProviderInterface
 
 		$container->alias(Structuremultiple::class, 'Component.Structure.Multiple')
 			->share('Component.Structure.Multiple', [$this, 'getStructuremultiple'], true);
-
-		$container->alias(SharedTemplate::class, 'Component.Shared.Template')
-			->share('Component.Shared.Template', [$this, 'getSharedTemplate'], true);
-
-		$container->alias('Component.J3.Template', 'Component.Shared.Template')
-			->alias('Component.J4.Template', 'Component.Shared.Template')
-			->alias('Component.J5.Template', 'Component.Shared.Template');
-
-		$container->alias(J6Template::class, 'Component.J6.Template')
-			->share('Component.J6.Template', [$this, 'getJ6Template'], true);
-
-		$container->alias(Template::class, 'Component.Template')
-			->share('Component.Template', [$this, 'getTemplate'], true);
 
 		$container->alias(Settings::class, 'Component.Settings')
 			->share('Component.Settings', [$this, 'getSettings'], true);
@@ -315,8 +299,7 @@ class Component implements ServiceProviderInterface
 			$container->get('Utilities.Counter'),
 			$container->get('Utilities.Paths'),
 			$container->get('Utilities.Files'),
-			$container->get('Utilities.Folder'),
-			$container->get('Component.Template')
+			$container->get('Utilities.Folder')
 		);
 	}
 
@@ -359,52 +342,5 @@ class Component implements ServiceProviderInterface
 
 		return $container->get('Component.J' . $this->targetVersion . '.Settings');
 	}
-
-	/**
-	 * Select component templates using the requested output Joomla major.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  Template  The target's template source resolver.
-	 * @since   6.2.0
-	 */
-	public function getTemplate(Container $container): Template
-	{
-		if (empty($this->targetVersion))
-		{
-			$this->targetVersion = $container->get('Config')->joomla_version;
-		}
-
-		return $container->get('Component.J' . $this->targetVersion . '.Template');
-	}
-
-	/**
-	 * Get the shared compiler template source resolver.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  SharedTemplate  The configured template resolver.
-	 * @since   6.2.0
-	 */
-	public function getSharedTemplate(Container $container): SharedTemplate
-	{
-		return new SharedTemplate($container->get('Utilities.Paths'));
-	}
-
-	/**
-	 * Get the Joomla 6 compiler template overlay resolver.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J6Template  The Joomla 6 template resolver.
-	 * @since   6.2.0
-	 */
-	public function getJ6Template(Container $container): J6Template
-	{
-		return new J6Template(
-			$container->get('Utilities.Paths'),
-			dirname(__DIR__) . '/Component/JoomlaSix/Templates',
-			JPATH_ADMINISTRATOR . '/components/com_componentbuilder/compiler/joomla_4'
-		);
-	}
 }
+
