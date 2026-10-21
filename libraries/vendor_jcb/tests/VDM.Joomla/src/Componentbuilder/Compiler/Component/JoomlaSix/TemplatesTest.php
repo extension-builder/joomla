@@ -103,6 +103,31 @@ final class TemplatesTest extends TestCase
 			$changes[$name][] = ['$session->clear(', '$session->remove(', $remove];
 		}
 
+		$changes['ADMIN_IMPORT_HTML.php'][] = [
+			'$state = $this->get(\'state\');',
+			'$model = $this->getModel();' . "\n\t\t" . '$state = $model->getState();',
+			1,
+		];
+		$changes['DASH_VIEW_HTML.php'][] = [
+			'// Assign data to the view' . "\n",
+			'// Assign data to the view' . "\n\t\t" . '$model = $this->getModel();' . "\n",
+			1,
+		];
+
+		foreach (['Icons', 'Styles', 'Scripts'] as $property)
+		{
+			$changes['DASH_VIEW_HTML.php'][] = [
+				'$this->get(\'' . $property . '\')',
+				'$model->get' . $property . '()',
+				1,
+			];
+		}
+
+		foreach (['ADMIN_IMPORT_HTML.php', 'DASH_VIEW_HTML.php', 'ADMIN_VIEW_HTML.php', 'ADMIN_VIEWS_HTML.php', 'SITE_ADMIN_VIEW_HTML.php'] as $name)
+		{
+			$changes[$name][] = ['$this->get(\'Errors\')', '$model->getErrors()', 1];
+		}
+
 		foreach ($changes as $name => $replacements)
 		{
 			yield $name => [$name, $replacements];
