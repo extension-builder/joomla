@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Reviewed Joomla 6 template differences preserve all other generated source.
  *
- * @since  6.1.6
+ * @since  6.2.0
  */
 #[CoversNothing]
 final class TemplatesTest extends TestCase
@@ -32,7 +32,7 @@ final class TemplatesTest extends TestCase
 	 * @param   array   $replacements  Reviewed old/new source and occurrence counts.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.2.0
 	 */
 	#[DataProvider('templates')]
 	public function testOnlyReviewedDeprecationsChange(string $name, array $replacements): void
@@ -56,7 +56,7 @@ final class TemplatesTest extends TestCase
 	 * Exact source differences approved for each Joomla 6 override.
 	 *
 	 * @return  iterable<string, array{string, array}>
-	 * @since   6.1.6
+	 * @since   6.2.0
 	 */
 	public static function templates(): iterable
 	{
@@ -79,6 +79,11 @@ final class TemplatesTest extends TestCase
 		{
 			$changes[$name] = [['->getQuery(true)', '->createQuery()', $count]];
 		}
+
+		// Copied source must also satisfy the repository's changed-file whitespace gate.
+		$changes['ADMIN_VIEW_MODEL.php'][] = ["\n \t", "\n\t", 2];
+		$changes['SITE_ADMIN_VIEW_MODEL.php'][] = ["\n \t", "\n\t", 3];
+		$changes['SITE_ADMIN_VIEW_MODEL.php'][] = ["\n  \t", "\n\t", 1];
 
 		$factory = 'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power';
 		$access = [

@@ -46,7 +46,7 @@ class ###View###Model extends AdminModel
 	protected array $styles = [
 		'administrator/components/com_###component###/assets/css/admin.css',
 		'administrator/components/com_###component###/assets/css/###view###.css'
- 	];
+	];
 
 	/**
 	 * The scripts array.
@@ -57,7 +57,7 @@ class ###View###Model extends AdminModel
 	protected array $scripts = [
 		'administrator/components/com_###component###/assets/js/admin.js',
 		'media/com_###component###/js/###view###.js'
- 	];
+	];
 
 	/**
 	 * @var     string    The prefix to use with controller messages.

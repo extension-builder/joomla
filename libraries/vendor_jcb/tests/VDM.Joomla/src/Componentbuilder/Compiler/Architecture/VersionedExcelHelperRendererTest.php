@@ -124,7 +124,7 @@ final class VersionedExcelHelperRendererTest extends ArchitectureTestCase
 	 * @param   int     $major    Joomla target major.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	#[DataProvider('versions')]
 	public function testImportHeadersUseTheTargetSession(string $version, int $major): void
@@ -151,7 +151,7 @@ final class VersionedExcelHelperRendererTest extends ArchitectureTestCase
 	 * Joomla 6 changes only session access in the complete spreadsheet helper.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testJoomlaSixPreservesTheRestOfTheSpreadsheetHelper(): void
 	{

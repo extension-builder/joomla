@@ -442,7 +442,7 @@ class ArchitectureComponent implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  J6ExcelMethods
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getJ6ExcelMethods(Container $container): J6ExcelMethods
 	{

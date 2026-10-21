@@ -82,9 +82,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\ExcelMethodsInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/ComHelperClass/ExcelMethodsInterface.php',
-			'implementations' => 2,
-			'concrete' => 2,
-			'implementation_hash' => '90fe0368faa63872c53853a362d52ee41e7554d89321dc58a89c4551d55e7b1b',
+			'implementations' => 3,
+			'concrete' => 3,
+			'implementation_hash' => '3e297fd5c4053b9222593cd6fb2f36b75b7befc36a65fff435eb5a7ee870e04e',
 			'signature_hash' => 'e4526e7d5b72bc0eb41bbb0b0b6befadff35d00c4d0895ba17a603877c7ee88a'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Component\\AssetsTableInterface' => [

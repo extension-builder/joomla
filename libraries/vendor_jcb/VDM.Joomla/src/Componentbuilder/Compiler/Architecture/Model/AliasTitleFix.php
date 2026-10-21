@@ -311,7 +311,7 @@ class AliasTitleFix
 	 * Get the generated condition that selects Unicode alias handling.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getUnicodeSlugsCondition(): string
 	{

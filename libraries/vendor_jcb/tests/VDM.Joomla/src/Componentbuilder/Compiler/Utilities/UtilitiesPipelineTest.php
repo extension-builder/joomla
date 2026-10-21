@@ -449,7 +449,7 @@ final class UtilitiesPipelineTest extends CompilerDomainTestCase
 	 * Shared, native, and explicit custom template source cases.
 	 *
 	 * @return  array<string, array{bool, bool}>
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public static function templateSources(): array
 	{

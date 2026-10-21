@@ -217,7 +217,7 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 	 * Joomla 6 changes only session access for standard and custom imports.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testJoomlaSixPreservesTheRestOfBothImportVariants(): void
 	{

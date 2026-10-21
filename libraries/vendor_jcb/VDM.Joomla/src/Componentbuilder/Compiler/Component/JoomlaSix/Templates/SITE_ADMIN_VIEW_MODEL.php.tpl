@@ -45,7 +45,7 @@ class ###View###Model extends AdminModel
 	protected array $styles = [
 		'components/com_###component###/assets/css/site.css',
 		'components/com_###component###/assets/css/###view###.css'
- 	];
+	];
 
 	/**
 	 * The scripts array.
@@ -56,7 +56,7 @@ class ###View###Model extends AdminModel
 	protected array $scripts = [
 		'components/com_###component###/assets/js/site.js',
 		'media/com_###component###/js/###view###.js'
- 	];
+	];
 
 	/**
 	 * @var        string    The prefix to use with controller messages.
@@ -113,8 +113,8 @@ class ###View###Model extends AdminModel
 			// check edit access permissions
 			if (!empty($item->id) && !$this->allowEdit((array) $item))
 			{
- 				$app = Factory::getApplication();
-  				$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');
+				$app = Factory::getApplication();
+				$app->enqueueMessage(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('Not authorised!'), 'error');
 				$app->redirect('index.php?option=com_###component###&view=###SITE_DEFAULT_VIEW###');
 				return false;
 			}###METHOD_GET_ITEM###

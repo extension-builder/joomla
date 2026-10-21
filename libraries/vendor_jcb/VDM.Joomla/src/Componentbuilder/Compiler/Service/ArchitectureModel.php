@@ -809,7 +809,7 @@ class ArchitectureModel implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  AliasTitleFix
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getSharedModelAliasTitleFix(Container $container): AliasTitleFix
 	{
@@ -828,7 +828,7 @@ class ArchitectureModel implements ServiceProviderInterface
 	 * @param   Container  $container  The DI container.
 	 *
 	 * @return  J6ModelAliasTitleFix
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function getJ6ModelAliasTitleFix(Container $container): J6ModelAliasTitleFix
 	{

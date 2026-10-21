@@ -45,7 +45,7 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	 * Supported targets and their configuration access.
 	 *
 	 * @return  array<string, array{string, string}>
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public static function versions(): array
 	{
@@ -64,7 +64,7 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	 * @param   string  $lookup   Expected application or factory configuration lookup.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	#[DataProvider('versions')]
 	public function testUnicodeSlugConfigurationFollowsTheTarget(string $version,
@@ -89,7 +89,7 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	 * Joomla 6 changes only the configuration lookup in the complete alias fix.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function testJoomlaSixPreservesTheRestOfTheAliasFix(): void
 	{

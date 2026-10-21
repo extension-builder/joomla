@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 /**
  * Model title and alias uniqueness fix for Joomla 6.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 final class AliasTitleFix extends ExtendingAliasTitleFix
 {
@@ -27,7 +27,7 @@ final class AliasTitleFix extends ExtendingAliasTitleFix
 	 * Get the condition using the active application configuration.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getUnicodeSlugsCondition(): string
 	{

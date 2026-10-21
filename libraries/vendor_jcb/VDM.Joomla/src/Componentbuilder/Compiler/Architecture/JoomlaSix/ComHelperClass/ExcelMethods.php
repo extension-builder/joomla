@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 /**
  * Component helper spreadsheet methods for Joomla 6.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 final class ExcelMethods extends ExtendingExcelMethods
 {
@@ -27,7 +27,7 @@ final class ExcelMethods extends ExtendingExcelMethods
 	 * Get the import-header session from the active application.
 	 *
 	 * @return  string
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	protected function getSessionObject(): string
 	{

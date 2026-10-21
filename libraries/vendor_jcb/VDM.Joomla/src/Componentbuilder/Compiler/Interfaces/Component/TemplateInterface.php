@@ -15,7 +15,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component;
 /**
  * Resolve component template sources without changing their output names.
  *
- * @since  6.1.7
+ * @since  6.2.0
  */
 interface TemplateInterface
 {
@@ -25,7 +25,7 @@ interface TemplateInterface
 	 * @param   string  $file  The template name from component settings.
 	 *
 	 * @return  string  The source path to copy.
-	 * @since   6.1.7
+	 * @since   6.2.0
 	 */
 	public function get(string $file): string;
 }
