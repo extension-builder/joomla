@@ -30,11 +30,11 @@ use VDM\Joomla\Utilities\StringHelper;
  * title and its alias stay unique within the view, and within its category
  * where the view is categorised.
  * 
- * The fix reads the same on every Joomla target, so this is one class.
+ * Target variants supply the configuration lookup for Unicode slugs.
  * 
  * @since  6.1.7
  */
-final class AliasTitleFix
+class AliasTitleFix
 {
 	/**
 	 * The Alias Class.
@@ -212,8 +212,7 @@ final class AliasTitleFix
 			$fixUnique[] = Indent::_(3) . "if (\$data['" . $alias
 				. "'] == null || empty(\$data['" . $alias . "']))";
 			$fixUnique[] = Indent::_(3) . "{";
-			$fixUnique[] = Indent::_(4)
-				. "if (Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig()->get('unicodeslugs') == 1)";
+			$fixUnique[] = $this->getUnicodeSlugsCondition();
 			$fixUnique[] = Indent::_(4) . "{";
 			$fixUnique[] = Indent::_(5) . "\$data['" . $alias
 				. "'] = OutputFilter::stringURLUnicodeSlug(" . implode(
@@ -307,5 +306,16 @@ final class AliasTitleFix
 
 		return PHP_EOL . implode(PHP_EOL, $fixUnique);
 	}
-}
 
+	/**
+	 * Get the generated condition that selects Unicode alias handling.
+	 *
+	 * @return  string
+	 * @since   6.1.7
+	 */
+	protected function getUnicodeSlugsCondition(): string
+	{
+		return Indent::_(4) . "if (Joomla__"
+			. "_39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig()->get('unicodeslugs') == 1)";
+	}
+}

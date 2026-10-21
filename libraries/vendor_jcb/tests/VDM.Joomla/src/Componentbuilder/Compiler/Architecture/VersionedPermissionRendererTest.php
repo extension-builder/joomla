@@ -79,16 +79,18 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminViews/ListHead' => $legacy,
 			'AdminViews/ViewBody' => $legacy,
 			'ComHelperClass/CreateUser' => $all,
-			'ComHelperClass/ExcelMethods' => $legacy,
+			'ComHelperClass/ExcelMethods' => ['JoomlaThree', 'JoomlaSix'],
 			'Controller/AllowAdd' => $all,
 			'Controller/AllowEdit' => $all,
 			'Controller/AllowEditViews' => $all,
+			'Controller/EximportMethod' => ['JoomlaThree', 'JoomlaSix'],
 			'CustomAdminView/AddToolBar' => $all,
 			'CustomAdminViews/AddToolBar' => $all,
 			'CustomView/DisplayMethod' => ['JoomlaThree', 'JoomlaFour'],
 			'Dashboard/View' => $all,
 			'Menu/CustomView' => $legacy,
 			'Model/AllowEdit' => $legacy,
+			'Model/AliasTitleFix' => ['JoomlaSix'],
 			'Model/CanDelete' => $all,
 			'Model/CanEditState' => $all,
 			'Model/CheckInNow' => $all,
@@ -114,7 +116,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(44, $families);
+		$this->assertCount(46, $families);
 
 		foreach ($families as $family => $diverging)
 		{

@@ -113,7 +113,7 @@ class ###View###importModel extends BaseDatabaseModel
 		}
 
 		// Build the appropriate paths
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		$tmp_dest = $config->get('tmp_path') . '/' . $userfile['name'];
 		$tmp_src = $userfile['tmp_name'];
 
@@ -123,10 +123,10 @@ class ###View###importModel extends BaseDatabaseModel
 		// Was the package downloaded?
 		if (!$p_file)
 		{
-			$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();
-			$session->clear('package');
-			$session->clear('dataType');
-			$session->clear('hasPackage');
+			$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getSession();
+			$session->remove('package');
+			$session->remove('dataType');
+			$session->remove('hasPackage');
 			// was not uploaded
 			return false;
 		}
@@ -243,7 +243,7 @@ class ###View###importModel extends BaseDatabaseModel
 			return false;
 		}
 
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		// set Package Name
 		$check['packagename'] = $archivename;
 
@@ -267,7 +267,7 @@ class ###View###importModel extends BaseDatabaseModel
 	 */
 	protected function remove($package)
 	{
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		$package = $config->get('tmp_path'). '/' .$package;
 
 		// Is the package file a valid file?
@@ -287,7 +287,7 @@ class ###View###importModel extends BaseDatabaseModel
 	protected function getAlias($name,$type = false)
 	{
 		// sanitize the name to an alias
-		if (Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig()->get('unicodeslugs') == 1)
+		if (Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig()->get('unicodeslugs') == 1)
 		{
 			$alias = OutputFilter::stringURLUnicodeSlug($name);
 		}

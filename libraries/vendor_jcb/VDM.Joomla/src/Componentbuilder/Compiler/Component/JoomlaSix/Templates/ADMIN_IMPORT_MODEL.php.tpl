@@ -86,7 +86,7 @@ class ImportModel extends BaseDatabaseModel
 	{
 		$this->setState('action', 'import');
 		$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
-		$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();
+		$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getSession();
 		$package = null;
 		$continue = false;
 		// get import type
@@ -118,9 +118,9 @@ class ImportModel extends BaseDatabaseModel
 					$package    = $session->get('package', null);
 					$package    = json_decode($package, true);
 					// clear session
-					$session->clear('package');
-					$session->clear('dataType');
-					$session->clear('hasPackage');
+					$session->remove('package');
+					$session->remove('dataType');
+					$session->remove('hasPackage');
 					break;
 
 				default:
@@ -161,7 +161,7 @@ class ImportModel extends BaseDatabaseModel
 			if ($back)
 			{
 				$app->setUserState('com_###component###.redirect_url', 'index.php?option=com_###component###&view='.$back);
-				$session->clear('backto_VDM_IMPORT');
+				$session->remove('backto_VDM_IMPORT');
 			}
 			$result = false;
 		}
@@ -173,7 +173,7 @@ class ImportModel extends BaseDatabaseModel
 			if ($back)
 			{
 				$app->setUserState('com_###component###.redirect_url', 'index.php?option=com_###component###&view='.$back);
-				$session->clear('backto_VDM_IMPORT');
+				$session->remove('backto_VDM_IMPORT');
 			}
 			$result = true;
 		}
@@ -183,7 +183,7 @@ class ImportModel extends BaseDatabaseModel
 
 		// remove file after import
 		$this->remove($package['packagename']);
-		$session->clear($this->getType.'_VDM_IMPORTHEADERS');
+		$session->remove($this->getType.'_VDM_IMPORTHEADERS');
 
 		return $result;
 	}
@@ -224,7 +224,7 @@ class ImportModel extends BaseDatabaseModel
 		}
 
 		// Build the appropriate paths
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		$tmp_dest = $config->get('tmp_path') . '/' . $userfile['name'];
 		$tmp_src = $userfile['tmp_name'];
 
@@ -234,10 +234,10 @@ class ImportModel extends BaseDatabaseModel
 		// Was the package downloaded?
 		if (!$p_file)
 		{
-			$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();
-			$session->clear('package');
-			$session->clear('dataType');
-			$session->clear('hasPackage');
+			$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getSession();
+			$session->remove('package');
+			$session->remove('dataType');
+			$session->remove('hasPackage');
 			// was not uploaded
 			return false;
 		}
@@ -354,7 +354,7 @@ class ImportModel extends BaseDatabaseModel
 			return false;
 		}
 
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		// set Package Name
 		$check['packagename'] = $archivename;
 
@@ -379,7 +379,7 @@ class ImportModel extends BaseDatabaseModel
 	{
 		jimport('joomla.filesystem.file');
 
-		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig();
+		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		$package = $config->get('tmp_path'). '/' .$package;
 
 		// Is the package file a valid file?
@@ -397,7 +397,7 @@ class ImportModel extends BaseDatabaseModel
 	protected function getAlias($name,$type = false)
 	{
 		// sanitize the name to an alias
-		if (Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig()->get('unicodeslugs') == 1)
+		if (Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig()->get('unicodeslugs') == 1)
 		{
 			$alias = OutputFilter::stringURLUnicodeSlug($name);
 		}

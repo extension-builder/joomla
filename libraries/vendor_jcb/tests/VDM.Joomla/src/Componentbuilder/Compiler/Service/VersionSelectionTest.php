@@ -285,11 +285,23 @@ final class VersionSelectionTest extends TestCase
 			5 => 'Architecture.Model.Shared.AllowEdit',
 			6 => 'Architecture.Model.Shared.AllowEdit',
 		]];
+		yield 'model alias title fix' => [ArchitectureModel::class, 'getModelAliasTitleFix', [
+			3 => 'Architecture.Model.Shared.AliasTitleFix',
+			4 => 'Architecture.Model.Shared.AliasTitleFix',
+			5 => 'Architecture.Model.Shared.AliasTitleFix',
+			6 => 'Architecture.Model.J6.AliasTitleFix',
+		]];
+		yield 'controller export import' => [ArchitectureController::class, 'getControllerEximportMethod', [
+			3 => 'Architecture.Controller.J3.EximportMethod',
+			4 => 'Architecture.Controller.Shared.EximportMethod',
+			5 => 'Architecture.Controller.Shared.EximportMethod',
+			6 => 'Architecture.Controller.J6.EximportMethod',
+		]];
 		yield 'component helper excel methods' => [ArchitectureComponent::class, 'getExcelMethods', [
 			3 => 'Architecture.ComHelperClass.J3.ExcelMethods',
 			4 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
 			5 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
-			6 => 'Architecture.ComHelperClass.Shared.ExcelMethods',
+			6 => 'Architecture.ComHelperClass.J6.ExcelMethods',
 		]];
 		yield 'admin views view body' => [ArchitectureView::class, 'getAdminViewsViewBody', [
 			3 => 'Architecture.AdminViews.J3.ViewBody',

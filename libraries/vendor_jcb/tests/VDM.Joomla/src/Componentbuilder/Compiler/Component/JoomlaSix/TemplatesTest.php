@@ -77,7 +77,35 @@ final class TemplatesTest extends TestCase
 
 		foreach ($queries as $name => $count)
 		{
-			yield $name => [$name, [['->getQuery(true)', '->createQuery()', $count]]];
+			$changes[$name] = [['->getQuery(true)', '->createQuery()', $count]];
+		}
+
+		$factory = 'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power';
+		$access = [
+			'ADMIN_IMPORT_MODEL.php' => [4, 2, 9],
+			'ADMIN_IMPORT_MODEL_CUSTOM.php' => [4, 1, 3],
+			'ADMIN_IMPORT_HTML.php' => [0, 1, 1],
+			'API_VIEW_CONTROLLER.php' => [0, 0, 2],
+		];
+
+		foreach ($access as $name => [$config, $session, $remove])
+		{
+			if ($config > 0)
+			{
+				$changes[$name][] = [$factory . '::getConfig()', $factory . '::getApplication()->getConfig()', $config];
+			}
+
+			if ($session > 0)
+			{
+				$changes[$name][] = [$factory . '::getSession()', $factory . '::getApplication()->getSession()', $session];
+			}
+
+			$changes[$name][] = ['$session->clear(', '$session->remove(', $remove];
+		}
+
+		foreach ($changes as $name => $replacements)
+		{
+			yield $name => [$name, $replacements];
 		}
 	}
 }

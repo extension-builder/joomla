@@ -118,6 +118,55 @@ final class VersionedExcelHelperRendererTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Import headers use the target session API and retain the package key.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('versions')]
+	public function testImportHeadersUseTheTargetSession(string $version, int $major): void
+	{
+		$this->config()->set('add_eximport', true);
+
+		$code = $this->renderer($this->rendererClass($version))->get();
+		$lookup = $major === 6 ? 'getApplication()->getSession()' : 'getSession()';
+
+		$this->assertStringContainsString(
+			"\t\t\$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::" . $lookup . ';',
+			$code
+		);
+		$this->assertStringContainsString("\$package = \$session->get('package', null);", $code);
+		$this->assertStringContainsString('$package = json_decode($package, true);', $code);
+
+		if ($major === 6)
+		{
+			$this->assertStringNotContainsString('___Power::getSession()', $code);
+		}
+	}
+
+	/**
+	 * Joomla 6 changes only session access in the complete spreadsheet helper.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testJoomlaSixPreservesTheRestOfTheSpreadsheetHelper(): void
+	{
+		$this->config()->set('add_eximport', true);
+
+		$shared = $this->renderer($this->rendererClass('JoomlaFive'))->get();
+
+		$this->assertSame($shared, $this->renderer($this->rendererClass('JoomlaFour'))->get());
+		$this->assertSame(
+			str_replace('::getSession()', '::getApplication()->getSession()', $shared),
+			$this->renderer($this->rendererClass('JoomlaSix'))->get()
+		);
+	}
+
+	/**
 	 * The user lookup is target-specific: only Joomla 3 emits its assignment.
 	 *
 	 * @param   string  $version  Target namespace segment.
@@ -208,9 +257,8 @@ final class VersionedExcelHelperRendererTest extends ArchitectureTestCase
 	 */
 	private function rendererClass(string $version): string
 	{
-		// only Joomla 3 resolves the active user the legacy way
 		return $this->targetClass(
-			$version, 'ComHelperClass\\ExcelMethods', ['JoomlaThree']
+			$version, 'ComHelperClass\\ExcelMethods', ['JoomlaThree', 'JoomlaSix']
 		);
 	}
 }
