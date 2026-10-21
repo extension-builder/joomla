@@ -644,6 +644,11 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$app->method('getInput')->willReturn($input);
 		Factory::$application = $app;
 		$dispatcher ??= new Dispatcher();
+		$method = strtr($method, [
+			'Joomla___571422c4_0340_49f8_b846_5729c7af6ed7___Power' => '\\' . FormHelper::class,
+			'Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power' => '\\Joomla\\Registry\\Registry',
+			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power' => '\\' . Factory::class,
+		]);
 		$record = eval('use Joomla\\String\\StringHelper; return new class($stored, $dispatcher) extends \\'
 			. GeneratedConditionalModelFixture::class . ' {' . $method . '};');
 
