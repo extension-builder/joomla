@@ -94,6 +94,53 @@ final class ProviderWiringTest extends TestCase
 	}
 
 	/**
+	 * A class without a constructor has no declared dependency contract to check.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testClassWithoutConstructorAcceptsPositionalArguments(): void
+	{
+		$service = new class(new \stdClass(), new \stdClass())
+		{
+		};
+
+		$this->assertSame([], $this->mismatches(
+			'Example', $service::class, ['First', 'Second'], []
+		));
+	}
+
+	/**
+	 * Declared constructor dependencies still reject missing or wrong services.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testDeclaredConstructorDependenciesRemainChecked(): void
+	{
+		$service = new class(new \stdClass())
+		{
+			/**
+			 * Declare one required dependency for the wiring contract.
+			 *
+			 * @param   \stdClass  $dependency  Required service.
+			 * @since   6.2.0
+			 */
+			public function __construct(\stdClass $dependency)
+			{
+			}
+		};
+		$aliases = ['Dependency' => [\stdClass::class => \stdClass::class]];
+
+		$this->assertSame([], $this->mismatches('Example', $service::class, ['Dependency'], $aliases));
+		$this->assertCount(1, $this->mismatches('Example', $service::class, [], $aliases));
+		$this->assertCount(1, $this->mismatches('Example', $service::class, ['Dependency', 'Dependency'], $aliases));
+		$this->assertCount(1, $this->mismatches(
+			'Example', $service::class, ['Wrong'], ['Wrong' => [\ArrayObject::class => \ArrayObject::class]]
+		));
+	}
+
+	/**
 	 * Read what every provider in the library registers.
 	 *
 	 * @return  array{0: array<string, array<string, string>>, 1: array<string, array{string, string}>}
@@ -246,7 +293,14 @@ final class ProviderWiringTest extends TestCase
 	): array
 	{
 		$constructor = (new ReflectionClass($class))->getConstructor();
-		$parameters = $constructor === null ? [] : $constructor->getParameters();
+
+		// PHP accepts positional arguments when no constructor is declared or inherited.
+		if ($constructor === null)
+		{
+			return [];
+		}
+
+		$parameters = $constructor->getParameters();
 		$required = 0;
 
 		foreach ($parameters as $parameter)

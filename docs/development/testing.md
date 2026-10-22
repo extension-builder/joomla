@@ -349,6 +349,10 @@ implementation in its assertion, or checks that a method exists.
   test them through their injected interfaces and public behavior.
 - Verify service-provider aliases, shared lifecycles, constructor wiring, and
   Joomla-version selection without resolving side-effectful compiler services.
+- Constructor-wiring checks apply to declared or inherited constructors. A
+  class without a constructor has no declared dependency signature; PHP accepts
+  positional arguments in that case. Keep missing-service, arity and type
+  checks for constructors that do declare dependencies.
 - Use explicit expected generated strings or reviewed golden fixtures for
   compiler output. Never regenerate a fixture merely to make a failure pass.
 - Tests must be order-independent. PHPUnit randomizes execution to expose
