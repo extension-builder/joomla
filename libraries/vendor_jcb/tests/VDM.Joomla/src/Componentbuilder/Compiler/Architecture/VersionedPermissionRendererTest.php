@@ -49,16 +49,17 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Keep every renderer family to the targets whose code really differs.
+	 * Keep each renderer family's reviewed concrete target identities.
 	 *
-	 * A family earns a class under a `Joomla*` namespace only where the
-	 * generated code diverges from the rest. Families whose rendering is
-	 * identical across a run of targets keep their implementation in the root
-	 * of the concern folder. Reviewed target identities may delegate to it.
+	 * Families whose rendering is identical across a run of targets keep
+	 * their implementation in the root of the concern folder. A target class
+	 * either supplies different behavior or retains a stable version identity
+	 * by inheriting the shared implementation.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 * @since   6.1.7  Families collapsed to the targets that actually diverge.
+	 * @since   6.2.0  Native cutoff families retain explicit version identities.
 	 */
 	public function testEveryFamilyRetainsItsReviewedTargetIdentities(): void
 	{
@@ -70,6 +71,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminView/AddModalToolBar' => $all,
 			'AdminView/AddToolBar' => $all,
 			'AdminView/EditBody' => $legacy,
+			'AdminView/FadeInEffect' => ['JoomlaSix'],
 			'AdminView/FootableScripts' => $all,
 			'AdminViews/AddToolBar' => $all,
 			'AdminViews/DisplayMethod' => $legacy,
@@ -86,6 +88,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'CustomAdminView/AddToolBar' => $all,
 			'CustomAdminViews/AddToolBar' => $all,
 			'CustomView/DisplayMethod' => ['JoomlaThree', 'JoomlaFour', 'JoomlaSix'],
+			'CustomView/SubmitButtonScript' => ['JoomlaSix'],
 			'Dashboard/View' => $all,
 			'Menu/CustomView' => $legacy,
 			'Model/AllowEdit' => $legacy,
@@ -115,7 +118,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'SiteView/AddToolBar' => $all,
 		];
 
-		$this->assertCount(46, $families);
+		$this->assertCount(48, $families);
 
 		foreach ($families as $family => $diverging)
 		{

@@ -26,7 +26,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  * 
  * @since 3.2.0
  */
-final class ConfigFieldsetsEmailHelper
+class ConfigFieldsetsEmailHelper
 {
 	/**
 	 * The Config Class.
@@ -660,35 +660,7 @@ final class ConfigFieldsetsEmailHelper
 					"Server Configuration"
 				);
 				$this->language->set(
-					$this->config->lang_target, $lang . '_NOTE_DKIM_USE_DESCRIPTION', "<p>Using the below details, you need to configure your DNS by adding a TXT record on your domain: <b><span id='a_dkim_domain'></span></b></p>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var jformDkimDomain = document.querySelector('#jform_dkim_domain');
-    if (!jformDkimDomain.value) {
-        jformDkimDomain.value = window.location.hostname;
-    }
-    document.querySelector('#jform_dkim_key').addEventListener('click', function() {
-        this.select();
-    });
-    document.querySelector('#jform_dkim_value').addEventListener('click', function() {
-        this.select();
-    });
-    vdm_dkim();
-});
-function vdm_dkim() {
-    var jformDkimDomain = document.querySelector('#jform_dkim_domain');
-    document.querySelector('#a_dkim_domain').textContent = jformDkimDomain.value;
-    var jformDkimKey = document.querySelector('#jform_dkim_key');
-    jformDkimKey.value = document.querySelector('#jform_dkim_selector').value + '._domainkey';
-    var jformDkimPublicKey = document.querySelector('#jform_dkim_public_key').value;
-    var jformDkimValue = document.querySelector('#jform_dkim_value');
-    if (!jformDkimPublicKey) {
-        jformDkimValue.value = 'v=DKIM1;k=rsa;g=*;s=email;h=sha1;t=s;p=PUBLICKEY';
-    } else {
-        jformDkimValue.value = 'v=DKIM1;k=rsa;g=*;s=email;h=sha1;t=s;p=' + jformDkimPublicKey;
-    }
-}
-</script>"
+					$this->config->lang_target, $lang . '_NOTE_DKIM_USE_DESCRIPTION', $this->dkimDescription()
 				);
 				$this->language->set(
 					$this->config->lang_target, $lang . '_DKIM_KEY_LABEL', "Key"
@@ -863,7 +835,7 @@ function vdm_dkim() {
 					. Line::_(__Line__, __Class__)
 					. " Note_dkim_use Field. Type: Note. A None Database Field. (joomla) -->");
 				$this->configfieldsets->add('component', Indent::_(2)
-					. "<field type=\"note\" name=\"note_dkim_use\" label=\""
+					. "<field " . $this->dkimNoteAttributes() . " name=\"note_dkim_use\" label=\""
 					. $lang . "_NOTE_DKIM_USE_LABEL\" description=\"" . $lang
 					. "_NOTE_DKIM_USE_DESCRIPTION\" heading=\"h4\" class=\"note_dkim_use\" showon=\"dkim:1\" />");
 				$this->configfieldsets->add('component', Indent::_(2) . "<!--"
@@ -912,5 +884,54 @@ function vdm_dkim() {
 			$this->configfieldsets->add('component', Indent::_(1) . "</fieldset>");
 		}
 	}
+	/**
+	 * Render the DKIM note description for targets that embed its script.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function dkimDescription(): string
+	{
+		return str_replace("\n", "\r\n", "<p>Using the below details, you need to configure your DNS by adding a TXT record on your domain: <b><span id='a_dkim_domain'></span></b></p>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var jformDkimDomain = document.querySelector('#jform_dkim_domain');
+    if (!jformDkimDomain.value) {
+        jformDkimDomain.value = window.location.hostname;
+    }
+    document.querySelector('#jform_dkim_key').addEventListener('click', function() {
+        this.select();
+    });
+    document.querySelector('#jform_dkim_value').addEventListener('click', function() {
+        this.select();
+    });
+    vdm_dkim();
+});
+function vdm_dkim() {
+    var jformDkimDomain = document.querySelector('#jform_dkim_domain');
+    document.querySelector('#a_dkim_domain').textContent = jformDkimDomain.value;
+    var jformDkimKey = document.querySelector('#jform_dkim_key');
+    jformDkimKey.value = document.querySelector('#jform_dkim_selector').value + '._domainkey';
+    var jformDkimPublicKey = document.querySelector('#jform_dkim_public_key').value;
+    var jformDkimValue = document.querySelector('#jform_dkim_value');
+    if (!jformDkimPublicKey) {
+        jformDkimValue.value = 'v=DKIM1;k=rsa;g=*;s=email;h=sha1;t=s;p=PUBLICKEY';
+    } else {
+        jformDkimValue.value = 'v=DKIM1;k=rsa;g=*;s=email;h=sha1;t=s;p=' + jformDkimPublicKey;
+    }
 }
+</script>");
+	}
 
+	/**
+	 * Select the native note field attributes for the target.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function dkimNoteAttributes(): string
+	{
+		return 'type="note"';
+	}
+
+}

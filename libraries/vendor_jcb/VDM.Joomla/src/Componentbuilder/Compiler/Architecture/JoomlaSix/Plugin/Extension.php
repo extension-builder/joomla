@@ -25,8 +25,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Plugin\Extensio
  * Native Joomla 6 plugin subscribers.
  *
  * Stored explicit subscription maps remain authoritative. Implicit on* handlers
- * must already accept native events; positional legacy handlers require migration
- * of their definition, because their arguments and results cannot be rewritten safely.
+ * use native events. Reviewed bundled privacy defaults are emitted natively;
+ * other positional legacy definitions require explicit migration.
  *
  * @since 5.1.2
  */
@@ -65,21 +65,31 @@ final class Extension implements ExtensionInterface
 	protected PowerInterface $power;
 
 	/**
+	 * Reviewed bundled privacy definitions.
+	 *
+	 * @var Privacy
+	 * @since 6.2.0
+	 */
+	protected Privacy $privacy;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Placeholder    $placeholder The placeholder service.
 	 * @param Builder        $builder     The global content builder.
 	 * @param Parser         $parser      The PHP structure parser.
 	 * @param PowerInterface $power       The target Joomla Power definitions.
+	 * @param Privacy        $privacy     The bundled privacy definition renderer.
 	 *
 	 * @since 6.2.0
 	 */
-	public function __construct(Placeholder $placeholder, Builder $builder, Parser $parser, PowerInterface $power)
+	public function __construct(Placeholder $placeholder, Builder $builder, Parser $parser, PowerInterface $power, Privacy $privacy)
 	{
 		$this->placeholder = $placeholder;
 		$this->builder = $builder;
 		$this->parser = $parser;
 		$this->power = $power;
+		$this->privacy = $privacy;
 	}
 
 	/**
@@ -96,6 +106,7 @@ final class Extension implements ExtensionInterface
 		$code = $this->placeholder->update_(
 			$this->placeholder->update($plugin->main_class_code, $this->builder->allActive())
 		);
+		$code = $this->privacy->get($plugin, $code);
 		$methods = $this->methods($code);
 		$explicit = false;
 

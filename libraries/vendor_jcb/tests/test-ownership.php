@@ -20,6 +20,38 @@
  * @since   1.0.0
  */
 return [
+	'VDM.Joomla/src/Componentbuilder/Compiler/Field/JoomlaSix/Customcode.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Field/JoomlaSix/CustomcodeTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminView/FadeInEffect.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/CustomView/SubmitButtonScript.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/SubmitButtonScriptTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Plugin/Privacy.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixPluginPrivacyTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaThree/ConfigFieldsetsEmailHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/NativeDkimConfigurationTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaFour/ConfigFieldsetsEmailHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/NativeDkimConfigurationTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaFive/ConfigFieldsetsEmailHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/NativeDkimConfigurationTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Creator/JoomlaSix/ConfigFieldsetsEmailHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Creator/NativeDkimConfigurationTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminView/FootableScripts.php' => [
 		'mode' => 'integration',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'

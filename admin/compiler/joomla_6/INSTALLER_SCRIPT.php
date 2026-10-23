@@ -120,8 +120,8 @@ class Com_###Component###InstallerScript implements InstallerScriptInterface
 	 */
 	public function __construct()
 	{
-		$this->minimumJoomla = '4.3';
-		$this->minimumPhp = JOOMLA_MINIMUM_PHP;
+		$this->minimumJoomla = '6.0.0';
+		$this->minimumPhp = '8.3.0';
 		$this->app ??= Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
 		$this->db = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getContainer()->get(DatabaseInterface::class);
 

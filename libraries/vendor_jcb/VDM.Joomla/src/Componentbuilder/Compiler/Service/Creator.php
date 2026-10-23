@@ -23,6 +23,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\CustomButtonPermissions;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsets;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsCustomfield;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsEmailHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaThree\ConfigFieldsetsEmailHelper as J3ConfigFieldsetsEmailHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaFour\ConfigFieldsetsEmailHelper as J4ConfigFieldsetsEmailHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaFive\ConfigFieldsetsEmailHelper as J5ConfigFieldsetsEmailHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Creator\JoomlaSix\ConfigFieldsetsEmailHelper as J6ConfigFieldsetsEmailHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsEncryption;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsGlobal;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsGooglechart;
@@ -109,6 +113,18 @@ class Creator implements ServiceProviderInterface
 
 		$container->alias(ConfigFieldsetsEmailHelper::class, 'Compiler.Creator.Config.Fieldsets.Email.Helper')
 			->share('Compiler.Creator.Config.Fieldsets.Email.Helper', [$this, 'getConfigFieldsetsEmailHelper'], true);
+
+		$container->alias(J3ConfigFieldsetsEmailHelper::class, 'Compiler.Creator.Config.Fieldsets.J3.Email.Helper')
+			->share('Compiler.Creator.Config.Fieldsets.J3.Email.Helper', [$this, 'getJ3ConfigFieldsetsEmailHelper'], true);
+
+		$container->alias(J4ConfigFieldsetsEmailHelper::class, 'Compiler.Creator.Config.Fieldsets.J4.Email.Helper')
+			->share('Compiler.Creator.Config.Fieldsets.J4.Email.Helper', [$this, 'getJ4ConfigFieldsetsEmailHelper'], true);
+
+		$container->alias(J5ConfigFieldsetsEmailHelper::class, 'Compiler.Creator.Config.Fieldsets.J5.Email.Helper')
+			->share('Compiler.Creator.Config.Fieldsets.J5.Email.Helper', [$this, 'getJ5ConfigFieldsetsEmailHelper'], true);
+
+		$container->alias(J6ConfigFieldsetsEmailHelper::class, 'Compiler.Creator.Config.Fieldsets.J6.Email.Helper')
+			->share('Compiler.Creator.Config.Fieldsets.J6.Email.Helper', [$this, 'getJ6ConfigFieldsetsEmailHelper'], true);
 
 		$container->alias(ConfigFieldsetsEncryption::class, 'Compiler.Creator.Config.Fieldsets.Encryption')
 			->share('Compiler.Creator.Config.Fieldsets.Encryption', [$this, 'getConfigFieldsetsEncryption'], true);
@@ -424,7 +440,82 @@ class Creator implements ServiceProviderInterface
 	 */
 	public function getConfigFieldsetsEmailHelper(Container $container): ConfigFieldsetsEmailHelper
 	{
-		return new ConfigFieldsetsEmailHelper(
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Compiler.Creator.Config.Fieldsets.J' . $this->targetVersion . '.Email.Helper');
+	}
+
+	/**
+	 * Build the email configuration renderer for Joomla 3 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3ConfigFieldsetsEmailHelper
+	 * @since   6.2.0
+	 */
+	public function getJ3ConfigFieldsetsEmailHelper(Container $container): J3ConfigFieldsetsEmailHelper
+	{
+		return new J3ConfigFieldsetsEmailHelper(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Config.Fieldsets'),
+			$container->get('Compiler.Builder.Config.Fieldsets.Customfield')
+		);
+	}
+
+	/**
+	 * Build the email configuration renderer for Joomla 4 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4ConfigFieldsetsEmailHelper
+	 * @since   6.2.0
+	 */
+	public function getJ4ConfigFieldsetsEmailHelper(Container $container): J4ConfigFieldsetsEmailHelper
+	{
+		return new J4ConfigFieldsetsEmailHelper(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Config.Fieldsets'),
+			$container->get('Compiler.Builder.Config.Fieldsets.Customfield')
+		);
+	}
+
+	/**
+	 * Build the email configuration renderer for Joomla 5 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5ConfigFieldsetsEmailHelper
+	 * @since   6.2.0
+	 */
+	public function getJ5ConfigFieldsetsEmailHelper(Container $container): J5ConfigFieldsetsEmailHelper
+	{
+		return new J5ConfigFieldsetsEmailHelper(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Component'),
+			$container->get('Compiler.Builder.Config.Fieldsets'),
+			$container->get('Compiler.Builder.Config.Fieldsets.Customfield')
+		);
+	}
+
+	/**
+	 * Build the email configuration renderer for Joomla 6 targets.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ConfigFieldsetsEmailHelper
+	 * @since   6.2.0
+	 */
+	public function getJ6ConfigFieldsetsEmailHelper(Container $container): J6ConfigFieldsetsEmailHelper
+	{
+		return new J6ConfigFieldsetsEmailHelper(
 			$container->get('Config'),
 			$container->get('Language'),
 			$container->get('Component'),

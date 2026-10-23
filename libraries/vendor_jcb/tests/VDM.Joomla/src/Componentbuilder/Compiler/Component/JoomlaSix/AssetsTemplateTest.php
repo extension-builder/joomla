@@ -158,7 +158,10 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 			'files' => $files, 'folder' => new Folder($counter, $file), 'app' => $app,
 		]);
 		$this->assertTrue($single->build());
-		$this->assertCount(4, (array) $static);
+		$this->assertEqualsCanonicalizing(
+			['admin.css', 'admin.js', 'site.css', 'site.js', 'dkim.js'],
+			array_keys((array) $static)
+		);
 		foreach ($static as $name => $definition)
 		{
 			$this->assertMatchesRegularExpression('~^c0mp0n3nt/media/(?:css|js)/(?:admin|site)$~', $definition->path);

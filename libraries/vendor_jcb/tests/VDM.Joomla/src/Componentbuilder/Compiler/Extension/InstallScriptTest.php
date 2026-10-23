@@ -198,7 +198,7 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	}
 
 	/**
-	 * Native loading preserves the existing minimum-version failure and message.
+	 * Joomla 6 output rejects an otherwise supported Joomla 5 installation target.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -207,10 +207,10 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	#[PreserveGlobalState(false)]
 	public function testNativePreflightPreservesTheVersionAbort(): void
 	{
-		define('JVERSION', '4.4.0');
+		define('JVERSION', '5.4.0');
 		$app = $this->createMock(CMSApplicationInterface::class);
 		$app->expects($this->once())->method('enqueueMessage')->with(
-			'Please upgrade to at least Joomla! 5.0.0 before continuing!',
+			'Please upgrade to at least Joomla! 6.0.0 before continuing!',
 			'error'
 		);
 		$this->setJoomlaApplication($app);
@@ -643,6 +643,6 @@ final class InstallScriptTest extends CompilerDomainTestCase
 		yield 'Joomla 3' => [JoomlaThreeInstallScript::class, '3.8.0', false];
 		yield 'Joomla 4' => [JoomlaFourInstallScript::class, '4.0.0', false];
 		yield 'Joomla 5' => [JoomlaFiveInstallScript::class, '5.0.0', true];
-		yield 'Joomla 6' => [JoomlaSixInstallScript::class, '5.0.0', true];
+		yield 'Joomla 6' => [JoomlaSixInstallScript::class, '6.0.0', true];
 	}
 }

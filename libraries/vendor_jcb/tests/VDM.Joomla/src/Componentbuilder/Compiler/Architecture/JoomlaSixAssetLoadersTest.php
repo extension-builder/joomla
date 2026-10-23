@@ -229,6 +229,40 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Reusing a chart instance preserves every draw and its own data snapshot.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testRepeatedChartDrawsKeepIndependentWamAssets(): void
+	{
+		$assets = $this->assets();
+		$class = $this->loadTemplate('ADMIN_CHARTBUILDER.php', 'Chartbuilder');
+		$chart = new $class('LineChart');
+		$count = $class::$_count;
+		$chart->load([['Label', 'Count'], ['First', 4]], 'array');
+		$this->assertSame('', $chart->draw('first-target', ['width' => 600]));
+		$chart->load([['Label', 'Count'], ['Second', 9]], 'array');
+		$this->assertSame('', $chart->draw('second-target', ['width' => 800]));
+		$this->assertSame($count, $class::$_count, 'The public instance counter must not become a draw counter.');
+		$scripts = $assets->getAssets('script', true);
+		$this->assertCount(3, $scripts, 'Both draws must survive alongside the shared loader.');
+		unset($scripts['google.charts']);
+		$draws = array_values($scripts);
+		$this->assertNotSame($draws[0]->getName(), $draws[1]->getName());
+		$this->assertSame(['google.charts'], $draws[0]->getDependencies());
+		$this->assertSame(['google.charts'], $draws[1]->getDependencies());
+		$this->assertStringContainsString('"first-target"', $draws[0]->getOption('content'));
+		$this->assertStringContainsString('"v":"First"', $draws[0]->getOption('content'));
+		$this->assertStringContainsString('"v":4', $draws[0]->getOption('content'));
+		$this->assertStringNotContainsString('"second-target"', $draws[0]->getOption('content'));
+		$this->assertStringContainsString('"second-target"', $draws[1]->getOption('content'));
+		$this->assertStringContainsString('"v":"Second"', $draws[1]->getOption('content'));
+		$this->assertStringContainsString('"v":9', $draws[1]->getOption('content'));
+		$this->assertStringNotContainsString('"first-target"', $draws[1]->getOption('content'));
+	}
+
+	/**
 	 * Header detection includes active dependencies but excludes inactive registrations.
 	 *
 	 * @return  void
@@ -374,6 +408,61 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$this->assertSame('window.fixture = 7;', trim($asset->getOption('content')));
 		$this->assertSame(['core', 'jquery', 'project.script'], $asset->getDependencies());
 		$this->assertCount(4, $assets->getAssets('script', true));
+	}
+
+	/**
+	 * The provider migrates only Joomla six overlay scripts while retaining markup.
+	 *
+	 * @param   int     $major    Target major.
+	 * @param   string  $version  Namespace segment.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('targets')]
+	public function testFadeInEffectUsesTargetSelectedWamOutput(int $major, string $version): void
+	{
+		$this->config()->set('joomla_version', $major);
+		$container = new Container();
+		$container->set('Config', $this->config());
+		$container->registerServiceProvider(new ArchitectureView());
+		$renderer = $container->get('Architecture.AdminView.FadeInEffect');
+		$shared = new \VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect($this->config());
+		$definition = ['settings' => (object) ['add_fadein' => 1]];
+		$code = $renderer->get($definition);
+		$this->assertSame('<div id="demo_loader">', $renderer->get(['settings' => (object) ['add_fadein' => 0]]));
+
+		if ($major !== 6)
+		{
+			$this->assertSame($shared::class, $renderer::class);
+			$this->assertSame($shared->get($definition), $code);
+			return;
+		}
+
+		$this->assertSame(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FadeInEffect::class, $renderer::class);
+		$this->assertSame($renderer, $container->get('Architecture.AdminView.J6.FadeInEffect'));
+		$this->assertStringNotContainsString('<script', $code);
+		$assets = $this->assets();
+		$assets->registerScript('core', 'core.js');
+		$run = eval('return function () { ?>' . $code . '<?php };');
+		ob_start();
+		try
+		{
+			$run->call($this->view($assets));
+			$this->assertSame('<div id="demo_loader" style="display: none;">', trim(ob_get_contents()));
+		}
+		finally
+		{
+			ob_end_clean();
+		}
+
+		$asset = $assets->getAsset('script', 'com_demo.loading-overlay');
+		$this->assertSame(['core'], $asset->getDependencies());
+		$this->assertStringContainsString("document.readyState === 'complete'", $asset->getOption('content'));
+		$this->assertStringContainsString("document.addEventListener('DOMContentLoaded', initialise", $asset->getOption('content'));
+		$this->assertStringContainsString("window.addEventListener('load'", $asset->getOption('content'));
+		$this->assertStringContainsString('document.body.appendChild(loadingDiv);', $asset->getOption('content'));
+		$this->assertStringContainsString("loadingDiv.style.display = 'none';", $asset->getOption('content'));
 	}
 
 	/**

@@ -75,7 +75,7 @@ final class TemplatesTest extends TestCase
 		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler/';
 		$previous = array_map('basename', glob($root . 'joomla_4/*'));
 		$current = array_map('basename', glob($root . 'joomla_6/*'));
-		$expected = array_merge($previous, ['ADMIN_CHARTBUILDER.php']);
+		$expected = array_merge($previous, ['ADMIN_CHARTBUILDER.php', 'ADMIN_DKIM_FIELD.php', 'dkim.js']);
 		sort($expected);
 		$this->assertSame($expected, $current);
 		$native = [
