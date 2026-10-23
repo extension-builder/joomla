@@ -139,7 +139,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @return  ViewScript
 	 * @since   6.1.7
 	 */
-	private function subject(): ViewScript
+	private function subject(string $class = ViewScript::class, ?ScriptMediaSwitch $media = null): ViewScript
 	{
 		$this->scripts = new ViewScriptBuilder();
 		$this->content = new ContentMulti();
@@ -147,14 +147,14 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		$groups = (new ReflectionClass(FieldGroups::class))->newInstanceWithoutConstructor();
 		$userSwitch = new ScriptUserSwitch();
 
-		return $this->renderer(ViewScript::class, [
+		return $this->renderer($class, [
 			'dispenser' => $this->dispenser(),
 			'structure' => $this->structure(),
 			'includehelper' => new IncludeHelper(),
 			'createdate' => $this->date(Createdate::class, '1st January, 2026'),
 			'modifieddate' => $this->date(Modifieddate::class, '2nd February, 2026'),
 			'contentmulti' => $this->content,
-			'scriptmediaswitch' => new ScriptMediaSwitch(),
+			'scriptmediaswitch' => $media ?? new ScriptMediaSwitch(),
 			'scriptuserswitch' => $userSwitch,
 			'validationfix' => $this->fixes,
 			'viewscript' => $this->scripts,
@@ -672,6 +672,25 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			['code' => '', 'array' => false],
 			$this->subject()->functionCall('fn', [], [])
 		);
+	}
+
+	/**
+	 * Native media conditions bind to the media field's normal change event.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testJoomlaSixMediaConditionsAvoidRemovedModalCallbacks(): void
+	{
+		$media = new ScriptMediaSwitch();
+		$media->set('media', 'media');
+		$subject = $this->subject(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\ViewScript::class, $media);
+		$subject->get(self::view([self::condition(['match_type' => 'media'])]));
+		$footer = $subject->script('look', 'footerScript');
+		$this->assertStringContainsString("jQuery(function () {", $footer);
+		$this->assertStringContainsString(".on('change', '#jform_kind'", $footer);
+		$this->assertStringNotContainsString('SqueezeBox', $footer);
+		$this->assertStringContainsString('addInlineScript', $footer);
 	}
 
 	/**

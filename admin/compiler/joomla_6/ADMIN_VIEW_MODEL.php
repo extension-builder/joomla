@@ -44,8 +44,8 @@ class ###View###Model extends AdminModel
 	 * @since  4.3
 	 */
 	protected array $styles = [
-		'administrator/components/com_###component###/assets/css/admin.css',
-		'administrator/components/com_###component###/assets/css/###view###.css'
+		'media/com_###component###/css/admin/admin.css',
+		'media/com_###component###/css/admin/###view###.css'
 	];
 
 	/**
@@ -55,8 +55,8 @@ class ###View###Model extends AdminModel
 	 * @since  4.3
 	 */
 	protected array $scripts = [
-		'administrator/components/com_###component###/assets/js/admin.js',
-		'media/com_###component###/js/###view###.js'
+		'media/com_###component###/js/admin/admin.js',
+		'media/com_###component###/js/admin/###view###.js'
 	];
 
 	/**
@@ -238,7 +238,7 @@ class ###View###Model extends AdminModel
 
 		if (empty($table->id))
 		{
-			$table->created = $date->toSql();
+			$table->created = $date->toSql(false, $this->getDatabase());
 			// set the user
 			if ($table->created_by == 0 || empty($table->created_by))
 			{
@@ -259,7 +259,7 @@ class ###View###Model extends AdminModel
 		}
 		else
 		{
-			$table->modified = $date->toSql();
+			$table->modified = $date->toSql(false, $this->getDatabase());
 			$table->modified_by = $user->id;
 		}
 

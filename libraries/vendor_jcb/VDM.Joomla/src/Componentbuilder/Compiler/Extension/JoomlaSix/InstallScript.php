@@ -36,16 +36,6 @@ final class InstallScript implements GetScriptInterface
 	protected object $extension;
 
 	/**
-	 * Use Joomla's native installer contract when no custom hooks need migration.
-	 *
-	 * Custom hooks retain their constructor context and legacy return semantics.
-	 *
-	 * @var    bool
-	 * @since  6.2.0
-	 */
-	protected bool $nativeInstaller = true;
-
-	/**
 	 * The methods
 	 *
 	 * @var     array
@@ -169,9 +159,6 @@ final class InstallScript implements GetScriptInterface
 						$extension->{$method . '_' . $type}
 					))
 				{
-					// Do not reinterpret user-authored constructor or lifecycle contracts.
-					$this->nativeInstaller = false;
-
 					// add to the main methods
 					if ('php_method' === $method || 'php_script' === $method)
 					{
@@ -204,7 +191,6 @@ final class InstallScript implements GetScriptInterface
 	 */
 	protected function rest(): void
 	{
-		$this->nativeInstaller = true;
 		$this->removeFilePaths = [];
 		$this->removeFolderPaths = [];
 		$this->construct = [];
@@ -252,10 +238,7 @@ final class InstallScript implements GetScriptInterface
 		// close the class
 		$script .= PHP_EOL . '}' . PHP_EOL;
 
-		if ($this->nativeInstaller)
-		{
-			$script .= PHP_EOL . 'return new ' . $this->extension->installer_class_name . '();' . PHP_EOL;
-		}
+		$script .= PHP_EOL . 'return new ' . $this->extension->installer_class_name . '();' . PHP_EOL;
 
 		return $script;
 	}
@@ -276,10 +259,7 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . 'use Joomla\CMS\Version;';
 		$script .= PHP_EOL . 'use Joomla\CMS\Installer\InstallerAdapter;';
 
-		if ($this->nativeInstaller)
-		{
-			$script .= PHP_EOL . 'use Joomla\CMS\Installer\InstallerScriptInterface;';
-		}
+		$script .= PHP_EOL . 'use Joomla\CMS\Installer\InstallerScriptInterface;';
 
 		$script .= PHP_EOL . 'use Joomla\CMS\Language\Text;';
 		$script .= PHP_EOL . 'use Joomla\Filesystem\File;';
@@ -292,10 +272,7 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . ' */';
 		$script .= PHP_EOL . 'class ' . $extension->installer_class_name;
 
-		if ($this->nativeInstaller)
-		{
-			$script .= ' implements InstallerScriptInterface';
-		}
+		$script .= ' implements InstallerScriptInterface';
 
 		$script .= PHP_EOL . '{';
 
@@ -340,15 +317,9 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
 		$script .= PHP_EOL . Indent::_(1) . ' * Constructor';
 		$script .= PHP_EOL . Indent::_(1) . ' *';
-		if (!$this->nativeInstaller)
-		{
-			$script .= PHP_EOL . Indent::_(1)
-				. ' * @param   InstallerAdapter  $adapter  The object responsible for running this script';
-		}
-
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1)
-			. ($this->nativeInstaller ? 'public function __construct()' : 'public function __construct($adapter)');
+			. 'public function __construct()';
 		$script .= PHP_EOL . Indent::_(1) . '{';
 
 		$script .= PHP_EOL . Indent::_(2) . '//' . Line::_(__Line__, __Class__)
@@ -358,6 +329,50 @@ final class InstallScript implements GetScriptInterface
 
 		if (ArrayHelper::check($this->construct))
 		{
+			// Native script loading has no installer adapter until the first lifecycle call.
+			$script .= PHP_EOL . Indent::_(1) . '}';
+			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
+			$script .= PHP_EOL . Indent::_(1) . ' * Whether adapter-dependent initialization is running or completed.';
+			$script .= PHP_EOL . Indent::_(1) . ' *';
+			$script .= PHP_EOL . Indent::_(1) . ' * @var    bool';
+			$script .= PHP_EOL . Indent::_(1) . ' * @since  6.2.0';
+			$script .= PHP_EOL . Indent::_(1) . ' */';
+			$script .= PHP_EOL . Indent::_(1) . 'private bool $jcbInstallerInitialized = false;';
+			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
+			$script .= PHP_EOL . Indent::_(1) . ' * Initialize custom installer state once the adapter is available.';
+			$script .= PHP_EOL . Indent::_(1) . ' *';
+			$script .= PHP_EOL . Indent::_(1) . ' * @param   InstallerAdapter  $adapter  The calling installer adapter.';
+			$script .= PHP_EOL . Indent::_(1) . ' *';
+			$script .= PHP_EOL . Indent::_(1) . ' * @return  void';
+			$script .= PHP_EOL . Indent::_(1) . ' * @since   6.2.0';
+			$script .= PHP_EOL . Indent::_(1) . ' */';
+			$script .= PHP_EOL . Indent::_(1) . 'private function initializeInstaller(InstallerAdapter $adapter): void';
+			$script .= PHP_EOL . Indent::_(1) . '{';
+			$script .= PHP_EOL . Indent::_(2) . 'if ($this->jcbInstallerInitialized)';
+			$script .= PHP_EOL . Indent::_(2) . '{';
+			$script .= PHP_EOL . Indent::_(3) . 'return;';
+			$script .= PHP_EOL . Indent::_(2) . '}';
+			$script .= PHP_EOL . PHP_EOL . Indent::_(2) . '$this->jcbInstallerInitialized = true;';
+			$script .= PHP_EOL . Indent::_(2) . 'try';
+			$script .= PHP_EOL . Indent::_(2) . '{';
+			$script .= PHP_EOL . Indent::_(3) . '$this->initializeInstallerHook($adapter);';
+			$script .= PHP_EOL . Indent::_(2) . '}';
+			$script .= PHP_EOL . Indent::_(2) . 'catch (\\Throwable $error)';
+			$script .= PHP_EOL . Indent::_(2) . '{';
+			$script .= PHP_EOL . Indent::_(3) . '$this->jcbInstallerInitialized = false;';
+			$script .= PHP_EOL . Indent::_(3) . 'throw $error;';
+			$script .= PHP_EOL . Indent::_(2) . '}';
+			$script .= PHP_EOL . Indent::_(1) . '}';
+			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
+			$script .= PHP_EOL . Indent::_(1) . ' * Run the configured constructor body without rewriting its control flow.';
+			$script .= PHP_EOL . Indent::_(1) . ' *';
+			$script .= PHP_EOL . Indent::_(1) . ' * @param   InstallerAdapter  $adapter  The calling installer adapter.';
+			$script .= PHP_EOL . Indent::_(1) . ' *';
+			$script .= PHP_EOL . Indent::_(1) . ' * @return  mixed  A constructor return value is ignored.';
+			$script .= PHP_EOL . Indent::_(1) . ' * @since   6.2.0';
+			$script .= PHP_EOL . Indent::_(1) . ' */';
+			$script .= PHP_EOL . Indent::_(1) . 'private function initializeInstallerHook(InstallerAdapter $adapter)';
+			$script .= PHP_EOL . Indent::_(1) . '{';
 			$script .= PHP_EOL . implode(PHP_EOL . PHP_EOL, $this->construct);
 		}
 
@@ -408,11 +423,6 @@ final class InstallScript implements GetScriptInterface
 	 */
 	protected function main(string $name): string
 	{
-		// return empty string if not set
-		if (!$this->nativeInstaller && !ArrayHelper::check($this->{$name}))
-		{
-			return '';
-		}
 		// load the install method
 		$script = PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
 		$script .= PHP_EOL . Indent::_(1) . " * Called on $name";
@@ -424,11 +434,14 @@ final class InstallScript implements GetScriptInterface
 			. ' * @return  boolean  True on success';
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1) . 'public function '
-			. $name . ($this->nativeInstaller ? '(InstallerAdapter $adapter): bool' : '($adapter)');
+			. $name . '(InstallerAdapter $adapter): bool';
 		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= $this->nativeLifecycle($name, false);
+		$script .= PHP_EOL . Indent::_(1) . '}';
+		$script .= $this->hookHeader($name, false);
 		$script .= PHP_EOL . implode(PHP_EOL . PHP_EOL, $this->{$name});
 		// return true
-		if ($this->nativeInstaller || 'uninstall' !== $name)
+		if ('uninstall' !== $name)
 		{
 			$script .= PHP_EOL . Indent::_(2) . 'return true;';
 		}
@@ -462,12 +475,13 @@ final class InstallScript implements GetScriptInterface
 			. ' * @return  boolean  True on success';
 		$script .= PHP_EOL . Indent::_(1) . ' */';
 		$script .= PHP_EOL . Indent::_(1) . 'public function '
-			. $name . ($this->nativeInstaller
-				? '(string $route, InstallerAdapter $adapter): bool'
-				: '($route, $adapter)');
+			. $name . '(string $route, InstallerAdapter $adapter): bool';
 		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= $this->nativeLifecycle($name, true);
+		$script .= PHP_EOL . Indent::_(1) . '}';
+		$script .= $this->hookHeader($name, true);
 		$script .= PHP_EOL . Indent::_(2) . '//' . Line::_(__Line__, __Class__)
-			. ' set application to local method var, just use $this->app in future [we will drop $app in J6]';
+			. ' retain the application variable available to configured hook bodies';
 		$script .= PHP_EOL . Indent::_(2)
 			. '$app = $this->app;' . PHP_EOL;
 
@@ -517,6 +531,65 @@ final class InstallScript implements GetScriptInterface
 		$script .= PHP_EOL . Indent::_(2) . 'return true;';
 		// close the function
 		$script .= PHP_EOL . Indent::_(1) . '}';
+
+		return $script;
+	}
+
+
+	/**
+	 * Emit the native lifecycle boundary without changing a configured hook body.
+	 *
+	 * @param   string  $name    Lifecycle method name.
+	 * @param   bool    $flight  Whether the lifecycle receives an operation route.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function nativeLifecycle(string $name, bool $flight): string
+	{
+		$script = '';
+
+		if (ArrayHelper::check($this->construct))
+		{
+			$script .= PHP_EOL . Indent::_(2) . '$this->initializeInstaller($adapter);';
+		}
+
+		$arguments = $flight ? '$route, $adapter' : '$adapter';
+		$script .= PHP_EOL . Indent::_(2) . '$result = $this->' . $name . 'Hook(' . $arguments . ');';
+		$script .= PHP_EOL . PHP_EOL . Indent::_(2) . '// A hook with no return value completed successfully; explicit failures remain failures.';
+		$script .= PHP_EOL . Indent::_(2) . 'return $result === null ? true : (bool) $result;';
+
+		return $script;
+	}
+
+	/**
+	 * Emit a private hook retaining the stored body and its original return values.
+	 *
+	 * @param   string  $name    Lifecycle method name.
+	 * @param   bool    $flight  Whether the lifecycle receives an operation route.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function hookHeader(string $name, bool $flight): string
+	{
+		$script = PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
+		$script .= PHP_EOL . Indent::_(1) . ' * Run the ' . $name . ' hook and preserve its explicit return value.';
+		$script .= PHP_EOL . Indent::_(1) . ' *';
+
+		if ($flight)
+		{
+			$script .= PHP_EOL . Indent::_(1) . ' * @param   string            $route    The installation operation.';
+		}
+
+		$script .= PHP_EOL . Indent::_(1) . ' * @param   InstallerAdapter  $adapter  The calling installer adapter.';
+		$script .= PHP_EOL . Indent::_(1) . ' *';
+		$script .= PHP_EOL . Indent::_(1) . ' * @return  mixed';
+		$script .= PHP_EOL . Indent::_(1) . ' * @since   6.2.0';
+		$script .= PHP_EOL . Indent::_(1) . ' */';
+		$arguments = $flight ? 'string $route, InstallerAdapter $adapter' : 'InstallerAdapter $adapter';
+		$script .= PHP_EOL . Indent::_(1) . 'private function ' . $name . 'Hook(' . $arguments . ')';
+		$script .= PHP_EOL . Indent::_(1) . '{';
 
 		return $script;
 	}

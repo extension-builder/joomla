@@ -155,7 +155,14 @@ final class VersionedDisplayMethodRendererTest extends ArchitectureTestCase
 		}
 
 		$this->assertStringContainsString('$this->item = $model->getItem();', $code);
-		$this->assertStringContainsString('if (count($errors = $model->getErrors()))', $code);
+		if ($major === 6)
+		{
+			$this->assertStringNotContainsString('getErrors()', $code);
+		}
+		else
+		{
+			$this->assertStringContainsString('if (count($errors = $model->getErrors()))', $code);
+		}
 	}
 
 	/**
@@ -420,7 +427,7 @@ final class VersionedDisplayMethodRendererTest extends ArchitectureTestCase
 	{
 		// Joomla 3 and 4 still dispatch plugin events the legacy way
 		return $this->targetClass(
-			$version, 'CustomView\\DisplayMethod', ['JoomlaThree', 'JoomlaFour']
+			$version, 'CustomView\\DisplayMethod', ['JoomlaThree', 'JoomlaFour', 'JoomlaSix']
 		);
 	}
 }

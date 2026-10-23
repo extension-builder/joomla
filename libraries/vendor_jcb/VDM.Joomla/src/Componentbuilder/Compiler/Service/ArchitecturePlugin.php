@@ -133,7 +133,8 @@ class ArchitecturePlugin implements ServiceProviderInterface
 		return new J6Extension(
 			$container->get('Placeholder'),
 			$container->get('Compiler.Builder.Content.One'),
-			$container->get('Power.Parser')
+			$container->get('Power.Parser'),
+			$container->get('Joomla.Power')
 		);
 	}
 
@@ -395,4 +396,3 @@ class ArchitecturePlugin implements ServiceProviderInterface
 		);
 	}
 }
-

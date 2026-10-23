@@ -123,40 +123,51 @@ final class Template implements TemplateInterface
 	 */
 	public function default(object $module, string $key): string
 	{
-		// add any css from the fields
-		$default = $this->dispenser->get(
-			'css_views',
-			$key,
-			PHP_EOL . '<style>',
-			'',
-			true,
-			null,
-			PHP_EOL . '</style>' . PHP_EOL
-		);
-
-		// now add the body
+		$css = (string) $this->dispenser->get('css_views', $key, '', '', true, null, '');
+		$default = $this->inlineAsset($module, 'style', $css);
 		$body = trim((string) ($module->default ?? ''));
-		if (!empty($body))
+
+		if ($body !== '')
 		{
 			$default .= PHP_EOL . $body . PHP_EOL;
 		}
 
-		// add any JavaScript from the fields
-		$default .= $this->dispenser->get(
-			'views_footer',
-			$key,
-			PHP_EOL . '<script type="text/javascript">',
-			'',
-			true,
-			null,
-			PHP_EOL . '</script>' . PHP_EOL
-		);
+		$javascript = (string) $this->dispenser->get('views_footer', $key, '', '', true, null, '');
+		$default .= $this->inlineAsset($module, 'script', $javascript);
 
 		// return the default content for the model default area
 		return $this->placeholder->update(
 			$default,
 			$this->contentone->allActive()
 		);
+	}
+
+	/**
+	 * Capture a field asset, including embedded PHP, without writing a raw tag.
+	 *
+	 * @param   object  $module   The compiler module definition.
+	 * @param   string  $type     Asset type.
+	 * @param   string  $content  Asset source.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function inlineAsset(object $module, string $type, string $content): string
+	{
+		if ($content === '')
+		{
+			return '';
+		}
+
+		$name = var_export($module->folder_name . '.fields.' . $type . '.', true);
+		$method = ucfirst($type);
+		$dependencies = $type === 'script' ? "['core', 'jquery']" : '[]';
+
+		return PHP_EOL . '<?php $jcbModuleBufferLevel = ob_get_level(); ob_start(); try { ?>'
+			. PHP_EOL . $content . PHP_EOL
+			. '<?php $jcbModuleAsset = ob_get_contents(); } finally { while (ob_get_level() > $jcbModuleBufferLevel) { ob_end_clean(); } }'
+			. PHP_EOL . '$jcbModuleAssets = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();'
+			. PHP_EOL . "\$jcbModuleAssets->addInline{$method}(\$jcbModuleAsset, ['name' => {$name} . hash('sha256', \$jcbModuleAsset)], [], {$dependencies}); ?>";
 	}
 
 	/**
@@ -239,4 +250,3 @@ final class Template implements TemplateInterface
 		}
 	}
 }
-

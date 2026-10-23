@@ -41,6 +41,14 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ListQuery
 class ListQuery implements ListQueryInterface
 {
 	/**
+	 * Category table construction expression for the generated target.
+	 *
+	 * @var   string
+	 * @since 6.2.0
+	 */
+	protected string $categoryTable = "Table::getInstance('Category', 'JTable')";
+
+	/**
 	 * The Config Class.
 	 *
 	 * @var   Config
@@ -325,7 +333,7 @@ class ListQuery implements ListQueryInterface
 			$query .= PHP_EOL . Indent::_(2) . "if (is_numeric(\$categoryId))";
 			$query .= PHP_EOL . Indent::_(2) . "{";
 			$query .= PHP_EOL . Indent::_(3)
-				. "\$cat_tbl = Table::getInstance('Category', 'JTable');";
+				. "\$cat_tbl = " . $this->categoryTable . ";";
 			$query .= PHP_EOL . Indent::_(3) . "\$cat_tbl->load(\$categoryId);";
 			$query .= PHP_EOL . Indent::_(3) . "\$rgt = \$cat_tbl->rgt;";
 			$query .= PHP_EOL . Indent::_(3) . "\$lft = \$cat_tbl->lft;";

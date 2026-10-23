@@ -524,12 +524,22 @@ PHP;
 	 */
 	public function testPatchFailsClosedWhenStoredRowCannotBeLoaded(): void
 	{
+		foreach (['JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			$fixture = new GeneratedSaveModelFixture(['id' => 7], ['name' => 'After']);
+			$fixture->loadSucceeds = false;
+			$save = $this->executableSave($fixture, $version);
+			$this->assertFalse($save(['id' => 7, 'name' => 'After']));
+			$this->assertSame('JLIB_APPLICATION_ERROR_RECORD_LOAD', $fixture->error);
+		}
+
 		$fixture = new GeneratedSaveModelFixture(['id' => 7], ['name' => 'After']);
 		$fixture->loadSucceeds = false;
 		$save = $this->executableSave($fixture, 'JoomlaSix');
-
-		$this->assertFalse($save(['id' => 7, 'name' => 'After']));
-		$this->assertSame('JLIB_APPLICATION_ERROR_RECORD_LOAD', $fixture->error);
+		$this->expectException(\RuntimeException::class);
+		$this->expectExceptionCode(404);
+		$this->expectExceptionMessage('JLIB_APPLICATION_ERROR_RECORD_LOAD');
+		$save(['id' => 7, 'name' => 'After']);
 	}
 
 	/**
@@ -635,7 +645,7 @@ PHP;
 	private function save(string $version, array $overrides = []): string
 	{
 		// only Joomla 3 reaches the current user through the global factory
-		$class = $this->targetClass($version, 'Model\\ItemSave', ['JoomlaThree']);
+		$class = $this->targetClass($version, 'Model\\ItemSave', ['JoomlaThree', 'JoomlaSix']);
 
 		$subject = $this->renderer($class, $overrides);
 

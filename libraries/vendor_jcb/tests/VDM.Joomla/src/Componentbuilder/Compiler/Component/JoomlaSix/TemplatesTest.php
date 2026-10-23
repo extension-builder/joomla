@@ -13,12 +13,14 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Component\JoomlaSix;
 
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 
 /**
- * Reviewed Joomla 6 template differences preserve all other generated source.
+ * Conventional target-specific templates and settings remain the package source.
+ *
+ * Behavior changes are exercised by the native MVC, asset, input/import and
+ * actual Power-injection runtime tests rather than a Joomla 4 text rewrite.
  *
  * @since  6.2.0
  */
@@ -26,161 +28,102 @@ use PHPUnit\Framework\TestCase;
 final class TemplatesTest extends TestCase
 {
 	/**
-	 * Each changed template changes only the reviewed API calls, including their counts.
-	 *
-	 * @param   string  $name          Original compiler template filename.
-	 * @param   array   $replacements  Reviewed old/new source and occurrence counts.
+	 * Every configured source resolves inside the Joomla 6 PHP template set.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	#[DataProvider('templates')]
-	public function testOnlyReviewedDeprecationsChange(string $name, array $replacements): void
+	public function testSettingsResolveAllStaticAndDynamicTemplateSources(): void
 	{
-		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR);
-		$expected = file_get_contents($root . '/admin/compiler/joomla_4/' . $name);
-		$actual = file_get_contents($root . '/admin/compiler/joomla_6/' . $name);
-		$this->assertIsString($expected);
-		$this->assertIsString($actual);
+		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler/joomla_6/';
+		$settings = json_decode(file_get_contents($root . 'settings.json'), true, 512, JSON_THROW_ON_ERROR);
+		$this->assertSame(['admin', 'api', 'site', 'custom_admin'], array_keys($settings['move']['dynamic']));
+		$this->assertArrayHasKey('media', $settings['create']);
 
-		foreach ($replacements as [$before, $after, $count])
+		foreach (['static' => $settings['move']['static']] + $settings['move']['dynamic'] as $area => $sources)
 		{
-			$this->assertSame($count, substr_count($expected, $before), $name . ': ' . $before);
-			$expected = str_replace($before, $after, $expected);
+			$this->assertNotEmpty($sources, $area);
+
+			foreach ($sources as $name => $definition)
+			{
+				$this->assertSame(basename($name), $name, 'Templates cannot escape their target folder.');
+				$this->assertFileExists($root . $name, $area . ': ' . $name);
+				$this->assertStringStartsWith('c0mp0n3nt/', $definition['path'], $name);
+				$this->assertStringNotContainsString('.tpl', $name);
+			}
 		}
 
-		$this->assertSame($expected, $actual, $name);
-		preg_match_all('/Joomla___[a-f0-9_]+___Power/', file_get_contents($root . '/admin/compiler/joomla_4/' . $name), $originalPowers);
-		preg_match_all('/Joomla___[a-f0-9_]+___Power/', $actual, $nativePowers);
-		$this->assertSame($originalPowers[0], $nativePowers[0], 'Joomla Power identities and occurrence order remain intact.');
+		// These paths are active settings entries and must not be deleted as obsolete.
+		$this->assertArrayHasKey('ADMIN_IMPORT_MODEL.php', $settings['move']['dynamic']['admin']);
+		$this->assertArrayHasKey('ADMIN_IMPORT_CONTROLLER.php', $settings['move']['dynamic']['admin']);
+		$this->assertArrayHasKey('ADMIN_CHARTBUILDER.php', $settings['move']['static']);
+		$this->assertSame(
+			'c0mp0n3nt/admin/src/Helper',
+			$settings['move']['static']['ADMIN_CHARTBUILDER.php']['path']
+		);
+		$this->assertSame('Chartbuilder.php', $settings['move']['static']['ADMIN_CHARTBUILDER.php']['newName']);
 	}
 
 	/**
-	 * The Joomla 6 set is complete and retains the established settings mapping.
+	 * Unrelated templates keep their existing source; native changes are explicit.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testCompleteTemplateSetPreservesSettingsAndUnchangedSources(): void
+	public function testTemplateInventoryAndUnchangedSources(): void
 	{
 		$root = dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler/';
-		$previous = glob($root . 'joomla_4/*');
-		$current = glob($root . 'joomla_6/*');
-		$this->assertSame(array_map('basename', $previous), array_map('basename', $current));
-		$changed = array_keys(iterator_to_array(self::templates()));
-
-		foreach ($previous as $source)
-		{
-			$name = basename($source);
-			if (!in_array($name, $changed, true))
-			{
-				$this->assertFileEquals($source, $root . 'joomla_6/' . $name);
-			}
-		}
-
-		$settings = json_decode(file_get_contents($root . 'joomla_6/settings.json'), true, 512, JSON_THROW_ON_ERROR);
-		$this->assertArrayHasKey('create', $settings);
-		$this->assertArrayHasKey('static', $settings['move']);
-		$this->assertArrayHasKey('dynamic', $settings['move']);
-	}
-
-	/**
-	 * Exact source differences approved for each Joomla 6 template.
-	 *
-	 * @return  iterable<string, array{string, array}>
-	 * @since   6.2.0
-	 */
-	public static function templates(): iterable
-	{
-		$queries = [
-			'ADMIN_HELPER_CLASS.php' => 3,
-			'ADMIN_HELPER_CONTROLLER.php' => 1,
-			'ADMIN_IMPORT_MODEL.php' => 1,
-			'ADMIN_IMPORT_MODEL_CUSTOM.php' => 1,
-			'ADMIN_VIEW_MODEL.php' => 1,
-			'ADMIN_VIEW_TABLE.php' => 1,
-			'FORM_MODAL_SELECT_FIELD.php' => 1,
-			'INSTALLER_SCRIPT.php' => 20,
-			'SITE_ADMIN_VIEW_MODEL.php' => 1,
-			'SITE_FORM_MODAL_SELECT_FIELD.php' => 1,
-			'SITE_HELPER_CLASS.php' => 3,
-			'SITE_HELPER_CONTROLLER.php' => 1,
+		$previous = array_map('basename', glob($root . 'joomla_4/*'));
+		$current = array_map('basename', glob($root . 'joomla_6/*'));
+		$expected = array_merge($previous, ['ADMIN_CHARTBUILDER.php']);
+		sort($expected);
+		$this->assertSame($expected, $current);
+		$native = [
+			'ADMIN_HEADERCHECK.php',
+			'ADMIN_HELPER_CLASS.php',
+			'ADMIN_HELPER_CONTROLLER.php',
+			'ADMIN_IMPORT_CONTROLLER.php',
+			'ADMIN_IMPORT_CONTROLLER_CUSTOM.php',
+			'ADMIN_IMPORT_HTML.php',
+			'ADMIN_IMPORT_MODEL.php',
+			'ADMIN_IMPORT_MODEL_CUSTOM.php',
+			'ADMIN_VIEWS.php',
+			'ADMIN_VIEWS_HTML.php',
+			'ADMIN_VIEWS_MODEL.php',
+			'ADMIN_VIEW_HTML.php',
+			'ADMIN_VIEW_MODEL.php',
+			'ADMIN_VIEW_TABLE.php',
+			'API_VIEW_CONTROLLER.php',
+			'CUSTOM_ADMIN_VIEWS_HTML.php',
+			'CUSTOM_ADMIN_VIEWS_MODEL.php',
+			'CUSTOM_ADMIN_VIEW_HTML.php',
+			'CUSTOM_ADMIN_VIEW_MODEL.php',
+			'DASH_MODEL.php',
+			'DASH_VIEW_HTML.php',
+			'FORM_MODAL_SELECT_FIELD.php',
+			'INSTALLER_SCRIPT.php',
+			'SITE_ADMIN_VIEW_HTML.php',
+			'SITE_ADMIN_VIEW_MODEL.php',
+			'SITE_DISPLAY_CONTROLLER.php',
+			'SITE_FORM_MODAL_SELECT_FIELD.php',
+			'SITE_HEADERCHECK.php',
+			'SITE_HELPER_CLASS.php',
+			'SITE_HELPER_CONTROLLER.php',
+			'SITE_VIEWS_HTML.php',
+			'SITE_VIEWS_MODEL.php',
+			'SITE_VIEW_HTML.php',
+			'SITE_VIEW_MODEL.php',
+			'default_import.php',
+			'default_import_custom.php',
+			'default_toolbar.php',
+			'settings.json',
+			'submitbutton.js',
+			'submitbutton_site.js',
 		];
 
-		foreach ($queries as $name => $count)
+		foreach (array_diff($previous, $native) as $name)
 		{
-			$changes[$name] = [['->getQuery(true)', '->createQuery()', $count]];
-		}
-
-		// Copied source must also satisfy the repository's changed-file whitespace gate.
-		$changes['ADMIN_VIEW_MODEL.php'][] = ["\n \t", "\n\t", 2];
-		$changes['SITE_ADMIN_VIEW_MODEL.php'][] = ["\n \t", "\n\t", 3];
-		$changes['SITE_ADMIN_VIEW_MODEL.php'][] = ["\n  \t", "\n\t", 1];
-
-		$factory = 'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power';
-		$access = [
-			'ADMIN_IMPORT_MODEL.php' => [4, 2, 9],
-			'ADMIN_IMPORT_MODEL_CUSTOM.php' => [4, 1, 3],
-			'ADMIN_IMPORT_HTML.php' => [0, 1, 1],
-			'API_VIEW_CONTROLLER.php' => [0, 0, 2],
-		];
-
-		foreach ($access as $name => [$config, $session, $remove])
-		{
-			if ($config > 0)
-			{
-				$changes[$name][] = [$factory . '::getConfig()', $factory . '::getApplication()->getConfig()', $config];
-			}
-
-			if ($session > 0)
-			{
-				$changes[$name][] = [$factory . '::getSession()', $factory . '::getApplication()->getSession()', $session];
-			}
-
-			$changes[$name][] = ['$session->clear(', '$session->remove(', $remove];
-		}
-
-		$changes['ADMIN_IMPORT_HTML.php'][] = [
-			'$state = $this->get(\'state\');',
-			'$model = $this->getModel();' . "\n\t\t" . '$state = $model->getState();',
-			1,
-		];
-		$changes['DASH_VIEW_HTML.php'][] = [
-			'// Assign data to the view' . "\n",
-			'// Assign data to the view' . "\n\t\t" . '$model = $this->getModel();' . "\n",
-			1,
-		];
-
-		foreach (['Icons', 'Styles', 'Scripts'] as $property)
-		{
-			$changes['DASH_VIEW_HTML.php'][] = [
-				'$this->get(\'' . $property . '\')',
-				'$model->get' . $property . '()',
-				1,
-			];
-		}
-
-		foreach (['ADMIN_IMPORT_HTML.php', 'DASH_VIEW_HTML.php', 'ADMIN_VIEW_HTML.php', 'ADMIN_VIEWS_HTML.php', 'SITE_ADMIN_VIEW_HTML.php'] as $name)
-		{
-			$changes[$name][] = ['$this->get(\'Errors\')', '$model->getErrors()', 1];
-		}
-
-		$changes['INSTALLER_SCRIPT.php'][] = [
-			"\t}###INSTALLERMETHODS###\n}\n",
-			"\t}###INSTALLERMETHODS###\n}\n\nreturn new Com_###Component###InstallerScript();\n",
-			1,
-		];
-
-		foreach (['ADMIN_VIEWS_MODEL.php', 'CUSTOM_ADMIN_VIEWS_MODEL.php', 'CUSTOM_ADMIN_VIEW_MODEL.php', 'DASH_MODEL.php', 'SITE_VIEWS_MODEL.php', 'SITE_VIEW_MODEL.php'] as $name)
-		{
-			$changes[$name][] = ["\n \t", "\n\t", 2];
-		}
-
-		$changes['SITE_DISPLAY_CONTROLLER.php'][] = ["\t * \n", "\t *\n", 2];
-
-		foreach ($changes as $name => $replacements)
-		{
-			yield $name => [$name, $replacements];
+			$this->assertFileEquals($root . 'joomla_4/' . $name, $root . 'joomla_6/' . $name);
 		}
 	}
 }

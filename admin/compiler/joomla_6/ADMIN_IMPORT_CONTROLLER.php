@@ -40,7 +40,9 @@ class ImportController extends BaseController
 		$model = $this->getModel('import');
 		if ($model->import())
 		{
-			$cache = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getCache('mod_menu');
+			$cache = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getContainer()
+				->get(\Joomla\CMS\Cache\CacheControllerFactoryInterface::class)
+				->createCacheController('callback', ['defaultgroup' => 'mod_menu']);
 			$cache->clean();
 			// TODO: Reset the users acl here as well to kill off any missing bits
 		}

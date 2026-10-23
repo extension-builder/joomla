@@ -21,6 +21,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\AliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\AliasTitleFix as J6ModelAliasTitleFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\ItemSaveInterface as ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as SharedModelItemSave;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model\ItemSave as J6ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Model\ItemSave as J3ModelItemSave;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\RecordKeyFix as ModelRecordKeyFix;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Model\BatchCopyInterface as ModelBatchCopy;
@@ -148,6 +149,9 @@ class ArchitectureModel implements ServiceProviderInterface
 
 		$container->alias(SharedModelItemSave::class, 'Architecture.Model.Shared.ItemSave')
 			->share('Architecture.Model.Shared.ItemSave', [$this, 'getSharedModelItemSave'], true);
+
+		$container->alias(J6ModelItemSave::class, 'Architecture.Model.J6.ItemSave')
+			->share('Architecture.Model.J6.ItemSave', [$this, 'getJ6ModelItemSave'], true);
 
 		$container->alias(J3ModelItemSave::class, 'Architecture.Model.J3.ItemSave')
 			->share('Architecture.Model.J3.ItemSave', [$this, 'getJ3ModelItemSave'], true);
@@ -703,6 +707,11 @@ class ArchitectureModel implements ServiceProviderInterface
 			return $container->get('Architecture.Model.J3.ItemSave');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.Model.J6.ItemSave');
+		}
+
 		return $container->get('Architecture.Model.Shared.ItemSave');
 	}
 
@@ -717,6 +726,34 @@ class ArchitectureModel implements ServiceProviderInterface
 	public function getSharedModelItemSave(Container $container): SharedModelItemSave
 	{
 		return new SharedModelItemSave(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Base.Six.Four'),
+			$container->get('Compiler.Builder.Json.Item'),
+			$container->get('Compiler.Builder.Json.String'),
+			$container->get('Compiler.Builder.Permission.Fields'),
+			$container->get('Compiler.Builder.Model.Basic.Field'),
+			$container->get('Compiler.Builder.Model.Medium.Field'),
+			$container->get('Compiler.Builder.Model.Whmcs.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field'),
+			$container->get('Compiler.Builder.Model.Expert.Field.Initiator'),
+			$container->get('Architecture.Model.RecordKeyFix')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 Model ItemSave renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ModelItemSave
+	 * @since   6.2.0
+	 */
+	public function getJ6ModelItemSave(Container $container): J6ModelItemSave
+	{
+		return new J6ModelItemSave(
 			$container->get('Config'),
 			$container->get('Placeholder'),
 			$container->get('Customcode.Dispenser'),

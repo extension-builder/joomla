@@ -21,13 +21,13 @@ use Joomla\CMS\HTML\HTMLHelper as Html;
 // No direct access to this file
 defined('_JEXEC') or die;###LICENSE_LOCKED_DEFINED###
 
-Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('jquery.framework');
-Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('bootstrap.tooltip');
-Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('script', 'system/core.js', false, true);
-Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('behavior.keepalive');
-
+$wa = $this->getDocument()->getWebAssetManager();
+$wa->useScript('jquery')->useScript('bootstrap.popover')->useScript('core')->useScript('keepalive')->useScript('form.validate');
+$jcbImportBufferLevel = ob_get_level();
+ob_start();
+try
+{
 ?>
-<script type="text/javascript">
 <?php if ($this->hasPackage && Super___0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power::check($this->headerList)) : ?>
 Joomla.continueImport = function() {
     var form = document.getElementById('adminForm');
@@ -108,7 +108,18 @@ document.addEventListener('DOMContentLoaded', function() {
     outerBodyDiv.appendChild(loadingDiv);
 });
 
-</script>
+<?php
+	$jcbImportScript = ob_get_contents();
+}
+finally
+{
+	while (ob_get_level() > $jcbImportBufferLevel)
+	{
+		ob_end_clean();
+	}
+}
+$wa->addInlineScript($jcbImportScript, ['name' => 'com_###component###.import'], [], ['core']);
+?>
 
 <div id="installer-import" class="clearfix">
 <form enctype="multipart/form-data" action="<?php echo Joomla___d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_###component###&view=import');?>" method="post" name="adminForm" id="adminForm" class="form-horizontal form-validate">

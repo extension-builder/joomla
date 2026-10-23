@@ -90,8 +90,8 @@ class ###SViews###Model extends ListModel
 	 * @since  4.3
 	 */
 	protected array $styles = [
-		'administrator/components/com_###component###/assets/css/admin.css',
-		'administrator/components/com_###component###/assets/css/###sviews###.css'
+		'media/com_###component###/css/admin/admin.css',
+		'media/com_###component###/css/admin/###sviews###.css'
 	];
 
 	/**
@@ -101,7 +101,7 @@ class ###SViews###Model extends ListModel
 	 * @since  4.3
 	 */
 	protected array $scripts = [
-		'administrator/components/com_###component###/assets/js/admin.js'
+		'media/com_###component###/js/admin/admin.js'
 	];
 
 	/**
@@ -111,6 +111,22 @@ class ###SViews###Model extends ListModel
 	 * @since 3.2.0
 	 */
 	protected $uikitComp = [];
+
+	/**
+	 * Authorised groups for the injected user.
+	 *
+	 * @var   array
+	 * @since 6.2.0
+	 */
+	public array $authorisedGroups = [];
+
+	/**
+	 * Compatibility flag for existing custom model code.
+	 *
+	 * @var   bool
+	 * @since 6.2.0
+	 */
+	public bool $initSet = false;
 
 	/**
 	 * Constructor
@@ -128,16 +144,30 @@ class ###SViews###Model extends ListModel
 		$this->app ??= Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
 		$this->input ??= $this->app->getInput();
 
-		// Set the current user for authorisation checks (for those calling this model directly)
-		$this->user ??= $this->getCurrentUser();
-		$this->userId = $this->user->id;
-		$this->guest = $this->user->guest;
-		$this->groups = $this->user->groups;
-		$this->authorisedGroups = $this->user->getAuthorisedGroups();
-		$this->levels = $this->user->getAuthorisedViewLevels();
-
 		// will be removed
 		$this->initSet = true;
+	}
+
+	/**
+	 * Refresh identity-dependent state after Joomla injects the current user.
+	 *
+	 * @param   User  $currentUser  The user supplied by the controller or helper.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function setCurrentUser(User $currentUser): void
+	{
+		parent::setCurrentUser($currentUser);
+		$this->user = $currentUser;
+		$this->userId = $currentUser->id;
+		$this->guest = $currentUser->guest;
+		$this->groups = $currentUser->groups;
+		$this->authorisedGroups = $currentUser->getAuthorisedGroups();
+		$this->levels = $currentUser->getAuthorisedViewLevels();
+		$this->cache = [];
+		$this->query = [];
+		$this->lastQueryStoreId = null;
 	}
 
 	/**

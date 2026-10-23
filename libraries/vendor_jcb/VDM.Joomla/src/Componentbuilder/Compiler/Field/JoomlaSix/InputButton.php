@@ -155,7 +155,7 @@ final class InputButton implements InputButtonInterface
 			$addButton[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
 				. " get the input from url";
 			$addButton[] = Indent::_(3) . "\$app = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();";
-			$addButton[] = Indent::_(3) . "\$jinput = method_exists(\$app, 'getInput') ? \$app->getInput() : \$app->input;";
+			$addButton[] = Indent::_(3) . "\$jinput = \$app->getInput();";
 			$addButton[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
 				. " get the view name & id";
 			$addButton[] = Indent::_(3)
@@ -330,7 +330,7 @@ $addButton[] = Indent::_(4) . "\$script[] = \"";
 			$addButton[] = Indent::_(4)
 				. "\$document = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument();";
 			$addButton[] = Indent::_(4)
-				. "\$document->addScriptDeclaration(implode(' ',\$script));";
+				. "\$document->getWebAssetManager()->addInlineScript(implode(' ', \$script), [], [], ['core']);";
 			$addButton[] = Indent::_(4) . "//" . Line::_(__Line__, __Class__)
 				. " return the button attached to input field.";
 			$addButton[] = Indent::_(4)
@@ -346,4 +346,3 @@ $addButton[] = Indent::_(4) . "\$script[] = \"";
 		return '';
 	}
 }
-

@@ -280,6 +280,12 @@ final class Settings implements SettingsInterface
 			return null;
 		}
 
+		// The native chart helper is packaged only when a view requests charts.
+		if (!$this->config->get('google_chart', false))
+		{
+			unset($version_data->move->static->{'ADMIN_CHARTBUILDER.php'});
+		}
+
 		$this->addFolders($version_data);
 		$this->addFiles($version_data);
 
@@ -586,4 +592,3 @@ final class Settings implements SettingsInterface
 		$this->component->remove('files');
 	}
 }
-

@@ -10,7 +10,7 @@ Joomla.submitbutton = function(task)
 			Joomla.submitform(task, document.getElementById("adminForm"));
 			return true;
 		} else {
-			alert(Joomla.JText._('###sview###, some values are not acceptable.','Some values are unacceptable'));
+			alert(Joomla.Text._('###sview###, some values are not acceptable.','Some values are unacceptable'));
 			return false;
 		}
 	}

@@ -52,8 +52,8 @@ class ###Component###Model extends ListModel
 	 * @since  4.3
 	 */
 	protected array $styles = [
-		'administrator/components/com_###component###/assets/css/admin.css',
-		'administrator/components/com_###component###/assets/css/dashboard.css'
+		'media/com_###component###/css/admin/admin.css',
+		'media/com_###component###/css/admin/dashboard.css'
 	];
 
 	/**
@@ -63,7 +63,7 @@ class ###Component###Model extends ListModel
 	 * @since  4.3
 	 */
 	protected array $scripts = [
-		'administrator/components/com_###component###/assets/js/admin.js'
+		'media/com_###component###/js/admin/admin.js'
 	];
 
 	/**
@@ -78,8 +78,20 @@ class ###Component###Model extends ListModel
 	public function __construct($config = [], ?MVCFactoryInterface $factory = null)
 	{
 		parent::__construct($config, $factory);
+	}
 
-		$this->user ??= $this->getCurrentUser();
+	/**
+	 * Use the identity supplied after model construction.
+	 *
+	 * @param   User  $currentUser  The user supplied by the controller or helper.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function setCurrentUser(User $currentUser): void
+	{
+		parent::setCurrentUser($currentUser);
+		$this->user = $currentUser;
 	}
 
 	/**

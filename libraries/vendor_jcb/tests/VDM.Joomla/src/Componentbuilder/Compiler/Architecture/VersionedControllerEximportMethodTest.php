@@ -214,7 +214,7 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Joomla 6 changes only session access for standard and custom imports.
+	 * Joomla 6 changes session and input access for standard and custom imports.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -228,8 +228,11 @@ final class VersionedControllerEximportMethodTest extends ArchitectureTestCase
 			$this->assertSame($shared, $this->method('JoomlaFour', $custom));
 			$this->assertSame(
 				str_replace(
-					'$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();',
-					'$session = $this->app->getSession();',
+					[
+						'$session = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();',
+						'$input = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;',
+					],
+					['$session = $this->app->getSession();', '$input = $this->input;'],
 					$shared
 				),
 				$this->method('JoomlaSix', $custom)

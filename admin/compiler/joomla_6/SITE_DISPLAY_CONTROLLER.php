@@ -92,7 +92,7 @@ class DisplayController extends BaseController
 		$cachable      = true;
 
 		// ensure that the view is not cashable if edit view or if user is logged in
-		if ($this->identity->get('id') || $this->input->getMethod() === 'POST' || $isEdit)
+		if ($this->identity->id || $this->input->getMethod() === 'POST' || $isEdit)
 		{
 			$cachable = false;
 		}

@@ -180,6 +180,7 @@ class HtmlView extends BaseHtmlView
 	{
 		// Load module values
 		$model = $this->getModel();
+		$model->setUseExceptions(true);
 		$this->form ??= $model->getForm();
 		$this->item = $model->getItem();
 		$this->state = $model->getState();
@@ -195,11 +196,6 @@ class HtmlView extends BaseHtmlView
 		// Set the toolbar
 		$this->addToolBar();
 
-		// Check for errors.
-		if (count($errors = $model->getErrors()))
-		{
-			throw new \Exception(implode("\n", $errors), 500);
-		}
 
 		// Set the html view document stuff
 		$this->_prepareDocument();
@@ -261,15 +257,36 @@ class HtmlView extends BaseHtmlView
 	{###JQUERY###
 		$isNew = ($this->item->id < 1);
 		$this->setDocumentTitle(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_($isNew ? 'COM_###COMPONENT###_###VIEW###_NEW' : 'COM_###COMPONENT###_###VIEW###_EDIT'));
+		$wa = $this->getDocument()->getWebAssetManager();
 		// add styles
+		$jcbStyleDependencies = $jcbStyleDependencies ?? [];
 		foreach ($this->styles as $style)
 		{
-			Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('stylesheet', $style, ['version' => 'auto']);
+			$style = str_starts_with($style, '//') ? $style : ltrim($style, '/');
+			$assetName = 'jcb.style.' . hash('sha256', $style);
+			if (!$wa->assetExists('style', $assetName))
+			{
+				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
+					? $style : Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . $style;
+				$wa->registerStyle($assetName, $assetUri, ['version' => 'auto'], [], $jcbStyleDependencies);
+			}
+			$wa->useStyle($assetName);
+			$jcbStyleDependencies = array_values(array_unique([...$jcbStyleDependencies, $assetName]));
 		}###AJAXTOKE######LINKEDVIEWTABLESCRIPTS###
 		// add scripts
+		$jcbScriptDependencies = $jcbScriptDependencies ?? ['core'];
 		foreach ($this->scripts as $script)
 		{
-			Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('script', $script, ['version' => 'auto']);
+			$script = str_starts_with($script, '//') ? $script : ltrim($script, '/');
+			$assetName = 'jcb.script.' . hash('sha256', $script);
+			if (!$wa->assetExists('script', $assetName))
+			{
+				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
+					? $script : Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . $script;
+				$wa->registerScript($assetName, $assetUri, ['version' => 'auto'], [], $jcbScriptDependencies);
+			}
+			$wa->useScript($assetName);
+			$jcbScriptDependencies = array_values(array_unique([...$jcbScriptDependencies, $assetName]));
 		}###DOCUMENT_CUSTOM_PHP###
 	}
 

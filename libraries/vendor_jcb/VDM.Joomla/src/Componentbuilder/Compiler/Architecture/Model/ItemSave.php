@@ -459,11 +459,22 @@ class ItemSave implements ItemSaveInterface
 	}
 
 	/**
-	 * Snapshot raw omitted columns and validated input before custom save modelling.
+	 * Report a failed PATCH snapshot with the older targets' error contract.
 	 *
-	 * The request payload determines presence; null and empty values are supplied.
-	 * Only existing API PATCH records use this boundary. The primary key and guid
-	 * remain owned by RecordKeyFix, and ACL-filtered columns stay absent.
+	 * @return  string  The generated failure statements.
+	 * @since   6.2.0
+	 */
+	protected function patchLoadFailure(): string
+	{
+		return <<<'PHP'
+				$this->setError(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'));
+
+				return false;
+PHP;
+	}
+
+	/**
+	 * Snapshot omitted API PATCH columns before save modelling.
 	 *
 	 * @return  string  The generated snapshot block.
 	 * @since   6.2.0
@@ -497,9 +508,7 @@ class ItemSave implements ItemSaveInterface
 
 			if (!$jcbPatchTable->load($jcbPatchId))
 			{
-				$this->setError(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'));
-
-				return false;
+[[[JCB_PATCH_LOAD_FAILURE]]]
 			}
 
 			foreach ($jcbPatchTable->getFields() as $jcbPatchField)
@@ -518,8 +527,8 @@ class ItemSave implements ItemSaveInterface
 PHP;
 
 		return str_replace(
-			'[[[JCB_API_FACTORY]]]',
-			'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
+			['[[[JCB_API_FACTORY]]]', '[[[JCB_PATCH_LOAD_FAILURE]]]'],
+			['Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power', $this->patchLoadFailure()],
 			$code
 		);
 	}
@@ -599,4 +608,3 @@ PHP;
 		};
 	}
 }
-

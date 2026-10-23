@@ -86,6 +86,19 @@ final class InputButtonTest extends CompilerDomainTestCase
 		$this->assertStringContainsString("COM_DEMO_CREATE_NEW_S", $output);
 		$this->assertStringContainsString("COM_DEMO_EDIT_S", $output);
 
+		if ($class === JoomlaSixInputButton::class)
+		{
+			$this->assertStringContainsString('$jinput = $app->getInput();', $output);
+			$this->assertStringContainsString("getWebAssetManager()->addInlineScript(implode(' ', \$script), [], [], ['core'])", $output);
+			$this->assertStringNotContainsString('method_exists', $output);
+			$this->assertStringNotContainsString('addScriptDeclaration', $output);
+		}
+		else
+		{
+			$this->assertStringContainsString('addScriptDeclaration', $output);
+		}
+
+
 		if ($modern)
 		{
 			$this->assertStringContainsString("document.addEventListener('DOMContentLoaded'", $output);

@@ -2,11 +2,9 @@
 	"create": {
 		"admin": {
 			"assets": {
-				"css": "css",
 				"images": {
 					"icons": "icons"
-				},
-				"js": "js"
+				}
 			},
 			"forms": "forms",
 			"language": {
@@ -43,9 +41,7 @@
 		},
 		"site": {
 			"assets": {
-				"css": "css",
-				"images": "images",
-				"js": "js"
+				"images": "images"
 			},
 			"language": {
 				"en-GB": "en-GB"
@@ -65,9 +61,15 @@
 			"tmpl": "tmpl"
 		},
 		"media": {
-			"css": "css",
+			"css": {
+				"admin": "admin",
+				"site": "site"
+			},
 			"images": "images",
-			"js": "js"
+			"js": {
+				"admin": "admin",
+				"site": "site"
+			}
 		}
 	},
 	"move": {
@@ -120,25 +122,25 @@
 			},
 			"admin.css": {
 				"naam": "admin.css",
-				"path": "c0mp0n3nt/admin/assets/css",
+				"path": "c0mp0n3nt/media/css/admin",
 				"rename": false,
 				"type": "file"
 			},
 			"admin.js": {
 				"naam": "admin.js",
-				"path": "c0mp0n3nt/admin/assets/js",
+				"path": "c0mp0n3nt/media/js/admin",
 				"rename": false,
 				"type": "file"
 			},
 			"site.css": {
 				"naam": "site.css",
-				"path": "c0mp0n3nt/site/assets/css",
+				"path": "c0mp0n3nt/media/css/site",
 				"rename": false,
 				"type": "file"
 			},
 			"site.js": {
 				"naam": "site.js",
-				"path": "c0mp0n3nt/site/assets/js",
+				"path": "c0mp0n3nt/media/js/site",
 				"rename": false,
 				"type": "file"
 			},
@@ -260,6 +262,13 @@
 				"path": "c0mp0n3nt/admin/assets/images",
 				"rename": false,
 				"type": "file"
+			},
+			"ADMIN_CHARTBUILDER.php": {
+				"naam": "ADMIN_CHARTBUILDER.php",
+				"path": "c0mp0n3nt/admin/src/Helper",
+				"rename": "new",
+				"newName": "Chartbuilder.php",
+				"type": "file"
 			}
 		},
 		"dynamic": {
@@ -306,7 +315,7 @@
 					"type": "dashboard"
 				},
 				"dashboard.css": {
-					"path": "c0mp0n3nt/admin/assets/css",
+					"path": "c0mp0n3nt/media/css/admin",
 					"rename": false,
 					"type": "dashboard"
 				},
@@ -321,7 +330,7 @@
 					"type": "single"
 				},
 				"module_forms.js": {
-					"path": "c0mp0n3nt/media/js",
+					"path": "c0mp0n3nt/media/js/admin",
 					"rename": "module_forms",
 					"type": "single"
 				},
@@ -356,7 +365,7 @@
 					"type": "single"
 				},
 				"view.css": {
-					"path": "c0mp0n3nt/admin/assets/css",
+					"path": "c0mp0n3nt/media/css/admin",
 					"rename": "view",
 					"type": "single"
 				},
@@ -373,7 +382,7 @@
 					"type": "list"
 				},
 				"views.css": {
-					"path": "c0mp0n3nt/admin/assets/css",
+					"path": "c0mp0n3nt/media/css/admin",
 					"rename": "views",
 					"type": "list"
 				},
@@ -597,7 +606,7 @@
 					"type": "changelog_server"
 				},
 				"viewFile.js": {
-					"path": "c0mp0n3nt/admin/assets/js",
+					"path": "c0mp0n3nt/media/js/admin",
 					"rename": "viewFile",
 					"type": "javascript_file"
 				}
@@ -672,7 +681,7 @@
 					"type": "list"
 				},
 				"views_site.css": {
-					"path": "c0mp0n3nt/site/assets/css",
+					"path": "c0mp0n3nt/media/css/site",
 					"rename": "views_site",
 					"type": "list"
 				},
@@ -689,7 +698,7 @@
 					"type": "single"
 				},
 				"view_site.css": {
-					"path": "c0mp0n3nt/site/assets/css",
+					"path": "c0mp0n3nt/media/css/site",
 					"rename": "view_site",
 					"type": "single"
 				},
@@ -766,7 +775,7 @@
 					"type": "edit"
 				},
 				"module_forms.js": {
-					"path": "c0mp0n3nt/site/forms",
+					"path": "c0mp0n3nt/media/js/site",
 					"rename": "module_forms",
 					"type": "edit"
 				},
@@ -807,7 +816,7 @@
 					"type": "edit_modal"
 				},
 				"view_site_edit.css": {
-					"path": "c0mp0n3nt/site/assets/css",
+					"path": "c0mp0n3nt/media/css/site",
 					"rename": "view_site_edit",
 					"type": "edit"
 				},
@@ -872,7 +881,7 @@
 					"type": "custom_form"
 				},
 				"viewFileSite.js": {
-					"path": "c0mp0n3nt/site/assets/js",
+					"path": "c0mp0n3nt/media/js/site",
 					"rename": "viewFileSite",
 					"type": "javascript_file"
 				}
@@ -903,12 +912,12 @@
 					"type": "list"
 				},
 				"views_custom_admin.css": {
-					"path": "c0mp0n3nt/admin/assets/css",
+					"path": "c0mp0n3nt/media/css/admin",
 					"rename": "views_custom_admin",
 					"type": "list"
 				},
 				"view_custom_admin.css": {
-					"path": "c0mp0n3nt/admin/assets/css",
+					"path": "c0mp0n3nt/media/css/admin",
 					"rename": "view_custom_admin",
 					"type": "single"
 				},
@@ -947,7 +956,7 @@
 					"type": "layout"
 				},
 				"viewFileCustomAdmin.js": {
-					"path": "c0mp0n3nt/admin/assets/js",
+					"path": "c0mp0n3nt/media/js/admin",
 					"rename": "viewFileCustomAdmin",
 					"type": "javascript_file"
 				}

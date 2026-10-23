@@ -377,8 +377,6 @@ class ImportModel extends BaseDatabaseModel
 	 */
 	protected function remove($package)
 	{
-		jimport('joomla.filesystem.file');
-
 		$config = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getConfig();
 		$package = $config->get('tmp_path'). '/' .$package;
 

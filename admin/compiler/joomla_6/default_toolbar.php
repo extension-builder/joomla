@@ -28,7 +28,7 @@ defined('_JEXEC') or die;###LICENSE_LOCKED_DEFINED###
 	</div>
 	<div class="btn-group pull-left">
 		<button type="submit" class="btn hasTooltip" title="<?php echo Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::tooltipText('JSEARCH_FILTER_SUBMIT'); ?>"><i class="icon-search"></i></button>
-		<button type="button" class="btn hasTooltip" title="<?php echo Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::tooltipText('JSEARCH_FILTER_CLEAR'); ?>" onclick="document.id('filter_search').value='';this.form.submit();"><i class="icon-remove"></i></button>
+		<button type="button" class="btn hasTooltip" title="<?php echo Joomla___34690c75_1090_47eb_8c06_7228dc7eedd6___Power::tooltipText('JSEARCH_FILTER_CLEAR'); ?>" onclick="document.getElementById('filter_search').value='';this.form.submit();"><i class="icon-remove"></i></button>
 	</div>
 	<div class="btn-group pull-right hidden-phone">
 		<label for="limit" class="element-invisible"><?php echo Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::_('JFIELD_PLG_SEARCH_SEARCHLIMIT_DESC');?></label>

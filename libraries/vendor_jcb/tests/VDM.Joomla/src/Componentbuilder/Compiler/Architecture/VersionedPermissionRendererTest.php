@@ -53,15 +53,14 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	 *
 	 * A family earns a class under a `Joomla*` namespace only where the
 	 * generated code diverges from the rest. Families whose rendering is
-	 * identical across a run of targets keep one class in the root of their
-	 * concern folder, and the targets that share it must not carry a class
-	 * of their own.
+	 * identical across a run of targets keep their implementation in the root
+	 * of the concern folder. Reviewed target identities may delegate to it.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 * @since   6.1.7  Families collapsed to the targets that actually diverge.
 	 */
-	public function testEveryFamilyOnlyCoversTheTargetsThatDiffer(): void
+	public function testEveryFamilyRetainsItsReviewedTargetIdentities(): void
 	{
 		$all = ['JoomlaThree', 'JoomlaFour', 'JoomlaFive', 'JoomlaSix'];
 		$legacy = ['JoomlaThree'];
@@ -71,13 +70,13 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'AdminView/AddModalToolBar' => $all,
 			'AdminView/AddToolBar' => $all,
 			'AdminView/EditBody' => $legacy,
-			'AdminView/FootableScripts' => $legacy,
+			'AdminView/FootableScripts' => $all,
 			'AdminViews/AddToolBar' => $all,
 			'AdminViews/DisplayMethod' => $legacy,
 			'AdminViews/FilterFieldHelper' => ['JoomlaThree', 'JoomlaSix'],
 			'AdminViews/ListBody' => $legacy,
 			'AdminViews/ListHead' => $legacy,
-			'AdminViews/ViewBody' => $legacy,
+			'AdminViews/ViewBody' => ['JoomlaThree', 'JoomlaSix'],
 			'ComHelperClass/CreateUser' => $all,
 			'ComHelperClass/ExcelMethods' => ['JoomlaThree', 'JoomlaSix'],
 			'Controller/AllowAdd' => $all,
@@ -86,7 +85,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Controller/EximportMethod' => ['JoomlaThree', 'JoomlaSix'],
 			'CustomAdminView/AddToolBar' => $all,
 			'CustomAdminViews/AddToolBar' => $all,
-			'CustomView/DisplayMethod' => ['JoomlaThree', 'JoomlaFour'],
+			'CustomView/DisplayMethod' => ['JoomlaThree', 'JoomlaFour', 'JoomlaSix'],
 			'Dashboard/View' => $all,
 			'Menu/CustomView' => $legacy,
 			'Model/AllowEdit' => $legacy,
@@ -97,7 +96,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 			'Model/BatchCopy' => $legacy,
 			'Model/BatchMove' => $legacy,
 			'Model/GetForm' => $legacy,
-			'Model/ItemSave' => $legacy,
+			'Model/ItemSave' => ['JoomlaThree', 'JoomlaSix'],
 			'Model/ItemsMethod' => ['JoomlaThree', 'JoomlaSix'],
 			'Model/ItemsStringFix' => $legacy,
 			'Model/ListQuery' => ['JoomlaThree', 'JoomlaSix'],
@@ -136,7 +135,7 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 
 				$this->assertFalse(
 					class_exists($class),
-					$version . '/' . $family . ' does not differ and must not exist.'
+					$version . '/' . $family . ' is not a reviewed target identity.'
 				);
 			}
 
@@ -153,22 +152,39 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * No target class may exist only to inherit a shared implementation.
+	 * Reviewed target identities inherit the exact shared implementation.
 	 *
-	 * An empty subclass adds a name without adding behaviour, which is what
-	 * the shared root class already provides. This guards the whole
-	 * Architecture tree, not only the families listed above.
+	 * Stable version identities keep Joomla 3/4/5 behavior shared while Joomla 6
+	 * diverges. The exact parent map also detects accidental wrappers or a
+	 * behavior override added to an identity that must remain unchanged.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testNoTargetClassIsAnEmptySubclass(): void
+	public function testSharedTargetIdentitiesRetainTheirReviewedParents(): void
 	{
 		$root = dirname(
 			(string) (new \ReflectionClass(DisplayMethod::class))->getFileName(),
 			2
 		);
 		$empty = [];
+		$expected = [];
+
+		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			foreach (['CustomButtons', 'DynamicButtons', 'View/GoogleChartLoader', 'View/Jquery', 'AdminView/ViewScript'] as $concern)
+			{
+				$expected[$version . '/' . $concern] = $this->sharedClass($concern);
+			}
+		}
+
+		foreach (['JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			foreach (['View/LibrariesLoader', 'AdminView/FootableScripts'] as $concern)
+			{
+				$expected[$version . '/' . $concern] = $this->sharedClass($concern);
+			}
+		}
 
 		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive', 'JoomlaSix'] as $version)
 		{
@@ -205,17 +221,14 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 				if ($reflection->getParentClass() !== false
 					&& $this->declaresNothing($reflection))
 				{
-					$empty[] = $version . '/' . $concern;
+					$empty[$version . '/' . $concern] = $reflection->getParentClass()->getName();
 				}
 			}
 		}
 
-		$this->assertSame(
-			[],
-			$empty,
-			'Move these to the root of their concern folder: '
-				. implode(', ', $empty)
-		);
+		ksort($expected);
+		ksort($empty);
+		$this->assertSame($expected, $empty, 'Review shared parents and behavior contracts before changing target identities.');
 	}
 
 	/**
