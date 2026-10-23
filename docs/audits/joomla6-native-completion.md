@@ -93,10 +93,23 @@ Focused native tests exercise real Joomla 6.1.2 objects and the actual Joomla/JC
 Power extraction, import and collision-resolution pipeline. Earlier-target
 toolbar and input-controller snapshots are byte-identical to the merged base.
 
-Source ownership currently covers all 1,537 production files with zero untested
-baseline entries. Final combined-suite counts, source gates, Joomla 3–6 golden
-comparisons and hosted API/GUI workflow results will be recorded after the
-integrated checks complete.
+The complete implementation is commit
+`c15c66aaefc467d150d591abc7b408b321f6fc74`. Its verified results are:
+
+| Validation | Evidence |
+| --- | --- |
+| Full unit suite | 5,024 tests / 62,421 assertions pass on both PHP 8.3 and 8.4 in [run 40028709199](https://github.com/extension-builder/joomla/actions/runs/40028709199). |
+| Source gates | PHP style passes for 115 changed files. All 1,545 production files have test ownership, with zero untested baseline entries. Container-key and moved-condition checks pass; the separate 84-case known-defect audit is unchanged. |
+| Installed Joomla 6 API | [Run 40028709193](https://github.com/extension-builder/joomla/actions/runs/40028709193) compiles and installs the demo and exercises both Demo and Library Config models: 222 CRUD, permission and partial-PATCH checks pass. |
+| Joomla 3–5 generated output | [Run 40028709237](https://github.com/extension-builder/joomla/actions/runs/40028709237) passes strict byte/path/mode equality and installed Power discovery probes at corpus sizes 0, 100 and 1,000 for each earlier target. |
+| Joomla 6 generated output | The complete reviewed native diff reproduces the measured candidate tree exactly. All 127 generated PHP files pass syntax checks, all 1,723 deployed candidate source hashes verify, and final Power evidence is unchanged. The [review record](../../.github/golden-master/expected/README.md#joomla-6-native-assets-and-remaining-deprecated-paths) documents the exact expectation. |
+| Browser and JavaScript coverage | The GUI workflow runs 29 Playwright journeys plus five dependency-free DKIM JavaScript behavior checks. The original implementation passed all 29 browser journeys; the five new JavaScript checks pass locally and in the hosted workflow. |
+
+The final branch runs all required workflows again after the reviewed output
+expectation is committed, including the Joomla 6 installed discovery probe.
+Their current results are published on [PR #60](https://github.com/extension-builder/joomla/pull/60/checks).
+The expectation is limited to the reviewed Joomla 6 blueprint and baseline;
+Joomla 3–5 retain strict equality. No check or known-defect quarantine is relaxed.
 
 The public demo and generated-runtime fixtures are regression evidence. They do
 not replace a maintainer's full JCB self-compile using private/full definitions.

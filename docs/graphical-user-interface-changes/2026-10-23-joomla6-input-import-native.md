@@ -73,6 +73,8 @@ Generated import controllers still create their menu cache through deprecated `F
 
 ## Verification
 
+Integrated source, unit, installed API, browser and compiler comparison evidence is recorded in the [completion report](../audits/joomla6-native-completion.md).
+
 ### Automated checks
 
 | Command/check | Environment | Result |
@@ -91,7 +93,7 @@ None performed locally; this environment has no Docker or installed database-bac
 
 ### Checks not performed
 
-- Hosted golden comparison and installed extension checks are pending the completed branch.
+- A manual generated import-form browser journey; native controller behavior is covered by the execution tests.
 
 ## Risks, limitations, and rollback
 

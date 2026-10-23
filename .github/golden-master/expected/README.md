@@ -172,3 +172,65 @@ The complete unmodified hosted diff is now 32,182 bytes, covering 20 paths with
 tree `bf6de0d9ff6d1e78caf16d4d8fbb626a7e68c69b` reproduces candidate tree
 `42329c022992d2be6a404558714c1aaea72582f8` exactly. The context is unchanged.
 The subsequent installed scale probe remains required on the rerun.
+
+## Joomla 6 native assets and remaining deprecated paths
+
+Source baseline: `faa95cdeecdbdb4504f27d66870310aec1a3ec0f`.
+Reviewed candidate: `c15c66aaefc467d150d591abc7b408b321f6fc74`, compiled by PR
+merge commit `5b885c917cfd3de9021509e25298a8cdc121bf34`.
+Evidence: [workflow run 40028709237](https://github.com/extension-builder/joomla/actions/runs/40028709237),
+Joomla 6 artifact `12534061931` (`golden-master-j6`), SHA-256
+`f71b46d8b67bd7132fcc76b77f7ca109f7ac0d67db62da57e8785ad730e1a7b5`.
+
+Both archived component packages contain 252 compared files. The complete diff
+covers 30 modified paths and 16 relocated files, with 424 added and 304 removed
+lines after accounting for identical relocations. The reviewed changes are:
+
+- Generated administrator and site CSS/JavaScript move into separate client
+  directories under `media/css` and `media/js`. All 16 relocated files preserve
+  their exact bytes. The unchanged manifest already installs both media trees.
+- Views register and activate ordered, deduplicated model assets through the
+  Web Asset Manager. The header checker recognizes active managed assets.
+  Import JavaScript and the loading overlay use managed inline assets; the
+  overlay waits for the document body and handles an already loaded document.
+  Sortable lists use native draggable markup, assets and a form token, and the
+  search clear control uses `document.getElementById`.
+- Models receive the current identity after construction and refresh derived
+  identity state. Helper-created models receive it explicitly. User properties
+  use their native public properties.
+- Tables use their inherited database connection, without the legacy static
+  cache and reflection fallback. Date conversions receive that connection.
+  Asset updates construct native asset tables with the injected database.
+  Generated model/table failures propagate exceptions, and HTML views enable
+  model exceptions before fetching data instead of draining legacy errors.
+- The export controller uses its injected input; import cache cleanup uses
+  the cache-controller factory. The obsolete import filesystem `jimport` is
+  removed while existing native filesystem imports remain.
+- Toolbar actions use native save/new, save/copy and fluent button APIs.
+  The installer requires Joomla 6.0.0 and PHP 8.3.0.
+- The two README files record the net 120 additional generated lines:
+  30,625 becomes 30,745. Their office estimate changes from 12 to 13 hours,
+  matching the unchanged valuation formula and integer truncation. All other
+  metrics remain unchanged.
+
+The first reviewed artifact from
+[workflow run 40025132163](https://github.com/extension-builder/joomla/actions/runs/40025132163)
+already contained the asset, MVC, input and toolbar changes. Comparing its
+candidate to this final candidate changes only the installer minimums, the
+loading-overlay template, and the two README line counts. Other generated
+bytes, paths and modes remain identical. Optional DKIM, Google Charts, module
+and plugin output is outside this component blueprint and retains separate
+focused regression coverage.
+
+All 127 PHP files in each final package pass syntax checks. Hosted source
+verification accepts all 1,678 baseline and 1,723 candidate hashes; final Power
+evidence is byte-identical. Joomla 3, 4 and 5 pass strict output equality and
+their installed Power discovery probes at corpus sizes 0, 100 and 1,000.
+There are no expectations for those targets under this new source baseline.
+
+The fixture encodes the complete unmodified 105,330-byte hosted diff, including
+CRLF, without normalization. Applying it to baseline tree
+`42329c022992d2be6a404558714c1aaea72582f8` reproduces candidate tree
+`15f5dc4e79f930e29b2300a5998e62d7ac1a3bdc` exactly, including every path, byte
+and executable mode. The Joomla 6 installed scale probe still must pass after
+the exact output gate accepts this reviewed change.
