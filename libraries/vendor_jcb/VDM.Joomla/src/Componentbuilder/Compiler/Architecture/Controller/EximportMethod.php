@@ -138,8 +138,7 @@ class EximportMethod implements EximportMethodInterface
 		$method[] = Indent::_(2) . "{";
 		$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
 			. " Get the input";
-		$method[] = Indent::_(3)
-			. "\$input = Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;";
+		$method[] = $this->getInputObject();
 		$method[] = Indent::_(3)
 			. "\$pks = \$input->post->get('cid', array(), 'array');";
 		$method[] = Indent::_(3) . "//" . Line::_(__Line__, __Class__)
@@ -285,5 +284,16 @@ class EximportMethod implements EximportMethodInterface
 	{
 		return Indent::_(4) . "\$session = Joomla__"
 			. "_39403062_84fb_46e0_bac4_0023f766e827___Power::getSession();";
+	}
+
+	/**
+	 * Put the controller request input in scope for the generated method.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function getInputObject(): string
+	{
+		return Indent::_(3) . '$input = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;';
 	}
 }

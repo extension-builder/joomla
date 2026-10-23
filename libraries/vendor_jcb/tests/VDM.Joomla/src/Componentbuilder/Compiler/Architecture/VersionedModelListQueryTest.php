@@ -185,6 +185,15 @@ final class VersionedModelListQueryTest extends ArchitectureTestCase
 		$this->assertStringContainsString(
 			"\$categoryId = \$this->getState('filter.category_id');", $code
 		);
+		$this->assertStringContainsString('$cat_tbl = new \\Joomla\\CMS\\Table\\Category($db);', $code);
+		$this->assertStringNotContainsString('Table::getInstance(', $code);
+
+		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			$legacy = $this->query($version, ['category' => $category]);
+			$this->assertStringContainsString("Table::getInstance('Category', 'JTable')", $legacy);
+		}
+
 	}
 
 	/**

@@ -32,7 +32,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  * 
  * @since 5.1.4
  */
-final class CustomButtons
+class CustomButtons
 {
 	/**
 	 * The Config Class.
@@ -379,8 +379,10 @@ final class CustomButtons
 		{
 			$buttons[] = $tab . Indent::_(2) . "//" . Line::_(__Line__, __Class__) . " add cpanel button";
 			$buttons[] = $tab . Indent::_(2)
-				. "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('{$viewCodeName}.dashboard', 'grid-2', '',"
-				. " 'COM_{$this->contentone->get('COMPONENT')}_DASH', false);";
+				. $this->button(
+					$viewCodeName . '.dashboard', 'grid-2',
+					'COM_' . $this->contentone->get('COMPONENT') . '_DASH', false
+				);
 		}
 	}
 
@@ -497,9 +499,11 @@ final class CustomButtons
 		$buttons[] = $indent1 . "{";
 		$buttons[] = $indent1 . Indent::_(1) . "//" . Line::_(__Line__, __Class__) . " add {$customButton['name']} button.";
 		$buttons[] = $indent1 . Indent::_(1)
-			. "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('{$viewCodeName}.{$customButton['method']}',"
-			. " '{$customButton['icomoon']} custom-button-" . strtolower((string) $customButton['method'])
-			. "', '', '{$keyLang}', false);";
+			. $this->button(
+				$viewCodeName . '.' . $customButton['method'],
+				$customButton['icomoon'] . ' custom-button-' . strtolower((string) $customButton['method']),
+				$keyLang, false
+			);
 		$buttons[] = $indent1 . "}";
 	}
 
@@ -532,10 +536,11 @@ final class CustomButtons
 		$this->onlyfunctionbuttons->add(
 			$viewsCodeName,
 			PHP_EOL . Indent::_(1) . $tab . Indent::_(1)
-			. "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('"
-			. $viewsCodeName . "." . $customButton['method'] . "', '"
-			. $customButton['icomoon'] . " custom-button-" . strtolower((string) $customButton['method'])
-			. "', '', '" . $keyLang . "', false);"
+			. $this->button(
+				$viewsCodeName . '.' . $customButton['method'],
+				$customButton['icomoon'] . ' custom-button-' . strtolower((string) $customButton['method']),
+				$keyLang, false
+			)
 		);
 		$this->onlyfunctionbuttons->add($viewsCodeName, PHP_EOL . Indent::_(1) . $tab . "}");
 	}
@@ -564,9 +569,11 @@ final class CustomButtons
 		$buttons[] = $indent1 . "{";
 		$buttons[] = $indent1 . Indent::_(1) . "//" . Line::_(__Line__, __Class__) . " add {$customButton['name']} button.";
 		$buttons[] = $indent1 . Indent::_(1)
-			. "Joomla__"."_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('{$viewsCodeName}.{$customButton['method']}',"
-			. " '{$customButton['icomoon']} custom-button-" . strtolower((string) $customButton['method'])
-			. "', '', '{$keyLang}', '{$validateSelection}');";
+			. $this->button(
+				$viewsCodeName . '.' . $customButton['method'],
+				$customButton['icomoon'] . ' custom-button-' . strtolower((string) $customButton['method']),
+				$keyLang, $validateSelection === 'true', true
+			);
 		$buttons[] = $indent1 . "}";
 	}
 
@@ -666,5 +673,30 @@ final class CustomButtons
 			$this->customform->set("{$this->config->build_target}.{$viewCodeName}", true);
 		}
 	}
-}
+	/**
+	 * Render one toolbar button for the selected target.
+	 *
+	 * @param   string  $task            Controller task.
+	 * @param   string  $icon            Button icon and additional classes.
+	 * @param   string  $label           Translation key.
+	 * @param   bool    $selection       Whether a list selection is required.
+	 * @param   bool    $quoteSelection  Preserve the earlier-target source shape.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function button(
+		string $task, string $icon, string $label, bool $selection, bool $quoteSelection = false
+	): string
+	{
+		$selected = $selection ? 'true' : 'false';
 
+		if ($quoteSelection)
+		{
+			$selected = "'" . $selected . "'";
+		}
+
+		return "Joomla__" . "_0c1a176a_304f_433a_8233_37d01ff87815___Power::custom('"
+			. $task . "', '" . $icon . "', '', '" . $label . "', " . $selected . ");";
+	}
+}

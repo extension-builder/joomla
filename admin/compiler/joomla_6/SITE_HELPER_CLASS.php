@@ -172,7 +172,15 @@ abstract class ###Component###Helper
 		}
 
 		// Get the model through the MVCFactory
-		return Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->bootComponent('com_' . $component)->getMVCFactory()->createModel($type, $prefix, $config);
+		$app = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
+		$model = $app->bootComponent('com_' . $component)->getMVCFactory()->createModel($type, $prefix, $config);
+
+		if ($model instanceof \Joomla\CMS\User\CurrentUserInterface)
+		{
+			$model->setCurrentUser($app->getIdentity() ?? new \Joomla\CMS\User\User());
+		}
+
+		return $model;
 	}
 
 	/**
@@ -204,37 +212,31 @@ abstract class ###Component###Helper
 	 */
 	public static function setAsset($id, $table, $inherit = true)
 	{
-		$parent = Table::getInstance('Asset');
-		$parent->loadByName('com_###component###');
+		$db = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getContainer()->get(DatabaseInterface::class);
 
-		$parentId = $parent->id;
-		$name     = 'com_###component###.'.$table.'.'.$id;
-		$title    = '';
-
-		$asset = Table::getInstance('Asset');
-		$asset->loadByName($name);
-
-		// Check for an error.
-		$error = $asset->getError();
-
-		if ($error)
+		try
 		{
-			return false;
-		}
-		else
-		{
+			$parent = new \Joomla\CMS\Table\Asset($db);
+			$parent->setUseExceptions(true);
+			$parent->loadByName('com_###component###');
+
+			$parentId = $parent->id;
+			$name = 'com_###component###.' . $table . '.' . $id;
+			$asset = new \Joomla\CMS\Table\Asset($db);
+			$asset->setUseExceptions(true);
+			$asset->loadByName($name);
+
 			// Specify how a new or moved node asset is inserted into the tree.
 			if ($asset->parent_id != $parentId)
 			{
 				$asset->setLocation($parentId, 'last-child');
 			}
 
-			// Prepare the asset to be stored.
 			$asset->parent_id = $parentId;
-			$asset->name      = $name;
-			$asset->title     = $title;
-			// get the default asset rules
+			$asset->name = $name;
+			$asset->title = '';
 			$rules = self::getDefaultAssetRules('com_###component###', $table, $inherit);
+
 			if ($rules instanceof AccessRules)
 			{
 				$asset->rules = (string) $rules;
@@ -242,23 +244,22 @@ abstract class ###Component###Helper
 
 			if (!$asset->check() || !$asset->store())
 			{
-				Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->enqueueMessage($asset->getError(), 'warning');
-				return false;
+				throw new \RuntimeException(Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power::sprintf('JLIB_DATABASE_ERROR_STORE_FAILED', $name));
 			}
-			else
-			{
-				// Create an asset_id or heal one that is corrupted.
-				$object = new \StdClass();
 
-				// Must be a valid primary key value.
-				$object->id = $id;
-				$object->asset_id = (int) $asset->id;
+			// Create an asset_id or heal one that is corrupted.
+			$object = new \stdClass();
+			$object->id = $id;
+			$object->asset_id = (int) $asset->id;
 
-				// Update their asset_id to link to the asset table.
-				return Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getDbo()->updateObject('#__###component###_'.$table, $object, 'id');
-			}
+			return $db->updateObject('#__###component###_' . $table, $object, 'id');
 		}
-		return false;
+		catch (\Exception $e)
+		{
+			Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->enqueueMessage($e->getMessage(), 'warning');
+
+			return false;
+		}
 	}
 
 	/**

@@ -27,6 +27,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\LibraryInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Customcode\DispenserInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
+use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 
 
@@ -322,12 +327,19 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 			->method('get')
 			->willReturnCallback(
 				function (string $first, string $second, string $prefix, ?string $note,
-					bool $unset, mixed $default, string $suffix): string
+					bool $unset, mixed $default, string $suffix) use ($major): string
 				{
 					$this->assertSame('article', $second);
 					$this->assertSame('', $note);
 					$this->assertTrue($unset);
 					$this->assertNull($default);
+
+					if ($major === 6)
+					{
+						$this->assertSame('', $prefix);
+						$this->assertSame('', $suffix);
+						return $first === 'css_views' ? 'CSS' : 'JS';
+					}
 
 					if ($first === 'css_views')
 					{
@@ -350,6 +362,7 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		);
 		$module = (object) [
 			'default' => '<section>Body</section>',
+			'folder_name' => 'mod_articles',
 			'add_default_header' => 1,
 			'default_header' => 'use Acme\\ModuleHeader;',
 		];
@@ -363,7 +376,21 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 			$expected = PHP_EOL . 'use Acme\\ModuleHeader;' . PHP_EOL . '?>' . $expected;
 		}
 
-		$this->assertSame($expected, $subject->default($module, 'article'));
+		$rendered = $subject->default($module, 'article');
+
+		if ($major === 6)
+		{
+			$this->assertStringNotContainsString('<script', $rendered);
+			$this->assertStringNotContainsString('<style', $rendered);
+			$this->assertStringContainsString('addInlineStyle', $rendered);
+			$this->assertStringContainsString('addInlineScript', $rendered);
+			$this->assertTrue(strpos($rendered, 'CSS') < strpos($rendered, '<section>Body</section>'));
+			$this->assertTrue(strpos($rendered, '<section>Body</section>') < strpos($rendered, 'JS'));
+		}
+		else
+		{
+			$this->assertSame($expected, $rendered);
+		}
 
 		if ($major === 3)
 		{
@@ -406,6 +433,7 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 			'fieldsets_label' => [],
 			'folder_path' => $folder,
 			'file_name' => 'mod_articles',
+			'folder_name' => 'mod_articles',
 			'key' => 'module.article',
 			'guid' => 'module-guid',
 			'official_name' => 'Articles Module',
@@ -422,7 +450,7 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		$this->assertStringContainsString('sql/mysql/install.sql', $xml);
 		$this->assertStringContainsString('sql/mysql/uninstall.sql', $xml);
 		$this->assertStringContainsString('<filename>helper.php</filename>', $xml);
-		$this->assertStringContainsString('<folder>media</folder>', $xml);
+		$this->assertStringContainsString($major === 6 ? '<media destination="mod_articles" folder="media">' : '<folder>media</folder>', $xml);
 		$this->assertStringContainsString('<folder>sql</folder>', $xml);
 
 		if ($major >= 5)
@@ -476,7 +504,15 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		$this->assertStringContainsString('final class ArticlesPlugin extends CMSPlugin', $code);
 		$this->assertStringContainsString(' implements Joomla___c06c5116_6b9d_487c_9b09_5094ec4506a3___Power', $code);
 		$this->assertStringContainsString('public static function getSubscribedEvents(): array', $code);
-		$this->assertStringContainsString("'collectArticles' => 'collectArticles'", $code);
+		if ($major === 6)
+		{
+			$this->assertStringNotContainsString("'collectArticles' => 'collectArticles'", $code);
+			$this->assertStringContainsString('return $events;', $code);
+		}
+		else
+		{
+			$this->assertStringContainsString("'collectArticles' => 'collectArticles'", $code);
+		}
 	}
 
 	/**
@@ -612,11 +648,15 @@ PHP;
 			$this->assertStringContainsString($constructor, $extension);
 		}
 
-		eval('namespace ' . __NAMESPACE__ . '; ' . str_replace(
-			'Joomla___c06c5116_6b9d_487c_9b09_5094ec4506a3___Power',
-			'\\Joomla\\Event\\SubscriberInterface',
-			$extension
-		));
+		$power = $this->createStub(PowerInterface::class);
+		$power->method('get')->willReturn((object) [
+			'_namespace' => 'Joomla\\Event', 'class_name' => 'SubscriberInterface', 'type' => 'interface',
+		]);
+		$injector = new Injector($power, new Extractor($this->createStub(DatabaseInterface::class), 6), new Parser(), $this->renderer(Placeholder::class));
+		$extension = $injector->power('<?php' . PHP_EOL . 'namespace ' . __NAMESPACE__ . ';' . PHP_EOL
+			. 'use Joomla\\CMS\\Plugin\\CMSPlugin;' . PHP_EOL . $extension);
+		$this->assertStringNotContainsString('Joomla___', $extension);
+		eval(substr($extension, strlen('<?php')));
 
 		$code = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Provider'))->get($plugin);
 		$provider = eval('namespace ' . __NAMESPACE__ . '; '

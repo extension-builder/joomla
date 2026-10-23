@@ -335,7 +335,7 @@ GEN;
 		}
 
 		return $this->renderer(
-			$this->targetClass($version, 'Controller\\CustomAdminDynamicButton', ['JoomlaThree']),
+			$this->targetClass($version, 'Controller\\CustomAdminDynamicButton', ['JoomlaThree', 'JoomlaSix']),
 			['dynamicbuttons' => $registry]
 		);
 	}
@@ -363,7 +363,18 @@ GEN;
 	#[DataProvider('modernVersions')]
 	public function testAModernTargetReadsTheUserOffTheApplication(string $version): void
 	{
-		$this->assertSame(self::EXPECTED_BUTTON_MODERN, $this->buttons($version)->get('demos'));
+		$expected = self::EXPECTED_BUTTON_MODERN;
+
+		if ($version === 'JoomlaSix')
+		{
+			$expected = str_replace(
+				'$input = Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;',
+				'$input = $this->input;',
+				$expected
+			);
+		}
+
+		$this->assertSame($expected, $this->buttons($version)->get('demos'));
 	}
 
 	/**

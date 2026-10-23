@@ -29,4 +29,12 @@ final class ListQuery extends SharedListQuery
 	 * @since 6.2.0
 	 */
 	protected string $queryMethod = 'createQuery()';
+
+	/**
+	 * Construct the core category table with the model's database.
+	 *
+	 * @var   string
+	 * @since 6.2.0
+	 */
+	protected string $categoryTable = 'new \\Joomla\\CMS\\Table\\Category($db)';
 }

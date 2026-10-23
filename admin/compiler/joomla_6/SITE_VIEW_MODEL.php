@@ -98,8 +98,8 @@ class ###SView###Model extends ItemModel
 	 * @since  4.3
 	 */
 	protected array $styles = [
-		'components/com_###component###/assets/css/site.css',
-		'components/com_###component###/assets/css/###sview###.css'
+		'media/com_###component###/css/site/site.css',
+		'media/com_###component###/css/site/###sview###.css'
 	];
 
 	/**
@@ -109,7 +109,7 @@ class ###SView###Model extends ItemModel
 	 * @since  4.3
 	 */
 	protected array $scripts = [
-		'components/com_###component###/assets/js/site.js'
+		'media/com_###component###/js/site/site.js'
 	];
 
 	/**
@@ -127,6 +127,22 @@ class ###SView###Model extends ItemModel
 	protected $item;
 
 	/**
+	 * Authorised groups for the injected user.
+	 *
+	 * @var   array
+	 * @since 6.2.0
+	 */
+	public array $authorisedGroups = [];
+
+	/**
+	 * Compatibility flag for existing custom model code.
+	 *
+	 * @var   bool
+	 * @since 6.2.0
+	 */
+	public bool $initSet = false;
+
+	/**
 	 * Constructor
 	 *
 	 * @param   array                 $config   An array of configuration options (name, state, dbo, table_path, ignore_request).
@@ -142,16 +158,28 @@ class ###SView###Model extends ItemModel
 		$this->app ??= Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();
 		$this->input ??= $this->app->getInput();
 
-		// Set the current user for authorisation checks (for those calling this model directly)
-		$this->user ??= $this->getCurrentUser();
-		$this->userId = $this->user->get('id');
-		$this->guest = $this->user->get('guest');
-		$this->groups = $this->user->get('groups');
-		$this->authorisedGroups = $this->user->getAuthorisedGroups();
-		$this->levels = $this->user->getAuthorisedViewLevels();
-
 		// will be removed
 		$this->initSet = true;
+	}
+
+	/**
+	 * Refresh identity-dependent state after Joomla injects the current user.
+	 *
+	 * @param   User  $currentUser  The user supplied by the controller or helper.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function setCurrentUser(User $currentUser): void
+	{
+		parent::setCurrentUser($currentUser);
+		$this->user = $currentUser;
+		$this->userId = $currentUser->id;
+		$this->guest = $currentUser->guest;
+		$this->groups = $currentUser->groups;
+		$this->authorisedGroups = $currentUser->getAuthorisedGroups();
+		$this->levels = $currentUser->getAuthorisedViewLevels();
+		$this->_item = null;
 	}
 
 	/**
@@ -194,23 +222,7 @@ class ###SView###Model extends ItemModel
 		}###LICENSE_LOCKED_CHECK###
 
 		if (!isset($this->_item[$pk]))
-		{
-			try
-			{###SITE_GET_ITEM###
-			}
-			catch (\Exception $e)
-			{
-				if ($e->getCode() == 404)
-				{
-					// Need to go thru the error handler to allow Redirect to work.
-					throw $e;
-				}
-				else
-				{
-					$this->setError($e);
-					$this->_item[$pk] = false;
-				}
-			}
+		{###SITE_GET_ITEM###
 		}###SITE_AFTER_GET_ITEM###
 
 		return $this->_item[$pk];

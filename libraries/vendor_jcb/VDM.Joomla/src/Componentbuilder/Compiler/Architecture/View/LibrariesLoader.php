@@ -135,7 +135,7 @@ class LibrariesLoader implements LibrariesLoaderInterface
 				) . " Only load jQuery if needed. (default is true)";
 			$setter .= PHP_EOL . Indent::_(2) . "if (\$this->params->get('add_jquery_framework', 1) == 1)";
 			$setter .= PHP_EOL . Indent::_(2) . "{";
-			$setter .= PHP_EOL . Indent::_(3) . "Html::_('jquery.framework');";
+			$setter .= PHP_EOL . Indent::_(3) . $this->jquery();
 			$setter .= PHP_EOL . Indent::_(2) . "}";
 			$setter .= PHP_EOL . Indent::_(2) . "//" . Line::_(__Line__, __Class__)
 				. " Load the header checker class.";
@@ -181,6 +181,17 @@ class LibrariesLoader implements LibrariesLoaderInterface
 	}
 
 	/**
+	 * Build the jQuery activation statement.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function jquery(): string
+	{
+		return "Html::_('jquery.framework');";
+	}
+
+	/**
 	 * Build the statements that make the header checker available.
 	 *
 	 * @return  string  The statements.
@@ -196,4 +207,3 @@ class LibrariesLoader implements LibrariesLoaderInterface
 		return $setter;
 	}
 }
-

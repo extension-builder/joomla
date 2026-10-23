@@ -63,7 +63,7 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 		$this->assertSame(4, substr_count($code, '/footable-v2/js/'));
 		$this->assertSame(3, substr_count($code, '/footable-v2/css/'));
 		$this->assertStringContainsString(
-			"Html::_('script', 'media/com_demo/footable-v2/js/footable.js'",
+			$major === 6 ? "'media/com_demo/footable-v2/js/footable.js'" : "Html::_('script', 'media/com_demo/footable-v2/js/footable.js'",
 			$code
 		);
 		$this->assertStringContainsString('$this->fooTableStyle', $code);
@@ -89,7 +89,7 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 		$code = $this->renderer($this->footableClass($version))->get(false);
 
 		$this->assertStringContainsString(
-			"Html::_('script', 'media/com_demo/footable-v3/js/footable.min.js'",
+			$major === 6 ? "'media/com_demo/footable-v3/js/footable.min.js'" : "Html::_('script', 'media/com_demo/footable-v3/js/footable.min.js'",
 			$code
 		);
 		$this->assertStringContainsString('font-awesome.min.css', $code);
@@ -131,7 +131,7 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 			}
 
 			$this->assertStringContainsString(
-				'$this->getDocument()->getWebAssetManager()->addInlineScript($footable);',
+				$major === 6 ? "\$this->getDocument()->getWebAssetManager()->addInlineScript(\$footable, ['name'" : '$this->getDocument()->getWebAssetManager()->addInlineScript($footable);',
 				$code
 			);
 			$this->assertStringNotContainsString('addScriptDeclaration', $code);
@@ -183,7 +183,7 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 	{
 		// only Joomla 3 declares an inline script without the asset manager
 		return $this->targetClass(
-			$version, 'AdminView\\FootableScripts', ['JoomlaThree']
+			$version, 'AdminView\\FootableScripts', ['JoomlaThree', 'JoomlaFour', 'JoomlaFive', 'JoomlaSix']
 		);
 	}
 }

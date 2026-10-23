@@ -175,6 +175,49 @@ final class SettingsTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * Charts opt in to their conventional helper file without obsolete bundles.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testJoomlaSixPackagesChartHelperOnlyWhenEnabled(): void
+	{
+		foreach ([false, true] as $enabled)
+		{
+			$config = $this->compilerConfig([
+				'compiler_path' => dirname(JPATH_COMPONENT_ADMINISTRATOR) . '/admin/compiler',
+				'joomla_version' => 6,
+				'google_chart' => $enabled,
+				'component_code_name' => 'example',
+			]);
+			$component = $this->component();
+			$component->set('name_code', 'example');
+			$component->set('sales_name', 'Example');
+			$component->set('component_version', '1.0.0');
+			$subject = new JoomlaSixSettings(
+				$config,
+				new Registry(),
+				$this->createStub(EventInterface::class),
+				new Placeholder($config),
+				$component,
+				new Paths($config, $component),
+				$this->createStub(Dynamicpath::class),
+				$this->createStub(Pathfix::class)
+			);
+
+			$this->assertTrue($subject->exists());
+			$this->assertSame($enabled, isset($subject->single()->{'ADMIN_CHARTBUILDER.php'}));
+			$this->assertSame('Helper', $subject->structure()->admin->src->Helper);
+			$this->assertFalse($component->isArray('files'));
+			if ($enabled)
+			{
+				$this->assertSame('c0mp0n3nt/admin/src/Helper', $subject->single()->{'ADMIN_CHARTBUILDER.php'}->path);
+				$this->assertSame('Chartbuilder.php', $subject->single()->{'ADMIN_CHARTBUILDER.php'}->newName);
+			}
+		}
+	}
+
+	/**
 	 * Invalid template JSON cannot activate settings or trigger the loaded event.
 	 *
 	 * @return  void

@@ -68,9 +68,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\ViewBodyInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/AdminViews/ViewBodyInterface.php',
-			'implementations' => 2,
-			'concrete' => 2,
-			'implementation_hash' => '1592c2d9cd0cedb211f250b1ea5a904d0dce94481fd57d67d12457628d5c7e2d',
+			'implementations' => 3,
+			'concrete' => 3,
+			'implementation_hash' => '0608d30ff14e73be3e520f984845dd828eda505ee404080c3522fbc0ab9c60f9',
 			'signature_hash' => '8a9f89a192ce427c1bcf1a1bb71d17653caa8ba165accaa74dffd08a48cdcb8b'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\ComHelperClass\\CreateUserInterface' => [
@@ -152,9 +152,9 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\CustomView\\DisplayMethodInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/CustomView/DisplayMethodInterface.php',
-			'implementations' => 3,
-			'concrete' => 3,
-			'implementation_hash' => '0ae5cf031d2afdfcf6dbd4ba369039b00ab78a109aeb926a1d10de78a5ea39e5',
+			'implementations' => 4,
+			'concrete' => 4,
+			'implementation_hash' => '687d653edd5914a3bba7e242deac93aea74bfc7da9a46afc95bfcf9a55d0735e',
 			'signature_hash' => '40572d240d841a80e907a386ff0be2cb0734fc7895eb1a8d8fd8c135d4b72db5'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\AdminViews\\SidebarFiltersInterface' => [
@@ -334,16 +334,16 @@ final class InterfaceContractManifest
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\Controller\\CustomAdminDynamicButtonInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/CustomAdminDynamicButtonInterface.php',
-			'implementations' => 2,
-			'concrete' => 2,
-			'implementation_hash' => '0ce15ad0b2c4d0dcb50b23ea23674a44c0d5b7832ba2379aacf4cde473af6e3a',
+			'implementations' => 3,
+			'concrete' => 3,
+			'implementation_hash' => '648804646e2422650a002d4b9c59171e9ea4f6ef807de0748c1ec6801921db58',
 			'signature_hash' => 'b36f83754491ba3d55b3312877b160473941ff9df18058fd785d4ce313e1ecd8'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\LibrariesLoaderInterface' => [
 			'path' => 'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/View/LibrariesLoaderInterface.php',
-			'implementations' => 2,
-			'concrete' => 2,
-			'implementation_hash' => '48bef63ce9c7860637562dce61923636a2bf9fef1d84c24ac8ef3d00157d8bf8',
+			'implementations' => 5,
+			'concrete' => 5,
+			'implementation_hash' => 'd5cd403f45fa6b22bbb2c0884d297787046055c4f3bd418c7115724922f9474c',
 			'signature_hash' => '0f86ec26fd3428227028ec8d9c724418cf76b4c42d09328fbe68e85052750ac1'
 		],
 		'VDM\\Joomla\\Componentbuilder\\Compiler\\Interfaces\\Architecture\\View\\AjaxTokenInterface' => [

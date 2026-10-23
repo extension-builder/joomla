@@ -15,7 +15,15 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Service;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomButtons as J3CustomButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomButtons as J4CustomButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\CustomButtons as J5CustomButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomButtons as J6CustomButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\DynamicButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\DynamicButtons as J3DynamicButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\DynamicButtons as J4DynamicButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\DynamicButtons as J5DynamicButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\DynamicButtons as J6DynamicButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ToolbarComposer as AdminViewsToolbarComposer;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminView\AddToolBarInterface as AdminViewAddToolBar;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\AddToolBar as J6AdminViewAddToolBar;
@@ -86,6 +94,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Router\SiteRouter;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ViewBodyInterface as AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ViewBody as SharedAdminViewsViewBody;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ViewBody as J6AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\ViewBody as J3AdminViewsViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\ListHeadInterface as AdminViewsListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListHead as SharedAdminViewsListHead;
@@ -102,6 +111,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod a
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminViews\DisplayMethod as J3AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\CustomView\DisplayMethodInterface as CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod as SharedCustomViewDisplayMethod;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\DisplayMethod as J6CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\CustomView\DisplayMethod as J4CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\CustomView\DisplayMethod as J3CustomViewDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Menu\AdminView as MenuAdminView;
@@ -126,6 +136,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\LibrariesL
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as SharedViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\LibrariesLoader as J3ViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as ViewJavaScriptFile;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\JavaScriptFile as J6ViewJavaScriptFile;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GetModules as ViewGetModules;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument as ViewPrepareDocument;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface as ViewAjaxTokenInterface;
@@ -166,11 +177,30 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Placeholders as ViewP
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView as AdminViewsEditView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Loop as AdminViewsLoop;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as AdminViewsListView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ListView as J6AdminViewsListView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Shared as AdminViewsShared;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomAdminViews\Builder as CustomAdminViewsBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\CodeBody as CustomViewCodeBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\ExtraDisplayMethods as CustomViewExtraDisplayMethods;
 
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminView\FootableScripts as J4AdminViewFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminView\FootableScripts as J5AdminViewFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FootableScripts as J6AdminViewFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\AdminView\ViewScript as J3AdminViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminView\ViewScript as J4AdminViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminView\ViewScript as J5AdminViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\ViewScript as J6AdminViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\Jquery as J3ViewJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\View\Jquery as J4ViewJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\View\Jquery as J5ViewJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\Jquery as J6ViewJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\GoogleChartLoader as J3ViewGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\View\GoogleChartLoader as J4ViewGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\View\GoogleChartLoader as J5ViewGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\GoogleChartLoader as J6ViewGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\View\LibrariesLoader as J4ViewLibrariesLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\View\LibrariesLoader as J5ViewLibrariesLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader as J6ViewLibrariesLoader;
 
 /**
  * Architecture View Service Provider
@@ -197,11 +227,89 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function register(Container $container)
 	{
+		$container->alias(J6ViewLibrariesLoader::class, 'Architecture.View.J6.LibrariesLoader')
+			->share('Architecture.View.J6.LibrariesLoader', [$this, 'getJ6ViewLibrariesLoader'], true);
+
+		$container->alias(J5ViewLibrariesLoader::class, 'Architecture.View.J5.LibrariesLoader')
+			->share('Architecture.View.J5.LibrariesLoader', [$this, 'getJ5ViewLibrariesLoader'], true);
+
+		$container->alias(J4ViewLibrariesLoader::class, 'Architecture.View.J4.LibrariesLoader')
+			->share('Architecture.View.J4.LibrariesLoader', [$this, 'getJ4ViewLibrariesLoader'], true);
+
+		$container->alias(J6ViewGoogleChartLoader::class, 'Architecture.View.J6.GoogleChartLoader')
+			->share('Architecture.View.J6.GoogleChartLoader', [$this, 'getJ6ViewGoogleChartLoader'], true);
+
+		$container->alias(J5ViewGoogleChartLoader::class, 'Architecture.View.J5.GoogleChartLoader')
+			->share('Architecture.View.J5.GoogleChartLoader', [$this, 'getJ5ViewGoogleChartLoader'], true);
+
+		$container->alias(J4ViewGoogleChartLoader::class, 'Architecture.View.J4.GoogleChartLoader')
+			->share('Architecture.View.J4.GoogleChartLoader', [$this, 'getJ4ViewGoogleChartLoader'], true);
+
+		$container->alias(J3ViewGoogleChartLoader::class, 'Architecture.View.J3.GoogleChartLoader')
+			->share('Architecture.View.J3.GoogleChartLoader', [$this, 'getJ3ViewGoogleChartLoader'], true);
+
+		$container->alias(J6ViewJquery::class, 'Architecture.View.J6.Jquery')
+			->share('Architecture.View.J6.Jquery', [$this, 'getJ6ViewJquery'], true);
+
+		$container->alias(J5ViewJquery::class, 'Architecture.View.J5.Jquery')
+			->share('Architecture.View.J5.Jquery', [$this, 'getJ5ViewJquery'], true);
+
+		$container->alias(J4ViewJquery::class, 'Architecture.View.J4.Jquery')
+			->share('Architecture.View.J4.Jquery', [$this, 'getJ4ViewJquery'], true);
+
+		$container->alias(J3ViewJquery::class, 'Architecture.View.J3.Jquery')
+			->share('Architecture.View.J3.Jquery', [$this, 'getJ3ViewJquery'], true);
+
+		$container->alias(J6AdminViewScript::class, 'Architecture.AdminView.J6.ViewScript')
+			->share('Architecture.AdminView.J6.ViewScript', [$this, 'getJ6AdminViewScript'], true);
+
+		$container->alias(J5AdminViewScript::class, 'Architecture.AdminView.J5.ViewScript')
+			->share('Architecture.AdminView.J5.ViewScript', [$this, 'getJ5AdminViewScript'], true);
+
+		$container->alias(J4AdminViewScript::class, 'Architecture.AdminView.J4.ViewScript')
+			->share('Architecture.AdminView.J4.ViewScript', [$this, 'getJ4AdminViewScript'], true);
+
+		$container->alias(J3AdminViewScript::class, 'Architecture.AdminView.J3.ViewScript')
+			->share('Architecture.AdminView.J3.ViewScript', [$this, 'getJ3AdminViewScript'], true);
+
+		$container->alias(J6AdminViewFootableScripts::class, 'Architecture.AdminView.J6.FootableScripts')
+			->share('Architecture.AdminView.J6.FootableScripts', [$this, 'getJ6AdminViewFootableScripts'], true);
+
+		$container->alias(J5AdminViewFootableScripts::class, 'Architecture.AdminView.J5.FootableScripts')
+			->share('Architecture.AdminView.J5.FootableScripts', [$this, 'getJ5AdminViewFootableScripts'], true);
+
+		$container->alias(J4AdminViewFootableScripts::class, 'Architecture.AdminView.J4.FootableScripts')
+			->share('Architecture.AdminView.J4.FootableScripts', [$this, 'getJ4AdminViewFootableScripts'], true);
+
 		$container->alias(CustomButtons::class, 'Architecture.CustomButtons')
 			->share('Architecture.CustomButtons', [$this, 'getCustomButtons'], true);
 
+		$container->alias(J3CustomButtons::class, 'Architecture.J3.CustomButtons')
+			->share('Architecture.J3.CustomButtons', [$this, 'getJ3CustomButtons'], true);
+
+		$container->alias(J4CustomButtons::class, 'Architecture.J4.CustomButtons')
+			->share('Architecture.J4.CustomButtons', [$this, 'getJ4CustomButtons'], true);
+
+		$container->alias(J5CustomButtons::class, 'Architecture.J5.CustomButtons')
+			->share('Architecture.J5.CustomButtons', [$this, 'getJ5CustomButtons'], true);
+
+		$container->alias(J6CustomButtons::class, 'Architecture.J6.CustomButtons')
+			->share('Architecture.J6.CustomButtons', [$this, 'getJ6CustomButtons'], true);
+
 		$container->alias(DynamicButtons::class, 'Architecture.DynamicButtons')
 			->share('Architecture.DynamicButtons', [$this, 'getDynamicButtons'], true);
+
+		$container->alias(J3DynamicButtons::class, 'Architecture.J3.DynamicButtons')
+			->share('Architecture.J3.DynamicButtons', [$this, 'getJ3DynamicButtons'], true);
+
+		$container->alias(J4DynamicButtons::class, 'Architecture.J4.DynamicButtons')
+			->share('Architecture.J4.DynamicButtons', [$this, 'getJ4DynamicButtons'], true);
+
+		$container->alias(J5DynamicButtons::class, 'Architecture.J5.DynamicButtons')
+			->share('Architecture.J5.DynamicButtons', [$this, 'getJ5DynamicButtons'], true);
+
+		$container->alias(J6DynamicButtons::class, 'Architecture.J6.DynamicButtons')
+			->share('Architecture.J6.DynamicButtons', [$this, 'getJ6DynamicButtons'], true);
 
 
 		$container->alias(AdminViewAddToolBar::class, 'Architecture.AdminView.AddToolBar')
@@ -413,6 +521,9 @@ class ArchitectureView implements ServiceProviderInterface
 		$container->alias(J3AdminViewsViewBody::class, 'Architecture.AdminViews.J3.ViewBody')
 			->share('Architecture.AdminViews.J3.ViewBody', [$this, 'getJ3AdminViewsViewBody'], true);
 
+		$container->alias(J6AdminViewsViewBody::class, 'Architecture.AdminViews.J6.ViewBody')
+			->share('Architecture.AdminViews.J6.ViewBody', [$this, 'getJ6AdminViewsViewBody'], true);
+
 		$container->alias(AdminViewsListHead::class, 'Architecture.AdminViews.ListHead')
 			->share('Architecture.AdminViews.ListHead', [$this, 'getAdminViewsListHead'], true);
 
@@ -445,6 +556,11 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewsListView::class, 'Architecture.AdminViews.ListView')
 			->share('Architecture.AdminViews.ListView', [$this, 'getAdminViewsListView'], true);
+
+		$container->share('Architecture.AdminViews.Shared.ListView', [$this, 'getSharedAdminViewsListView'], true);
+
+		$container->alias(J6AdminViewsListView::class, 'Architecture.AdminViews.J6.ListView')
+			->share('Architecture.AdminViews.J6.ListView', [$this, 'getJ6AdminViewsListView'], true);
 
 		$container->alias(AdminViewsShared::class, 'Architecture.AdminViews.Shared')
 			->share('Architecture.AdminViews.Shared', [$this, 'getAdminViewsShared'], true);
@@ -508,6 +624,9 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(SharedCustomViewDisplayMethod::class, 'Architecture.CustomView.Shared.DisplayMethod')
 			->share('Architecture.CustomView.Shared.DisplayMethod', [$this, 'getSharedCustomViewDisplayMethod'], true);
+
+		$container->alias(J6CustomViewDisplayMethod::class, 'Architecture.CustomView.J6.DisplayMethod')
+			->share('Architecture.CustomView.J6.DisplayMethod', [$this, 'getJ6CustomViewDisplayMethod'], true);
 
 		$container->alias(J4CustomViewDisplayMethod::class, 'Architecture.CustomView.J4.DisplayMethod')
 			->share('Architecture.CustomView.J4.DisplayMethod', [$this, 'getJ4CustomViewDisplayMethod'], true);
@@ -595,6 +714,11 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(ViewJavaScriptFile::class, 'Architecture.View.JavaScriptFile')
 			->share('Architecture.View.JavaScriptFile', [$this, 'getViewJavaScriptFile'], true);
+
+		$container->share('Architecture.View.Shared.JavaScriptFile', [$this, 'getSharedViewJavaScriptFile'], true);
+
+		$container->alias(J6ViewJavaScriptFile::class, 'Architecture.View.J6.JavaScriptFile')
+			->share('Architecture.View.J6.JavaScriptFile', [$this, 'getJ6ViewJavaScriptFile'], true);
 
 		$container->alias(ViewGetModules::class, 'Architecture.View.GetModules')
 			->share('Architecture.View.GetModules', [$this, 'getViewGetModules'], true);
@@ -685,7 +809,94 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getCustomButtons(Container $container): CustomButtons
 	{
-		return new CustomButtons(
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.J' . $this->targetVersion . '.CustomButtons');
+	}
+
+	/**
+	 * Get the Joomla 3 CustomButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3CustomButtons
+	 * @since   6.2.0
+	 */
+	public function getJ3CustomButtons(Container $container): J3CustomButtons
+	{
+		return new J3CustomButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Compiler.Builder.Only.Function.Buttons'),
+			$container->get('Utilities.Structure'),
+			$container->get('Language'),
+			$container->get('Placeholder'),
+			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get the Joomla 4 CustomButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4CustomButtons
+	 * @since   6.2.0
+	 */
+	public function getJ4CustomButtons(Container $container): J4CustomButtons
+	{
+		return new J4CustomButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Compiler.Builder.Only.Function.Buttons'),
+			$container->get('Utilities.Structure'),
+			$container->get('Language'),
+			$container->get('Placeholder'),
+			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get the Joomla 5 CustomButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5CustomButtons
+	 * @since   6.2.0
+	 */
+	public function getJ5CustomButtons(Container $container): J5CustomButtons
+	{
+		return new J5CustomButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Content.One'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Custom.Form'),
+			$container->get('Compiler.Builder.Only.Function.Buttons'),
+			$container->get('Utilities.Structure'),
+			$container->get('Language'),
+			$container->get('Placeholder'),
+			$container->get('Registry')
+		);
+	}
+
+	/**
+	 * Get the Joomla 6 CustomButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6CustomButtons
+	 * @since   6.2.0
+	 */
+	public function getJ6CustomButtons(Container $container): J6CustomButtons
+	{
+		return new J6CustomButtons(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Content.One'),
 			$container->get('Compiler.Builder.Content.Multi'),
@@ -708,7 +919,76 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getDynamicButtons(Container $container): DynamicButtons
 	{
-		return new DynamicButtons(
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		return $container->get('Architecture.J' . $this->targetVersion . '.DynamicButtons');
+	}
+
+	/**
+	 * Get the Joomla 3 DynamicButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J3DynamicButtons
+	 * @since   6.2.0
+	 */
+	public function getJ3DynamicButtons(Container $container): J3DynamicButtons
+	{
+		return new J3DynamicButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Dynamic.Buttons'),
+			$container->get('Language')
+		);
+	}
+
+	/**
+	 * Get the Joomla 4 DynamicButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J4DynamicButtons
+	 * @since   6.2.0
+	 */
+	public function getJ4DynamicButtons(Container $container): J4DynamicButtons
+	{
+		return new J4DynamicButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Dynamic.Buttons'),
+			$container->get('Language')
+		);
+	}
+
+	/**
+	 * Get the Joomla 5 DynamicButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J5DynamicButtons
+	 * @since   6.2.0
+	 */
+	public function getJ5DynamicButtons(Container $container): J5DynamicButtons
+	{
+		return new J5DynamicButtons(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Dynamic.Buttons'),
+			$container->get('Language')
+		);
+	}
+
+	/**
+	 * Get the Joomla 6 DynamicButtons renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6DynamicButtons
+	 * @since   6.2.0
+	 */
+	public function getJ6DynamicButtons(Container $container): J6DynamicButtons
+	{
+		return new J6DynamicButtons(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Dynamic.Buttons'),
 			$container->get('Language')
@@ -1706,18 +1986,7 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getAdminViewFootableScripts(Container $container): AdminViewFootableScripts
 	{
-		if (empty($this->targetVersion))
-		{
-			$this->targetVersion = $container->get('Config')->joomla_version;
-		}
-
-		// only Joomla 3 declares an inline script without the asset manager
-		if ((int) $this->targetVersion === 3)
-		{
-			return $container->get('Architecture.AdminView.J3.FootableScripts');
-		}
-
-		return $container->get('Architecture.AdminView.Shared.FootableScripts');
+		return $container->get('Architecture.AdminView.J' . $container->get('Config')->joomla_version . '.FootableScripts');
 	}
 
 	/**
@@ -1857,25 +2126,7 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getAdminViewScript(Container $container): AdminViewScript
 	{
-		return new AdminViewScript(
-			$container->get('Config'),
-			$container->get('Placeholder'),
-			$container->get('Customcode.Dispenser'),
-			$container->get('Utilities.Structure'),
-			$container->get('Library.IncludeHelper'),
-			$container->get('Model.Createdate'),
-			$container->get('Model.Modifieddate'),
-			$container->get('Compiler.Builder.Content.Multi'),
-			$container->get('Compiler.Builder.Script.Media.Switch'),
-			$container->get('Compiler.Builder.Script.User.Switch'),
-			$container->get('Compiler.Builder.Validation.Fix'),
-			$container->get('Compiler.Builder.View.Script'),
-			$container->get('Architecture.Field.ValueScript'),
-			$container->get('Architecture.Field.OptionsScript'),
-			$container->get('Architecture.Field.IfValueScript'),
-			$container->get('Architecture.Field.TargetControlsScript'),
-			$container->get('Architecture.Field.TargetRelationScript')
-		);
+		return $container->get('Architecture.AdminView.J' . $container->get('Config')->joomla_version . '.ViewScript');
 	}
 
 	/**
@@ -2022,6 +2273,11 @@ class ArchitectureView implements ServiceProviderInterface
 			return $container->get('Architecture.AdminViews.J3.ViewBody');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.AdminViews.J6.ViewBody');
+		}
+
 		return $container->get('Architecture.AdminViews.Shared.ViewBody');
 	}
 
@@ -2036,6 +2292,24 @@ class ArchitectureView implements ServiceProviderInterface
 	public function getSharedAdminViewsViewBody(Container $container): SharedAdminViewsViewBody
 	{
 		return new SharedAdminViewsViewBody(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Admin.Filter.Type'),
+			$container->get('Templatelayout.Data'),
+			$container->get('Event')
+		);
+	}
+
+	/**
+	 * Get the Joomla 6 native list view body renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6AdminViewsViewBody
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewsViewBody(Container $container): J6AdminViewsViewBody
+	{
+		return new J6AdminViewsViewBody(
 			$container->get('Config'),
 			$container->get('Compiler.Builder.Admin.Filter.Type'),
 			$container->get('Templatelayout.Data'),
@@ -2336,7 +2610,54 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getAdminViewsListView(Container $container): AdminViewsListView
 	{
-		return new AdminViewsListView(
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		$target = (int) $this->targetVersion === 6 ? 'J6' : 'Shared';
+
+		return $container->get('Architecture.AdminViews.' . $target . '.ListView');
+	}
+
+	/**
+	 * Get the shared renderer used for Joomla 3 through Joomla 5.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  AdminViewsListView
+	 * @since   6.2.0
+	 */
+	public function getSharedAdminViewsListView(Container $container): AdminViewsListView
+	{
+		return $this->createAdminViewsListView($container, AdminViewsListView::class);
+	}
+
+	/**
+	 * Get the Joomla 6 native renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6AdminViewsListView
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewsListView(Container $container): J6AdminViewsListView
+	{
+		return $this->createAdminViewsListView($container, J6AdminViewsListView::class);
+	}
+
+	/**
+	 * Construct the selected renderer with its shared dependencies.
+	 *
+	 * @param   Container  $container  The DI container.
+	 * @param   string     $class      The selected renderer class.
+	 *
+	 * @return  AdminViewsListView
+	 * @since   6.2.0
+	 */
+	private function createAdminViewsListView(Container $container, string $class): AdminViewsListView
+	{
+		return new $class(
 			$container->get('Config'),
 			$container->get('Event'),
 			$container->get('Header'),
@@ -2817,6 +3138,11 @@ class ArchitectureView implements ServiceProviderInterface
 			return $container->get('Architecture.CustomView.J4.DisplayMethod');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.CustomView.J6.DisplayMethod');
+		}
+
 		return $container->get('Architecture.CustomView.Shared.DisplayMethod');
 	}
 
@@ -2831,6 +3157,22 @@ class ArchitectureView implements ServiceProviderInterface
 	public function getSharedCustomViewDisplayMethod(Container $container): SharedCustomViewDisplayMethod
 	{
 		return new SharedCustomViewDisplayMethod(
+			$container->get('Config'),
+			$container->get('Placeholder')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 CustomView DisplayMethod renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6CustomViewDisplayMethod
+	 * @since   6.2.0
+	 */
+	public function getJ6CustomViewDisplayMethod(Container $container): J6CustomViewDisplayMethod
+	{
+		return new J6CustomViewDisplayMethod(
 			$container->get('Config'),
 			$container->get('Placeholder')
 		);
@@ -3273,10 +3615,7 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getViewGoogleChartLoader(Container $container): ViewGoogleChartLoader
 	{
-		return new ViewGoogleChartLoader(
-			$container->get('Config'),
-			$container->get('Compiler.Builder.Google.Chart')
-		);
+		return $container->get('Architecture.View.J' . $container->get('Config')->joomla_version . '.GoogleChartLoader');
 	}
 
 	/**
@@ -3306,18 +3645,7 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getViewLibrariesLoader(Container $container): ViewLibrariesLoaderInterface
 	{
-		if (empty($this->targetVersion))
-		{
-			$this->targetVersion = $container->get('Config')->joomla_version;
-		}
-
-		// only Joomla 3 has to require the header checker before it can be used
-		if ((int) $this->targetVersion === 3)
-		{
-			return $container->get('Architecture.View.J3.LibrariesLoader');
-		}
-
-		return $container->get('Architecture.View.Shared.LibrariesLoader');
+		return $container->get('Architecture.View.J' . $container->get('Config')->joomla_version . '.LibrariesLoader');
 	}
 
 	/**
@@ -3368,7 +3696,54 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getViewJavaScriptFile(Container $container): ViewJavaScriptFile
 	{
-		return new ViewJavaScriptFile(
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		$target = (int) $this->targetVersion === 6 ? 'J6' : 'Shared';
+
+		return $container->get('Architecture.View.' . $target . '.JavaScriptFile');
+	}
+
+	/**
+	 * Get the shared renderer used for Joomla 3 through Joomla 5.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  ViewJavaScriptFile
+	 * @since   6.2.0
+	 */
+	public function getSharedViewJavaScriptFile(Container $container): ViewJavaScriptFile
+	{
+		return $this->createViewJavaScriptFile($container, ViewJavaScriptFile::class);
+	}
+
+	/**
+	 * Get the Joomla 6 native renderer.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ViewJavaScriptFile
+	 * @since   6.2.0
+	 */
+	public function getJ6ViewJavaScriptFile(Container $container): J6ViewJavaScriptFile
+	{
+		return $this->createViewJavaScriptFile($container, J6ViewJavaScriptFile::class);
+	}
+
+	/**
+	 * Construct the selected renderer with its shared dependencies.
+	 *
+	 * @param   Container  $container  The DI container.
+	 * @param   string     $class      The selected renderer class.
+	 *
+	 * @return  ViewJavaScriptFile
+	 * @since   6.2.0
+	 */
+	private function createViewJavaScriptFile(Container $container, string $class): ViewJavaScriptFile
+	{
+		return new $class(
 			$container->get('Config'),
 			$container->get('Placeholder'),
 			$container->get('Compiler.Builder.Content.Multi'),
@@ -3702,7 +4077,7 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getViewJquery(Container $container): ViewJquery
 	{
-		return new ViewJquery();
+		return $container->get('Architecture.View.J' . $container->get('Config')->joomla_version . '.Jquery');
 	}
 
 	/**
@@ -3844,6 +4219,348 @@ class ArchitectureView implements ServiceProviderInterface
 	{
 		return new FieldSetAccessControl(
 			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Build the Joomla 4 FootableScripts renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J4AdminViewFootableScripts
+	 * @since   6.2.0
+	 */
+	public function getJ4AdminViewFootableScripts(Container $container): J4AdminViewFootableScripts
+	{
+		return new J4AdminViewFootableScripts(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Build the Joomla 5 FootableScripts renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J5AdminViewFootableScripts
+	 * @since   6.2.0
+	 */
+	public function getJ5AdminViewFootableScripts(Container $container): J5AdminViewFootableScripts
+	{
+		return new J5AdminViewFootableScripts(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 FootableScripts renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J6AdminViewFootableScripts
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewFootableScripts(Container $container): J6AdminViewFootableScripts
+	{
+		return new J6AdminViewFootableScripts(
+			$container->get('Config')
+		);
+	}
+
+	/**
+	 * Build the Joomla 3 ViewScript renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J3AdminViewScript
+	 * @since   6.2.0
+	 */
+	public function getJ3AdminViewScript(Container $container): J3AdminViewScript
+	{
+		return new J3AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
+		);
+	}
+
+	/**
+	 * Build the Joomla 4 ViewScript renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J4AdminViewScript
+	 * @since   6.2.0
+	 */
+	public function getJ4AdminViewScript(Container $container): J4AdminViewScript
+	{
+		return new J4AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
+		);
+	}
+
+	/**
+	 * Build the Joomla 5 ViewScript renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J5AdminViewScript
+	 * @since   6.2.0
+	 */
+	public function getJ5AdminViewScript(Container $container): J5AdminViewScript
+	{
+		return new J5AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 ViewScript renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J6AdminViewScript
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewScript(Container $container): J6AdminViewScript
+	{
+		return new J6AdminViewScript(
+			$container->get('Config'),
+			$container->get('Placeholder'),
+			$container->get('Customcode.Dispenser'),
+			$container->get('Utilities.Structure'),
+			$container->get('Library.IncludeHelper'),
+			$container->get('Model.Createdate'),
+			$container->get('Model.Modifieddate'),
+			$container->get('Compiler.Builder.Content.Multi'),
+			$container->get('Compiler.Builder.Script.Media.Switch'),
+			$container->get('Compiler.Builder.Script.User.Switch'),
+			$container->get('Compiler.Builder.Validation.Fix'),
+			$container->get('Compiler.Builder.View.Script'),
+			$container->get('Architecture.Field.ValueScript'),
+			$container->get('Architecture.Field.OptionsScript'),
+			$container->get('Architecture.Field.IfValueScript'),
+			$container->get('Architecture.Field.TargetControlsScript'),
+			$container->get('Architecture.Field.TargetRelationScript')
+		);
+	}
+
+	/**
+	 * Build the Joomla 3 Jquery renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J3ViewJquery
+	 * @since   6.2.0
+	 */
+	public function getJ3ViewJquery(Container $container): J3ViewJquery
+	{
+		return new J3ViewJquery();
+	}
+
+	/**
+	 * Build the Joomla 4 Jquery renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J4ViewJquery
+	 * @since   6.2.0
+	 */
+	public function getJ4ViewJquery(Container $container): J4ViewJquery
+	{
+		return new J4ViewJquery();
+	}
+
+	/**
+	 * Build the Joomla 5 Jquery renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J5ViewJquery
+	 * @since   6.2.0
+	 */
+	public function getJ5ViewJquery(Container $container): J5ViewJquery
+	{
+		return new J5ViewJquery();
+	}
+
+	/**
+	 * Build the Joomla 6 Jquery renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J6ViewJquery
+	 * @since   6.2.0
+	 */
+	public function getJ6ViewJquery(Container $container): J6ViewJquery
+	{
+		return new J6ViewJquery();
+	}
+
+	/**
+	 * Build the Joomla 3 GoogleChartLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J3ViewGoogleChartLoader
+	 * @since   6.2.0
+	 */
+	public function getJ3ViewGoogleChartLoader(Container $container): J3ViewGoogleChartLoader
+	{
+		return new J3ViewGoogleChartLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Google.Chart')
+		);
+	}
+
+	/**
+	 * Build the Joomla 4 GoogleChartLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J4ViewGoogleChartLoader
+	 * @since   6.2.0
+	 */
+	public function getJ4ViewGoogleChartLoader(Container $container): J4ViewGoogleChartLoader
+	{
+		return new J4ViewGoogleChartLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Google.Chart')
+		);
+	}
+
+	/**
+	 * Build the Joomla 5 GoogleChartLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J5ViewGoogleChartLoader
+	 * @since   6.2.0
+	 */
+	public function getJ5ViewGoogleChartLoader(Container $container): J5ViewGoogleChartLoader
+	{
+		return new J5ViewGoogleChartLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Google.Chart')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 GoogleChartLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J6ViewGoogleChartLoader
+	 * @since   6.2.0
+	 */
+	public function getJ6ViewGoogleChartLoader(Container $container): J6ViewGoogleChartLoader
+	{
+		return new J6ViewGoogleChartLoader(
+			$container->get('Config'),
+			$container->get('Compiler.Builder.Google.Chart')
+		);
+	}
+
+	/**
+	 * Build the Joomla 4 LibrariesLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J4ViewLibrariesLoader
+	 * @since   6.2.0
+	 */
+	public function getJ4ViewLibrariesLoader(Container $container): J4ViewLibrariesLoader
+	{
+		return new J4ViewLibrariesLoader(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Library.Manager'),
+			$container->get('Library.Document')
+		);
+	}
+
+	/**
+	 * Build the Joomla 5 LibrariesLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J5ViewLibrariesLoader
+	 * @since   6.2.0
+	 */
+	public function getJ5ViewLibrariesLoader(Container $container): J5ViewLibrariesLoader
+	{
+		return new J5ViewLibrariesLoader(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Library.Manager'),
+			$container->get('Library.Document')
+		);
+	}
+
+	/**
+	 * Build the Joomla 6 LibrariesLoader renderer.
+	 *
+	 * @param   Container  $container  The compiler services.
+	 *
+	 * @return  J6ViewLibrariesLoader
+	 * @since   6.2.0
+	 */
+	public function getJ6ViewLibrariesLoader(Container $container): J6ViewLibrariesLoader
+	{
+		return new J6ViewLibrariesLoader(
+			$container->get('Config'),
+			$container->get('Registry'),
+			$container->get('Placeholder'),
+			$container->get('Compiler.Builder.Library.Manager'),
+			$container->get('Library.Document')
 		);
 	}
 }

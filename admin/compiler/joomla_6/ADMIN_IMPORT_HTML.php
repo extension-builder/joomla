@@ -50,6 +50,7 @@ class HtmlView extends BaseHtmlView
 		$paths = new \StdClass;
 		$paths->first = '';
 		$model = $this->getModel();
+		$model->setUseExceptions(true);
 		$state = $model->getState();
 
 		$this->paths = &$paths;
@@ -76,11 +77,6 @@ class HtmlView extends BaseHtmlView
 			$session->remove('dataType');
 		}
 
-		// Check for errors.
-		if (count($errors = $model->getErrors()))
-		{
-			throw new \Exception(implode("\n", $errors), 500);
-		}
 
 		// Display the template
 		parent::display($tpl);

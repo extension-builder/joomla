@@ -39,6 +39,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\Aja
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Controller\CustomAdminDynamicButtonInterface as ControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\CustomAdminDynamicButton as SharedControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Controller\CustomAdminDynamicButton as J3ControllerCustomAdminDynamicButton;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Controller\CustomAdminDynamicButton as J6ControllerCustomAdminDynamicButton;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Controller\AjaxTasks as ControllerAjaxTasks;
 
 
@@ -144,6 +145,9 @@ class ArchitectureController implements ServiceProviderInterface
 
 		$container->alias(J3ControllerCustomAdminDynamicButton::class, 'Architecture.Controller.J3.CustomAdminDynamicButton')
 			->share('Architecture.Controller.J3.CustomAdminDynamicButton', [$this, 'getJ3ControllerCustomAdminDynamicButton'], true);
+
+		$container->alias(J6ControllerCustomAdminDynamicButton::class, 'Architecture.Controller.J6.CustomAdminDynamicButton')
+			->share('Architecture.Controller.J6.CustomAdminDynamicButton', [$this, 'getJ6ControllerCustomAdminDynamicButton'], true);
 	}
 
 	/**
@@ -591,6 +595,11 @@ class ArchitectureController implements ServiceProviderInterface
 			return $container->get('Architecture.Controller.J3.CustomAdminDynamicButton');
 		}
 
+		if ((int) $this->targetVersion === 6)
+		{
+			return $container->get('Architecture.Controller.J6.CustomAdminDynamicButton');
+		}
+
 		return $container->get('Architecture.Controller.Shared.CustomAdminDynamicButton');
 	}
 
@@ -622,6 +631,23 @@ class ArchitectureController implements ServiceProviderInterface
 	public function getJ3ControllerCustomAdminDynamicButton(Container $container): J3ControllerCustomAdminDynamicButton
 	{
 		return new J3ControllerCustomAdminDynamicButton(
+			$container->get('Config'),
+			$container->get('Language'),
+			$container->get('Compiler.Builder.Dynamic.Buttons')
+		);
+	}
+
+	/**
+	 * Get The Joomla 6 Controller CustomAdminDynamicButton Class.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6ControllerCustomAdminDynamicButton
+	 * @since   6.2.0
+	 */
+	public function getJ6ControllerCustomAdminDynamicButton(Container $container): J6ControllerCustomAdminDynamicButton
+	{
+		return new J6ControllerCustomAdminDynamicButton(
 			$container->get('Config'),
 			$container->get('Language'),
 			$container->get('Compiler.Builder.Dynamic.Buttons')

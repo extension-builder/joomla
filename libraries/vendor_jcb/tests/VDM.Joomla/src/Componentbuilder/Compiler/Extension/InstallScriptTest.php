@@ -76,7 +76,12 @@ final class InstallScriptTest extends CompilerDomainTestCase
 		$script = $subject->get($extension);
 
 		$this->assertStringContainsString('class Com_ExampleInstallerScript', $script);
-		$this->assertStringContainsString('public function install($adapter)', $script);
+		$this->assertStringContainsString(
+			$class === JoomlaSixInstallScript::class
+				? 'public function install(InstallerAdapter $adapter): bool'
+				: 'public function install($adapter)',
+			$script
+		);
 		$this->assertStringContainsString('// install-body', $script);
 		$this->assertStringContainsString("isCompatible('{$minimumVersion}')", $script);
 		$this->assertStringContainsString("if ('update' === \$route)", $script);
@@ -223,10 +228,7 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	}
 
 	/**
-	 * Every enabled custom hook retains its entire previous script contract.
-	 *
-	 * Joomla 5 and the previous Joomla 6 generator have identical output with
-	 * debug line suffixes disabled by this fixture.
+	 * Every enabled custom hook retains its body inside the native Joomla 6 contract.
 	 *
 	 * @param   string  $hook  Configured custom hook field.
 	 *
@@ -234,7 +236,7 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('customHookProvider')]
-	public function testCustomHooksRetainLegacyOutput(string $hook): void
+	public function testCustomHooksUseNativeOutputWithoutRewritingBodies(string $hook): void
 	{
 		$extension = (object) [
 			'official_name' => 'Custom Extension',
@@ -246,14 +248,17 @@ final class InstallScriptTest extends CompilerDomainTestCase
 			'remove_folder_paths' => ['/administrator/obsolete'],
 		];
 
-		$this->assertSame(
-			(new JoomlaFiveInstallScript())->get($extension),
-			(new JoomlaSixInstallScript())->get($extension)
-		);
+		$script = (new JoomlaSixInstallScript())->get($extension);
+
+		$this->assertStringContainsString('implements InstallerScriptInterface', $script);
+		$this->assertStringContainsString('return new CustomOutputInstallerScript();', $script);
+		$this->assertStringContainsString($extension->{$hook}, $script);
+		$this->assertStringNotContainsString('LegacyInstallerScript', $script);
+		$this->assertStringNotContainsString('implements InstallerScriptInterface', (new JoomlaFiveInstallScript())->get($extension));
 	}
 
 	/**
-	 * Legacy constructor context, null success and explicit aborts remain executable.
+	 * Native hooks retain adapter context, null success and explicit aborts.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -289,14 +294,14 @@ final class InstallScriptTest extends CompilerDomainTestCase
 			'php_postflight_install' => "\t\treturn null;",
 		]);
 
-		$this->assertNull(eval($script));
+		$installer = eval($script);
+		$this->assertInstanceOf(InstallerScriptInterface::class, $installer);
+		$this->assertNotInstanceOf(LegacyInstallerScript::class, $installer);
 		$this->assertSame([], $messages);
 		$adapter = $this->createStub(InstallerAdapter::class);
-		$class = 'CustomRuntimeInstallerScript';
-		$installer = new LegacyInstallerScript(new $class($adapter));
 
-		$this->assertSame(['constructed'], $messages);
 		$this->assertFalse($installer->install($adapter));
+		$this->assertSame(['constructed'], $messages);
 		$this->assertTrue($installer->update($adapter));
 		$this->assertTrue($installer->uninstall($adapter));
 		$this->assertFalse($installer->preflight('update', $adapter));
@@ -306,12 +311,12 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	}
 
 	/**
-	 * Reusing the generator restores native eligibility and drops earlier hooks.
+	 * Reusing the generator drops all earlier hooks while retaining the native contract.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testJoomlaSixResetsNativeEligibilityBetweenExtensions(): void
+	public function testJoomlaSixResetsCustomHooksBetweenExtensions(): void
 	{
 		$subject = new JoomlaSixInstallScript();
 		$extension = (object) [
@@ -322,7 +327,7 @@ final class InstallScriptTest extends CompilerDomainTestCase
 			'php_script_install' => '// first extension only',
 		];
 
-		$this->assertStringNotContainsString('implements InstallerScriptInterface', $subject->get($extension));
+		$this->assertStringContainsString('// first extension only', $subject->get($extension));
 		unset($extension->add_php_script_install, $extension->php_script_install);
 		$script = $subject->get($extension);
 
@@ -332,7 +337,276 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	}
 
 	/**
-	 * Custom hook families requiring a separately reviewed definition migration.
+	 * A constructor hook initializes before any first lifecycle and only once.
+	 *
+	 * @param   string  $method  First lifecycle called by the installer.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('lifecycleProvider')]
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testCustomInitializationPrecedesEveryLifecycle(string $method): void
+	{
+		define('JVERSION', (new Version())->getShortVersion());
+		$messages = [];
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->exactly(3))->method('enqueueMessage')->willReturnCallback(static function (string $message) use (&$messages): void
+		{
+			$messages[] = $message;
+		});
+		$this->setJoomlaApplication($app);
+		$adapter = $this->createStub(InstallerAdapter::class);
+		$extension = (object) [
+			'official_name' => 'Ordered Native Installer',
+			'class_name' => 'OrderedNative',
+			'installer_class_name' => 'OrderedNativeInstallerScript',
+			'add_php_script_construct' => 1,
+			'php_script_construct' => '$this->app->enqueueMessage("initialize:" . spl_object_id($adapter)); return;',
+			'add_php_script_install' => 1,
+			'php_script_install' => '$this->app->enqueueMessage("install");',
+			'add_php_script_update' => 1,
+			'php_script_update' => '$this->app->enqueueMessage("update");',
+			'add_php_script_uninstall' => 1,
+			'php_script_uninstall' => '$this->app->enqueueMessage("uninstall");',
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => '$app->enqueueMessage("preflight:" . $route);',
+			'add_php_postflight_install' => 1,
+			'php_postflight_install' => '$app->enqueueMessage("postflight:" . $route);',
+		];
+		$installer = eval((new JoomlaSixInstallScript())->get($extension));
+		$arguments = in_array($method, ['preflight', 'postflight'], true) ? ['install', $adapter] : [$adapter];
+
+		$this->assertSame([], $messages);
+		$this->assertTrue($installer->{$method}(...$arguments));
+		$this->assertTrue($installer->{$method}(...$arguments));
+		$event = in_array($method, ['preflight', 'postflight'], true) ? $method . ':install' : $method;
+		$this->assertSame(['initialize:' . spl_object_id($adapter), $event, $event], $messages);
+	}
+
+	/**
+	 * PHP ignored constructor return values; the native initializer must do the same.
+	 *
+	 * @return void
+	 * @since 6.2.0
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testConstructorReturnValueDoesNotBecomeLifecycleFailure(): void
+	{
+		$this->setJoomlaApplication($this->createStub(CMSApplicationInterface::class));
+		$extension = (object) [
+			'official_name' => 'Returning Constructor',
+			'class_name' => 'ReturningConstructor',
+			'installer_class_name' => 'ReturningConstructorInstallerScript',
+			'add_php_script_construct' => 1,
+			'php_script_construct' => 'return false; throw new \\RuntimeException("unreachable");',
+		];
+		$installer = eval((new JoomlaSixInstallScript())->get($extension));
+		$this->assertInstanceOf(InstallerScriptInterface::class, $installer);
+		$this->assertTrue($installer->install($this->createStub(InstallerAdapter::class)));
+	}
+
+	/**
+	 * Lifecycle return coercion preserves the established installer success contract.
+	 *
+	 * @param   string  $body      Configured lifecycle body.
+	 * @param   bool    $expected  Expected interface result.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('returnProvider')]
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testCustomLifecycleResultsRemainExact(string $body, bool $expected): void
+	{
+		define('JVERSION', (new Version())->getShortVersion());
+		$this->setJoomlaApplication($this->createStub(CMSApplicationInterface::class));
+		$extension = (object) [
+			'official_name' => 'Native Results',
+			'class_name' => 'NativeResults',
+			'installer_class_name' => 'NativeResultsInstallerScript',
+		];
+
+		foreach (['php_script_install', 'php_script_update', 'php_script_uninstall', 'php_preflight_install', 'php_postflight_install'] as $hook)
+		{
+			$extension->{'add_' . $hook} = 1;
+			$extension->{$hook} = $body;
+		}
+
+		$installer = eval((new JoomlaSixInstallScript())->get($extension));
+		$adapter = $this->createStub(InstallerAdapter::class);
+
+		$this->assertSame($expected, $installer->install($adapter));
+		$this->assertSame($expected, $installer->update($adapter));
+		$this->assertSame($expected, $installer->uninstall($adapter));
+		$this->assertSame($expected, $installer->preflight('install', $adapter));
+		$this->assertSame($expected, $installer->postflight('install', $adapter));
+	}
+
+	/**
+	 * Initialization exceptions propagate without marking a failed attempt complete.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testFailedInitializationCanRetryAndLifecycleErrorsPropagate(): void
+	{
+		$this->setJoomlaApplication($this->createStub(CMSApplicationInterface::class));
+		$script = (new JoomlaSixInstallScript())->get((object) [
+			'official_name' => 'Native Exceptions',
+			'class_name' => 'NativeExceptions',
+			'installer_class_name' => 'NativeExceptionsInstallerScript',
+			'add_php_script_construct' => 1,
+			'php_script_construct' => 'static $attempts = 0; if (++$attempts === 1) { throw new \\RuntimeException("initialization failed"); }',
+			'add_php_script_install' => 1,
+			'php_script_install' => 'throw new \\RuntimeException("install failed");',
+		]);
+		$installer = eval($script);
+		$adapter = $this->createStub(InstallerAdapter::class);
+
+		try
+		{
+			$installer->update($adapter);
+			$this->fail('Initialization failure must reach the caller.');
+		}
+		catch (\RuntimeException $error)
+		{
+			$this->assertSame('initialization failed', $error->getMessage());
+		}
+
+		$this->assertTrue($installer->update($adapter));
+		$this->expectException(\RuntimeException::class);
+		$this->expectExceptionMessage('install failed');
+		$installer->install($adapter);
+	}
+
+	/**
+	 * Constructor hooks may invoke a lifecycle without recursively initializing.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testConstructorHookCanInvokeAnotherLifecycle(): void
+	{
+		$messages = [];
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->exactly(3))->method('enqueueMessage')
+			->willReturnCallback(static function (string $message) use (&$messages): void
+			{
+				$messages[] = $message;
+			});
+		$this->setJoomlaApplication($app);
+		$script = (new JoomlaSixInstallScript())->get((object) [
+			'official_name' => 'Reentrant Initializer',
+			'class_name' => 'ReentrantInitializer',
+			'installer_class_name' => 'ReentrantInitializerInstallerScript',
+			'add_php_script_construct' => 1,
+			'php_script_construct' => 'static $attempts = 0; if (++$attempts > 1) { throw new \\RuntimeException("recursive initialization"); } $this->app->enqueueMessage("initialize"); $this->update($adapter);',
+			'add_php_script_update' => 1,
+			'php_script_update' => '$this->app->enqueueMessage("update");',
+			'add_php_script_install' => 1,
+			'php_script_install' => '$this->app->enqueueMessage("install");',
+		]);
+		$installer = eval($script);
+
+		$this->assertTrue($installer->install($this->createStub(InstallerAdapter::class)));
+		$this->assertSame(['initialize', 'update', 'install'], $messages);
+	}
+
+	/**
+	 * An early preflight return retains its cleanup boundary and result.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testPreflightAbortsAndEarlySuccessDoNotRunCleanup(): void
+	{
+		define('JVERSION', (new Version())->getShortVersion());
+		$messages = [];
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->exactly(2))->method('enqueueMessage')
+			->willReturnCallback(static function (string $message) use (&$messages): void
+			{
+				$messages[] = $message;
+			});
+		$this->setJoomlaApplication($app);
+		$script = (new JoomlaSixInstallScript())->get((object) [
+			'official_name' => 'Cleanup Contract',
+			'class_name' => 'CleanupContract',
+			'installer_class_name' => 'CleanupContractInstallerScript',
+			'add_php_script_construct' => 1,
+			'php_script_construct' => '$this->app->enqueueMessage("initialize");',
+			'add_php_preflight_update' => 1,
+			'php_preflight_update' => 'return false;',
+			'add_php_preflight_install' => 1,
+			'php_preflight_install' => 'return;',
+		]);
+		eval($script);
+		$installer = new class extends \CleanupContractInstallerScript
+		{
+			/**
+			 * Observe cleanup without changing files in the pinned Joomla source tree.
+			 *
+			 * @return  void
+			 * @since   6.2.0
+			 */
+			protected function removeFiles()
+			{
+				$this->app->enqueueMessage('cleanup');
+			}
+		};
+		$adapter = $this->createStub(InstallerAdapter::class);
+
+		$this->assertFalse($installer->preflight('update', $adapter));
+		$this->assertTrue($installer->preflight('install', $adapter));
+		$this->assertSame(['initialize'], $messages);
+		$this->assertTrue($installer->preflight('uninstall', $adapter));
+		$this->assertSame(['initialize', 'cleanup'], $messages);
+	}
+
+	/**
+	 * Every native lifecycle can be the first entry point.
+	 *
+	 * @return  Generator<string, array{string}>
+	 * @since   6.2.0
+	 */
+	public static function lifecycleProvider(): Generator
+	{
+		foreach (['install', 'update', 'uninstall', 'preflight', 'postflight'] as $method)
+		{
+			yield $method => [$method];
+		}
+	}
+
+	/**
+	 * Values accepted by Joomla's existing installer success contract.
+	 *
+	 * @return  Generator<string, array{string, bool}>
+	 * @since   6.2.0
+	 */
+	public static function returnProvider(): Generator
+	{
+		yield 'fall through' => ['// completed', true];
+		yield 'bare return' => ['return;', true];
+		yield 'null return' => ['return null;', true];
+		yield 'explicit success' => ['return true;', true];
+		yield 'explicit abort' => ['return false;', false];
+		yield 'zero abort' => ['return 0;', false];
+		yield 'empty string abort' => ['return "";', false];
+		yield 'nonempty result' => ['return "completed";', true];
+	}
+
+	/**
+	 * Custom hook families supported by the native Joomla 6 installer.
 	 *
 	 * @return  Generator<string, array{string}>
 	 * @since   6.2.0

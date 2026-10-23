@@ -209,6 +209,13 @@ final class VersionSelectionTest extends TestCase
 	 */
 	public static function collapsedTargetSelectors(): iterable
 	{
+		yield 'model item save error contract' => [ArchitectureModel::class, 'getModelItemSave', [
+			3 => 'Architecture.Model.J3.ItemSave',
+			4 => 'Architecture.Model.Shared.ItemSave',
+			5 => 'Architecture.Model.Shared.ItemSave',
+			6 => 'Architecture.Model.J6.ItemSave',
+		]];
+
 		yield 'ArchitectureModel getModelListQuery fresh query' => [ArchitectureModel::class, 'getModelListQuery', [
 			3 => 'Architecture.Model.J3.ListQuery',
 			4 => 'Architecture.Model.Shared.ListQuery',
@@ -307,7 +314,19 @@ final class VersionSelectionTest extends TestCase
 			3 => 'Architecture.AdminViews.J3.ViewBody',
 			4 => 'Architecture.AdminViews.Shared.ViewBody',
 			5 => 'Architecture.AdminViews.Shared.ViewBody',
-			6 => 'Architecture.AdminViews.Shared.ViewBody',
+			6 => 'Architecture.AdminViews.J6.ViewBody',
+		]];
+		yield 'view javascript file' => [ArchitectureView::class, 'getViewJavaScriptFile', [
+			3 => 'Architecture.View.Shared.JavaScriptFile',
+			4 => 'Architecture.View.Shared.JavaScriptFile',
+			5 => 'Architecture.View.Shared.JavaScriptFile',
+			6 => 'Architecture.View.J6.JavaScriptFile',
+		]];
+		yield 'admin views list assembly' => [ArchitectureView::class, 'getAdminViewsListView', [
+			3 => 'Architecture.AdminViews.Shared.ListView',
+			4 => 'Architecture.AdminViews.Shared.ListView',
+			5 => 'Architecture.AdminViews.Shared.ListView',
+			6 => 'Architecture.AdminViews.J6.ListView',
 		]];
 		yield 'admin views list head' => [ArchitectureView::class, 'getAdminViewsListHead', [
 			3 => 'Architecture.AdminViews.J3.ListHead',
@@ -325,7 +344,7 @@ final class VersionSelectionTest extends TestCase
 			3 => 'Architecture.CustomView.J3.DisplayMethod',
 			4 => 'Architecture.CustomView.J4.DisplayMethod',
 			5 => 'Architecture.CustomView.Shared.DisplayMethod',
-			6 => 'Architecture.CustomView.Shared.DisplayMethod',
+			6 => 'Architecture.CustomView.J6.DisplayMethod',
 		]];
 		yield 'menu custom view' => [ArchitectureView::class, 'getMenuCustomView', [
 			3 => 'Architecture.Menu.J3.CustomView',
@@ -377,6 +396,8 @@ final class VersionSelectionTest extends TestCase
 		yield 'plugin data' => [Joomlaplugin::class, 'getPluginData', 'Joomlaplugin.J%d.Data'];
 		yield 'plugin structure' => [Joomlaplugin::class, 'getStructure', 'Joomlaplugin.J%d.Structure'];
 		yield 'plugin infusion' => [Joomlaplugin::class, 'getInfusion', 'Joomlaplugin.J%d.Infusion'];
+		yield 'custom buttons' => [ArchitectureView::class, 'getCustomButtons', 'Architecture.J%d.CustomButtons'];
+		yield 'dynamic buttons' => [ArchitectureView::class, 'getDynamicButtons', 'Architecture.J%d.DynamicButtons'];
 		yield 'custom tabs' => [Model::class, 'getCustomtabs', 'Model.J%d.Customtabs'];
 	}
 

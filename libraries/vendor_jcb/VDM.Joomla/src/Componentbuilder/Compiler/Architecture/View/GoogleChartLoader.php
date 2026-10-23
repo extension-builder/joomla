@@ -27,7 +27,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  * 
  * @since  6.1.7
  */
-final class GoogleChartLoader
+class GoogleChartLoader
 {
 	/**
 	 * The Config Class.
@@ -95,4 +95,3 @@ final class GoogleChartLoader
 		return '';
 	}
 }
-

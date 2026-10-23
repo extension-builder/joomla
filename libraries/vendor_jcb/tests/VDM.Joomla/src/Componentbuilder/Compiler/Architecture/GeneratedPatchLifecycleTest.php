@@ -18,6 +18,7 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\Controller\ApiController;
+use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
 use Joomla\CMS\User\User;
@@ -247,6 +248,60 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Native form saves preserve user input and error redirects after model failures.
+	 *
+	 * @param   string  $failure  Persistence boundary to fail.
+	 * @param   array   $events   Expected native events before failure.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('saveFailures')]
+	public function testAdministratorFailuresRetainFormData(string $failure, array $events): void
+	{
+		$storage = $this->storage();
+		$original = $storage->row;
+		$storage->failure = $failure;
+		$input = new Input(['id' => 42]);
+		$input->post->set('jform', ['name' => 'Unsaved edit', 'code' => 'unchanged']);
+		$input->server->set('REQUEST_METHOD', 'POST');
+		$user = $this->createStub(User::class);
+		$user->id = 7;
+		$user->method('authorise')->willReturn(true);
+		$app = $this->createMock(CMSApplication::class);
+		$app->method('getInput')->willReturn($input);
+		$app->method('getIdentity')->willReturn($user);
+		$app->method('isClient')->willReturn(false);
+		$app->expects($this->once())->method('setUserState')->with(
+			'com_demo.edit.article.data',
+			$this->callback(static fn (array $data): bool => $data['name'] === 'Unsaved edit' && $data['id'] === 42)
+		);
+		$this->setJoomlaApplication($app);
+		$model = $this->model($storage, '', $user);
+		$this->assertFalse($model->shouldUseExceptions());
+		$controller = $this->getMockBuilder(FormController::class)->disableOriginalConstructor()
+			->onlyMethods(['checkToken', 'getModel', 'allowSave', 'checkEditId', 'getRedirectUrlToItem'])->getMock();
+		$controller->method('checkToken')->willReturn(true);
+		$controller->method('getModel')->willReturn($model);
+		$controller->method('allowSave')->willReturn(true);
+		$controller->method('checkEditId')->willReturn(true);
+		$controller->expects($this->once())->method('getRedirectUrlToItem')->with(42, 'id')->willReturn('index.php?edit=42');
+		$controller->setDispatcher(new Dispatcher());
+
+		foreach (['app' => $app, 'input' => $input, 'option' => 'com_demo', 'context' => 'article', 'task' => 'save'] as $name => $value)
+		{
+			(new ReflectionProperty($controller, $name))->setValue($controller, $value);
+		}
+
+		$this->assertFalse($controller->save());
+		$this->assertSame($original, $storage->row);
+		$this->assertSame($events, $storage->events);
+		$this->assertStringContainsString('fixture ' . $failure, (new ReflectionProperty($controller, 'message'))->getValue($controller));
+		$this->assertSame('error', (new ReflectionProperty($controller, 'messageType'))->getValue($controller));
+		$this->assertSame('index.php?edit=42', (new ReflectionProperty($controller, 'redirect'))->getValue($controller));
+	}
+
+	/**
 	 * Native table and plugin failures occur at distinct lifecycle boundaries.
 	 *
 	 * @return  array<string, array{string, array<string>}>
@@ -257,6 +312,7 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		return [
 			'bind exception' => ['bind', ['validate', 'bind']],
 			'table check' => ['check', ['validate', 'bind']],
+			'table check exception' => ['check-exception', ['validate', 'bind']],
 			'plugin veto' => ['veto', ['validate', 'bind', 'before']],
 			'table store' => ['store', ['validate', 'bind', 'before', 'store']],
 		];
@@ -355,6 +411,11 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		});
 		$table->method('check')->willReturnCallback(static function () use ($table, $storage): bool
 		{
+			if ($storage->failure === 'check-exception')
+			{
+				throw new RuntimeException('fixture check-exception');
+			}
+
 			if ($storage->failure === 'check')
 			{
 				$table->setError('fixture check');
@@ -473,9 +534,9 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		$overrides = ['basesixfour' => $base, 'jsonstring' => $json];
 		$getItem = $this->renderer($this->targetClass('JoomlaSix', 'Model\\GetItemMethod', []), $overrides)->get($view);
 		$getForm = $this->renderer($this->targetClass('JoomlaSix', 'Model\\GetForm', ['JoomlaThree']), ['permissionfields' => $permissions])->get('article', 'articles');
-		$save = $this->renderer($this->targetClass('JoomlaSix', 'Model\\ItemSave', ['JoomlaThree']), $overrides)->get($view);
+		$save = $this->renderer($this->targetClass('JoomlaSix', 'Model\\ItemSave', ['JoomlaThree', 'JoomlaSix']), $overrides)->get($view);
 		$checkboxSave = $this->renderer($this->targetClass('JoomlaSix', 'Model\\CheckboxSave', []), ['checkbox' => $checkbox])->get($view);
-		$template = file_get_contents(dirname(__DIR__, 8) . '/admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php');
+		$template = file_get_contents(dirname(__DIR__, 8) . '/admin/compiler/joomla_6/ADMIN_VIEW_MODEL.php');
 		$methods = '';
 
 		foreach (['getItem', 'getForm', 'save', 'prepareTable'] as $method)
@@ -508,6 +569,9 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		$this->assertSame([], $unresolved[0]);
 		$model = eval('return new class($tableFactory, $form, $dispatcher, $storage) extends \\' . GeneratedLifecycleModelFixture::class . ' {' . $methods . '};');
 		$model->setCurrentUser($user);
+		$database = $this->createStub(DatabaseDriver::class);
+		$database->method('getDateFormat')->willReturn('Y-m-d H:i:s');
+		$model->setDatabase($database);
 		$storage->models[] = $model;
 
 		return $model;
@@ -538,7 +602,7 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $api && $client === 'api');
 		$this->setJoomlaFactoryProperty('application', $app);
 		$modelFactory = fn (): GeneratedLifecycleModelFixture => $this->model($storage, $guard, $user);
-		$template = file_get_contents(dirname(__DIR__, 8) . '/admin/compiler/joomla_4/API_VIEW_CONTROLLER.php');
+		$template = file_get_contents(dirname(__DIR__, 8) . '/admin/compiler/joomla_6/API_VIEW_CONTROLLER.php');
 		$template = substr($template, strpos($template, '###BOM###'));
 		$class = 'VDM\\LifecycleContract\\Component\\Demo\\Api\\Controller\\ArticlesController';
 

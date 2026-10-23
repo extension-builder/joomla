@@ -23,7 +23,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
  * 
  * @since 6.1.7
  */
-final class Jquery
+class Jquery
 {
 	/**
 	 * Build the jQuery loading statement of a view.
@@ -47,4 +47,3 @@ final class Jquery
 		return $addJQuery;
 	}
 }
-

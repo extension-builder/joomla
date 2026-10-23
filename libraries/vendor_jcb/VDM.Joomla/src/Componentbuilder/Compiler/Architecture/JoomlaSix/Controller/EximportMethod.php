@@ -33,4 +33,15 @@ final class EximportMethod extends ExtendingEximportMethod
 	{
 		return Indent::_(4) . '$session = $this->app->getSession();';
 	}
+
+	/**
+	 * Put the controller request input in scope for the generated method.
+	 *
+	 * @return  string
+	 * @since   6.2.0
+	 */
+	protected function getInputObject(): string
+	{
+		return Indent::_(3) . '$input = $this->input;';
+	}
 }

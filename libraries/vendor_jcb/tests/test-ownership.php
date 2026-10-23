@@ -20,6 +20,154 @@
  * @since   1.0.0
  */
 return [
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminView/FootableScripts.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/AdminView/ViewScript.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/CustomButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/DynamicButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/View/GoogleChartLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/View/Jquery.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFive/View/LibrariesLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminView/FootableScripts.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/AdminView/ViewScript.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/CustomButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/DynamicButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/View/GoogleChartLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/View/Jquery.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaFour/View/LibrariesLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminView/FootableScripts.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminView/ViewScript.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/ListView.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AdminViews/ViewBody.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Controller/CustomAdminDynamicButton.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeInputImportTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/CustomButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/CustomView/DisplayMethod.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedDisplayMethodRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/DynamicButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/Model/ItemSave.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/GoogleChartLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/JavaScriptFile.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/AssetsTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/Jquery.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/LibrariesLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/AdminView/ViewScript.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/CustomButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/DynamicButtons.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/NativeToolbarRendererTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/View/GoogleChartLoader.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/View/Jquery.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Library/JoomlaFive/IncludeHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Library/JoomlaFour/IncludeHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Library/JoomlaSix/IncludeHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Library/JoomlaThree/IncludeHelper.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
+	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Model/JoomlaSix/Javascriptadminview.php' => [
+		'mode' => 'integration',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Model/JoomlaSix/JavascriptadminviewTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/Commit.php' => [
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Extrusion/Resolver/CommitTest.php',
 		'mode' => 'integration'

@@ -18,9 +18,14 @@ on:
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Api/**'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/**'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/AdminViews/**'
+      # Native target-six renderers, providers, and packaging also determine
+      # the installed demo and its webservices plugin.
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/**/JoomlaSix/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Service/**'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Creator/Builders.php'
       - 'admin/compiler/joomla_4/API_*.php'
       - 'admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php'
+      - 'admin/compiler/joomla_6/**'
       - 'libraries/vendor_jcb/tests/api/**'
       - '.github/api-tests/**'
       - '.github/test-infra/**'
