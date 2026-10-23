@@ -218,10 +218,53 @@ final class SettingsTest extends CompilerDomainTestCase
 	}
 
 	/**
-	 * Invalid template JSON cannot activate settings or trigger the loaded event.
+	 * Optional email helpers package their native DKIM field and media together.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.2.0
+	 */
+	public function testJoomlaSixPackagesDkimFieldAndScriptOnlyWithEmailHelper(): void
+	{
+		foreach ([false, true] as $enabled)
+		{
+			$config = $this->compilerConfig([
+				'compiler_path' => JCB_PROJECT_ROOT . '/admin/compiler',
+				'joomla_version' => 6,
+				'component_code_name' => 'example',
+			]);
+			$component = $this->component();
+			$component->set('name_code', 'example');
+			$component->set('sales_name', 'Example');
+			$component->set('component_version', '1.0.0');
+			$component->set('add_email_helper', $enabled);
+			$subject = new JoomlaSixSettings(
+				$config,
+				new Registry(),
+				$this->createStub(EventInterface::class),
+				new Placeholder($config),
+				$component,
+				new Paths($config, $component),
+				$this->createStub(Dynamicpath::class),
+				$this->createStub(Pathfix::class)
+			);
+			$this->assertTrue($subject->exists());
+			$this->assertSame($enabled, isset($subject->single()->{'ADMIN_DKIM_FIELD.php'}));
+			$this->assertSame($enabled, isset($subject->single()->{'dkim.js'}));
+			if ($enabled)
+			{
+				$this->assertSame('c0mp0n3nt/admin/src/Field', $subject->single()->{'ADMIN_DKIM_FIELD.php'}->path);
+				$this->assertSame('DkimField.php', $subject->single()->{'ADMIN_DKIM_FIELD.php'}->newName);
+				$this->assertSame('c0mp0n3nt/media/js/admin', $subject->single()->{'dkim.js'}->path);
+				$this->assertFileExists(JCB_PROJECT_ROOT . '/admin/compiler/joomla_6/dkim.js');
+			}
+		}
+	}
+
+	/**
+	 * Invalid JSON does not become a partial template manifest.
+	 *
+	 * @return  void
+	 * @since   6.2.0
 	 */
 	public function testInvalidTemplateSettingsRemainUnavailable(): void
 	{

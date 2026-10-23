@@ -39,13 +39,13 @@ entity or parallel JavaScript compiler.
 
 | Area | Joomla 6 implementation |
 | --- | --- |
-| CSS and JavaScript | Component scripts/styles live under `media/com_component/{js,css}/{admin,site}`; module assets live under module media. The view document activates ordered, deduplicated model assets through WAM. Generated field/view code, inline scripts/styles, Footable, Google Charts and import assets use WAM. |
+| CSS and JavaScript | Component scripts/styles live under `media/com_component/{js,css}/{admin,site}`; module assets live under module media. The view document activates ordered, deduplicated model assets through WAM. Generated field/view code, inline scripts/styles, Footable, Google Charts, loading overlays, submit handlers, DKIM configuration and import assets use WAM. |
 | Identity | Models read the current user after MVC injection, refresh derived permission state on identity changes and use supported public user properties. |
 | Tables and database | Tables use their injected database, including date conversion. The generated static connection cache and fallback are removed. Existing record, asset and index operations are retained. |
 | Input and imports | Native controllers use their injected input. Active import controllers use the cache-controller factory; obsolete bootstrap calls are removed. Import templates remain because settings still link them. |
 | Error handling | Read/view/API/helper boundaries use the supported Joomla 6 exception mode. Generated table failures propagate into the native model/controller boundary. Form-save validation failures retain entered data and edit redirects. |
-| Plugin events | Native subscribers and event maps replace legacy listener discovery. Invalid stored handler contracts receive precise compiler migration errors. |
-| Installers | Generated module/plugin scripts implement InstallerScriptInterface directly, including custom hooks, without Joomla's legacy installer adapter. |
+| Plugin events | Native subscribers and event maps replace legacy listener discovery. The three unchanged bundled privacy definitions compile into native event handlers. Invalid custom handler contracts receive precise compiler migration errors. |
+| Installers | Generated module/plugin scripts implement InstallerScriptInterface directly, including custom hooks, without Joomla's legacy installer adapter. Joomla 6 packages require Joomla 6 at installation. |
 | Toolbar | Custom buttons use the document toolbar's fluent button objects with explicit selection requirements. Save-as-copy/new use the supported helper methods. |
 
 The template source remains `admin/compiler/joomla_6`, selected by its own
@@ -59,21 +59,31 @@ compiler service providers. No Joomla 3, 4 or 5 template file is changed.
   of replacing core internals. Read/view/API boundaries follow Joomla 6's own
   exception-mode pattern. This is a Joomla 6 deprecation migration, not a claim
   that Joomla 7 runtime compatibility has already been proved.
-- Stored custom footer JavaScript keeps its source and global scope when
+- Stored custom view and field footer JavaScript keeps its source and global scope when
   registered with WAM. WAM renders it in the document head; immediate DOM access
   must be moved into a DOMContentLoaded handler. The Joomla 6 compiler reports
-  the affected view and footer field. Generated scripts are adapted directly.
+  the affected view or field and its collection target, including module field
+  scripts. Generated scripts are adapted directly.
 - Stored plugin code is not rewritten arbitrarily. Inferred event handlers must
   accept native event objects and write results to the event. Explicit subscriber
   maps and inherited native maps retain their intended contracts; maintainers
   must migrate positional handlers and incompatible constructors themselves.
   Merely adding a subscriber map does not migrate a positional handler.
+- The three bundled privacy handlers are migrated only when both the selected
+  method-store GUID and the complete executable default contract match.
+  Formatting and comments may differ; edited executable bodies retain the
+  migration diagnostic. The stored definitions and earlier-target output are
+  unchanged. The native Joomla PrivacyPlugin parent is retained; its inherited
+  database-property compatibility in Joomla 6.1.2 remains a core boundary.
 - Custom installer constructor code runs once, at the first lifecycle call when
   Joomla provides its adapter. Existing custom hook bodies are preserved:
   no return means success, explicit false remains failure, and exceptions
   propagate. The initialization timing is deliberate and covered by tests.
 - Standalone help HTML responses retain their own HTML asset tags; they are
   separate documents and do not invoke deprecated Joomla document loaders.
+- Arbitrary stored layouts, custom source and third-party libraries remain their
+  authors' responsibility. Moving generated assets into WAM does not rewrite
+  opaque JavaScript or prove every external dependency free of deprecated APIs.
 - No reusable JavaScript authoring UI/entity is included in this round.
 
 ## Validation status

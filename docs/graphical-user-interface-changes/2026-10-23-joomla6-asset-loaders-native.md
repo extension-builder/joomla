@@ -16,6 +16,8 @@
 
 ## Purpose and rationale
 
+The compiler-owned loading overlay now registers its generated script through the Joomla 6 renderer and waits for the DOM before creating its body element; views rendered after window load reveal their container immediately. Stored user layout definitions are left unchanged.
+
 The header checker only inspected legacy document script arrays, so it could not recognize assets registered through WAM. The historical chart helper emitted deprecated Google loader calls and raw script tags. These template sources determine generated helper behavior and cannot be replaced solely through compiler service wiring.
 
 ## Affected paths
@@ -59,9 +61,11 @@ The header checker only inspected legacy document script arrays, so it could not
 
 - **Change type:** Created
 - **Stable location(s):** `Chartbuilder::load`, `Chartbuilder::draw`
-- **What changed:** Preserve the historical constructor/load/draw API, register the official Google Charts loader, submit chart initialization through WAM, and use `google.charts.load`/`setOnLoadCallback` with native resize/tab events.
+- **What changed:** Preserve the historical constructor/load/draw API, register the official Google Charts loader, submit chart initialization through WAM, and use `google.charts.load`/`setOnLoadCallback` with native resize/tab events. Each draw call has a distinct asset name so reusing a chart instance preserves both charts and their data; the public instance counter retains its original meaning.
 - **Why:** Loading the modern external library alone cannot execute historical `google.load` code.
 - **Related paths/symbols:** `Architecture/JoomlaSix/View/GoogleChartLoader`, Joomla 6 component settings.
+
+The Joomla 6 field custom-code collector also warns when enabled, nonempty `javascript_view_footer` or `javascript_views_footer` source moves into the document head through WAM. This covers field-only and module consumers independently of view-level script settings. The source remains unchanged and in global scope; immediate DOM access must use DOM-ready handling. Earlier Joomla targets retain the shared collector without this diagnostic.
 
 ## Impact
 
@@ -78,6 +82,9 @@ The header checker only inspected legacy document script arrays, so it could not
 | Command/check | Environment | Result |
 | --- | --- | --- |
 | PHPUnit filter: JoomlaSixAssetLoadersTest, AdminViewScriptTest, VersionedFootableScriptsRendererTest, VersionedModulePluginRendererTest, InputButtonTest, Library tests, VersionedStructureTest | PHP 8.3.6, Joomla 6.1.2 native runtime | Pass — 143 tests, 731 assertions. |
+| Follow-up PHPUnit filter: JoomlaSixAssetLoadersTest, LayoutAndFadeRendererTest | PHP 8.3.6, Joomla 6.1.2 | Pass — 27 tests, 193 assertions; includes repeated same-instance chart draws and Joomla 6 overlay registration. |
+| Follow-up PHPUnit filter: Field/JoomlaSix/CustomcodeTest, FieldBehaviorTest, JoomlaSixAssetLoadersTest, LayoutAndFadeRendererTest; known-defect group excluded | PHP 8.3.6, Joomla 6.1.2 | Pass — 51 tests, 348 assertions; field-only and module footer diagnostics, unchanged older-target collection, source preservation, chart and overlay regressions. |
+| Generated overlay JavaScript executed with DOM test doubles | Node 24.19.0 | Pass — loading, interactive, and already-complete document states preserve overlay/container visibility. |
 | Generated chart JavaScript executed with DOM and Google Charts test doubles | Node 24.19.0 | Pass — DOM-ready gating, current/corechart loading, data, responsive dimensions, resize/tab/icon redraw. |
 | git diff --check | Working branch | Pass. |
 
@@ -103,9 +110,9 @@ No installed component/browser scenario run yet.
 
 | Repository path | Authoritative source identity/path | Transfer required | Status | Evidence, owner, and next action |
 | --- | --- | --- | --- | --- |
-| `admin/compiler/joomla_6/ADMIN_HEADERCHECK.php` | Joomla 6 compiler template set | Yes | Source identified | Repository compiler template is the maintained source; owner reviews generated runtime contract. |
-| `admin/compiler/joomla_6/SITE_HEADERCHECK.php` | Joomla 6 compiler template set | Yes | Source identified | Repository compiler template is the maintained source; owner reviews generated runtime contract. |
-| `admin/compiler/joomla_6/ADMIN_CHARTBUILDER.php` | Joomla 6 compiler template set, preserving historical chart helper API | Yes | Source identified | Historical API verified against joomengine/Joomla-Component-Builder commit cbbbd54c815ef84e4638c77ab978759c75c28c61 admin/custom/chartbuilder.php; owner reviews new native template mapping. |
+| `admin/compiler/joomla_6/ADMIN_HEADERCHECK.php` | Joomla 6 compiler template set | No | Not applicable — owner confirmed | Repository compiler template is the maintained source; owner reviews generated runtime contract. |
+| `admin/compiler/joomla_6/SITE_HEADERCHECK.php` | Joomla 6 compiler template set | No | Not applicable — owner confirmed | Repository compiler template is the maintained source; owner reviews generated runtime contract. |
+| `admin/compiler/joomla_6/ADMIN_CHARTBUILDER.php` | Joomla 6 compiler template set, preserving historical chart helper API | No | Not applicable — owner confirmed | Historical API verified against joomengine/Joomla-Component-Builder commit cbbbd54c815ef84e4638c77ab978759c75c28c61 admin/custom/chartbuilder.php; owner reviews new native template mapping. |
 
 ## Final consistency check
 
@@ -114,6 +121,6 @@ No installed component/browser scenario run yet.
 - [x] Behavioral and visual impact are explicit.
 - [x] Verification records actual results and identifies skipped checks.
 - [x] Every path has an authoritative-source mapping and reconciliation status.
-- [x] Transfer required remains Yes pending owner reconciliation.
+- [x] The owner confirmed `admin/compiler` as the authoritative template location; no external transfer is required or was performed.
 - [x] GUI coverage omission is explained.
 - [x] The implementation remains within the cited permission.

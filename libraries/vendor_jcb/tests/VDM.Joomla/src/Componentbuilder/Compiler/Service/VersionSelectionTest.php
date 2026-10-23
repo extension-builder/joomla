@@ -209,6 +209,25 @@ final class VersionSelectionTest extends TestCase
 	 */
 	public static function collapsedTargetSelectors(): iterable
 	{
+		yield 'field footer script diagnostics' => [Field::class, 'getCustomcode', [
+			3 => 'Field.Shared.Customcode',
+			4 => 'Field.Shared.Customcode',
+			5 => 'Field.Shared.Customcode',
+			6 => 'Field.J6.Customcode',
+		]];
+		yield 'admin view loading overlay assets' => [ArchitectureView::class, 'getAdminViewFadeInEffect', [
+			3 => 'Architecture.AdminView.Shared.FadeInEffect',
+			4 => 'Architecture.AdminView.Shared.FadeInEffect',
+			5 => 'Architecture.AdminView.Shared.FadeInEffect',
+			6 => 'Architecture.AdminView.J6.FadeInEffect',
+		]];
+		yield 'custom view submit handler assets' => [ArchitectureView::class, 'getCustomViewSubmitButtonScript', [
+			3 => 'Architecture.CustomView.Shared.SubmitButtonScript',
+			4 => 'Architecture.CustomView.Shared.SubmitButtonScript',
+			5 => 'Architecture.CustomView.Shared.SubmitButtonScript',
+			6 => 'Architecture.CustomView.J6.SubmitButtonScript',
+		]];
+
 		yield 'model item save error contract' => [ArchitectureModel::class, 'getModelItemSave', [
 			3 => 'Architecture.Model.J3.ItemSave',
 			4 => 'Architecture.Model.Shared.ItemSave',
@@ -362,6 +381,7 @@ final class VersionSelectionTest extends TestCase
 	 */
 	public static function targetSelectors(): iterable
 	{
+		yield 'configuration email helper fields' => [Creator::class, 'getConfigFieldsetsEmailHelper', 'Compiler.Creator.Config.Fieldsets.J%d.Email.Helper'];
 		yield 'component helper create user' => [ArchitectureComponent::class, 'getCreateUser', 'Architecture.ComHelperClass.J%d.CreateUser'];
 		yield 'controller allow add' => [ArchitectureController::class, 'getAllowAdd', 'Architecture.Controller.J%d.AllowAdd'];
 		yield 'controller allow edit' => [ArchitectureController::class, 'getAllowEdit', 'Architecture.Controller.J%d.AllowEdit'];

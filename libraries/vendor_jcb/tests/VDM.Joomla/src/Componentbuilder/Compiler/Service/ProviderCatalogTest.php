@@ -51,8 +51,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 	{
 		// Joomla 6 native completion adds target identities while retaining every
 		// baseline alias, factory and protection flag. Controller input, model
-		// saves, WAM loaders, library includes and footer diagnostics have focused
-		// behavior contracts in addition to these exact registration fingerprints.
+		// saves, WAM loaders, library includes, privacy events, native DKIM fields
+		// and footer diagnostics have focused behavior contracts in addition to
+		// these exact registration fingerprints.
 		yield 'admin view' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Adminview::class, [
 			'aliases' => 3,
 			'services' => 3,
@@ -89,14 +90,14 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '3342cd94bf9791ae4d55937450396b81c8f359f23a62386f0920d3ba097fac09'
 		]];
 		yield 'architecture plugin' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitecturePlugin::class, [
-			'aliases' => 15,
-			'services' => 15,
-			'hash' => '74ef0d41f9435d40a407239201ab42e9a06a0062048300d55fb3f3254ad007da'
+			'aliases' => 16,
+			'services' => 16,
+			'hash' => '6e2d5a6eebe70d81c8ad277b91c12a92e1b406a823849e4b0936d65332380e0c'
 		]];
 		yield 'architecture view' => [\VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView::class, [
-			'aliases' => 187,
-			'services' => 189,
-			'hash' => 'b5182c7e8dc341628bb7cd67678d0d1b504ffa4e6159b2049c8bd531817af3d9'
+			'aliases' => 189,
+			'services' => 193,
+			'hash' => '4316d027f5f6981245f7fbf4b838ee542f3d8d0436bc5613d7e408d1ca5a3f35'
 		]];
 		yield 'builder A-J' => [\VDM\Joomla\Componentbuilder\Compiler\Service\BuilderAJ::class, [
 			'aliases' => 57,
@@ -119,9 +120,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => '6444e97cdeac752a2e9ab9dadb225e068de684898098c8aa6768c22abb77d697'
 		]];
 		yield 'creator' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Creator::class, [
-			'aliases' => 39,
-			'services' => 42,
-			'hash' => '95309f9f399725ebba1a21064763d976bec231962bbcbb3fa12845ddc6d9d2e7'
+			'aliases' => 43,
+			'services' => 46,
+			'hash' => '8ee05e12e1000f85031b63a9d422d59d93b86f2f2fa88586d7b8975894f7eb7f'
 		]];
 		yield 'custom code' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Customcode::class, [
 			'aliases' => 8,
@@ -144,9 +145,9 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'hash' => 'd3336d2b890090fa098e9f46cc07594e6b001ab0c0e3668bb01e65a4a93bbeca'
 		]];
 		yield 'field' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Field::class, [
-			'aliases' => 27,
-			'services' => 27,
-			'hash' => 'c719835e6b5f162a75dea04e37c5512163d1caa16d351e3721555f0677e2d045'
+			'aliases' => 28,
+			'services' => 29,
+			'hash' => '9a388636249d2c3341edc240a9551f579ae57c2dc91420adb872989f5ec02a98'
 		]];
 		yield 'header' => [\VDM\Joomla\Componentbuilder\Compiler\Service\Header::class, [
 			'aliases' => 5,

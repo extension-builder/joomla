@@ -47,6 +47,13 @@ ratchet.
 
 ### GUI tests (Playwright, real Joomla in docker)
 
+Generated JavaScript behavior checks use Node's built-in test runner and need
+no npm dependencies. The GUI workflow runs them before the installed suite:
+
+```bash
+node --test libraries/vendor_jcb/tests/javascript/*.test.cjs
+```
+
 The suite lives in `libraries/vendor_jcb/tests/gui`; the harness in
 `.github/gui-tests` stands up `octoleo/joomengine:latest` (Joomla with the
 released JCB), installs this working tree over it, and runs the suite:

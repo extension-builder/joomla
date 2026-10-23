@@ -66,6 +66,14 @@ class Chartbuilder
 	private int $chartId;
 
 	/**
+	 * Draw calls made by this instance in the current response.
+	 *
+	 * @var    int
+	 * @since  6.2.0
+	 */
+	private int $drawCount = 0;
+
+	/**
 	 * Select a Google visualization chart type.
 	 *
 	 * @param   string  $chartType     Google visualization class name.
@@ -148,7 +156,7 @@ class Chartbuilder
 	else { initialise(); }
 })();
 JS;
-		$assets->addInlineScript($script, ['name' => 'com_###component###.chart.' . $this->chartId], [], ['google.charts']);
+		$assets->addInlineScript($script, ['name' => 'com_###component###.chart.' . $this->chartId . '.' . ++$this->drawCount], [], ['google.charts']);
 
 		return '';
 	}

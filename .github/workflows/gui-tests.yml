@@ -24,6 +24,7 @@ on:
       # run is a regression the suite exists to catch
       - 'libraries/vendor_jcb/VDM.Joomla/**'
       - 'libraries/vendor_jcb/tests/gui/**'
+      - 'libraries/vendor_jcb/tests/javascript/**'
       - '.github/gui-tests/**'
       - '.github/test-infra/**'
       - '.github/workflows/gui-tests.yml'
@@ -58,6 +59,9 @@ jobs:
 
       - name: Test provenance guards
         run: python3 .github/test-infra/selftest.py
+
+      - name: Test generated JavaScript behavior
+        run: node --test libraries/vendor_jcb/tests/javascript/*.test.cjs
 
       - name: Keep source provenance
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

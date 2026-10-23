@@ -286,6 +286,12 @@ final class Settings implements SettingsInterface
 			unset($version_data->move->static->{'ADMIN_CHARTBUILDER.php'});
 		}
 
+		if (!$this->component->get('add_email_helper'))
+		{
+			unset($version_data->move->static->{'ADMIN_DKIM_FIELD.php'});
+			unset($version_data->move->static->{'dkim.js'});
+		}
+
 		$this->addFolders($version_data);
 		$this->addFiles($version_data);
 

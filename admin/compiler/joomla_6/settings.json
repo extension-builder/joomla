@@ -74,6 +74,19 @@
 	},
 	"move": {
 		"static": {
+			"ADMIN_DKIM_FIELD.php": {
+				"naam": "ADMIN_DKIM_FIELD.php",
+				"path": "c0mp0n3nt/admin/src/Field",
+				"rename": "new",
+				"newName": "DkimField.php",
+				"type": "file"
+			},
+			"dkim.js": {
+				"naam": "dkim.js",
+				"path": "c0mp0n3nt/media/js/admin",
+				"rename": false,
+				"type": "file"
+			},
 			"ADMIN_PROVIDER.php": {
 				"naam": "ADMIN_PROVIDER.php",
 				"path": "c0mp0n3nt/admin/services",

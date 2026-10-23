@@ -66,6 +66,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListItem\LinkLo
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\DisplayMethodInterface as AdminViewsDisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListLink as AdminViewsListLink;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as AdminViewFadeInEffect;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FadeInEffect as J6AdminViewFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\CustomTabs as AdminViewCustomTabs;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\LinkedView\ListHead as LinkedViewListHead;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\LinkedView\ListQueryInterface as LinkedViewListQuery;
@@ -162,6 +163,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\Menu\CustomVie
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo as AdminViewsCanDo;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\SetAccessControl as FieldSetAccessControl;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\SubmitButtonScript as CustomViewSubmitButtonScript;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\SubmitButtonScript as J6CustomViewSubmitButtonScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\ClearValueScript as FieldClearValueScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as ViewJquery;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\AdminViews\EximportButtonsInterface as AdminViewsEximportButtons;
@@ -430,6 +432,11 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(AdminViewFadeInEffect::class, 'Architecture.AdminView.FadeInEffect')
 			->share('Architecture.AdminView.FadeInEffect', [$this, 'getAdminViewFadeInEffect'], true);
+
+		$container->share('Architecture.AdminView.Shared.FadeInEffect', [$this, 'getSharedAdminViewFadeInEffect'], true);
+
+		$container->alias(J6AdminViewFadeInEffect::class, 'Architecture.AdminView.J6.FadeInEffect')
+			->share('Architecture.AdminView.J6.FadeInEffect', [$this, 'getJ6AdminViewFadeInEffect'], true);
 
 		$container->alias(AdminViewCustomTabs::class, 'Architecture.AdminView.CustomTabs')
 			->share('Architecture.AdminView.CustomTabs', [$this, 'getAdminViewCustomTabs'], true);
@@ -767,6 +774,11 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(CustomViewSubmitButtonScript::class, 'Architecture.CustomView.SubmitButtonScript')
 			->share('Architecture.CustomView.SubmitButtonScript', [$this, 'getCustomViewSubmitButtonScript'], true);
+
+		$container->share('Architecture.CustomView.Shared.SubmitButtonScript', [$this, 'getSharedCustomViewSubmitButtonScript'], true);
+
+		$container->alias(J6CustomViewSubmitButtonScript::class, 'Architecture.CustomView.J6.SubmitButtonScript')
+			->share('Architecture.CustomView.J6.SubmitButtonScript', [$this, 'getJ6CustomViewSubmitButtonScript'], true);
 
 		$container->alias(FieldClearValueScript::class, 'Architecture.Field.ClearValueScript')
 			->share('Architecture.Field.ClearValueScript', [$this, 'getFieldClearValueScript'], true);
@@ -1670,9 +1682,27 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getAdminViewFadeInEffect(Container $container): AdminViewFadeInEffect
 	{
-		return new AdminViewFadeInEffect(
-			$container->get('Config')
-		);
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		$target = (int) $this->targetVersion === 6 ? 'J6' : 'Shared';
+
+		return $container->get('Architecture.AdminView.' . $target . '.FadeInEffect');
+	}
+
+	/**
+	 * Get the unchanged loading overlay for Joomla three through five.
+	 *
+	 * @param   Container  $container  Compiler services.
+	 *
+	 * @return  AdminViewFadeInEffect
+	 * @since   6.2.0
+	 */
+	public function getSharedAdminViewFadeInEffect(Container $container): AdminViewFadeInEffect
+	{
+		return new AdminViewFadeInEffect($container->get('Config'));
 	}
 
 	/**
@@ -4051,7 +4081,40 @@ class ArchitectureView implements ServiceProviderInterface
 	 */
 	public function getCustomViewSubmitButtonScript(Container $container): CustomViewSubmitButtonScript
 	{
+		if (empty($this->targetVersion))
+		{
+			$this->targetVersion = $container->get('Config')->joomla_version;
+		}
+
+		$target = (int) $this->targetVersion === 6 ? 'J6' : 'Shared';
+
+		return $container->get('Architecture.CustomView.' . $target . '.SubmitButtonScript');
+	}
+
+	/**
+	 * Get the unchanged custom submit handler for Joomla 3 through Joomla 5.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  CustomViewSubmitButtonScript
+	 * @since   6.2.0
+	 */
+	public function getSharedCustomViewSubmitButtonScript(Container $container): CustomViewSubmitButtonScript
+	{
 		return new CustomViewSubmitButtonScript();
+	}
+
+	/**
+	 * Get the Joomla 6 asset-manager registration for custom submit handlers.
+	 *
+	 * @param   Container  $container  The DI container.
+	 *
+	 * @return  J6CustomViewSubmitButtonScript
+	 * @since   6.2.0
+	 */
+	public function getJ6CustomViewSubmitButtonScript(Container $container): J6CustomViewSubmitButtonScript
+	{
+		return new J6CustomViewSubmitButtonScript($container->get('Config'));
 	}
 
 	/**
@@ -4562,5 +4625,18 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Compiler.Builder.Library.Manager'),
 			$container->get('Library.Document')
 		);
+	}
+
+	/**
+	 * Build the Joomla six loading overlay renderer.
+	 *
+	 * @param   Container  $container  Compiler services.
+	 *
+	 * @return  J6AdminViewFadeInEffect
+	 * @since   6.2.0
+	 */
+	public function getJ6AdminViewFadeInEffect(Container $container): J6AdminViewFadeInEffect
+	{
+		return new J6AdminViewFadeInEffect($container->get('Config'));
 	}
 }
