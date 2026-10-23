@@ -271,6 +271,8 @@ The handler's existing back navigation and task/form submission source is unchan
 
 ## Verification
 
+Integrated source, unit, installed API, browser and compiler comparison evidence is recorded in the [completion report](../audits/joomla6-native-completion.md).
+
 ### Automated checks
 
 | Command/check | Environment | Result |
@@ -284,7 +286,7 @@ The handler's existing back navigation and task/form submission source is unchan
 
 ### Manual scenarios
 
-No installed generated component or browser scenario is claimed as executed by this workstream.
+No manual generated-component browser journey was run. Hosted generated-component installation and API checks are recorded in the completion report.
 
 ### GUI test coverage
 
@@ -292,8 +294,7 @@ No installed generated component or browser scenario is claimed as executed by t
 
 ### Checks not performed
 
-- Browser drag/drop and generated-component install smoke: this workstream has no installed generated extension fixture.
-- Full repository suite: coordinated by the parent integration workstream after all compiler changes land.
+- Browser drag/drop in a generated component. Hosted API checks cover generated package installation, not drag/drop interactions.
 
 ## Risks, limitations, and rollback
 
@@ -338,4 +339,4 @@ No installed generated component or browser scenario is claimed as executed by t
 - [x] Every protected path has a source reconciliation entry.
 - [x] All changes remain within the explicit Joomla 6 scope.
 - [x] New native asset and related tests are recorded after completion.
-- [ ] Repository-wide integration suite results remain the parent workstream’s final gate.
+- [x] Repository-wide validation evidence is linked in the completion report.

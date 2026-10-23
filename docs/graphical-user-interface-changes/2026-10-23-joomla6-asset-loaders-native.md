@@ -77,6 +77,8 @@ The Joomla 6 field custom-code collector also warns when enabled, nonempty `java
 
 ## Verification
 
+Integrated source, unit, installed API, browser and compiler comparison evidence is recorded in the [completion report](../audits/joomla6-native-completion.md).
+
 ### Automated checks
 
 | Command/check | Environment | Result |
@@ -90,7 +92,7 @@ The Joomla 6 field custom-code collector also warns when enabled, nonempty `java
 
 ### Manual scenarios
 
-No installed component/browser scenario run yet.
+No generated Google Charts or Footable browser journey was run. Native asset-graph execution and JavaScript behavior checks are recorded above.
 
 ### GUI test coverage
 

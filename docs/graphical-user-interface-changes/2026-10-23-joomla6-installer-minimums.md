@@ -55,6 +55,8 @@ The Joomla 6 component installer still advertised Joomla 4.3 and read the compil
 
 ## Verification
 
+Integrated source, unit, installed API, browser and compiler comparison evidence is recorded in the [completion report](../audits/joomla6-native-completion.md).
+
 ### Automated checks
 
 | Command/check | Environment | Result |
@@ -72,7 +74,7 @@ None; generated PHP executes in the isolated unit runtime.
 ### Checks not performed
 
 - Installing a generated archive on an actual unsupported Joomla/PHP runtime; hosted installation workflows remain integration coverage on the supported runtime.
-- Hosted golden update is deferred until all semantic output differences are reviewed.
+- Unsupported-runtime archive installation is not part of the hosted supported-runtime API checks.
 
 ## Risks, limitations, and rollback
 

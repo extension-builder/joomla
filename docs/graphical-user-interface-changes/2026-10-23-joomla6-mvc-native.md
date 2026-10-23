@@ -145,25 +145,27 @@ Joomla 6.1.2 core FormView/ListView deliberately call `setUseExceptions(true)` b
 
 ## Verification
 
+Integrated source, unit, installed API, browser and compiler comparison evidence is recorded in the [completion report](../audits/joomla6-native-completion.md).
+
 ### Automated checks
 
 | Command/check | Environment | Result |
 | --- | --- | --- |
 | `phpunit .../Component/JoomlaSix/MvcTemplatesTest.php` | PHP 8.3.6, pinned Joomla 6.1.2 | Pass — 12 tests, 191 assertions |
-| `PhpStyleChecker::inspectFile` on new MVC test and two native renderer declarations | Repository test harness | Pass — no findings; parent runs complete committed-diff gates |
+| `PhpStyleChecker::inspectFile` on new MVC test and two native renderer declarations | Repository test harness | Pass — no findings; complete committed-diff gates recorded in the completion report |
 | `phpunit` focused MVC templates, renderers, native lifecycle and version selection (six test files) | PHP 8.3.6, pinned Joomla 6.1.2 | Pass — 184 tests, 2004 assertions |
 
 ### Manual scenarios
 
-- Not run: installed Joomla/browser checks require the parent task's integration harness.
+- No manual generated-component browser journey. Hosted Joomla 6 installation and API checks are recorded in the completion report.
 
 ### GUI test coverage
 
-- **Spec files added/updated:** None. These are compiler PHP templates, not installed JCB GUI behavior. Generated MVC runtime tests exercise identity injection, isolated database access and failure paths; parent integration/golden workflows verify emitted extensions.
+- **Spec files added/updated:** None. These are compiler PHP templates, not installed JCB GUI behavior. Generated MVC runtime tests exercise identity injection, isolated database access and failure paths; installed API and compiler comparison workflows verify emitted extensions.
 
 ### Checks not performed
 
-- Complete workflow and golden master execution are coordinated by the parent task.
+- Full JCB self-compilation using the maintainer’s private/full definition package.
 
 ### Native Joomla source contract
 
