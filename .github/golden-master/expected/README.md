@@ -234,3 +234,48 @@ CRLF, without normalization. Applying it to baseline tree
 `15f5dc4e79f930e29b2300a5998e62d7ac1a3bdc` exactly, including every path, byte
 and executable mode. The Joomla 6 installed scale probe still must pass after
 the exact output gate accepts this reviewed change.
+
+## Compiler emission convention repair across targets
+
+Source baseline: `faa95cdeecdbdb4504f27d66870310aec1a3ec0f`.
+Reviewed candidate: `6e00a7259d558c4c5d4e7f9dbf5e58a4705e1e99`, compiled by PR
+merge commit `f2fe689486e9c62f8e3ab86d966ec2b93f022f94`.
+Evidence: [workflow run 40088586123](https://github.com/extension-builder/joomla/actions/runs/40088586123).
+This run correctly rejected changed output before these exact expectations were
+recorded. Native API migration remains Joomla 6 only; the explicitly requested
+compiler-wide convention repair also corrects older-target formatting.
+
+| Target | Artifact | Artifact SHA-256 | Exact candidate tree | Raw patch bytes |
+| --- | --- | --- | --- | --- |
+| 3 | `12558147451` | `d23ed456ca8f79a33e0635694dc8088ef1a88b2aa7919f4aa64ff7feb24b1e51` | `91cdbf4553bdb54aecd350dcb43c09c5bee64d15` | 3,922 |
+| 4 | `12557249262` | `3dd1f03879a5a3d7115813ca62483a69202d22bebc77690066375b99cf4bcf86` | `88fa73d6b95452a56a9b04685a0a371b96a806be` | 4,699 |
+| 5 | `12558216927` | `20367f2958d3d6be6889cdda1362046c3506d28336e61d56b6b8ae8e09927850` | `fbefa1ff4128e3ee8d8e0c6cece8d37da5f090e0` | 4,699 |
+| 6 | `12557549737` | `ecd6be134a22a82fb323507ff3657aa1b7c8c54f37651f82d990a18c337a8804` | `030fd1a4f8590df93c1d69f0c99ebbf792602f95` | 110,264 |
+
+The Joomla 3 diff changes six paths; Joomla 4 and 5 change seven each:
+
+- The loading-overlay conditional is expanded into individually indented lines.
+  Its condition, assignment and load listener remain the same.
+- Power `.htaccess`, `htaccess.txt` and `web.config` indentation uses the configured
+  Indent unit. Apache directives and canonical XML content are unchanged.
+- Joomla 4 and 5 remove stray spaces before two indented authorization-guard
+  statements. Their PHP tokens remain identical.
+- Both README line counts increase by three; other metrics remain unchanged.
+
+Relative to the previous reviewed Joomla 6 candidate tree
+`15f5dc4e79f930e29b2300a5998e62d7ac1a3bdc`, seven paths change. They contain the
+same Power indentation and model-space corrections, plus loading-overlay PHP
+serialization as linewise quoted strings instead of a nowdoc. Its JavaScript
+branches are expanded and correctly nested, retaining WAM name, dependency,
+activation and document-readiness behavior. Both README line counts increase
+from 30,745 to 30,752. The full Joomla 6 baseline diff retains the earlier native
+migration and all sixteen identical asset relocations; there are no additional
+file paths or mode changes from the convention repair.
+
+All four unmodified raw patches apply to their pinned baseline trees and
+reproduce the archived candidate trees exactly. Every generated candidate PHP
+file passes syntax checks (975 / 122 / 127 / 127 respectively, including bundled
+PHP). All 1,723 installed candidate compiler-source hashes verify per target.
+Final Power snapshots remain byte-identical to the baseline. The installed
+0/100/1,000 Power discovery probes remain required after the exact comparison
+passes on the rerun. No normalization, exclusion or workflow bypass is added.

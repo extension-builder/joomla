@@ -55,3 +55,23 @@ Hosted workflow evidence and exact reviewed output expectations are recorded in
 the PR checks and `.github/golden-master/expected/README.md`. No whitespace
 normalization, broad exclusions or new known-defect quarantine is used to pass
 those checks.
+
+## Verified results
+
+The implementation is `6e00a7259d558c4c5d4e7f9dbf5e58a4705e1e99`.
+
+- [PHP 8.3 and 8.4](https://github.com/extension-builder/joomla/actions/runs/40088586100):
+  5,129 tests / 63,591 assertions pass on each runtime. Style passes for 157
+  changed files; all 1,545 production files retain test ownership. Container and
+  moved-condition checks pass; the separate 84-case known-defect audit is unchanged.
+- [Installed API](https://github.com/extension-builder/joomla/actions/runs/40088586090):
+  222 CRUD, permission and partial-PATCH checks pass.
+- [Browser and JavaScript](https://github.com/extension-builder/joomla/actions/runs/40088586116):
+  29 Playwright journeys and five DKIM JavaScript checks pass.
+- The complete measured diffs for all four targets were reviewed and encoded
+  without alteration in the existing golden-master expectation mechanism.
+  They reproduce the archived candidate trees exactly; generated PHP syntax,
+  deployed compiler-source hashes and unchanged Power evidence were verified.
+  The [review record](../../.github/golden-master/expected/README.md#compiler-emission-convention-repair-across-targets)
+  identifies every output difference, artifact and tree. Final workflow results
+  are on [PR #60](https://github.com/extension-builder/joomla/pull/60/checks).
