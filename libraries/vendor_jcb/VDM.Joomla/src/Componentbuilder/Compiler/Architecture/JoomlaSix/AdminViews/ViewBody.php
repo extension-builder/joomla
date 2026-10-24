@@ -32,20 +32,21 @@ final class ViewBody extends SharedViewBody
 	protected function getOrderingScript(): array
 	{
 		$name = 'com_' . $this->config->component_code_name . '.ordering';
-		$script = "Joomla.orderTable = function () {\n"
-			. "\tconst table = document.getElementById('sortTable');\n"
-			. "\tconst direction = document.getElementById('directionTable');\n"
-			. "\tconst order = table.options[table.selectedIndex].value;\n"
-			. "\tconst current = Joomla.getOptions(" . json_encode($name) . ").order;\n"
-			. "\tconst dirn = order !== current ? 'asc' : direction.options[direction.selectedIndex].value;\n"
-			. "\tJoomla.tableOrdering(order, dirn, '');\n};";
+		$script = Indent::_(0) . 'Joomla.orderTable = function () {'
+			. PHP_EOL . Indent::_(1) . "const table = document.getElementById('sortTable');"
+			. PHP_EOL . Indent::_(1) . "const direction = document.getElementById('directionTable');"
+			. PHP_EOL . Indent::_(1) . 'const order = table.options[table.selectedIndex].value;'
+			. PHP_EOL . Indent::_(1) . 'const current = Joomla.getOptions(' . json_encode($name) . ').order;'
+			. PHP_EOL . Indent::_(1) . "const dirn = order !== current ? 'asc' : direction.options[direction.selectedIndex].value;"
+			. PHP_EOL . Indent::_(1) . "Joomla.tableOrdering(order, dirn, '');"
+			. PHP_EOL . Indent::_(0) . '};';
 
 		return [
-			'<?php',
-			'$this->getDocument()->addScriptOptions(' . var_export($name, true) . ", ['order' => \$this->listOrder]);",
-			'$this->getDocument()->getWebAssetManager()->addInlineScript('
+			Indent::_(0) . '<?php',
+			Indent::_(0) . '$this->getDocument()->addScriptOptions(' . var_export($name, true) . ", ['order' => \$this->listOrder]);",
+			Indent::_(0) . '$this->getDocument()->getWebAssetManager()->addInlineScript('
 				. var_export($script, true) . ", ['name' => " . var_export($name, true) . "], [], ['core']);",
-			'?>',
+			Indent::_(0) . '?>',
 		];
 	}
 

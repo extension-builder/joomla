@@ -19,14 +19,24 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionClass;
 use ReflectionProperty;
+use VDM\Joomla\Componentbuilder\Compiler\Customcode;
+use VDM\Joomla\Componentbuilder\Compiler\Customcode\Gui;
 use VDM\Joomla\Componentbuilder\Compiler\Joomlamodule\JoomlaFive\Data as JoomlaFiveData;
 use VDM\Joomla\Componentbuilder\Compiler\Joomlamodule\JoomlaFour\Data as JoomlaFourData;
 use VDM\Joomla\Componentbuilder\Compiler\Joomlamodule\JoomlaSix\Data as JoomlaSixData;
 use VDM\Joomla\Componentbuilder\Compiler\Joomlamodule\JoomlaThree\Data as JoomlaThreeData;
+use VDM\Joomla\Componentbuilder\Compiler\Language;
+use VDM\Joomla\Componentbuilder\Compiler\Model\Filesfolders;
+use VDM\Joomla\Componentbuilder\Compiler\Model\Libraries;
+use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
+use VDM\Joomla\Componentbuilder\Compiler\Templatelayout\Data as Templatelayout;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Package\Builder\Get as Superpower;
 use VDM\Joomla\Utilities\ArrayHelper;
 use VDM\Joomla\Utilities\GuidHelper;
-use VDM\Tests\Support\TestCase;
+use VDM\Tests\Support\CompilerDomainTestCase;
 
 
 /**
@@ -40,7 +50,7 @@ use VDM\Tests\Support\TestCase;
 #[CoversClass(JoomlaSixData::class)]
 #[UsesClass(ArrayHelper::class)]
 #[UsesClass(GuidHelper::class)]
-final class VersionedDataTest extends TestCase
+final class VersionedDataTest extends CompilerDomainTestCase
 {
 	/**
 	 * Resolve the same cached module by ID and GUID without persistence access.
@@ -144,6 +154,119 @@ final class VersionedDataTest extends TestCase
 		$this->assertFalse($subject->set($guid));
 		$this->assertFalse($subject->set($guid));
 		$this->assertSame([$guid => true], $this->property($subject, 'retry'));
+	}
+
+	/**
+	 * Only generated fallback code receives compiler formatting and source markers.
+	 *
+	 * @param   class-string  $class     Versioned data class.
+	 * @param   bool          $debug     Whether source markers are generated.
+	 * @param   bool          $authored  Whether a stored code body is supplied.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('moduleCodeModes')]
+	public function testModuleCodeFormattingPreservesAuthoredBodies(string $class, bool $debug, bool $authored): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $debug ? '    ' : "\t");
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$custom = "// authored comment\n\t\$value = 'first\n  second';\r\n";
+		$module = (object) [
+			'id' => 7,
+			'guid' => '11111111-1111-4111-8111-111111111111',
+			'name' => 'Sample',
+			'target' => 1,
+			'created' => '2026-01-01 00:00:00',
+			'addreadme' => 0,
+			'add_class_helper' => 0,
+			'add_sql' => 0,
+			'add_sql_uninstall' => 0,
+			'add_update_server' => 0,
+			'add_sales_server' => 0,
+			'mod_code' => $authored ? base64_encode($custom) : '',
+		];
+		$config = $this->compilerConfig([
+			'build_target' => 'admin',
+			'lang_target' => 'admin',
+			'lang_prefix' => 'COM_DEMO',
+			'joomla_version' => 6,
+			'project_author' => 'Fixture Author',
+			'project_website' => 'https://example.invalid',
+		]);
+		$customcode = $this->createStub(Customcode::class);
+		$customcode->method('update')->willReturnArgument(0);
+		$gui = $this->createStub(Gui::class);
+		$gui->method('set')->willReturnArgument(0);
+		$layouts = $this->createMock(Templatelayout::class);
+		$layouts->expects($authored ? $this->once() : $this->never())->method('set')->with($custom, 'Sample');
+		$db = $this->database();
+		$db->method('getQuery')->willReturn($this->query());
+		$db->method('getNumRows')->willReturn(1);
+		$db->expects($this->once())->method('loadObject')->willReturn($module);
+		$subject = $this->subject($class);
+
+		foreach ([
+			'config' => $config,
+			'customcode' => $customcode,
+			'gui' => $gui,
+			'placeholder' => new Placeholder($config),
+			'language' => new Language($config),
+			'templatelayout' => $layouts,
+			'filesfolders' => $this->createStub(Filesfolders::class),
+			'libraries' => $this->createStub(Libraries::class),
+			'counter' => (new ReflectionClass(Counter::class))->newInstanceWithoutConstructor(),
+			'db' => $db,
+		] as $property => $value)
+		{
+			$this->setProperty($subject, $property, $value);
+		}
+
+		$this->assertTrue($subject->set(7));
+		$output = $subject->get(7)->mod_code;
+		$this->assertSame('COM_DEMO', $config->lang_prefix);
+
+		if ($authored)
+		{
+			$this->assertSame($custom, $output);
+
+			return;
+		}
+
+		$marker = '/ \\[' . preg_quote($class, '/') . ' [0-9]+\\]/';
+		$this->assertSame($debug ? 2 : 0, preg_match_all($marker, $output));
+		$this->assertSame(implode(PHP_EOL, [
+			'// get the module class sfx',
+			"\$moduleclass_sfx = htmlspecialchars(\$params->get('moduleclass_sfx'), ENT_COMPAT, 'UTF-8');",
+			'// load the default Tmpl',
+			"require JModuleHelper::getLayoutPath('mod_sample', \$params->get('layout', 'default'));",
+		]), preg_replace($marker, '', $output));
+		$this->assertNotEmpty(token_get_all('<?php ' . $output, TOKEN_PARSE));
+	}
+
+	/**
+	 * Cover generated and authored code under each target and comment mode.
+	 *
+	 * @return  array<string, array{class-string, bool, bool}>  Module code fixtures.
+	 * @since   6.1.7
+	 */
+	public static function moduleCodeModes(): array
+	{
+		$cases = [];
+
+		foreach (self::versions() as $target => [$class])
+		{
+			foreach ([false, true] as $debug)
+			{
+				foreach ([false, true] as $authored)
+				{
+					$cases[$target . ($debug ? ' with comments' : '') . ($authored ? ' authored' : ' generated')] = [$class, $debug, $authored];
+				}
+			}
+		}
+
+		return $cases;
 	}
 
 	/**

@@ -15,12 +15,14 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Component;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\SiteStatics;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -137,6 +139,24 @@ final class SiteStaticsTest extends ArchitectureTestCase
 			'public static function globalEvent($document)',
 			$written['###SITE_GLOBAL_EVENT_HELPER###']
 		);
+	}
+
+	/**
+	 * The event helper's docblock follows the same spacing as its method body.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testSiteEventDocblockUsesConfiguredIndentation(): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		$this->set(false, false, 1);
+		$helper = $this->one->get('SITE_GLOBAL_EVENT_HELPER');
+
+		$this->assertStringContainsString(PHP_EOL . '  *  The Global Site Event Method.', $helper);
+		$this->assertStringContainsString(PHP_EOL . '  public static function globalEvent($document)', $helper);
+		$this->assertStringNotContainsString("\t", $helper);
 	}
 
 	/**

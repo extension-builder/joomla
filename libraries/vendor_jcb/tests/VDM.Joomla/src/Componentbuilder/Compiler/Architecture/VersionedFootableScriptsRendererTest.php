@@ -117,7 +117,7 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 
 			$code = $subject->get(true);
 
-			$this->assertStringContainsString('$footable = "jQuery(document)', $code);
+			$this->assertStringContainsString("\$footable = 'jQuery(document)", $code);
 
 			if ($major === 3)
 			{
@@ -135,6 +135,55 @@ final class VersionedFootableScriptsRendererTest extends ArchitectureTestCase
 				$code
 			);
 			$this->assertStringNotContainsString('addScriptDeclaration', $code);
+		}
+	}
+
+	/**
+	 * Serialized legacy scripts retain both ready callbacks and the resize handler.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testLegacyInitializersPreserveBehaviorWithConfiguredIndentation(): void
+	{
+		foreach (["\t", '  ', '    '] as $indent)
+		{
+			(new \ReflectionProperty(\VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent::class, 'indent'))->setValue(null, $indent);
+			(new \ReflectionProperty(\VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent::class, 'bucket'))->setValue(null, []);
+
+			foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive'] as $version)
+			{
+				$subject = $this->renderer($this->footableClass($version));
+
+				foreach ([2, 3] as $release)
+				{
+					$this->config()->set('footable_version', $release);
+					$source = $subject->get(true);
+					$start = strpos($source, '$footable = ');
+					$end = strpos($source, '$this->getDocument()', $start);
+					$script = eval(substr($source, $start, $end - $start) . 'return $footable;');
+					$expected = "jQuery(document).ready(function(){jQuery(function(){jQuery('.footable').footable();});";
+
+					if ($release === 2)
+					{
+						$expected .= "jQuery('.nav-tabs').on('click','li',function(){setTimeout(tableFix,10);});});"
+							. "functiontableFix(){jQuery('.footable').trigger('footable_resize');}";
+					}
+					else
+					{
+						$expected .= '});';
+					}
+
+					$this->assertSame($expected, preg_replace('/\s+/', '', $script));
+					$this->assertStringContainsString(PHP_EOL . $indent . 'jQuery(function () {', $script);
+					$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . "jQuery('.footable').footable();", $script);
+
+					if ($indent !== "\t")
+					{
+						$this->assertStringNotContainsString("\t", $source . $script);
+					}
+				}
+			}
 		}
 	}
 

@@ -19,6 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\TemplateData;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\TemplateInterface;
 
@@ -163,11 +164,26 @@ final class Template implements TemplateInterface
 		$method = ucfirst($type);
 		$dependencies = $type === 'script' ? "['core', 'jquery']" : '[]';
 
-		return PHP_EOL . '<?php $jcbModuleBufferLevel = ob_get_level(); ob_start(); try { ?>'
-			. PHP_EOL . $content . PHP_EOL
-			. '<?php $jcbModuleAsset = ob_get_contents(); } finally { while (ob_get_level() > $jcbModuleBufferLevel) { ob_end_clean(); } }'
-			. PHP_EOL . '$jcbModuleAssets = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();'
-			. PHP_EOL . "\$jcbModuleAssets->addInline{$method}(\$jcbModuleAsset, ['name' => {$name} . hash('sha256', \$jcbModuleAsset)], [], {$dependencies}); ?>";
+		return PHP_EOL . Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(0) . '$jcbModuleBufferLevel = ob_get_level();'
+			. PHP_EOL . Indent::_(0) . 'ob_start();'
+			. PHP_EOL . Indent::_(0) . 'try'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . '?>'
+			. PHP_EOL . $content
+			. PHP_EOL . Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(1) . '$jcbModuleAsset = ob_get_contents();'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . 'finally'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . 'while (ob_get_level() > $jcbModuleBufferLevel)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'ob_end_clean();'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . '$jcbModuleAssets = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();'
+			. PHP_EOL . Indent::_(0) . "\$jcbModuleAssets->addInline{$method}(\$jcbModuleAsset, ['name' => {$name} . hash('sha256', \$jcbModuleAsset)], [], {$dependencies});"
+			. PHP_EOL . Indent::_(0) . '?>';
 	}
 
 	/**

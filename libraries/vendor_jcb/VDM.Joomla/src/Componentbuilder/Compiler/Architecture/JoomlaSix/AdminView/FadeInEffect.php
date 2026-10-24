@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as SharedFadeInEffect;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six loading overlay registration and document readiness.
@@ -33,24 +34,43 @@ final class FadeInEffect extends SharedFadeInEffect
 	{
 		$loader = json_encode($component . '_loader', JSON_THROW_ON_ERROR);
 		$name = var_export('com_' . $component . '.loading-overlay', true);
-		$script = <<<JS
-(function () {
-	const initialise = function () {
-		if (document.readyState === 'complete') {
-			const container = document.getElementById({$loader});
-			if (container) { container.style.display = 'block'; }
-			return;
-		}
-{$script}
-	};
-	if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initialise, {once: true}); }
-	else { initialise(); }
-})();
-JS;
+		$javascript = '(function () {';
+		$javascript .= PHP_EOL . Indent::_(1) . 'const initialise = function () {';
+		$javascript .= PHP_EOL . Indent::_(2) . "if (document.readyState === 'complete') {";
+		$javascript .= PHP_EOL . Indent::_(3) . "const container = document.getElementById({$loader});";
+		$javascript .= PHP_EOL . Indent::_(3) . 'if (container) {';
+		$javascript .= PHP_EOL . Indent::_(4) . "container.style.display = 'block';";
+		$javascript .= PHP_EOL . Indent::_(3) . '}';
+		$javascript .= PHP_EOL . Indent::_(3) . 'return;';
+		$javascript .= PHP_EOL . Indent::_(2) . '}';
 
-		return '<?php' . PHP_EOL
-			. '$this->getDocument()->getWebAssetManager()->addInlineScript(' . PHP_EOL
-			. "<<<'JCB_LOADING_OVERLAY'" . PHP_EOL . $script . PHP_EOL . 'JCB_LOADING_OVERLAY'
-			. PHP_EOL . ", ['name' => {$name}], [], ['core']);" . PHP_EOL . '?>';
+		foreach (explode(PHP_EOL, $script) as $line)
+		{
+			$javascript .= PHP_EOL . Indent::_(1) . $line;
+		}
+
+		$javascript .= PHP_EOL . Indent::_(1) . '};';
+		$javascript .= PHP_EOL . Indent::_(1) . "if (document.readyState === 'loading') {";
+		$javascript .= PHP_EOL . Indent::_(2) . "document.addEventListener('DOMContentLoaded', initialise, {once: true});";
+		$javascript .= PHP_EOL . Indent::_(1) . '} else {';
+		$javascript .= PHP_EOL . Indent::_(2) . 'initialise();';
+		$javascript .= PHP_EOL . Indent::_(1) . '}';
+		$javascript .= PHP_EOL . Indent::_(0) . '})();';
+		$lines = explode(PHP_EOL, $javascript);
+		$code = '<?php';
+		$code .= PHP_EOL . Indent::_(0) . '$jcbLoadingOverlay = ' . var_export(array_shift($lines), true);
+
+		foreach ($lines as $line)
+		{
+			$code .= PHP_EOL . Indent::_(1) . '. PHP_EOL . ' . var_export($line, true);
+		}
+
+		$code .= ';';
+		$code .= PHP_EOL . Indent::_(0) . '$this->getDocument()->getWebAssetManager()->addInlineScript(';
+		$code .= PHP_EOL . Indent::_(1) . "\$jcbLoadingOverlay, ['name' => {$name}], [], ['core']";
+		$code .= PHP_EOL . Indent::_(0) . ');';
+		$code .= PHP_EOL . Indent::_(0) . '?>';
+
+		return $code;
 	}
 }

@@ -413,9 +413,9 @@ final class Structure implements StructureInterface
 
 		$this->file->write(
 			$file_details['path'],
-			'<?php' . PHP_EOL . '// Module services provider class template' .
+			'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' Module services provider class template' .
 			PHP_EOL . Placefix::_h('BOM') . Placefix::_h('PROVIDER_CLASS_HEADER') .
-			PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+			PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 			"defined('_JEXEC') or die('Restricted access');" .
 			PHP_EOL . PHP_EOL . 
 			Placefix::_h('PROVIDER_CLASS')
@@ -448,11 +448,11 @@ final class Structure implements StructureInterface
 
 		$this->file->write(
 			$file_details['path'],
-			'<?php' . PHP_EOL . '// Module Dispatcher class template' .
+			'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' Module Dispatcher class template' .
 			PHP_EOL . Placefix::_h('BOM') . PHP_EOL .
 			"namespace {$this->NamespacePrefix}\\Module\\{$module->namespace}\\{$module->target_client_namespace}\\Dispatcher;" .
 			Placefix::_h('DISPATCHER_CLASS_HEADER') .
-			PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+			PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 			"defined('_JEXEC') or die('Restricted access');" .
 			PHP_EOL . PHP_EOL .
 			Placefix::_h('DISPATCHER_CLASS')
@@ -487,11 +487,11 @@ final class Structure implements StructureInterface
 
 			$this->file->write(
 				$file_details['path'],
-				'<?php' . PHP_EOL . '// Module custom get (data) class template' .
+				'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' Module custom get (data) class template' .
 				PHP_EOL . Placefix::_h('BOM') . PHP_EOL .
 				"namespace {$this->NamespacePrefix}\\Module\\{$module->namespace}\\{$module->target_client_namespace}\\Helper;" .
 				Placefix::_h('DYNAMICGETS_HEADER') .
-				PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+				PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 				"defined('_JEXEC') or die('Restricted access');" .
 				PHP_EOL . PHP_EOL . '/**' . PHP_EOL . ' * Module ' . $module->official_name . ' Data Helper'
 				. PHP_EOL . ' */' . PHP_EOL . "final class " . $module->class_data_name . " implements DatabaseAwareInterface"
@@ -591,11 +591,11 @@ final class Structure implements StructureInterface
 
 			$this->file->write(
 				$file_details['path'],
-				'<?php' . PHP_EOL . '// Module helper class template' .
+				'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' Module helper class template' .
 				PHP_EOL . Placefix::_h('BOM') . PHP_EOL .
 				"namespace {$this->NamespacePrefix}\\Module\\{$module->namespace}\\{$module->target_client_namespace}\\Helper;" .
 				Placefix::_h('HELPER_CLASS_HEADER') .
-				PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+				PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 				"defined('_JEXEC') or die('Restricted access');" .
 				PHP_EOL . Placefix::_h('HELPER_CLASS')
 			);
@@ -652,9 +652,9 @@ final class Structure implements StructureInterface
 
 		$this->file->write(
 			$file_details['path'],
-			'<?php' . PHP_EOL . '// default tmpl' . PHP_EOL . Placefix::_h('BOM') .
+			'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' default tmpl' . PHP_EOL . Placefix::_h('BOM') .
 			Placefix::_h('MODDEFAULT_HEADER') .
-			PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+			PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 			"defined('_JEXEC') or die();" .  Placefix::_h('MODDEFAULT_HEADER_CODE') . PHP_EOL . '?>' .
 			Placefix::_h('MODDEFAULT')
 		);
@@ -688,9 +688,9 @@ final class Structure implements StructureInterface
 
 				$this->file->write(
 					$file_details['path'],
-					'<?php' . PHP_EOL . '// ' . $template . ' tmpl' . PHP_EOL . Placefix::_h('BOM') .
+					'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' ' . $template . ' tmpl' . PHP_EOL . Placefix::_h('BOM') .
 					Placefix::_h(StringHelper::safe("MODDEFAULT_HEADER_{$template}", 'U')) .
-					PHP_EOL . PHP_EOL . '// No direct access to this file' . PHP_EOL .
+					PHP_EOL . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL .
 					"defined('_JEXEC') or die();" .  Placefix::_h(StringHelper::safe("MODDEFAULT_HEADER_CODE_{$template}", 'U')) . PHP_EOL . '?>' .
 					Placefix::_h(StringHelper::safe("MODDEFAULT_{$template}", 'U'))
 				);
@@ -723,9 +723,9 @@ final class Structure implements StructureInterface
 
 			$this->file->write(
 				$file_details['path'],
-				'<?php' . PHP_EOL . '// Script template'
+				'<?php' . PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' Script template'
 				. PHP_EOL . Placefix::_h('BOM') . PHP_EOL
-				. PHP_EOL . '// No direct access to this file' . PHP_EOL
+				. PHP_EOL . Indent::_(0) . '//' . Line::_(__LINE__, __CLASS__) . ' No direct access to this file' . PHP_EOL
 				. "defined('_JEXEC') or die('Restricted access');" . PHP_EOL
 				. Placefix::_h('INSTALLCLASS')
 			);

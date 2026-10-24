@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Model;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemSave as SharedItemSave;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -30,6 +31,6 @@ final class ItemSave extends SharedItemSave
 	 */
 	protected function patchLoadFailure(): string
 	{
-		return "\t\t\t\tthrow new \\RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 404);";
+		return Indent::_(4) . "throw new \\RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 404);";
 	}
 }

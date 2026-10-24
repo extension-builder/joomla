@@ -17,6 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne as Builder;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Plugin\ExtensionInterface;
 
@@ -163,7 +164,7 @@ final class Extension implements ExtensionInterface
 
 		$extension = $plugin->comment . PHP_EOL . 'final class ' . $plugin->class_name
 			. ' extends ' . $plugin->extends
-			. ' implements Joomla___c06c5116_6b9d_487c_9b09_5094ec4506a3___Power'
+			. ' implements Joomla__' . '_c06c5116_6b9d_487c_9b09_5094ec4506a3___Power'
 			. PHP_EOL . '{' . PHP_EOL . $code . PHP_EOL . '}' . PHP_EOL;
 
 		return $this->placeholder->update_($this->placeholder->update($extension, $this->builder->allActive()));
@@ -509,27 +510,27 @@ final class Extension implements ExtensionInterface
 	 */
 	protected function subscriptionMethod(array $events): string
 	{
-		$lines = [
-			'', '', Indent::_(1) . '/**',
-			Indent::_(1) . ' * Native event subscriptions.',
-			Indent::_(1) . ' *', Indent::_(1) . ' * @return array',
-			Indent::_(1) . ' */',
-			Indent::_(1) . 'public static function getSubscribedEvents(): array',
-			Indent::_(1) . '{',
-			Indent::_(2) . '$events = is_subclass_of(parent::class, Joomla___c06c5116_6b9d_487c_9b09_5094ec4506a3___Power::class)',
-			Indent::_(3) . '? parent::getSubscribedEvents() : [];',
-			'',
-		];
+		$script = PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
+		$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+			. ' Native event subscriptions.';
+		$script .= PHP_EOL . Indent::_(1) . ' *';
+		$script .= PHP_EOL . Indent::_(1) . ' * @return array';
+		$script .= PHP_EOL . Indent::_(1) . ' */';
+		$script .= PHP_EOL . Indent::_(1) . 'public static function getSubscribedEvents(): array';
+		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= PHP_EOL . Indent::_(2) . '$events = is_subclass_of(parent::class, Joomla__' . '_c06c5116_6b9d_487c_9b09_5094ec4506a3___Power::class)';
+		$script .= PHP_EOL . Indent::_(3) . '? parent::getSubscribedEvents() : [];';
+		$script .= PHP_EOL;
 
 		foreach ($events as $name => $handler)
 		{
-			$lines[] = Indent::_(2) . '$events[' . var_export($name, true) . '] = ' . var_export($handler, true) . ';';
+			$script .= PHP_EOL . Indent::_(2) . '$events[' . var_export($name, true) . '] = ' . var_export($handler, true) . ';';
 		}
 
-		$lines[] = Indent::_(2) . 'return $events;';
-		$lines[] = Indent::_(1) . '}';
+		$script .= PHP_EOL . Indent::_(2) . 'return $events;';
+		$script .= PHP_EOL . Indent::_(1) . '}';
 
-		return implode(PHP_EOL, $lines);
+		return $script;
 	}
 
 	/**

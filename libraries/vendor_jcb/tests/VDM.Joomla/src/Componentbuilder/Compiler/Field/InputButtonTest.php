@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Field;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionCore;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
@@ -24,6 +25,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaSix\InputButton as JoomlaSi
 use VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaThree\InputButton as JoomlaThreeInputButton;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Field\InputButtonInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Tests\Support\CompilerDomainTestCase;
 
 
@@ -110,6 +113,42 @@ final class InputButtonTest extends CompilerDomainTestCase
 			$this->assertStringContainsString('jQuery(document).ready', $output);
 			$this->assertStringContainsString('<div class="input-append">', $output);
 		}
+	}
+
+	/**
+	 * Generated PHP and inline JavaScript share configurable indentation and comments.
+	 *
+	 * @param   class-string<InputButtonInterface>  $class   Target implementation.
+	 * @param   bool                                $modern  Modern markup switch.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('targetProvider')]
+	public function testGeneratedScriptUsesCompilerFormatting(string $class, bool $modern): void
+	{
+		$subject = $this->subject($class);
+		$field = ['add_button' => 'true', 'view' => 'article', 'views' => 'articles'];
+		$tabs = $subject->get($field);
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '    ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, true);
+		$output = $subject->get($field);
+		$marker = '/ \\[' . preg_quote($class, '/') . ' [0-9]+\\]/';
+
+		$this->assertSame(str_replace("\t", '    ', $tabs), preg_replace($marker, '', $output));
+
+		foreach (['hide the create button', 'show edit button', 'show the create button', 'hide edit button'] as $comment)
+		{
+			$this->assertMatchesRegularExpression('/\\/\\/ \\[' . preg_quote($class, '/') . ' [0-9]+\\] ' . $comment . '/', $output);
+		}
+
+		if ($modern)
+		{
+			$this->assertStringContainsString('Field) {' . PHP_EOL . str_repeat(' ', 28) . 'return;' . PHP_EOL . str_repeat(' ', 24) . '}', $output);
+		}
+
+		$this->assertNotEmpty(token_get_all('<?php class GeneratedField {' . $output . '}', TOKEN_PARSE));
 	}
 
 	/**

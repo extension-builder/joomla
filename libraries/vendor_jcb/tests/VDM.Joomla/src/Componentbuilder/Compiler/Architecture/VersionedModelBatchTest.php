@@ -15,10 +15,12 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Alias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryCode;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -121,6 +123,33 @@ final class VersionedModelBatchTest extends ArchitectureTestCase
 		$this->assertStringContainsString(
 			"\$this->user\t\t= ", $this->batch('BatchMove', 'JoomlaSix')
 		);
+	}
+
+	/**
+	 * Both indentation and assignment alignment follow the configured spacing.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testBatchAlignmentUsesConfiguredIndentation(string $version, int $major): void
+	{
+		$original = [
+			'BatchCopy' => $this->batch('BatchCopy', $version),
+			'BatchMove' => $this->batch('BatchMove', $version),
+		];
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+
+		foreach ($original as $family => $code)
+		{
+			$actual = $this->batch($family, $version);
+			$this->assertSame(str_replace("\t", '  ', $code), $actual);
+			$this->assertStringNotContainsString("\t", $actual);
+		}
 	}
 
 	/**

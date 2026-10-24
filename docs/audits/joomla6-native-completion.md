@@ -5,7 +5,7 @@ Implementation baseline: `faa95cdeecdbdb4504f27d66870310aec1a3ec0f` (merged PR #
 ## Objective
 
 Remove the remaining deprecated APIs and compatibility paths from generated
-Joomla 6 extensions while retaining Joomla 3, 4 and 5 output. Changes belong to
+Joomla 6 extensions while retaining Joomla 3, 4 and 5 runtime behavior. Changes belong to
 the compiler and its conventional `admin/compiler/joomla_6` template set.
 
 ## Implementation scope
@@ -25,6 +25,11 @@ the compiler and its conventional `admin/compiler/joomla_6` template set.
 Joomla Powers and JCB Powers retain their existing resolution/import/alias
 pipeline. Earlier targets retain their compatibility branches. FOF and unrelated
 generated administrator code remain outside this change.
+
+The subsequent [compiler convention repair](compiler-emission-conventions.md)
+also corrects existing emitters across targets, as requested in review. Its
+formatting changes are reviewed explicitly; native API migration remains limited
+to Joomla 6.
 
 ## Future reusable JavaScript definitions
 
@@ -86,7 +91,7 @@ compiler service providers. No Joomla 3, 4 or 5 template file is changed.
   opaque JavaScript or prove every external dependency free of deprecated APIs.
 - No reusable JavaScript authoring UI/entity is included in this round.
 
-## Validation status
+## Native implementation validation before the convention repair
 
 The unchanged baseline passes 4,878 tests / 59,553 assertions on PHP 8.3.
 Focused native tests exercise real Joomla 6.1.2 objects and the actual Joomla/JCB
@@ -108,8 +113,10 @@ The complete implementation is commit
 The final branch runs all required workflows again after the reviewed output
 expectation is committed, including the Joomla 6 installed discovery probe.
 Their current results are published on [PR #60](https://github.com/extension-builder/joomla/pull/60/checks).
-The expectation is limited to the reviewed Joomla 6 blueprint and baseline;
-Joomla 3–5 retain strict equality. No check or known-defect quarantine is relaxed.
+The initial expectation is limited to the reviewed Joomla 6 blueprint and baseline.
+The compiler convention repair is validated again with exact output comparisons,
+including explicit review of any earlier-target formatting differences. No check
+or known-defect quarantine is relaxed.
 
 The public demo and generated-runtime fixtures are regression evidence. They do
 not replace a maintainer's full JCB self-compile using private/full definitions.

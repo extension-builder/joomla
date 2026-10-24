@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesTrait;
+use ReflectionProperty;
 use VDM\Joomla\Abstraction\ActiveRegistry;
 use VDM\Joomla\Abstraction\FunctionRegistry;
 use VDM\Joomla\Abstraction\Registry;
@@ -283,6 +284,45 @@ final class CreatorStateTest extends CreatorTestCase
 		$this->assertStringContainsString("a.admin_view = ", $contentOne->get('HELP'));
 		$this->assertStringContainsString("a.site_view = ", $contentOne->get('HELP_SITE'));
 		$this->assertSame('blabla', $contentMulti->get('help|BLABLA'));
+	}
+
+	/**
+	 * Helper indentation and internal alignment follow the configured unit.
+	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('queryTargets')]
+	public function testHelperFormattingFollowsConfiguredSpaces(int $major, string $queryMethod): void
+	{
+		$helperClass = $major === 6 ? J6Helper::class : Helper::class;
+		$structure = $this->createStub(Structure::class);
+		$structure->method('build')->willReturn(true);
+		$content = new ContentOne();
+		$subject = new $helperClass(
+			$this->config(['joomla_version' => $major, 'component_code_name' => 'demo']),
+			$structure,
+			$content,
+			new ContentMulti()
+		);
+		$this->assertTrue($subject->set('help_document'));
+		$tabs = [$subject->none(), $content->get('HELP'), $content->get('HELP_SITE')];
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '    ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		$this->assertTrue($subject->set('help_document'));
+		$spaces = [$subject->none(), $content->get('HELP'), $content->get('HELP_SITE')];
+
+		foreach ($spaces as $index => $output)
+		{
+			$this->assertSame(str_replace("\t", '    ', $tabs[$index]), $output);
+			$this->assertStringNotContainsString("\t", $output);
+		}
+
+		$this->assertStringContainsString('->' . $queryMethod . ';', $spaces[1]);
+		$this->assertStringContainsString('Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power', $spaces[1]);
 	}
 
 	/**

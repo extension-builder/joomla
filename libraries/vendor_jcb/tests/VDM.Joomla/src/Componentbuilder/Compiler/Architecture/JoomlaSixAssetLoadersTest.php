@@ -21,12 +21,15 @@ use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\GoogleChart;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
 use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Library;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 
 /**
@@ -100,17 +103,22 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	/**
 	 * URI normalization, attributes, ordering and duplicate handling execute in WAM.
 	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testLibraryAssetsResolvePowerImportsAndMaintainOrder(): void
+	#[DataProvider('indentations')]
+	public function testLibraryAssetsResolvePowerImportsAndMaintainOrder(string $indent): void
 	{
+		$this->configureIndentation($indent);
 		$assets = $this->assets();
 		$include = new \VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper();
 		$uris = ['/media/com_demo/js/first.js?rev=2#code', 'https://example.test/second.js?v=1', '/media/com_demo/js/first.js?rev=2#code', '//example.test/third.js'];
 		$code = implode(PHP_EOL, array_map($include->get(...), $uris));
 		$code .= PHP_EOL . $include->get('/media/com_demo/css/first.css?theme=dark');
 		$code .= PHP_EOL . $include->get('https://example.test/second.css');
+		$this->assertStringContainsString(PHP_EOL . $indent . '$jcbAssetManager->registerScript', $code);
 		$run = $this->compileClosure($code);
 		$run();
 		$scripts = $assets->getAssets('script', true);
@@ -139,11 +147,15 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	/**
 	 * Footable initialization waits for jQuery and every selected version's script.
 	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testFootableRuntimeHasOrderedDependenciesAndNoDuplicateRegistration(): void
+	#[DataProvider('indentations')]
+	public function testFootableRuntimeHasOrderedDependenciesAndNoDuplicateRegistration(string $indent): void
 	{
+		$this->configureIndentation($indent);
 		foreach ([2, 3] as $version)
 		{
 			$assets = $this->assets();
@@ -151,13 +163,23 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 			$assets->registerScript('jquery-noconflict', 'jquery-noconflict.js', [], [], ['jquery']);
 			$this->config()->set('footable_version', $version);
 			$renderer = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FootableScripts::class);
-			$run = eval('return function () {' . $renderer->get(true) . '};');
+			$code = $renderer->get(true);
+			$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . '$jcbFootableAssets', $code);
+			$this->assertStringNotContainsString('array (', $code, 'Dependency literals must not introduce fixed indentation.');
+			$run = eval('return function () {' . $code . '};');
 			$view = $this->view($assets);
 			$run->call($view);
 			$scripts = $assets->getAssets('script', true);
 			$last = end($scripts);
 			$this->assertSame('com_demo.footable.init', $last->getName());
 			$this->assertStringContainsString('jQuery(document).ready', $last->getOption('inline') ? $last->getOption('content') : '');
+			$this->assertStringContainsString(PHP_EOL . $indent . "jQuery('.footable').footable();", $last->getOption('content'));
+
+			if ($indent !== "\t")
+			{
+				$this->assertStringNotContainsString("\t", $code);
+				$this->assertStringNotContainsString("\t", $last->getOption('content'));
+			}
 			$this->assertCount($version === 2 ? 7 : 4, $scripts);
 			$this->assertCount(2, $assets->getAssets('style', true));
 			$run->call($view);
@@ -166,19 +188,117 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * The active chart flag selects the official loader and native helper.
+	 * Generated inline PHP and JavaScript both use the configured indentation.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testChartLoaderKeepsConditionalBehavior(): void
+	#[DataProvider('indentations')]
+	public function testInlineAssetEmittersRespectIndentationAndDebugComments(string $indent): void
 	{
+		$this->configureIndentation($indent);
+		$assets = $this->assets();
+		$assets->registerScript('core', 'core.js');
+		$view = $this->view($assets);
+		$definition = ['settings' => (object) ['add_fadein' => 1, 'default' => '<form></form>', 'code' => 'article']];
+		$overlay = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FadeInEffect::class);
+		$submit = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView\SubmitButtonScript::class);
+		$toolbar = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomButtons::class);
+		$debug = new ReflectionProperty(Line::class, 'add');
+		$this->assertStringNotContainsString('Compiler\\Architecture\\AdminView\\FadeInEffect', $overlay->get($definition));
+		$debug->setValue(null, true);
+		$source = $overlay->get($definition) . $submit->get($definition);
+		$this->assertStringNotContainsString('<<<', $source);
+		$this->assertStringContainsString(PHP_EOL . $indent . '. PHP_EOL . ', $source);
+		$run = eval('return function () { ?>' . $source . '<?php };');
+		ob_start();
+
+		try
+		{
+			$run->call($view);
+			$this->assertSame('<div id="demo_loader" style="display: none;">', trim(ob_get_contents()));
+		}
+		finally
+		{
+			ob_end_clean();
+		}
+
+		$buttons = $toolbar->javascript();
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . '$jcbToolbarScript', $buttons);
+		(eval('return function () {' . $buttons . '};'))->call($view);
+		$scripts = $assets->getAssets('script', true);
+		$this->assertCount(4, $scripts);
+		$overlayScript = $scripts['com_demo.loading-overlay']->getOption('content');
+		$this->assertMatchesRegularExpression('/\/\/ \[VDM\\\\Joomla\\\\Componentbuilder\\\\Compiler\\\\Architecture\\\\AdminView\\\\FadeInEffect \d+\] create loading overlay/', $overlayScript);
+		$this->assertStringContainsString(PHP_EOL . $indent . 'const initialise', $overlayScript);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 3) . 'parent.history.back();', $scripts['com_demo.article.submit']->getOption('content'));
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'Joomla.submitform(task);', $scripts['com_demo.toolbar-buttons']->getOption('content'));
+
+		foreach (['com_demo.loading-overlay', 'com_demo.article.submit', 'com_demo.toolbar-buttons'] as $name)
+		{
+			$this->assertSame(['core'], $scripts[$name]->getDependencies());
+
+			if ($indent !== "\t")
+			{
+				$this->assertStringNotContainsString("\t", $scripts[$name]->getOption('content'));
+			}
+		}
+
+		if ($indent !== "\t")
+		{
+			$this->assertStringNotContainsString("\t", $source . $buttons);
+		}
+	}
+
+	/**
+	 * Compiler indentation configurations supported by emitted asset code.
+	 *
+	 * @return  array
+	 * @since   6.2.0
+	 */
+	public static function indentations(): array
+	{
+		return ['tabs' => ["\t"], 'two spaces' => ['  '], 'four spaces' => ['    ']];
+	}
+
+	/**
+	 * Reconfigure the same utility used by compiler-owned generated lines.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	private function configureIndentation(string $indent): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+	}
+
+	/**
+	 * The active chart flag selects the official loader and native helper.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('indentations')]
+	public function testChartLoaderKeepsConditionalBehavior(string $indent): void
+	{
+		$this->configureIndentation($indent);
 		$charts = new GoogleChart();
 		$view = ['settings' => (object) ['code' => 'articles']];
 		$subject = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\GoogleChartLoader::class, ['googlechart' => $charts]);
 		$this->assertSame('', $subject->get($view));
 		$charts->set($this->config()->build_target . '.articles', true);
 		$code = $subject->get($view);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . '$jcbChartAssets = ', $code);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 3) . '$jcbChartAssets->registerScript', $code);
+		$jquery = new \VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\Jquery();
+		$this->assertStringStartsWith(PHP_EOL . str_repeat($indent, 2) . '$this->getDocument()', $jquery->get($view));
 		$this->assertStringContainsString('https://www.gstatic.com/charts/loader.js', $code);
 		$this->assertStringContainsString('/src/Helper/Chartbuilder.php', $code);
 		$this->assertStringNotContainsString('googlecode.com', $code);
@@ -376,11 +496,15 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	/**
 	 * PHP-bearing footer code executes in its view and restores buffer ownership.
 	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testDynamicViewFooterIsCapturedOnceWithoutSelfDependencies(): void
+	#[DataProvider('indentations')]
+	public function testDynamicViewFooterIsCapturedOnceWithoutSelfDependencies(string $indent): void
 	{
+		$this->configureIndentation($indent);
 		$assets = $this->assets();
 		$assets->registerAndUseScript('core', 'core.js');
 		$assets->registerAndUseScript('jquery', 'jquery.js');
@@ -388,6 +512,7 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$class = \VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\ViewScript::class;
 		$renderer = $this->renderer($class);
 		$source = (new ReflectionMethod($class, 'footerScript'))->invoke($renderer, 'window.fixture = <?php echo 7; ?>;', 'article');
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'ob_end_clean();', $source);
 		$run = eval('return function () { ?>' . $source . '<?php };');
 		$view = $this->view($assets);
 		$level = ob_get_level();
@@ -408,6 +533,52 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$this->assertSame('window.fixture = 7;', trim($asset->getOption('content')));
 		$this->assertSame(['core', 'jquery', 'project.script'], $asset->getDependencies());
 		$this->assertCount(4, $assets->getAssets('script', true));
+	}
+
+	/**
+	 * Module asset capture retains authored source and the caller's output buffer.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('indentations')]
+	public function testModuleInlineAssetsPreserveAuthoredSource(string $indent): void
+	{
+		$this->configureIndentation($indent);
+		$assets = $this->assets();
+		$assets->registerScript('core', 'core.js');
+		$assets->registerScript('jquery', 'jquery.js');
+		$class = \VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Module\Template::class;
+		$renderer = $this->renderer($class);
+		$module = (object) ['folder_name' => 'mod_articles'];
+		$payload = "const authored = <?php echo 7; ?>;\n  window.moduleValue = authored;";
+		$source = (new ReflectionMethod($class, 'inlineAsset'))->invoke($renderer, $module, 'script', $payload);
+		$this->assertStringContainsString($payload, $source);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'ob_end_clean();', $source);
+		$resolved = $this->resolve('<?php namespace ' . __NAMESPACE__ . ';' . PHP_EOL . 'use stdClass as Factory;' . PHP_EOL . 'return function () { ?>' . $source . '<?php };');
+		$run = eval(substr($resolved, 5));
+		$level = ob_get_level();
+		ob_start();
+
+		try
+		{
+			$run();
+			$run();
+			$this->assertSame('', trim(ob_get_contents()));
+			$this->assertSame($level + 1, ob_get_level());
+		}
+		finally
+		{
+			ob_end_clean();
+		}
+
+		$scripts = $assets->getAssets('script', true);
+		$this->assertCount(3, $scripts);
+		$asset = end($scripts);
+		$this->assertSame("const authored = 7;\n  window.moduleValue = authored;", trim($asset->getOption('content')));
+		$this->assertSame(['core', 'jquery'], $asset->getDependencies());
 	}
 
 	/**

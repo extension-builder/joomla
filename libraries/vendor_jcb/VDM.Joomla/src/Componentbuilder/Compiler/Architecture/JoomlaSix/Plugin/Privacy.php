@@ -12,6 +12,10 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Plugin;
 
 
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+
+
 /**
  * Render the reviewed bundled privacy definitions as native Joomla 6 events.
  *
@@ -30,7 +34,7 @@ final class Privacy
 	 * @since 6.2.0
 	 */
 	private const METHODS = [
-		'onPrivacyCanRemoveData' => ['ddc9d897-8902-4ac3-bf38-f37e6af1a46a', 'CanRemoveDataEvent', '$status', 'new Joomla___5c599ecf_8f58_44b4_bbaf_a47eb5d302e5___Power()'],
+		'onPrivacyCanRemoveData' => ['ddc9d897-8902-4ac3-bf38-f37e6af1a46a', 'CanRemoveDataEvent', '$status', 'new Joomla__' . '_5c599ecf_8f58_44b4_bbaf_a47eb5d302e5___Power()'],
 		'onPrivacyExportRequest' => ['3692862c-6688-4afe-809e-c6677b318fea', 'ExportRequestEvent', '$domains', 'array()'],
 		'onPrivacyRemoveData' => ['1e9e7ad9-ea31-43a2-a288-ffaa4bec5101', 'RemoveDataEvent', '', ''],
 	];
@@ -73,6 +77,17 @@ final class Privacy
 
 			if ($this->tokens($source) === $this->tokens($this->original($method['name'], $contract)))
 			{
+				$line = strrpos(substr($code, 0, $method['start']), "\n");
+				$line = $line === false ? 0 : $line + 1;
+				$indent = substr($code, $line, $method['start'] - $line);
+
+				// Replace only the reviewed method's indentation with the configured value.
+				if (trim($indent, " \t") === '')
+				{
+					$method['length'] += strlen($indent);
+					$method['start'] = $line;
+				}
+
 				$code = substr_replace($code, $this->native($method['name'], $contract), $method['start'], $method['length']);
 			}
 		}
@@ -195,11 +210,11 @@ final class Privacy
 		$result = $contract[2];
 		$arguments = $result === '' ? '$this, $request, $user' : '$this, ' . $result . ', $request, $user';
 
-		return 'public function ' . $name . '(Joomla___afbb897f_f5b8_465d_9213_dae5ccf3df3d___Power $request, Joomla___effdaf6d_2275_425d_9f52_d4952e564d34___Power $user = null) {'
+		return 'public function ' . $name . '(Joomla__' . '_afbb897f_f5b8_465d_9213_dae5ccf3df3d___Power $request, Joomla__' . '_effdaf6d_2275_425d_9f52_d4952e564d34___Power $user = null) {'
 			. ($result === '' ? '' : $result . ' = ' . $contract[3] . ';')
 			. 'if (!$user) { return ' . $result . '; }'
-			. "if (method_exists(Joomla___aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::class, '" . $name . "')) {"
-			. 'Joomla___aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::' . $name . '(' . $arguments . '); }'
+			. "if (method_exists(Joomla__" . "_aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::class, '" . $name . "')) {"
+			. 'Joomla__' . '_aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::' . $name . '(' . $arguments . '); }'
 			. ($result === '' ? '' : 'return ' . $result . ';') . '}';
 	}
 
@@ -217,40 +232,38 @@ final class Privacy
 		$event = '\\Joomla\\CMS\\Event\\Privacy\\' . $contract[1];
 		$result = $contract[2];
 		$arguments = $result === '' ? '$this, $request, $user' : '$this, ' . $result . ', $request, $user';
-		$lines = [
-			'/**',
-			'\t * Process the privacy request through the component helper.',
-			'\t *',
-			'\t * @param ' . $event . ' $event The native privacy event.',
-			'\t *',
-			'\t * @return void',
-			'\t * @since 6.2.0',
-			'\t */',
-			'\tpublic function ' . $name . '(' . $event . ' $event): void',
-			'\t{',
-			'\t\t$request = $event->getRequest();',
-			'\t\t$user = $event->getUser();',
-		];
+		$script = Indent::_(1) . '/**';
+		$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+			. ' Process the privacy request through the component helper.';
+		$script .= PHP_EOL . Indent::_(1) . ' *';
+		$script .= PHP_EOL . Indent::_(1) . ' * @param ' . $event . ' $event The native privacy event.';
+		$script .= PHP_EOL . Indent::_(1) . ' *';
+		$script .= PHP_EOL . Indent::_(1) . ' * @return void';
+		$script .= PHP_EOL . Indent::_(1) . ' * @since 6.2.0';
+		$script .= PHP_EOL . Indent::_(1) . ' */';
+		$script .= PHP_EOL . Indent::_(1) . 'public function ' . $name . '(' . $event . ' $event): void';
+		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= PHP_EOL . Indent::_(2) . '$request = $event->getRequest();';
+		$script .= PHP_EOL . Indent::_(2) . '$user = $event->getUser();';
 
 		if ($result !== '')
 		{
-			$lines[] = '\t\t' . $result . ' = ' . $contract[3] . ';';
+			$script .= PHP_EOL . Indent::_(2) . $result . ' = ' . $contract[3] . ';';
 		}
 
-		$lines[] = '';
-		$lines[] = "\t\tif (\$user && method_exists(Joomla___aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::class, '" . $name . "'))";
-		$lines[] = '\t\t{';
-		$lines[] = '\t\t\tJoomla___aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::' . $name . '(' . $arguments . ');';
-		$lines[] = '\t\t}';
+		$script .= PHP_EOL . PHP_EOL . Indent::_(2)
+			. "if (\$user && method_exists(Joomla__" . "_aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::class, '" . $name . "'))";
+		$script .= PHP_EOL . Indent::_(2) . '{';
+		$script .= PHP_EOL . Indent::_(3) . 'Joomla__' . '_aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::' . $name . '(' . $arguments . ');';
+		$script .= PHP_EOL . Indent::_(2) . '}';
 
 		if ($result !== '')
 		{
-			$lines[] = '';
-			$lines[] = '\t\t$event->addResult(' . $result . ');';
+			$script .= PHP_EOL . PHP_EOL . Indent::_(2) . '$event->addResult(' . $result . ');';
 		}
 
-		$lines[] = '\t}';
+		$script .= PHP_EOL . Indent::_(1) . '}';
 
-		return str_replace('\\t', "\t", implode(PHP_EOL, $lines));
+		return $script;
 	}
 }

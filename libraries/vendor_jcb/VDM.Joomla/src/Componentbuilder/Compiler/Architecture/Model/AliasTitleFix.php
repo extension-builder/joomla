@@ -189,7 +189,7 @@ class AliasTitleFix
 					. ", \$" . $alias . ") = \$this->_generateNewTitle(\$data['"
 					. $alias . "'], array(" . implode(', ', $titleData) . "));";
 			}
-			$fixUnique[] = implode("\n", $titleUpdate);
+			$fixUnique[] = implode(PHP_EOL, $titleUpdate);
 			$fixUnique[] = Indent::_(4) . "\$data['" . $alias . "'] = \$"
 				. $alias . ";";
 			$fixUnique[] = Indent::_(3) . "}";

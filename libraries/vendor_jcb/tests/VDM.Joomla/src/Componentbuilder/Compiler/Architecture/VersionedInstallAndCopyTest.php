@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GenerateNewTitle;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Alias;
@@ -22,6 +23,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAlias;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Title;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -322,6 +324,32 @@ GEN;
 		$subject = $this->renderer(GenerateNewTitle::class, $this->naming());
 
 		$this->assertSame(self::EXPECTED_NEW_TITLE, $subject->get('demo'));
+	}
+
+	/**
+	 * Both title variants use configured spacing within their generated docblocks.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testTitleDocblocksFollowConfiguredIndentation(): void
+	{
+		$variants = [];
+		foreach ([true, false] as $withAlias)
+		{
+			$subject = $this->renderer(GenerateNewTitle::class, $this->naming(true, $withAlias));
+			$variants[] = [$subject, $subject->get('demo')];
+		}
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+
+		foreach ($variants as [$subject, $original])
+		{
+			$actual = $subject->get('demo');
+			$this->assertSame(str_replace("\t", '  ', $original), $actual);
+			$this->assertStringContainsString(' * @return  array', $actual);
+			$this->assertStringNotContainsString("\t", $actual);
+		}
 	}
 
 	/**

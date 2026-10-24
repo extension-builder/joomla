@@ -22,6 +22,7 @@ use Joomla\Event\SubscriberInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Plugin\Extension;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
@@ -30,6 +31,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 
 
@@ -52,6 +55,53 @@ final class JoomlaSixPluginExtensionTest extends ArchitectureTestCase
 	 * @since 6.2.0
 	 */
 	private static int $fixture = 0;
+
+	/**
+	 * Generated subscription scaffolding follows the compiler's formatting settings.
+	 *
+	 * @param string $indentation The configured indentation unit.
+	 * @param bool   $debug       Whether generated comments include their compiler origin.
+	 *
+	 * @return void
+	 * @since 6.2.0
+	 */
+	#[DataProvider('formattingProvider')]
+	public function testSubscriptionsUseConfiguredIndentationAndCommentOrigins(string $indentation, bool $debug): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indentation);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$body = "\tpublic function onReady(\\Joomla\\Event\\EventInterface \$event): void { \$event->setArgument('ready', true); }";
+		$plugin = $this->definition($body);
+		$code = $this->renderer(Extension::class)->get($plugin);
+		$this->assertStringContainsString($body, $code);
+		$this->assertStringContainsString(PHP_EOL . $indentation . 'public static function getSubscribedEvents(): array', $code);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indentation, 2) . "\$events['onReady'] = 'onReady';", $code);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indentation, 3) . '? parent::getSubscribedEvents() : [];', $code);
+		$comment = $debug ? ' \\[' . preg_quote(Extension::class, '~') . ' [0-9]+\\]' : '';
+		$this->assertMatchesRegularExpression('~^' . preg_quote($indentation, '~') . ' \\*' . $comment . ' Native event subscriptions\\.$~m', $code);
+		$instance = $this->compile($plugin);
+		$this->assertSame(['onReady' => 'onReady'], $instance::getSubscribedEvents());
+		$dispatcher = new Dispatcher();
+		$dispatcher->addSubscriber($instance);
+		$event = new Event('onReady');
+		$dispatcher->dispatch('onReady', $event);
+		$this->assertTrue($event->getArgument('ready'));
+	}
+
+	/**
+	 * Output formatting modes supported by the compiler utilities.
+	 *
+	 * @return iterable
+	 * @since 6.2.0
+	 */
+	public static function formattingProvider(): iterable
+	{
+		yield 'tabs' => ["\t", false];
+		yield 'spaces' => ['    ', false];
+		yield 'tabs with origins' => ["\t", true];
+		yield 'spaces with origins' => ['    ', true];
+	}
 
 	/**
 	 * Native event results, mutation and failure reach the dispatcher unchanged.

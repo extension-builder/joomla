@@ -332,14 +332,16 @@ final class InstallScript implements GetScriptInterface
 			// Native script loading has no installer adapter until the first lifecycle call.
 			$script .= PHP_EOL . Indent::_(1) . '}';
 			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
-			$script .= PHP_EOL . Indent::_(1) . ' * Whether adapter-dependent initialization is running or completed.';
+			$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+				. ' Whether adapter-dependent initialization is running or completed.';
 			$script .= PHP_EOL . Indent::_(1) . ' *';
 			$script .= PHP_EOL . Indent::_(1) . ' * @var    bool';
 			$script .= PHP_EOL . Indent::_(1) . ' * @since  6.2.0';
 			$script .= PHP_EOL . Indent::_(1) . ' */';
 			$script .= PHP_EOL . Indent::_(1) . 'private bool $jcbInstallerInitialized = false;';
 			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
-			$script .= PHP_EOL . Indent::_(1) . ' * Initialize custom installer state once the adapter is available.';
+			$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+				. ' Initialize custom installer state once the adapter is available.';
 			$script .= PHP_EOL . Indent::_(1) . ' *';
 			$script .= PHP_EOL . Indent::_(1) . ' * @param   InstallerAdapter  $adapter  The calling installer adapter.';
 			$script .= PHP_EOL . Indent::_(1) . ' *';
@@ -364,7 +366,8 @@ final class InstallScript implements GetScriptInterface
 			$script .= PHP_EOL . Indent::_(2) . '}';
 			$script .= PHP_EOL . Indent::_(1) . '}';
 			$script .= PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
-			$script .= PHP_EOL . Indent::_(1) . ' * Run the configured constructor body without rewriting its control flow.';
+			$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+				. ' Run the configured constructor body without rewriting its control flow.';
 			$script .= PHP_EOL . Indent::_(1) . ' *';
 			$script .= PHP_EOL . Indent::_(1) . ' * @param   InstallerAdapter  $adapter  The calling installer adapter.';
 			$script .= PHP_EOL . Indent::_(1) . ' *';
@@ -556,7 +559,8 @@ final class InstallScript implements GetScriptInterface
 
 		$arguments = $flight ? '$route, $adapter' : '$adapter';
 		$script .= PHP_EOL . Indent::_(2) . '$result = $this->' . $name . 'Hook(' . $arguments . ');';
-		$script .= PHP_EOL . PHP_EOL . Indent::_(2) . '// A hook with no return value completed successfully; explicit failures remain failures.';
+		$script .= PHP_EOL . PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__)
+			. ' A hook with no return value completed successfully; explicit failures remain failures.';
 		$script .= PHP_EOL . Indent::_(2) . 'return $result === null ? true : (bool) $result;';
 
 		return $script;
@@ -574,7 +578,8 @@ final class InstallScript implements GetScriptInterface
 	protected function hookHeader(string $name, bool $flight): string
 	{
 		$script = PHP_EOL . PHP_EOL . Indent::_(1) . '/**';
-		$script .= PHP_EOL . Indent::_(1) . ' * Run the ' . $name . ' hook and preserve its explicit return value.';
+		$script .= PHP_EOL . Indent::_(1) . ' *' . Line::_(__LINE__, __CLASS__)
+			. ' Run the ' . $name . ' hook and preserve its explicit return value.';
 		$script .= PHP_EOL . Indent::_(1) . ' *';
 
 		if ($flight)

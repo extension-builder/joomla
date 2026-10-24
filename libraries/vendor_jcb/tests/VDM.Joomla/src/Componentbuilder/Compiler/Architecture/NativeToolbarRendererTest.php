@@ -126,6 +126,46 @@ final class NativeToolbarRendererTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Earlier-target handlers retain their task branches after PHP serialization.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testLegacySubmitHandlersUseConfiguredIndentation(): void
+	{
+		$subject = $this->renderer(CustomButtons::class);
+
+		foreach (["\t", '  ', '    '] as $indent)
+		{
+			(new \ReflectionProperty(\VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent::class, 'indent'))->setValue(null, $indent);
+			(new \ReflectionProperty(\VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent::class, 'bucket'))->setValue(null, []);
+
+			foreach ([3, 4, 5] as $version)
+			{
+				$this->config()->set('joomla_version', $version);
+				$source = $subject->javascript();
+				$start = strpos($source, '$jcbToolbarScript = ');
+				$end = strpos($source, '$this->getDocument()', $start);
+				$script = eval(substr($source, $start, $end - $start) . 'return $jcbToolbarScript;');
+				$this->assertSame(
+					"Joomla.submitbutton=function(task){if(task==''){returnfalse;}else{Joomla.submitform(task);returntrue;}};",
+					preg_replace('/\s+/', '', $script)
+				);
+				$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'Joomla.submitform(task);', $script);
+				$this->assertStringContainsString(
+					$version === 3 ? 'addScriptDeclaration($jcbToolbarScript);' : 'getWebAssetManager()->addInlineScript($jcbToolbarScript);',
+					$source
+				);
+
+				if ($indent !== "\t")
+				{
+					$this->assertStringNotContainsString("\t", $source . $script);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Execute generated statements on Joomla's real toolbar objects.
 	 *
 	 * @param   string  $code     Generated statements.

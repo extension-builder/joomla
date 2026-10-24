@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as SharedJquery;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six Jquery renderer.
@@ -30,6 +31,6 @@ final class Jquery extends SharedJquery
 	 */
 	public function get(&$view): string
 	{
-		return PHP_EOL . "\t\t\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
+		return PHP_EOL . Indent::_(2) . "\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
 	}
 }

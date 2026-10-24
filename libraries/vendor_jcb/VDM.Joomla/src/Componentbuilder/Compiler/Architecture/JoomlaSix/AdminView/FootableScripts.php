@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedFootableScripts;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six Footable assets and their explicit dependencies.
@@ -32,11 +33,14 @@ final class FootableScripts extends SharedFootableScripts
 	{
 		$root = 'media/com_' . $this->config->component_code_name . '/footable-v2/';
 		$code = $this->asset('style', $root . 'css/footable.core.min.css');
-		$code .= PHP_EOL . "\t\tif (!isset(\$this->fooTableStyle) || 0 == \$this->fooTableStyle)\n\t\t{";
-		$code .= $this->asset('style', $root . 'css/footable.metro.min.css');
-		$code .= PHP_EOL . "\t\t}\n\t\telseif (1 == \$this->fooTableStyle)\n\t\t{";
-		$code .= $this->asset('style', $root . 'css/footable.standalone.min.css');
-		$code .= PHP_EOL . "\t\t}";
+		$code .= PHP_EOL . Indent::_(2) . 'if (!isset($this->fooTableStyle) || 0 == $this->fooTableStyle)';
+		$code .= PHP_EOL . Indent::_(2) . '{';
+		$code .= $this->asset('style', $root . 'css/footable.metro.min.css', [], 3);
+		$code .= PHP_EOL . Indent::_(2) . '}';
+		$code .= PHP_EOL . Indent::_(2) . 'elseif (1 == $this->fooTableStyle)';
+		$code .= PHP_EOL . Indent::_(2) . '{';
+		$code .= $this->asset('style', $root . 'css/footable.standalone.min.css', [], 3);
+		$code .= PHP_EOL . Indent::_(2) . '}';
 		$dependencies = ['jquery', 'jquery-noconflict'];
 
 		foreach (['footable.js', 'footable.sort.js', 'footable.filter.js', 'footable.paginate.js'] as $file)
@@ -48,11 +52,19 @@ final class FootableScripts extends SharedFootableScripts
 
 		if ($init)
 		{
-			$code .= PHP_EOL . '\t\t$footable = "jQuery(document).ready(function() { jQuery(\'.footable\').footable(); jQuery(\'.nav-tabs\').on(\'click\', \'li\', function() { setTimeout(tableFix, 10); }); }); function tableFix() { jQuery(\'.footable\').trigger(\'footable_resize\'); }";';
-			$code .= $this->inline($dependencies);
+			$script = 'jQuery(document).ready(function() {';
+			$script .= PHP_EOL . Indent::_(1) . "jQuery('.footable').footable();";
+			$script .= PHP_EOL . Indent::_(1) . "jQuery('.nav-tabs').on('click', 'li', function() {";
+			$script .= PHP_EOL . Indent::_(2) . 'setTimeout(tableFix, 10);';
+			$script .= PHP_EOL . Indent::_(1) . '});';
+			$script .= PHP_EOL . Indent::_(0) . '});';
+			$script .= PHP_EOL . Indent::_(0) . 'function tableFix() {';
+			$script .= PHP_EOL . Indent::_(1) . "jQuery('.footable').trigger('footable_resize');";
+			$script .= PHP_EOL . Indent::_(0) . '}';
+			$code .= $this->inline($dependencies, $script);
 		}
 
-		return str_replace('\\t', "\t", $code);
+		return $code;
 	}
 
 	/**
@@ -73,11 +85,13 @@ final class FootableScripts extends SharedFootableScripts
 
 		if ($init)
 		{
-			$code .= PHP_EOL . '\t\t$footable = "jQuery(document).ready(function() { jQuery(\'.footable\').footable(); });";';
-			$code .= $this->inline(['jcb.script.' . hash('sha256', $uri)]);
+			$script = 'jQuery(document).ready(function() {';
+			$script .= PHP_EOL . Indent::_(1) . "jQuery('.footable').footable();";
+			$script .= PHP_EOL . Indent::_(0) . '});';
+			$code .= $this->inline(['jcb.script.' . hash('sha256', $uri)], $script);
 		}
 
-		return str_replace('\\t', "\t", $code);
+		return $code;
 	}
 
 	/**
@@ -86,38 +100,50 @@ final class FootableScripts extends SharedFootableScripts
 	 * @param   string  $type          Asset type.
 	 * @param   string  $uri           Asset URI.
 	 * @param   array   $dependencies  Required asset names.
+	 * @param   int     $indent        Code indentation level.
 	 *
 	 * @return  string
 	 * @since   6.2.0
 	 */
-	protected function asset(string $type, string $uri, array $dependencies = []): string
+	protected function asset(string $type, string $uri, array $dependencies = [], int $indent = 2): string
 	{
 		$name = var_export('jcb.' . $type . '.' . hash('sha256', $uri), true);
 		$path = var_export($uri, true);
-		$requires = var_export($dependencies, true);
+		$requires = '[' . implode(', ', array_map(static fn ($dependency) => var_export($dependency, true), $dependencies)) . ']';
 		$method = ucfirst($type);
 
-		return PHP_EOL . "\t\t\$jcbFootableAssets = \$this->getDocument()->getWebAssetManager();"
-			. PHP_EOL . "\t\tif (!\$jcbFootableAssets->assetExists('{$type}', {$name}))"
-			. PHP_EOL . "\t\t{"
-			. PHP_EOL . "\t\t\t\$jcbFootableAssets->register{$method}({$name}, {$path}, ['version' => 'auto'], [], {$requires});"
-			. PHP_EOL . "\t\t}"
-			. PHP_EOL . "\t\t\$jcbFootableAssets->use{$method}({$name});";
+		return PHP_EOL . Indent::_($indent) . '$jcbFootableAssets = $this->getDocument()->getWebAssetManager();'
+			. PHP_EOL . Indent::_($indent) . "if (!\$jcbFootableAssets->assetExists('{$type}', {$name}))"
+			. PHP_EOL . Indent::_($indent) . '{'
+			. PHP_EOL . Indent::_($indent + 1) . "\$jcbFootableAssets->register{$method}({$name}, {$path}, ['version' => 'auto'], [], {$requires});"
+			. PHP_EOL . Indent::_($indent) . '}'
+			. PHP_EOL . Indent::_($indent) . "\$jcbFootableAssets->use{$method}({$name});";
 	}
 
 	/**
 	 * Initialise only after every required library has loaded.
 	 *
-	 * @param   array  $dependencies  Required script names.
+	 * @param   array   $dependencies  Required script names.
+	 * @param   string  $script        Initialisation script.
 	 *
 	 * @return  string
 	 * @since   6.2.0
 	 */
-	protected function inline(array $dependencies): string
+	protected function inline(array $dependencies, string $script): string
 	{
 		$name = var_export('com_' . $this->config->component_code_name . '.footable.init', true);
+		$requires = '[' . implode(', ', array_map(static fn ($dependency) => var_export($dependency, true), $dependencies)) . ']';
+		$lines = explode(PHP_EOL, $script);
+		$code = PHP_EOL . Indent::_(2) . '$footable = ' . var_export(array_shift($lines), true);
 
-		return PHP_EOL . "\t\t\$this->getDocument()->getWebAssetManager()->addInlineScript(\$footable, ['name' => {$name}], [], "
-			. var_export($dependencies, true) . ');' . PHP_EOL;
+		foreach ($lines as $line)
+		{
+			$code .= PHP_EOL . Indent::_(3) . '. PHP_EOL . ' . var_export($line, true);
+		}
+
+		$code .= ';';
+		$code .= PHP_EOL . Indent::_(2) . "\$this->getDocument()->getWebAssetManager()->addInlineScript(\$footable, ['name' => {$name}], [], {$requires});";
+
+		return $code . PHP_EOL;
 	}
 }
