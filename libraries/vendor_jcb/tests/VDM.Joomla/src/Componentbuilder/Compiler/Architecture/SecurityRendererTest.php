@@ -28,6 +28,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelWhmcsField;
 use VDM\Joomla\Componentbuilder\Compiler\Component;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Data;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Unique;
 
@@ -350,6 +351,37 @@ final class SecurityRendererTest extends ArchitectureTestCase
 			$code
 		);
 		$this->assertStringNotContainsString("if ('basic' === \$type)", $code);
+	}
+
+	/**
+	 * Crypt helper documentation uses configurable indentation without code changes.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testCryptKeyDocumentationFollowsConfiguredIndentation(): void
+	{
+		$basic = new ModelBasicField();
+		$basic->set('article.password', true);
+		$medium = new ModelMediumField();
+		$medium->set('article.secret', true);
+		$subject = $this->cryptKey(
+			$this->component([]),
+			new ContentOne(),
+			new ContentMulti(),
+			$this->structureNeverBuilding(),
+			$basic,
+			$medium
+		);
+		$tabs = $subject->get();
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '    ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		$spaces = $subject->get();
+
+		$this->assertSame(str_replace("\t", '    ', $tabs), $spaces);
+		$this->assertStringNotContainsString("\t", $spaces);
+		$this->assertStringContainsString(' *    @param  string        $type', $spaces);
+		$this->assertNotEmpty(token_get_all('<?php class GeneratedCryptHelper {' . $spaces . '}', TOKEN_PARSE));
 	}
 
 	/**

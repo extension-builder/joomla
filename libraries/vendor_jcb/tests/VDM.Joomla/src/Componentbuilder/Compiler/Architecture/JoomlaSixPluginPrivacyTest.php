@@ -27,6 +27,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
+use ReflectionProperty;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Plugin\Extension;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Plugin\Privacy;
@@ -35,6 +36,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
 use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitecturePlugin;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 
 
@@ -77,11 +80,18 @@ final class JoomlaSixPluginPrivacyTest extends ArchitectureTestCase
 	/**
 	 * Null users retain default results; callbacks receive and replace values by reference.
 	 *
+	 * @param string $indentation The configured indentation unit.
+	 * @param bool   $debug       Whether generated comments include their compiler origin.
+	 *
 	 * @return void
 	 * @since 6.2.0
 	 */
-	public function testNativeDispatchPreservesDefaultResultsAndHelperReferences(): void
+	#[DataProvider('formattingProvider')]
+	public function testNativeDispatchPreservesDefaultResultsAndHelperReferences(string $indentation, bool $debug): void
 	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indentation);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
 		[$instance, $helper] = $this->compile();
 		$dispatcher = new Dispatcher();
 		$dispatcher->addSubscriber($instance);
@@ -266,6 +276,60 @@ final class JoomlaSixPluginPrivacyTest extends ArchitectureTestCase
 		$this->assertSame('', $renderer->get((object) [], ''));
 		$native = $renderer->get($plugin, $plugin->main_class_code);
 		$this->assertSame($native, $renderer->get($plugin, $native));
+	}
+
+	/**
+	 * Compiler-owned method formatting follows the configured utilities without touching neighbors.
+	 *
+	 * @param string $indentation The configured indentation unit.
+	 * @param bool   $debug       Whether generated comments include their compiler origin.
+	 *
+	 * @return void
+	 * @since 6.2.0
+	 */
+	#[DataProvider('formattingProvider')]
+	public function testNativeMethodsUseConfiguredIndentationAndCommentOrigins(string $indentation, bool $debug): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indentation);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$plugin = $this->definition();
+		$prefix = "// [JCBGUI.main_class_code.66.START]\n";
+		$suffix = "\n// [JCBGUI.main_class_code.66.END]\n\tprivate function untouched(): string { return '\\t user text'; }";
+		$source = $prefix . $plugin->main_class_code . $suffix;
+		$code = (new Privacy())->get($plugin, $source);
+		$this->assertStringStartsWith($prefix, $code);
+		$this->assertStringEndsWith($suffix, $code);
+		$comment = $debug ? ' \\[' . preg_quote(Privacy::class, '~') . ' [0-9]+\\]' : '';
+		$opening = '~^' . preg_quote($indentation, '~') . '/\\*\\*\\R'
+			. preg_quote($indentation, '~') . ' \\*' . $comment
+			. ' Process the privacy request through the component helper\\.$~m';
+		$this->assertSame(3, preg_match_all($opening, $code));
+
+		foreach (['onPrivacyCanRemoveData', 'onPrivacyExportRequest', 'onPrivacyRemoveData'] as $name)
+		{
+			$this->assertStringContainsString(PHP_EOL . $indentation . 'public function ' . $name . '(', $code);
+			$this->assertStringContainsString(PHP_EOL . str_repeat($indentation, 3)
+				. 'Joomla___aebfeb9f_f8a3_42be_a21d_5db56ae30c1c___Power::' . $name . '(', $code);
+		}
+
+		$this->assertSame(3, substr_count($code, PHP_EOL . str_repeat($indentation, 2) . '$request = $event->getRequest();'));
+		$this->assertSame(2, substr_count($code, PHP_EOL . str_repeat($indentation, 2) . '$event->addResult('));
+		$this->assertSame($source, $prefix . $plugin->main_class_code . $suffix);
+	}
+
+	/**
+	 * Configured output formatting must also preserve executable native event behavior.
+	 *
+	 * @return iterable
+	 * @since 6.2.0
+	 */
+	public static function formattingProvider(): iterable
+	{
+		yield 'tabs' => ["\t", false];
+		yield 'spaces' => ['    ', false];
+		yield 'tabs with origins' => ["\t", true];
+		yield 'spaces with origins' => ['    ', true];
 	}
 
 	/**

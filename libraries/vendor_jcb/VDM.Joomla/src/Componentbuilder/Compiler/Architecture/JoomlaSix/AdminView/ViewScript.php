@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as SharedViewScript;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six ViewScript renderer.
@@ -30,7 +31,7 @@ final class ViewScript extends SharedViewScript
 	 */
 	protected function prepareListeners(string $listeners): string
 	{
-		return "jQuery(function () {" . PHP_EOL . $listeners . PHP_EOL . '});';
+		return 'jQuery(function () {' . PHP_EOL . $listeners . PHP_EOL . Indent::_(0) . '});';
 	}
 
 	/**
@@ -70,10 +71,25 @@ final class ViewScript extends SharedViewScript
 	{
 		$name = var_export('com_' . $this->config->component_code_name . '.admin.' . $view . '.footer', true);
 
-		return PHP_EOL . '<?php $jcbFooterBufferLevel = ob_get_level(); ob_start(); try { ?>'
-			. PHP_EOL . $script . PHP_EOL
-			. '<?php $jcbFooterScript = ob_get_contents(); } finally { while (ob_get_level() > $jcbFooterBufferLevel) { ob_end_clean(); } }'
-			. PHP_EOL . '$jcbFooterAssets = $this->getDocument()->getWebAssetManager();'
-			. PHP_EOL . "\$jcbFooterAssets->addInlineScript(\$jcbFooterScript, ['name' => {$name}], [], array_values(array_unique(array_merge(['core', 'jquery'], array_diff(array_keys(\$jcbFooterAssets->getAssets('script')), [{$name}]))))); ?>";
+		return PHP_EOL . Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterBufferLevel = ob_get_level();'
+			. PHP_EOL . Indent::_(0) . 'ob_start();'
+			. PHP_EOL . Indent::_(0) . 'try'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . '?>'
+			. PHP_EOL . $script
+			. PHP_EOL . Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(1) . '$jcbFooterScript = ob_get_contents();'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . 'finally'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . 'while (ob_get_level() > $jcbFooterBufferLevel)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'ob_end_clean();'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterAssets = $this->getDocument()->getWebAssetManager();'
+			. PHP_EOL . Indent::_(0) . "\$jcbFooterAssets->addInlineScript(\$jcbFooterScript, ['name' => {$name}], [], array_values(array_unique(array_merge(['core', 'jquery'], array_diff(array_keys(\$jcbFooterAssets->getAssets('script')), [{$name}])))));"
+			. PHP_EOL . Indent::_(0) . '?>';
 	}
 }

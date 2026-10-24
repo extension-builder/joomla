@@ -14,10 +14,15 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Model;
 
 use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Sqldump;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
+use VDM\Tests\Support\CompilerUtilityTestCase;
 use VDM\Tests\Support\SqldumpFixture;
-use VDM\Tests\Support\TestCase;
 
 
 /**
@@ -26,7 +31,9 @@ use VDM\Tests\Support\TestCase;
  * @since  6.1.6
  */
 #[CoversClass(Sqldump::class)]
-final class SqldumpTest extends TestCase
+#[UsesClass(Indent::class)]
+#[UsesClass(Line::class)]
+final class SqldumpTest extends CompilerUtilityTestCase
 {
 	/**
 	 * Parse selected aliases and join relationships while ignoring malformed rows.
@@ -88,6 +95,54 @@ final class SqldumpTest extends TestCase
 		$this->assertStringContainsString("-- Batch 1 of 1 (2 rows)\n", $output);
 		$this->assertStringContainsString("(1, 'First'),\n(2, 'O''Reilly');\n\n", $output);
 		$this->assertStringEndsWith(";\n\n", $output);
+	}
+
+	/**
+	 * Formatting applies to emitted SQL without rewriting stored values.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 * @param   bool    $debug   Whether source markers are generated.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('formattingModes')]
+	public function testDumpFormattingPreservesQuotedValuesAndBatchBoundaries(string $indent, bool $debug): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$subject = $this->subject();
+		$value = "First\n\tO'Reilly\r\n  End";
+		$data = array_fill(0, 1001, (object) ['id' => 1, 'title' => $value]);
+		$output = $subject->dump('article', $data);
+		$empty = $subject->dump('article', []);
+		$marker = '/ \\[' . preg_quote(Sqldump::class, '/') . ' [0-9]+\\]/';
+
+		$this->assertSame($debug ? 7 : 0, preg_match_all($marker, $output));
+		$this->assertSame($debug ? 1 : 0, preg_match($marker, $empty));
+		$this->assertSame('-- No data available for `article`' . PHP_EOL, preg_replace($marker, '', $empty));
+		$this->assertSame(1001, substr_count($output, "(1, 'First\n\tO''Reilly\r\n  End')"));
+		$this->assertSame(4, substr_count($output, 'INSERT INTO `#__[[[component]]]_article` (`id`, `title`) VALUES' . PHP_EOL));
+		$this->assertSame(3, substr_count($output, ';' . PHP_EOL . PHP_EOL . '--'));
+		$this->assertStringContainsString('-- Batch 4 of 4 (101 rows)' . PHP_EOL, preg_replace($marker, '', $output));
+		$this->assertStringEndsWith(';' . PHP_EOL . PHP_EOL, $output);
+	}
+
+	/**
+	 * Exercise compiler-owned formatting independently of authored SQL values.
+	 *
+	 * @return  array<string, array{string, bool}>  Formatting configurations.
+	 * @since   6.1.7
+	 */
+	public static function formattingModes(): array
+	{
+		return [
+			'tabs' => ["\t", false],
+			'spaces' => ['    ', false],
+			'tabs with comments' => ["\t", true],
+			'spaces with comments' => ['    ', true],
+		];
 	}
 
 	/**

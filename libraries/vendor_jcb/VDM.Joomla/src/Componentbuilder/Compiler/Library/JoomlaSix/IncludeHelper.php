@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix;
 
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper as SharedIncludeHelper;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six IncludeHelper renderer.
@@ -53,11 +54,11 @@ final class IncludeHelper extends SharedIncludeHelper
 		}
 
 		return '$jcbAssetManager = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();'
-			. PHP_EOL . "if (!\$jcbAssetManager->assetExists('{$type}', {$nameCode}))"
-			. PHP_EOL . '{'
-			. PHP_EOL . "\t\$jcbAssetManager->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);"
-			. PHP_EOL . '}'
-			. PHP_EOL . "\$jcbAssetManager->use{$method}({$nameCode});"
-			. PHP_EOL . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
+			. PHP_EOL . Indent::_(0) . "if (!\$jcbAssetManager->assetExists('{$type}', {$nameCode}))"
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . "\$jcbAssetManager->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);"
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . "\$jcbAssetManager->use{$method}({$nameCode});"
+			. PHP_EOL . Indent::_(0) . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
 	}
 }

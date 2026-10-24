@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
@@ -42,6 +43,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\File;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Files;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Folder;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
 use VDM\Joomla\Interfaces\Readme\ItemInterface as ItemReadme;
 use VDM\Joomla\Interfaces\Readme\MainInterface as MainReadme;
@@ -227,6 +230,39 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * Application and installer autoloaders include configured source comments.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 * @param   bool    $debug   Whether source markers are generated.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('structureFormattingModes')]
+	public function testAutoloaderSearchCommentsFollowCompilerFormatting(string $indent, bool $debug): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$power = (new ReflectionClass(Power::class))->newInstanceWithoutConstructor();
+		$power->namespace = ['src/Acme' => ['Acme']];
+		$power->composer = [];
+		$content = new ContentOne();
+		$subject = new Autoloader($power, $this->compilerConfig(['jcb_powers_path' => 'libraries/jcb_powers']), $content);
+		$subject->set();
+
+		foreach (['ADMIN_POWER_HELPER', 'SITE_POWER_HELPER', 'INSTALLER_POWER_HELPER'] as $key)
+		{
+			$output = $content->get($key);
+			$marker = '/ \\[' . preg_quote(Autoloader::class, '/') . ' [0-9]+\\]/';
+			$this->assertSame($debug ? 1 : 0, preg_match('/\\/\\/ \\[' . preg_quote(Autoloader::class, '/') . ' [0-9]+\\] Start the search and load if found/', $output));
+			$this->assertStringContainsString(PHP_EOL . $indent . '// Start the search and load if found', preg_replace($marker, '', $output));
+			$this->assertStringContainsString("'libraries/jcb_powers/src/Acme' => 'Acme'", $output);
+			$this->assertNotEmpty(token_get_all('<?php ' . $output, TOKEN_PARSE));
+		}
+	}
+
+	/**
 	 * Infusion emits source, raw code, linker JSON, README, and ordered events once.
 	 *
 	 * @return  void
@@ -293,11 +329,18 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 	/**
 	 * Structure creates the generated power file and deny-access companions once.
 	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 * @param   bool    $debug   Whether source markers are generated.
+	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testPowerStructureTracksGeneratedFilesPathsAndCounters(): void
+	#[DataProvider('structureFormattingModes')]
+	public function testPowerStructureTracksGeneratedFilesPathsAndCounters(string $indent, bool $debug): void
 	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
 		$root = sys_get_temp_dir() . '/jcb-power-' . bin2hex(random_bytes(5));
 		$rootCreated = false;
 
@@ -417,11 +460,35 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 			$this->assertNotFalse($document, 'The generated web.config must be well formed XML');
 			$this->assertSame('configuration', $document->getName());
 			$this->assertSame('*', (string) $document->{'system.web'}->authorization->deny['users']);
+			$this->assertSame(implode(PHP_EOL, [
+				'<?xml version="1.0"?>',
+				'<configuration>',
+				$indent . '<system.web>',
+				str_repeat($indent, 2) . '<authorization>',
+				str_repeat($indent, 3) . '<deny users="*" />',
+				str_repeat($indent, 2) . '</authorization>',
+				$indent . '</system.web>',
+				'</configuration>',
+				'',
+			]), $written['web.config']);
 
 			// the Apache side denies every request in both module eras
 			$this->assertArrayHasKey('.htaccess', $written);
-			$this->assertStringContainsString('Require all denied', $written['.htaccess']);
-			$this->assertStringContainsString('Deny from all', $written['.htaccess']);
+			$this->assertSame($written['.htaccess'], $written['htaccess.txt']);
+			$marker = '/ \\[' . preg_quote(PowerStructure::class, '/') . ' [0-9]+\\]/';
+			$this->assertSame($debug ? 2 : 0, preg_match_all($marker, $written['.htaccess']));
+			$this->assertSame(implode(PHP_EOL, [
+				'# Apache 2.4+',
+				'<IfModule mod_authz_core.c>',
+				$indent . 'Require all denied',
+				'</IfModule>',
+				'',
+				'# Apache 2.0-2.2',
+				'<IfModule !mod_authz_core.c>',
+				$indent . 'Deny from all',
+				'</IfModule>',
+				'',
+			]), preg_replace($marker, '', $written['.htaccess']));
 		}
 		finally
 		{
@@ -440,6 +507,22 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 				throw new RuntimeException('The power-structure fixture is not a directory: ' . $root);
 			}
 		}
+	}
+
+	/**
+	 * Generated configuration follows compiler formatting in both comment modes.
+	 *
+	 * @return  array<string, array{string, bool}>  Formatting configurations.
+	 * @since   6.1.7
+	 */
+	public static function structureFormattingModes(): array
+	{
+		return [
+			'tabs' => ["\t", false],
+			'spaces' => ['    ', false],
+			'tabs with comments' => ["\t", true],
+			'spaces with comments' => ['    ', true],
+		];
 	}
 
 	/**

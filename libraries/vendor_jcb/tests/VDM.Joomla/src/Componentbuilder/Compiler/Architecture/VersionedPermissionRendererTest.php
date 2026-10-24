@@ -15,10 +15,13 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\DisplayMethod;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\Category;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CategoryOtherName;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 
 /**
@@ -273,6 +276,33 @@ final class VersionedPermissionRendererTest extends ArchitectureTestCase
 		);
 		$this->assertStringContainsString('public static function updateUser($userDetails): int', $code);
 		$this->assertStringNotContainsString('Factory::getLanguage();', $code);
+	}
+
+	/**
+	 * Legacy user helpers retain their code while following compiler formatting.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	public function testLegacyUserHelperCommentsRespectCompilerFormatting(): void
+	{
+		$class = $this->rendererClass('JoomlaThree', 'ComHelperClass/CreateUser');
+		$subject = $this->renderer($class);
+		$tabs = $subject->get(true);
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '    ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, true);
+		$output = $subject->get(true);
+		$marker = '/ \\[' . preg_quote($class, '/') . ' [0-9]+\\]/';
+
+		$this->assertSame(str_replace("\t", '    ', $tabs), preg_replace($marker, '', $output));
+
+		foreach (['load the user model', 'Check if password was set', 'Use the users passwords', 'set username', 'lineup update user data', 'set groups if found', 'register the new user', 'if user is updated'] as $comment)
+		{
+			$this->assertMatchesRegularExpression('/\\/\\/ \\[' . preg_quote($class, '/') . ' [0-9]+\\] ' . $comment . '/', $output);
+		}
+
+		$this->assertNotEmpty(token_get_all('<?php class GeneratedUserHelper {' . $output . '}', TOKEN_PARSE));
 	}
 
 	/**

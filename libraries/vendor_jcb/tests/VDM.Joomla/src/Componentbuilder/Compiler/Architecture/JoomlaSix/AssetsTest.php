@@ -17,18 +17,24 @@ use DOMXPath;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
+use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use RuntimeException;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ListView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews\ViewBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\JavaScriptFile;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\AdminFilterType;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
+use VDM\Joomla\Componentbuilder\Compiler\Factory as Compiler;
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Createdate;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Modifieddate;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
@@ -82,12 +88,21 @@ final class AssetsTest extends ArchitectureTestCase
 	/**
 	 * Inline footer PHP runs in its view and depends on already active script files.
 	 *
+	 * @param   string  $indent  The configured indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testFooterCapturesDynamicPhpAndRetainsAssetDependencies(): void
+	#[DataProvider('indentationValues')]
+	public function testFooterCapturesDynamicPhpAndRetainsAssetDependencies(string $indent): void
 	{
-		$source = $this->footer('window.caption = <?php echo json_encode($this->label); ?>;');
+		$this->configureEmission($indent);
+		$authored = "\n\t  window.caption = <?php echo json_encode(\$this->label); ?>;\n";
+		$source = $this->footer($authored);
+		$this->assertStringContainsString('?>' . $authored . '<?php', $source);
+		$this->assertStringContainsString(PHP_EOL . $indent . '$jcbFooterScript = ob_get_contents();', $source);
+		$this->assertStringContainsString(PHP_EOL . $indent . 'while (ob_get_level() > $jcbFooterBufferLevel)', $source);
+		$this->assertStringContainsString(PHP_EOL . $indent . $indent . 'ob_end_clean();', $source);
 		$view = $this->runtimeView();
 		$wa = $view->getDocument()->getWebAssetManager();
 		$wa->registerAndUseScript('com_demo.file', 'https://example.invalid/file.js', [], [], ['core']);
@@ -95,7 +110,7 @@ final class AssetsTest extends ArchitectureTestCase
 		$assets = $wa->getAssets('script', true);
 		$this->assertSame(['core', 'com_demo.file', 'com_demo.admin.articles.footer'], array_keys($assets));
 		$footer = $assets['com_demo.admin.articles.footer'];
-		$this->assertSame('window.caption = "O\'Reilly";', trim($footer->getOption('content')));
+		$this->assertSame("\t  window.caption = \"O'Reilly\";\n", $footer->getOption('content'));
 		$this->assertSame(['core', 'com_demo.file'], $footer->getDependencies());
 		$this->assertTrue($footer->getOption('inline'));
 		$this->assertStringNotContainsString('<script', $source);
@@ -143,11 +158,15 @@ final class AssetsTest extends ArchitectureTestCase
 	/**
 	 * Native list markup carries safely encoded draggable metadata only when enabled.
 	 *
+	 * @param   string  $indent  The configured indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testListBodyRegistersOrderingAndEmitsNativeDraggableMetadata(): void
+	#[DataProvider('indentationValues')]
+	public function testListBodyRegistersOrderingAndEmitsNativeDraggableMetadata(string $indent): void
 	{
+		$this->configureEmission($indent);
 		$subject = $this->renderer(ViewBody::class);
 		$source = $subject->getDefault('article', 'articles');
 		$view = $this->runtimeView();
@@ -158,7 +177,16 @@ final class AssetsTest extends ArchitectureTestCase
 		$assets = $document->getWebAssetManager()->getAssets('script', true);
 		$this->assertSame(['core', 'com_demo.ordering'], array_keys($assets));
 		$this->assertSame(['core'], $assets['com_demo.ordering']->getDependencies());
-		$this->assertStringContainsString('Joomla.tableOrdering(order, dirn', $assets['com_demo.ordering']->getOption('content'));
+		$ordering = $assets['com_demo.ordering']->getOption('content');
+		$this->assertStringContainsString('Joomla.tableOrdering(order, dirn', $ordering);
+		$lines = explode(PHP_EOL, $ordering);
+		$this->assertSame('Joomla.orderTable = function () {', array_shift($lines));
+		$this->assertSame('};', array_pop($lines));
+		$this->assertCount(6, $lines);
+		foreach ($lines as $line)
+		{
+			$this->assertSame($indent, substr($line, 0, strlen($line) - strlen(ltrim($line))));
+		}
 		$this->assertStringNotContainsString('<script', $prefix);
 
 		$this->assertSame(1, preg_match('~<table[^>]*>.*?</table>~s', $source, $match));
@@ -178,6 +206,38 @@ final class AssetsTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Shared list comments retain their debug origin under configured indentation.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testListBodyUsesConfiguredIndentationAndCommentOrigins(): void
+	{
+		$this->configureEmission('    ', true);
+		$filters = new AdminFilterType();
+		$filters->set('articles', 2);
+		$source = $this->renderer(ViewBody::class, ['adminfiltertype' => $filters])->getDefault('article', 'articles');
+		$this->assertMatchesRegularExpression(
+			'~\n    // \[VDM\\\\Joomla\\\\Componentbuilder\\\\Compiler\\\\Architecture\\\\AdminViews\\\\ViewBody \d+\] Add the searchtools\n~',
+			$source
+		);
+		$this->assertStringContainsString("Joomla__" . "_7ab82272_0b3d_4bb1_af35_e63a096cfe0b___Power::render('joomla.searchtools.default'", $source);
+	}
+
+	/**
+	 * Indentation units supported by the compiler configuration.
+	 *
+	 * @return  iterable<string, array{string}>
+	 * @since   6.2.0
+	 */
+	public static function indentationValues(): iterable
+	{
+		yield 'tabs' => ["\t"];
+		yield 'two spaces' => ['  '];
+		yield 'four spaces' => ['    '];
+	}
+
+	/**
 	 * Build targets with their expected installed asset clients.
 	 *
 	 * @return  iterable<string, array{string, string}>
@@ -188,6 +248,28 @@ final class AssetsTest extends ArchitectureTestCase
 		yield 'admin' => ['admin', 'admin'];
 		yield 'site' => ['site', 'site'];
 		yield 'custom admin' => ['custom_admin', 'admin'];
+	}
+
+	/**
+	 * Initialize the real emission utilities from the isolated compiler config.
+	 *
+	 * @param   string  $indent  The configured indentation unit.
+	 * @param   bool    $debug   Whether generated comments include their source.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	private function configureEmission(string $indent, bool $debug = false): void
+	{
+		$this->config()->set('indentation_value', $indent);
+		$this->config()->set('debug_line_nr', $debug);
+		$this->isolateFactory(Compiler::class);
+		$container = new Container();
+		$container->set('Config', $this->config());
+		(new ReflectionProperty(Compiler::class, 'container'))->setValue(null, $container);
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, 'check');
 	}
 
 	/**

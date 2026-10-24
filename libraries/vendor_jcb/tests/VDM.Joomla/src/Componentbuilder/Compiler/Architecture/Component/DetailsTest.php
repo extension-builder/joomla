@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\Details;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Component\ImageType;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
@@ -30,6 +31,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\EmailHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Helper;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Valuation;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\EventInterface;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
@@ -245,6 +248,29 @@ final class DetailsTest extends ArchitectureTestCase
 		$this->assertStringContainsString(
 			'// my event', $this->content->get('ADMIN_GLOBAL_EVENT_HELPER')
 		);
+	}
+
+	/**
+	 * Source comments identify generated event code and preserve authored event text.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testGlobalEventCommentUsesCompilerSourceReferences(): void
+	{
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, true);
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		$this->fill(['add_admin_event' => 1], ['component_php_admin_event' => '// my event']);
+
+		$this->assertMatchesRegularExpression(
+			'/\/\/ \[' . preg_quote(Details::class, '/') . ' [1-9][0-9]*\] Trigger the Global Admin Event/',
+			$this->content->get('ADMIN_GLOBAL_EVENT')
+		);
+		$this->assertStringContainsString('// my event', $this->content->get('ADMIN_GLOBAL_EVENT_HELPER'));
+		$this->assertStringNotContainsString('// [', $this->content->get('ADMIN_GLOBAL_EVENT_HELPER'));
+		$this->assertStringContainsString(PHP_EOL . '  *  The Global Admin Event Method.', $this->content->get('ADMIN_GLOBAL_EVENT_HELPER'));
+		$this->assertStringNotContainsString("\t", $this->content->get('ADMIN_GLOBAL_EVENT_HELPER'));
 	}
 
 	/**

@@ -83,6 +83,43 @@ final class PhpStyleCheckerTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Prevent block emitters and self-resolving Power literals across the compiler.
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	public function testCompilerEmissionConventionsAcrossProductionSources(): void
+	{
+		$root = dirname(__DIR__, 4);
+		$prefix = 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/';
+		$files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/' . $prefix));
+		$issues = [];
+		$count = 0;
+
+		foreach ($files as $file)
+		{
+			if (!$file->isFile() || $file->getExtension() !== 'php')
+			{
+				continue;
+			}
+
+			$count++;
+			$path = $file->getPathname();
+
+			foreach (PhpStyleChecker::inspectFile($path, substr($path, strlen($root) + 1)) as $issue)
+			{
+				if (str_contains($issue, '[compiler-'))
+				{
+					$issues[] = $issue;
+				}
+			}
+		}
+
+		$this->assertGreaterThan(0, $count);
+		$this->assertSame([], $issues);
+	}
+
+	/**
 	 * Filter local style diagnostics to added lines in a modified file.
 	 *
 	 * @return  void

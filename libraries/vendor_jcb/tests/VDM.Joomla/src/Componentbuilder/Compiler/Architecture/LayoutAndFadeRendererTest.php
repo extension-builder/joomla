@@ -13,13 +13,16 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Layout\View as LayoutView;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LayoutData;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\HeaderInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Templatelayout\Data as TemplatelayoutData;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 
 
@@ -54,11 +57,16 @@ final class LayoutAndFadeRendererTest extends ArchitectureTestCase
 	/**
 	 * An enabled effect builds the overlay and hides the loader container.
 	 *
+	 * @param   string  $indent  The compiler indentation unit.
+	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testFadeInEffectBuildsTheLoadingOverlay(): void
+	#[DataProvider('indentationValues')]
+	public function testFadeInEffectBuildsTheLoadingOverlay(string $indent): void
 	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
 		$subject = new FadeInEffect($this->config());
 		$code = $subject->get($this->view(1));
 
@@ -76,10 +84,31 @@ final class LayoutAndFadeRendererTest extends ArchitectureTestCase
 			"window.addEventListener('load', function() {",
 			$code
 		);
+		$this->assertStringContainsString(
+			PHP_EOL . str_repeat($indent, 3) . 'if (componentLoader)'
+			. PHP_EOL . str_repeat($indent, 3) . '{'
+			. PHP_EOL . str_repeat($indent, 4) . "componentLoader.style.display = 'block';"
+			. PHP_EOL . str_repeat($indent, 3) . '}'
+			. PHP_EOL . str_repeat($indent, 3) . "loadingDiv.style.display = 'none';",
+			$code
+		);
 		$this->assertStringEndsWith(
 			'<div id="demo_loader" style="display: none;">',
 			$code
 		);
+	}
+
+	/**
+	 * Compiler indentation units used by the generated control block.
+	 *
+	 * @return  iterable<string, array{string}>
+	 * @since   6.2.0
+	 */
+	public static function indentationValues(): iterable
+	{
+		yield 'tabs' => ["\t"];
+		yield 'two spaces' => ['  '];
+		yield 'four spaces' => ['    '];
 	}
 
 	/**

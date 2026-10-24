@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView;
 
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 
 /**
@@ -66,7 +67,7 @@ class FadeInEffect
 		{
 			$fadein   = [];
 			$fadein[] = Indent::_(1) . "(function() {";
-			$fadein[] = Indent::_(2) . "// create loading overlay";
+			$fadein[] = Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__) . " create loading overlay";
 			$fadein[] = Indent::_(2) . "var loadingDiv = document.createElement('div');";
 			$fadein[] = Indent::_(2) . "loadingDiv.id = 'loading';";
 
@@ -89,10 +90,13 @@ class FadeInEffect
 
 			$fadein[] = Indent::_(2) . "document.body.appendChild(loadingDiv);";
 
-			$fadein[] = Indent::_(2) . "// remove overlay when page fully loaded";
+			$fadein[] = Indent::_(2) . "//" . Line::_(__LINE__, __CLASS__) . " remove overlay when page fully loaded";
 			$fadein[] = Indent::_(2) . "window.addEventListener('load', function() {";
 			$fadein[] = Indent::_(3) . "var componentLoader = document.getElementById('{$component}_loader');";
-			$fadein[] = Indent::_(3) . "if (componentLoader) componentLoader.style.display = 'block';";
+			$fadein[] = Indent::_(3) . "if (componentLoader)";
+			$fadein[] = Indent::_(3) . "{";
+			$fadein[] = Indent::_(4) . "componentLoader.style.display = 'block';";
+			$fadein[] = Indent::_(3) . "}";
 			$fadein[] = Indent::_(3) . "loadingDiv.style.display = 'none';";
 			$fadein[] = Indent::_(2) . "});";
 

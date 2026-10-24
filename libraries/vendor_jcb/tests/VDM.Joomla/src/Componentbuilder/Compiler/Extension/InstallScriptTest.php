@@ -22,11 +22,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Extension\JoomlaFive\InstallScript as JoomlaFiveInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Extension\JoomlaFour\InstallScript as JoomlaFourInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Extension\JoomlaSix\InstallScript as JoomlaSixInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Extension\JoomlaThree\InstallScript as JoomlaThreeInstallScript;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Extension\InstallInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Tests\Support\CompilerDomainTestCase;
 
 
@@ -260,13 +263,20 @@ final class InstallScriptTest extends CompilerDomainTestCase
 	/**
 	 * Native hooks retain adapter context, null success and explicit aborts.
 	 *
+	 * @param string $indentation The configured indentation unit.
+	 * @param bool   $debug       Whether generated comments include their compiler origin.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState(false)]
-	public function testCustomLifecycleReturnSemanticsAndConstructorContextArePreserved(): void
+	#[DataProvider('formattingProvider')]
+	public function testCustomLifecycleReturnSemanticsAndConstructorContextArePreserved(string $indentation, bool $debug): void
 	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indentation);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
 		define('JVERSION', (new Version())->getShortVersion());
 		$messages = [];
 		$app = $this->createMock(CMSApplicationInterface::class);
@@ -294,6 +304,24 @@ final class InstallScriptTest extends CompilerDomainTestCase
 			'php_postflight_install' => "\t\treturn null;",
 		]);
 
+		$this->assertStringContainsString(PHP_EOL . $indentation . 'private function initializeInstaller(InstallerAdapter $adapter): void', $script);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indentation, 2) . '$result = $this->installHook($adapter);', $script);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indentation, 3) . '$this->initializeInstallerHook($adapter);', $script);
+		$this->assertStringContainsString("\t\treturn false;", $script);
+		$comment = $debug ? ' \\[' . preg_quote(JoomlaSixInstallScript::class, '~') . ' [0-9]+\\]' : '';
+
+		foreach ([
+			'Whether adapter-dependent initialization is running or completed.',
+			'Initialize custom installer state once the adapter is available.',
+			'Run the configured constructor body without rewriting its control flow.',
+			'Run the install hook and preserve its explicit return value.',
+		] as $description)
+		{
+			$this->assertMatchesRegularExpression('~^' . preg_quote($indentation, '~') . ' \\*' . $comment . ' ' . preg_quote($description, '~') . '$~m', $script);
+		}
+
+		$this->assertMatchesRegularExpression('~^' . preg_quote(str_repeat($indentation, 2), '~') . '//' . $comment
+			. ' A hook with no return value completed successfully; explicit failures remain failures\\.$~m', $script);
 		$installer = eval($script);
 		$this->assertInstanceOf(InstallerScriptInterface::class, $installer);
 		$this->assertNotInstanceOf(LegacyInstallerScript::class, $installer);
@@ -308,6 +336,20 @@ final class InstallScriptTest extends CompilerDomainTestCase
 		$this->assertTrue($installer->preflight('install', $adapter));
 		$this->assertTrue($installer->postflight('install', $adapter));
 		$this->assertSame(['constructed', 'uninstalled'], $messages);
+	}
+
+	/**
+	 * Compiler formatting options must not change the native installer contract.
+	 *
+	 * @return iterable
+	 * @since 6.2.0
+	 */
+	public static function formattingProvider(): iterable
+	{
+		yield 'tabs' => ["\t", false];
+		yield 'spaces' => ['    ', false];
+		yield 'tabs with origins' => ["\t", true];
+		yield 'spaces with origins' => ['    ', true];
 	}
 
 	/**

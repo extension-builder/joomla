@@ -174,7 +174,7 @@ final class FileContent
 
 		$this->contentone->set('FILENAME', $name);
 
-		$phpHeader = $this->isPhpFile($name) ? "<?php\n" : '';
+		$phpHeader = $this->isPhpFile($name) ? '<?php' . PHP_EOL : '';
 
 		$string = FileHelper::getContent($path);
 
@@ -249,4 +249,3 @@ final class FileContent
 		return $suffix === '' || str_ends_with(strtolower($file), '.' . strtolower($suffix));
 	}
 }
-

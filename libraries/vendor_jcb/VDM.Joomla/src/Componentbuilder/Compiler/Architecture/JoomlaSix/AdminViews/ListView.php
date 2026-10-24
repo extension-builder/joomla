@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminViews
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as SharedListView;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -34,32 +35,28 @@ final class ListView extends SharedListView
 	protected function getFooterScript(string $script, string $name): string
 	{
 		$assetName = 'com_' . $this->config->component_code_name . '.admin.' . $name . '.footer';
-		$opening = <<<'PHP'
-<?php
-$jcbFooterBufferLevel = ob_get_level();
-ob_start();
-try
-{
-?>
-PHP;
-		$closing = <<<'PHP'
-<?php
-	$jcbFooterScript = ob_get_contents();
-}
-finally
-{
-	while (ob_get_level() > $jcbFooterBufferLevel)
-	{
-		ob_end_clean();
-	}
-}
-$jcbFooterAssets = $this->getDocument()->getWebAssetManager();
-$jcbFooterDependencies = array_values(array_diff(array_unique(['core', ...array_keys($jcbFooterAssets->getAssets('script'))]), [$jcbFooterName]));
-$jcbFooterAssets->addInlineScript($jcbFooterScript, ['name' => $jcbFooterName], [], $jcbFooterDependencies);
-?>
-PHP;
+		$opening = Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterBufferLevel = ob_get_level();'
+			. PHP_EOL . Indent::_(0) . 'ob_start();'
+			. PHP_EOL . Indent::_(0) . 'try'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(0) . '?>';
+		$closing = Indent::_(0) . '<?php'
+			. PHP_EOL . Indent::_(1) . '$jcbFooterScript = ob_get_contents();'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . 'finally'
+			. PHP_EOL . Indent::_(0) . '{'
+			. PHP_EOL . Indent::_(1) . 'while (ob_get_level() > $jcbFooterBufferLevel)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'ob_end_clean();'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . Indent::_(0) . '}'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterAssets = $this->getDocument()->getWebAssetManager();'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterDependencies = array_values(array_diff(array_unique([\'core\', ...array_keys($jcbFooterAssets->getAssets(\'script\'))]), [$jcbFooterName]));'
+			. PHP_EOL . Indent::_(0) . '$jcbFooterAssets->addInlineScript($jcbFooterScript, [\'name\' => $jcbFooterName], [], $jcbFooterDependencies);'
+			. PHP_EOL . Indent::_(0) . '?>';
 
-		return PHP_EOL . '<?php $jcbFooterName = ' . var_export($assetName, true) . '; ?>'
+		return PHP_EOL . Indent::_(0) . '<?php $jcbFooterName = ' . var_export($assetName, true) . '; ?>'
 			. PHP_EOL . $opening . $script . $closing;
 	}
 }

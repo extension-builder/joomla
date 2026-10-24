@@ -13,6 +13,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomButtons as BaseCustomButtons;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -31,10 +32,31 @@ final class CustomButtons extends BaseCustomButtons
 	 */
 	public function javascript(): string
 	{
-		return PHP_EOL . "\t\t" . '$this->getDocument()->getWebAssetManager()->useScript(\'core\')'
-			. '->addInlineScript('
-			. var_export("Joomla.submitbutton = function(task){if (task == ''){ return false; } else { Joomla.submitform(task); return true; }}", true)
+		$script = 'Joomla.submitbutton = function(task) {';
+		$script .= PHP_EOL . Indent::_(1) . "if (task == '')";
+		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= PHP_EOL . Indent::_(2) . 'return false;';
+		$script .= PHP_EOL . Indent::_(1) . '}';
+		$script .= PHP_EOL . Indent::_(1) . 'else';
+		$script .= PHP_EOL . Indent::_(1) . '{';
+		$script .= PHP_EOL . Indent::_(2) . 'Joomla.submitform(task);';
+		$script .= PHP_EOL . Indent::_(2) . 'return true;';
+		$script .= PHP_EOL . Indent::_(1) . '}';
+		$script .= PHP_EOL . Indent::_(0) . '};';
+		$lines = explode(PHP_EOL, $script);
+		$code = PHP_EOL . Indent::_(2) . '$jcbToolbarScript = ' . var_export(array_shift($lines), true);
+
+		foreach ($lines as $line)
+		{
+			$code .= PHP_EOL . Indent::_(3) . '. PHP_EOL . ' . var_export($line, true);
+		}
+
+		$code .= ';';
+		$code .= PHP_EOL . Indent::_(2) . '$this->getDocument()->getWebAssetManager()->useScript(\'core\')'
+			. '->addInlineScript($jcbToolbarScript'
 			. ", ['name' => 'com_" . $this->config->component_code_name . ".toolbar-buttons'], [], ['core']);";
+
+		return $code;
 	}
 
 	/**

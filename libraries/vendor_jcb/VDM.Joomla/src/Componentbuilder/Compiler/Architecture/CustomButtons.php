@@ -220,22 +220,39 @@ class CustomButtons
 	 */
 	public function javascript(): string
 	{
-		$script   = [];
-		$script[] = Indent::_(2) . "//" . Line::_(__Line__, __Class__) . " Add the needed Javascript to insure that the buttons work.";
-		$script[] = Indent::_(2) . "Html::_('behavior.framework', true);";
+		$javascript = 'Joomla.submitbutton = function(task) {';
+		$javascript .= PHP_EOL . Indent::_(1) . "if (task == '')";
+		$javascript .= PHP_EOL . Indent::_(1) . '{';
+		$javascript .= PHP_EOL . Indent::_(2) . 'return false;';
+		$javascript .= PHP_EOL . Indent::_(1) . '}';
+		$javascript .= PHP_EOL . Indent::_(1) . 'else';
+		$javascript .= PHP_EOL . Indent::_(1) . '{';
+		$javascript .= PHP_EOL . Indent::_(2) . 'Joomla.submitform(task);';
+		$javascript .= PHP_EOL . Indent::_(2) . 'return true;';
+		$javascript .= PHP_EOL . Indent::_(1) . '}';
+		$javascript .= PHP_EOL . Indent::_(0) . '};';
+		$lines = explode(PHP_EOL, $javascript);
+		$script = PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__) . ' Add the needed Javascript to insure that the buttons work.';
+		$script .= PHP_EOL . Indent::_(2) . "Html::_('behavior.framework', true);";
+		$script .= PHP_EOL . Indent::_(2) . '$jcbToolbarScript = ' . var_export(array_shift($lines), true);
+
+		foreach ($lines as $line)
+		{
+			$script .= PHP_EOL . Indent::_(3) . '. PHP_EOL . ' . var_export($line, true);
+		}
+
+		$script .= ';';
 
 		if ($this->config->get('joomla_version', 3) == 3)
 		{
-			$script[] = Indent::_(2)
-				. "\$this->getDocument()->addScriptDeclaration(\"Joomla.submitbutton = function(task){if (task == ''){ return false; } else { Joomla.submitform(task); return true; }}\");";
+			$script .= PHP_EOL . Indent::_(2) . '$this->getDocument()->addScriptDeclaration($jcbToolbarScript);';
 		}
 		else
 		{
-			$script[] = Indent::_(2)
-				. "\$this->getDocument()->getWebAssetManager()->addInlineScript(\"Joomla.submitbutton = function(task){if (task == ''){ return false; } else { Joomla.submitform(task); return true; }}\");";
+			$script .= PHP_EOL . Indent::_(2) . '$this->getDocument()->getWebAssetManager()->addInlineScript($jcbToolbarScript);';
 		}
 
-		return PHP_EOL . implode(PHP_EOL, $script);
+		return $script;
 	}
 
 	/**

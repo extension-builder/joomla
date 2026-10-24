@@ -27,6 +27,35 @@ $productionHeader = <<<'PHP'
 PHP;
 
 return [
+	'compiler-nowdoc' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Fixture.php',
+		'source' => $productionHeader . "\n\$code = <<<'CODE'\nraw code\nCODE;\n",
+		'rules' => ['compiler-code-block']
+	],
+	'compiler-heredoc' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Fixture.php',
+		'source' => $productionHeader . "\n\$code = <<<CODE\nraw code\nCODE;\n",
+		'rules' => ['compiler-code-block']
+	],
+	'compiler-complete-power' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Fixture.php',
+		'source' => $productionHeader . "\n\$code = 'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power';\n",
+		'rules' => ['compiler-power-literal']
+	],
+	'compiler-conventional-lines-and-data' => [
+		'path' => 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Fixture.php',
+		'source' => $productionHeader . <<<'PHP'
+
+// <<<DYNAMIC>>> is a marker, not a code block.
+$code = PHP_EOL . Indent::_(2) . '// ' . Line::_(__LINE__, __CLASS__) . ' Generated logic'
+	. PHP_EOL . Indent::_(2) . 'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();';
+$data = str_replace('\t', "\t", $authored);
+$message = 'Translation prose
+with a second line';
+PHP
+		. "\n",
+		'rules' => []
+	],
 	'valid-token-aware-layout' => [
 		'path' => 'fixtures/PassingFixture.php',
 		'source' => <<<'PHP'

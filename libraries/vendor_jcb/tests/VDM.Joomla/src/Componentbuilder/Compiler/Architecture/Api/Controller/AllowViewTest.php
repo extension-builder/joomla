@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Api\Controller
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Error\JsonApi\NotAllowedExceptionHandler;
@@ -30,6 +31,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\FieldNames;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor as JoomlaPowerExtractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector as JoomlaPowerInjector;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
@@ -74,7 +77,6 @@ GEN;
 
 	/**
 	 * The shared item-model block for a component without API views.
-	 * Space markers preserve legacy indentation without adding whitespace errors.
 	 *
 	 * @var    string
 	 * @since  6.1.7
@@ -84,8 +86,8 @@ GEN;
 			// check edit access permissions
 			if (!empty($item->id) && !$this->allowEdit((array) $item))
 			{
-<ONE_SPACE>				$app = Factory::getApplication();
-<TWO_SPACES>				$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
+				$app = Factory::getApplication();
+				$app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
 				$app->redirect('index.php?option=com_demo');
 				return false;
 			}
@@ -144,8 +146,48 @@ GEN;
 	{
 		$subject = $this->renderer(AllowView::class);
 
-		$expected = str_replace(['<ONE_SPACE>', '<TWO_SPACES>'], [' ', '  '], self::EXPECTED_ITEM_EDIT);
-		$this->assertSame($expected, $subject->getItemGuard('demo', false));
+		$this->assertSame(self::EXPECTED_ITEM_EDIT, $subject->getItemGuard('demo', false));
+	}
+
+	/**
+	 * Both item guards follow configured indentation and comment provenance.
+	 *
+	 * @param   bool  $apiEnabled  Whether API reads are generated.
+	 * @param   bool  $debug       Whether source markers are generated.
+	 *
+	 * @return  void
+	 * @since   6.1.7
+	 */
+	#[DataProvider('itemGuardFormatting')]
+	public function testItemGuardsRespectConfiguredFormatting(bool $apiEnabled, bool $debug): void
+	{
+		$subject = $this->renderer(AllowView::class);
+		$tabs = $subject->getItemGuard('demo', $apiEnabled);
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '    ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$output = $subject->getItemGuard('demo', $apiEnabled);
+		$marker = '/ \\[' . preg_quote(AllowView::class, '/') . ' [0-9]+\\]/';
+
+		$this->assertSame($debug ? 1 : 0, preg_match($marker, $output));
+		$this->assertSame(str_replace("\t", '    ', $tabs), preg_replace($marker, '', $output));
+		$this->assertStringContainsString(PHP_EOL . str_repeat(' ', 16) . '$app = Factory::getApplication();', $output);
+	}
+
+	/**
+	 * Cover native and shared item guards with source markers enabled or disabled.
+	 *
+	 * @return  array<string, array{bool, bool}>  Guard formatting modes.
+	 * @since   6.1.7
+	 */
+	public static function itemGuardFormatting(): array
+	{
+		return [
+			'edit guard' => [false, false],
+			'edit guard with comments' => [false, true],
+			'API guard' => [true, false],
+			'API guard with comments' => [true, true],
+		];
 	}
 
 	/**

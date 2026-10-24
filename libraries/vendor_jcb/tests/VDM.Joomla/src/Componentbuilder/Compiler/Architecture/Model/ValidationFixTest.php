@@ -35,6 +35,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixR
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor as JoomlaPowerExtractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector as JoomlaPowerInjector;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
@@ -108,6 +110,97 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$reflection->setValue(null, $value);
 		}
 		parent::tearDown();
+	}
+
+	/**
+	 * Native validation and its registered rule use the configured code formatting.
+	 *
+	 * @param   string  $indent  One generated indentation level.
+	 * @param   bool    $debug   Include compiler source references in comments.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('generatedFormatting')]
+	public function testConfiguredFormattingPreservesNativeValidation(string $indent, bool $debug): void
+	{
+		$definitions = new ValidationFixRegistry();
+		$definitions->set('record', ['details']);
+		$definitions->setConditions('record', [self::group()]);
+		$compiler = new CompilerRegistry();
+		$generator = new ValidationFix($definitions, $compiler, new ConditionalRule());
+		$method = $generator->get('record', 'Demo');
+		$rule = $compiler->get('validation.rules.jcbconditionalrequired');
+
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$formatted = $generator->get('record', 'Demo');
+		$registered = $compiler->get('validation.rules.jcbconditionalrequired');
+
+		foreach ([[$method, $formatted, ValidationFix::class], [$rule, $registered, ConditionalRule::class]] as [$original, $actual, $class])
+		{
+			$expected = preg_replace_callback('/^\t+/m', static fn (array $match): string => str_repeat($indent, strlen($match[0])), $original);
+			$comments = '/(?<=\/\/) \[' . preg_quote($class, '/') . ' [1-9][0-9]*\]/';
+			if ($debug)
+			{
+				$this->assertMatchesRegularExpression($comments, $actual);
+			}
+			else
+			{
+				$this->assertDoesNotMatchRegularExpression($comments, $actual);
+			}
+			$this->assertSame($expected, preg_replace($comments, '', $actual));
+		}
+
+		$validate = $this->validator([self::group()], ['id' => 9, 'mode' => 'expert']);
+		$form = $this->form();
+		$this->assertFalse($validate($form, ['id' => 9, 'name' => 'Missing details']));
+		$data = ['id' => 9, 'name' => 'Complete', 'details' => 'Required value'];
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+	}
+
+	/**
+	 * Exercise tab and space indentation with compiler source comments on and off.
+	 *
+	 * @return  iterable<string, array{string, bool}>
+	 * @since   6.2.0
+	 */
+	public static function generatedFormatting(): iterable
+	{
+		foreach (['tabs' => "\t", 'two spaces' => '  ', 'four spaces' => '    '] as $name => $indent)
+		{
+			foreach ([false, true] as $debug)
+			{
+				yield $name . ($debug ? ' with source comments' : '') => [$indent, $debug];
+			}
+		}
+	}
+
+	/**
+	 * Emission indentation must not rewrite whitespace inside authored option values.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testConditionValuesKeepTheirOwnWhitespace(): void
+	{
+		$value = "first\n\t\tsecond\n    third";
+		$group = self::group();
+		$group['matches'][0]['options'] = [$value];
+
+		foreach (["\t", '  '] as $indent)
+		{
+			(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+			(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+			$validate = $this->validator([$group], ['id' => 9, 'mode' => $value]);
+			$form = $this->form();
+
+			$this->assertFalse($validate($form, ['id' => 9, 'name' => 'Missing details']));
+			$data = ['id' => 9, 'name' => 'Complete', 'details' => 'Required value'];
+			$this->assertSame($data, $validate($form, $data));
+		}
 	}
 
 	/**

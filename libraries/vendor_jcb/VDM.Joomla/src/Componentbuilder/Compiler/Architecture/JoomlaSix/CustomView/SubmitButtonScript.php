@@ -14,6 +14,7 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\CustomView
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\SubmitButtonScript as SharedSubmitButtonScript;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -56,9 +57,21 @@ final class SubmitButtonScript extends SharedSubmitButtonScript
 	{
 		$assetName = 'com_' . $this->config->component_code_name . '.' . $name . '.submit';
 
-		return PHP_EOL . '<?php' . PHP_EOL
-			. '$this->getDocument()->getWebAssetManager()->addInlineScript('
-			. var_export($script, true) . ", ['name' => " . var_export($assetName, true)
-			. "], [], ['core']);" . PHP_EOL . '?>';
+		$lines = explode(PHP_EOL, $script);
+		$code = PHP_EOL . Indent::_(0) . '<?php';
+		$code .= PHP_EOL . Indent::_(0) . '$jcbSubmitScript = ' . var_export(array_shift($lines), true);
+
+		foreach ($lines as $line)
+		{
+			$code .= PHP_EOL . Indent::_(1) . '. PHP_EOL . ' . var_export($line, true);
+		}
+
+		$code .= ';';
+		$code .= PHP_EOL . Indent::_(0) . '$this->getDocument()->getWebAssetManager()->addInlineScript(';
+		$code .= PHP_EOL . Indent::_(1) . '$jcbSubmitScript, [\'name\' => ' . var_export($assetName, true) . "], [], ['core']";
+		$code .= PHP_EOL . Indent::_(0) . ');';
+		$code .= PHP_EOL . Indent::_(0) . '?>';
+
+		return $code;
 	}
 }

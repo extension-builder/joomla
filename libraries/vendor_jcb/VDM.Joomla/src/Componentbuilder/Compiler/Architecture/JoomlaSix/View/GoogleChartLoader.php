@@ -12,6 +12,7 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as SharedGoogleChartLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla six GoogleChartLoader renderer.
@@ -35,12 +36,12 @@ final class GoogleChartLoader extends SharedGoogleChartLoader
 			return '';
 		}
 
-		return PHP_EOL . "\t\trequire_once JPATH_ADMINISTRATOR . '/components/com_" . $this->config->component_code_name . "/src/Helper/Chartbuilder.php';"
-			. PHP_EOL . "\t\t\$jcbChartAssets = \$this->getDocument()->getWebAssetManager();"
-			. PHP_EOL . "\t\tif (!\$jcbChartAssets->assetExists('script', 'google.charts'))"
-			. PHP_EOL . "\t\t{"
-			. PHP_EOL . "\t\t\t\$jcbChartAssets->registerScript('google.charts', 'https://www.gstatic.com/charts/loader.js');"
-			. PHP_EOL . "\t\t}"
-			. PHP_EOL . "\t\t\$jcbChartAssets->useScript('google.charts');";
+		return PHP_EOL . Indent::_(2) . "require_once JPATH_ADMINISTRATOR . '/components/com_" . $this->config->component_code_name . "/src/Helper/Chartbuilder.php';"
+			. PHP_EOL . Indent::_(2) . "\$jcbChartAssets = \$this->getDocument()->getWebAssetManager();"
+			. PHP_EOL . Indent::_(2) . "if (!\$jcbChartAssets->assetExists('script', 'google.charts'))"
+			. PHP_EOL . Indent::_(2) . "{"
+			. PHP_EOL . Indent::_(3) . "\$jcbChartAssets->registerScript('google.charts', 'https://www.gstatic.com/charts/loader.js');"
+			. PHP_EOL . Indent::_(2) . "}"
+			. PHP_EOL . Indent::_(2) . "\$jcbChartAssets->useScript('google.charts');";
 	}
 }

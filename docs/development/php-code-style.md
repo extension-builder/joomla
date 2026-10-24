@@ -181,11 +181,29 @@ This requirement includes:
 - workflow helper PHP; and
 - new JCB-owned adapters around upstream libraries.
 
-Embedded JavaScript, CSS, XML, SQL, generated PHP, heredoc, or nowdoc content
-may retain the whitespace required by the emitted target. The surrounding PHP
-control structure still uses tabs. Never reindent a generated string merely
-to make the host file appear uniform when the string is a golden-output
-contract.
+Compiler-owned generated PHP, JavaScript, CSS, XML and SQL must be assembled
+line by line with `PHP_EOL` and `Indent::_(n)`. Each emitted line declares its
+own indentation level. Use `Line::_(__LINE__, __CLASS__)` for generated logic
+comments, following the surrounding emitter's convention. The compiler's
+configured indentation controls generated output; the host PHP still uses tabs.
+
+Do not emit owned code through heredoc/nowdoc, raw multiline code strings,
+literal indentation tabs/spaces, or block-wide indentation replacements.
+Existing line arrays whose entries use `Indent::_()` remain valid, including
+arrays passed by reference to compiler extension events. Do not replace those
+contracts with another rendering abstraction.
+
+Preserve opaque authored source, stored scripts, translation prose, SQL values,
+parser expressions and escape-decoding strings as data. They are not compiler
+owned code blocks. Static files in `admin/compiler` remain conventional template
+files; this rule concerns the runtime emitters. Generated Power placeholders
+must remain split across source string literals so self-compilation does not
+resolve them prematurely; see the
+[extraction rules](../architecture/adminview-extraction-records.md).
+
+Validate changed emitters with tabs and space-based indentation, debug comments
+enabled and disabled, and generated behavior. Review exact golden-output
+changes rather than normalizing whitespace in comparisons.
 
 ### Line endings and trailing whitespace
 

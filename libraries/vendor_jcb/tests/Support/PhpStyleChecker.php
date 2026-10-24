@@ -20,7 +20,7 @@ use RuntimeException;
  * Checks contributed vendor-library PHP against the first-party style contract.
  *
  * The checker deliberately uses only PHP built-ins and Git. Token-aware checks
- * ignore comments and literal content so generated strings remain untouched.
+	 * distinguish PHP layout from compiler generated-code conventions.
  *
  * @since  1.0.0
  */
@@ -163,6 +163,7 @@ final class PhpStyleChecker
 		self::inspectTokens($tokens, $issues);
 		self::inspectIndentation($source, $tokens, $issues);
 		self::inspectOpeningBraces($source, $tokens, $issues);
+		self::inspectCompilerEmission($tokens, $displayPath, $issues);
 
 		if (self::isStyleInScope($displayPath))
 		{
@@ -175,6 +176,51 @@ final class PhpStyleChecker
 		}
 
 		return self::formatIssues($issues, $displayPath, $addedLines);
+	}
+
+	/**
+	 * Enforce unambiguous compiler emission rules without interpreting authored data.
+	 *
+	 * @param   array   $tokens       PHP tokens to inspect.
+	 * @param   string  $displayPath  Repository-relative source path.
+	 * @param   array   &$issues      Collected diagnostics.
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	private static function inspectCompilerEmission(array $tokens, string $displayPath, array &$issues): void
+	{
+		if (!str_starts_with($displayPath, 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/'))
+		{
+			return;
+		}
+
+		foreach ($tokens as $token)
+		{
+			if (!is_array($token))
+			{
+				continue;
+			}
+
+			[$kind, $text, $line] = $token;
+
+			if ($kind === T_START_HEREDOC)
+			{
+				self::addIssue($issues, $line, 'compiler-code-block',
+					'Build compiler-owned code line by line with PHP_EOL and Indent::_(), not heredoc or nowdoc.');
+			}
+
+			if ($kind !== T_CONSTANT_ENCAPSED_STRING && $kind !== T_ENCAPSED_AND_WHITESPACE)
+			{
+				continue;
+			}
+
+			if (preg_match('/(?:Joomla|Super)___[0-9a-f]{8}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9a-f]{12}___Power/i', $text))
+			{
+				self::addIssue($issues, $line, 'compiler-power-literal',
+					'Split generated Power placeholders across string literals to preserve compiler self-compilation.');
+			}
+		}
 	}
 
 	/**

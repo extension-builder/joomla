@@ -48,6 +48,7 @@ use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
 use VDM\Joomla\Componentbuilder\Compiler\Language;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Creator;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Power\Parser;
 
 
@@ -66,7 +67,7 @@ use VDM\Joomla\Componentbuilder\Power\Parser;
 final class NativeDkimConfigurationTest extends CreatorTestCase
 {
 	/**
-	 * Earlier targets keep the exact baseline field XML and language values.
+	 * Earlier targets retain the inline script with compiler-controlled formatting.
 	 *
 	 * @param   int     $major  Target Joomla major.
 	 * @param   string  $class  Expected concrete creator.
@@ -89,9 +90,9 @@ final class NativeDkimConfigurationTest extends CreatorTestCase
 		{
 			$content = (new ReflectionProperty(Language::class, 'content'))->getValue($language);
 			$this->assertSame(
-				'5cbc334347c36e0d97729eb829470c31870148d3664c726e93b08d632cdb1b71',
+				'22d367eeb20061566b4f8a04ddef724898a7b3c08b0569668ac8669a802d9260',
 				hash('sha256', $xml . "\n" . json_encode($content)),
-				'Complete XML/language snapshot recorded from merged base faa95cdeecdbdb4504f27d66870310aec1a3ec0f.'
+				'Reviewed XML/language snapshot: only the inline DKIM script changed from fixed spaces/CRLF to Indent/PHP_EOL.'
 			);
 			$this->assertStringContainsString('<script>', $description);
 			$this->assertStringContainsString('<field type="note" name="note_dkim_use"', $xml);
@@ -101,6 +102,45 @@ final class NativeDkimConfigurationTest extends CreatorTestCase
 			$this->assertStringNotContainsString('<script', $description);
 			$this->assertStringContainsString("id='a_dkim_domain'", $description);
 			$this->assertStringContainsString('type="Dkim" addfieldprefix="DkimFixture\Component\Demo\Administrator\Field"', $xml);
+		}
+	}
+
+	/**
+	 * The older inline script honors the same indentation setting as generated PHP.
+	 *
+	 * @param   int     $major  Target Joomla major.
+	 * @param   string  $class  Expected concrete creator.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('targets')]
+	public function testDkimDescriptionUsesConfiguredIndentation(int $major, string $class): void
+	{
+		[$creator, , $language] = $this->fixture($major);
+		$creator->set('COM_DEMO_CONFIG');
+		$original = $language->get('admin', 'COM_DEMO_CONFIG_NOTE_DKIM_USE_DESCRIPTION');
+
+		foreach (['  ', '    '] as $indent)
+		{
+			(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+			(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+			[$creator, , $language] = $this->fixture($major);
+			$creator->set('COM_DEMO_CONFIG');
+			$actual = $language->get('admin', 'COM_DEMO_CONFIG_NOTE_DKIM_USE_DESCRIPTION');
+			$expected = str_replace("\t", $indent, $original);
+			$this->assertSame($expected, $actual);
+			$this->assertStringNotContainsString("\t", $actual);
+			$this->assertStringNotContainsString("\r", $actual);
+			if ($major < 6)
+			{
+				$this->assertStringContainsString($indent . 'var jformDkimDomain', $actual);
+				$this->assertStringContainsString($indent . $indent . 'jformDkimDomain.value = window.location.hostname;', $actual);
+			}
+			else
+			{
+				$this->assertStringNotContainsString('<script', $actual);
+			}
 		}
 	}
 

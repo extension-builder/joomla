@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use Closure;
+use ReflectionProperty;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseInterface;
@@ -32,6 +33,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelExpertField;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ModelExpertFieldInitiator;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\PermissionFields;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 
 /**
@@ -90,6 +93,35 @@ GEN;
 	{
 		$this->assertStringStartsWith(self::RECORD_KEYS, $this->save($version));
 		$this->assertStringContainsString('$jcbPatchStored = [];', $this->save($version));
+	}
+
+	/**
+	 * PATCH branches and per-field comparisons honor indentation and source comments.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('versions')]
+	public function testPatchFormattingFollowsCompilerSettings(string $version, int $major): void
+	{
+		$original = $this->save($version, $this->guarded());
+		foreach (['  ', '    '] as $indent)
+		{
+			(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+			(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+			(new ReflectionProperty(Line::class, 'add'))->setValue(null, true);
+			$actual = $this->save($version, $this->guarded());
+			$this->assertMatchesRegularExpression('/\/\/ \[VDM\\\\Joomla\\\\Componentbuilder\\\\Compiler\\\\Architecture\\\\Model\\\\ItemSave [1-9][0-9]*\] Preserve omitted API PATCH values/', $actual);
+			$this->assertStringContainsString(
+				PHP_EOL . str_repeat($indent, 4) . ($major === 6 ? 'throw new \\RuntimeException(' : '$this->setError('),
+				$actual
+			);
+			$expected = preg_replace_callback('/^\t+/m', static fn (array $match): string => str_repeat($indent, strlen($match[0])), $original);
+			$this->assertSame($expected, preg_replace('/(?<=\/\/) \[VDM\\\\Joomla\\\\Componentbuilder\\\\Compiler\\\\Architecture\\\\[^\]]+ [1-9][0-9]*\]/', '', $actual));
+		}
 	}
 
 	/**
