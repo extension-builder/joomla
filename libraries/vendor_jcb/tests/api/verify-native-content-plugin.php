@@ -12,6 +12,9 @@ use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Event\Model\PrepareFormEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Installer\Installer;
+use Joomla\CMS\Installer\InstallerAdapter;
+use Joomla\CMS\Installer\InstallerScriptInterface;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Event\Dispatcher;
@@ -87,10 +90,11 @@ if (Factory::$application->get('sitename') !== 'JCB API tests')
 
 $name = 'componentbuilderfieldorderingtabs';
 $installed = JPATH_PLUGINS . '/content/' . $name;
+$sourceClass = $plugins . '/plg_content_' . $name . '/src/Extension/ComponentbuilderFieldOrderingTabs.php';
 $sourceForm = $plugins . '/plg_content_' . $name . '/forms/admin_view.xml';
 $installedForm = $installed . '/forms/admin_view.xml';
 
-if (!is_file($sourceForm) || !is_file($installedForm)
+if (!is_file($sourceClass) || !is_file($sourceForm) || !is_file($installedForm)
 	|| hash_file('sha256', $sourceForm) !== hash_file('sha256', $installedForm))
 {
 	throw new RuntimeException('The generated package must install the exact pinned FieldOrderingTabs form.');
@@ -100,12 +104,42 @@ $manifest = simplexml_load_file($installed . '/' . $name . '.xml');
 
 if (!$manifest || (string) $manifest['group'] !== 'content'
 	|| (string) $manifest->namespace['path'] !== 'src'
-	|| (string) $manifest->namespace === '')
+	|| (string) $manifest->namespace === ''
+	|| (string) $manifest->scriptfile !== 'script.php'
+	|| !is_file($installed . '/services/provider.php') || !is_file($installed . '/script.php'))
 {
-	throw new RuntimeException('The installed plugin must have a native namespace and content manifest.');
+	throw new RuntimeException('The compiled package must supply a native manifest, provider and installer script.');
 }
 
 $db = $container->get(DatabaseInterface::class);
+$definitions = $db->setQuery($db->createQuery()
+	->select('*')
+	->from($db->quoteName('#__componentbuilder_joomla_plugin'))
+	->where($db->quoteName('guid') . ' = ' . $db->quote('bea9d1e9-391d-43aa-b82d-64f01c7ab2b8')))->loadAssocList();
+require_once JPATH_BASE . '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Power/Parser.php';
+$parser = new VDM\Joomla\Componentbuilder\Power\Parser();
+$authoredSource = file_get_contents($sourceClass);
+$authoredBody = $parser->getClassCode($authoredSource);
+$authoredImports = $parser->getUseStatements($authoredSource);
+
+if (count($definitions) !== 1 || $authoredBody === null || $authoredImports === null
+	|| preg_match('/\bfunction\s+getSubscribedEvents\s*\(/i', $authoredBody) === 1
+	|| str_contains($authoredSource, 'SubscriberInterface')
+	|| base64_decode($definitions[0]['main_class_code'], true) !== $authoredBody
+	|| base64_decode($definitions[0]['head'], true) !== implode(PHP_EOL, $authoredImports))
+{
+	throw new RuntimeException('Compilation must retain the exact authored handler/imports in the database without generated subscriber scaffolding.');
+}
+
+foreach ($definitions[0] as $field => $value)
+{
+	if ((str_starts_with($field, 'add_php_') && (int) $value !== 0)
+		|| (str_starts_with($field, 'php_') && $value !== null && $value !== ''))
+	{
+		throw new RuntimeException('This fixture must use compiler-owned lifecycle defaults without authored installer additions.');
+	}
+}
+
 $query = $db->createQuery()
 	->select($db->quoteName('extension_id'))
 	->from($db->quoteName('#__extensions'))
@@ -135,6 +169,14 @@ if (!PluginHelper::getPlugin('content', $name))
 	throw new RuntimeException('The installed content plugin must be discoverable by Joomla.');
 }
 
+// Construct Joomla's adapter before capture: its own Installer constructor uses
+// the deprecated Table factory. Actual script loading below remains captured.
+$installer = new Installer();
+$installer->setDatabase($db);
+$installer->setPath('source', $installed);
+$adapter = $installer->getAdapter('plugin');
+$adapter->setManifest($manifest);
+
 $dispatcher = new Dispatcher();
 $deprecations = [];
 set_error_handler(static function (int $severity, string $message) use (&$deprecations): bool
@@ -145,6 +187,15 @@ set_error_handler(static function (int $severity, string $message) use (&$deprec
 
 try
 {
+	(new ReflectionMethod(InstallerAdapter::class, 'setupScriptfile'))->invoke($adapter);
+	$installerScript = $installer->manifestClass;
+
+	if (!$installerScript instanceof InstallerScriptInterface
+		|| realpath((new ReflectionClass($installerScript))->getFileName()) !== realpath($installed . '/script.php'))
+	{
+		throw new RuntimeException('Joomla must load the generated installer directly through its native interface, without a legacy adapter.');
+	}
+
 	if (PluginHelper::importPlugin('content', $name, true, $dispatcher) !== true)
 	{
 		throw new RuntimeException('Joomla failed to import the compiled content subscriber.');
@@ -156,6 +207,7 @@ try
 
 	if (!$plugin instanceof SubscriberInterface || $reflection->getName() !== $expectedClass
 		|| realpath($reflection->getFileName()) !== realpath($installed . '/src/Extension/ComponentbuilderFieldOrderingTabs.php')
+		|| $reflection->getMethod('getSubscribedEvents')->getDeclaringClass()->getName() !== $expectedClass
 		|| $plugin::getSubscribedEvents() !== ['onContentPrepareForm' => 'onContentPrepareForm']
 		|| !in_array([$plugin, 'onContentPrepareForm'], $dispatcher->getListeners('onContentPrepareForm'), true))
 	{
@@ -220,5 +272,6 @@ if ($deprecations !== [])
 }
 
 echo "Installed provider booted {$expectedClass} from {$reflection->getFileName()}.\n";
+echo "Compiler generated the subscriber map/interface and native installer; stored authored handlers/imports remain unchanged.\n";
 echo "Native PrepareFormEvent added four real ordering fields and preserved nested subforms and existing data.\n";
 echo "Unrelated forms were unchanged; no legacy results or plugin deprecations were emitted.\n";

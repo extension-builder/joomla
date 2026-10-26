@@ -11,9 +11,10 @@
 /**
  * Store the migrated FieldOrderingTabs source as a component-linked definition.
  *
- * The pinned plugins checkout supplies the real class body, imports and forms.
- * Normal compiler database loading, folder copying and packaging must reproduce
- * the plugin; this does not import a complete maintained JCB source export.
+ * The pinned plugins checkout supplies authored handlers, imports and forms.
+ * Subscriber scaffolding, providers and installer lifecycle wrappers are not
+ * imported: the Joomla 6 compiler must generate them from the stored definition.
+ * This does not import a complete maintained JCB source export.
  *
  * Usage: php seed-native-content-plugin.php <site root> <plugins root> [component guid]
  *
@@ -57,10 +58,15 @@ $body = $parser->getClassCode($source);
 $imports = $parser->getUseStatements($source);
 
 if ($body === null || $body === '' || $imports === null
-	|| !str_contains($body, 'function getSubscribedEvents()')
 	|| !str_contains($body, 'onContentPrepareForm(PrepareFormEvent $event): void'))
 {
-	throw new RuntimeException('The source fixture must contain the migrated native form subscriber.');
+	throw new RuntimeException('The source fixture must contain the authored native form handler.');
+}
+
+if (preg_match('/\bfunction\s+getSubscribedEvents\s*\(/i', $body) === 1
+	|| str_contains($source, 'SubscriberInterface'))
+{
+	throw new RuntimeException('The authored fixture must not supply the subscriber map or interface; Joomla 6 compilation owns that scaffolding.');
 }
 
 $mainClassCode = base64_encode($body);
@@ -171,4 +177,5 @@ finally
 
 echo "FieldOrderingTabs source SHA-256: " . hash_file('sha256', $sourcePath) . "\n";
 echo "FieldOrderingTabs form SHA-256: " . hash_file('sha256', $formsPath . '/admin_view.xml') . "\n";
-echo "Stored native plugin {$pluginGuid} and linked it alongside the API fixture to {$component}.\n";
+echo "Stored authored handler/imports without subscriber scaffolding or lifecycle additions.\n";
+echo "Linked native plugin {$pluginGuid} alongside the API fixture to {$component}.\n";

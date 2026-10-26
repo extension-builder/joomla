@@ -8,9 +8,10 @@
 # zipped, and handed to extension:install. The shipped demo component then
 # gets the one thing it lacks for an API, a plugin of the webservices group
 # carrying [[[API_ROUTES_METHOD]]], is compiled with this working tree's
-# compiler, and is installed together with that plugin. A pinned migrated
-# content plugin is stored as a linked definition, compiled, installed, and
-# booted by Joomla to dispatch a real native form event. A user with an API
+# compiler, and is installed together with that plugin. Authored content-plugin
+# handlers/forms from a pinned checkout are stored as a linked definition.
+# The compiler generates its subscriber scaffolding, provider and installer;
+# Joomla installs it and dispatches a real native form event. A user with an API
 # token drives v1/demo/looks through PHP's built-in server:
 # libraries/vendor_jcb/tests/api/scenarios.php says what is checked.
 #
@@ -179,7 +180,7 @@ verify_package tree
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
 
-say "Storing and linking the migrated native content plugin source and forms"
+say "Storing and linking the authored native content handler and forms"
 JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-native-content-plugin.php" \
 	"${SITE}" "${JCB_PLUGINS_SOURCE}" "${DEMO_COMPONENT}" 2>&1 | tee "${OUT_DIR}/native-content-seed.log"
 
