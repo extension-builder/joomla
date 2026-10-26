@@ -86,7 +86,7 @@ final class AssetsTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Inline footer PHP runs in its view and depends on already active script files.
+	 * Authored list footer PHP runs in its view and emits JavaScript after the body.
 	 *
 	 * @param   string  $indent  The configured indentation unit.
 	 *
@@ -94,42 +94,35 @@ final class AssetsTest extends ArchitectureTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('indentationValues')]
-	public function testFooterCapturesDynamicPhpAndRetainsAssetDependencies(string $indent): void
+	public function testFooterExecutesDynamicPhpAtItsOriginalBodyPosition(string $indent): void
 	{
 		$this->configureEmission($indent);
 		$authored = "\n\t  window.caption = <?php echo json_encode(\$this->label); ?>;\n";
 		$source = $this->footer($authored);
-		$this->assertStringContainsString('?>' . $authored . '<?php', $source);
-		$this->assertStringContainsString(PHP_EOL . $indent . '$jcbFooterScript = ob_get_contents();', $source);
-		$this->assertStringContainsString(PHP_EOL . $indent . 'while (ob_get_level() > $jcbFooterBufferLevel)', $source);
-		$this->assertStringContainsString(PHP_EOL . $indent . $indent . 'ob_end_clean();', $source);
+		$this->assertSame(PHP_EOL . '<script type="text/javascript">' . $authored . '</script>', $source);
 		$view = $this->runtimeView();
 		$wa = $view->getDocument()->getWebAssetManager();
 		$wa->registerAndUseScript('com_demo.file', 'https://example.invalid/file.js', [], [], ['core']);
-		$this->assertSame('', trim($view->run($source)));
-		$assets = $wa->getAssets('script', true);
-		$this->assertSame(['core', 'com_demo.file', 'com_demo.admin.articles.footer'], array_keys($assets));
-		$footer = $assets['com_demo.admin.articles.footer'];
-		$this->assertSame("\t  window.caption = \"O'Reilly\";\n", $footer->getOption('content'));
-		$this->assertSame(['core', 'com_demo.file'], $footer->getDependencies());
-		$this->assertTrue($footer->getOption('inline'));
-		$this->assertStringNotContainsString('<script', $source);
+		$body = '<form id="adminForm"></form>';
+		$expected = $body . PHP_EOL . '<script type="text/javascript">'
+			. "\n\t  window.caption = \"O'Reilly\";\n" . '</script>';
+		$this->assertSame($expected, $view->run($body . $source));
+		$this->assertSame(['core', 'com_demo.file'], array_keys($wa->getAssets('script', true)));
 
-		// Re-rendering the same layout must not introduce a dependency on itself.
-		$this->assertSame('', trim($view->run($source)));
-		$this->assertSame(array_keys($assets), array_keys($wa->getAssets('script', true)));
-		$this->assertSame(['core', 'com_demo.file'], $wa->getAssets('script')['com_demo.admin.articles.footer']->getDependencies());
+		// Each layout render retains its own footer, without registering a head asset.
+		$this->assertSame($expected, $view->run($body . $source));
+		$this->assertSame(['core', 'com_demo.file'], array_keys($wa->getAssets('script', true)));
 	}
 
 	/**
-	 * Failed custom PHP cannot leak nested buffers or register partial JavaScript.
+	 * Custom footer PHP errors propagate without registering partial head scripts.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
 	public function testFooterFailurePreservesTheCallingOutputBuffer(): void
 	{
-		$source = $this->footer('before; <?php ob_start(); echo "nested"; throw new \\RuntimeException("footer failed"); ?> after;');
+		$source = $this->footer('before; <?php throw new \\RuntimeException("footer failed"); ?> after;');
 		$view = $this->runtimeView();
 		$level = ob_get_level();
 		ob_start();

@@ -639,7 +639,7 @@ class Model implements ServiceProviderInterface
 	}
 
 	/**
-	 * Get the Joomla 6 JavaScript collector with footer placement diagnostics.
+	 * Get the Joomla 6 JavaScript collector with preserved footer semantics.
 	 *
 	 * @param   Container  $container  The DI container.
 	 *
@@ -649,8 +649,7 @@ class Model implements ServiceProviderInterface
 	public function getJavascriptadminviewJ6(Container $container): JavascriptadminviewJ6
 	{
 		return new JavascriptadminviewJ6(
-			$container->get('Customcode.Dispenser'),
-			\Joomla\CMS\Factory::getApplication()
+			$container->get('Customcode.Dispenser')
 		);
 	}
 

@@ -424,7 +424,8 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$this->assertSame($major < 6, (new ReflectionMethod($class, 'usesModalMediaListener'))->invoke($subject));
 		$this->assertSame($major === 6 ? '/media/com_demo/js/admin/articles.js' : '/administrator/components/com_demo/assets/js/articles.js', (new ReflectionMethod($class, 'listScriptPath'))->invoke($subject, 'articles'));
 		$footer = (new ReflectionMethod($class, 'footerScript'))->invoke($subject, 'window.fixture = <?php echo 7; ?>;', 'article');
-		$this->assertStringContainsString($major === 6 ? 'addInlineScript' : '<script type="text/javascript">', $footer);
+		$this->assertSame(PHP_EOL . PHP_EOL . '<script type="text/javascript">' . PHP_EOL
+			. 'window.fixture = <?php echo 7; ?>;' . PHP_EOL . '</script>', $footer);
 	}
 
 	/**
@@ -494,7 +495,7 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * PHP-bearing footer code executes in its view and restores buffer ownership.
+	 * PHP-bearing footer code executes in its view at the authored body position.
 	 *
 	 * @param   string  $indent  Configured indentation unit.
 	 *
@@ -502,7 +503,7 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('indentations')]
-	public function testDynamicViewFooterIsCapturedOnceWithoutSelfDependencies(string $indent): void
+	public function testDynamicViewFooterRendersAfterMarkupWithoutHeadRegistration(string $indent): void
 	{
 		$this->configureIndentation($indent);
 		$assets = $this->assets();
@@ -512,16 +513,17 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$class = \VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\ViewScript::class;
 		$renderer = $this->renderer($class);
 		$source = (new ReflectionMethod($class, 'footerScript'))->invoke($renderer, 'window.fixture = <?php echo 7; ?>;', 'article');
-		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'ob_end_clean();', $source);
 		$run = eval('return function () { ?>' . $source . '<?php };');
 		$view = $this->view($assets);
 		$level = ob_get_level();
 		ob_start();
 		try
 		{
+			echo '<form id="adminForm"></form>';
 			$run->call($view);
-			$run->call($view);
-			$this->assertSame('', trim(ob_get_contents()));
+			$this->assertSame('<form id="adminForm"></form>' . PHP_EOL
+				. '<script type="text/javascript">' . PHP_EOL
+				. 'window.fixture = 7;' . PHP_EOL . '</script>', ob_get_contents());
 			$this->assertSame($level + 1, ob_get_level());
 		}
 		finally
@@ -529,14 +531,11 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 			ob_end_clean();
 		}
 
-		$asset = $assets->getAsset('script', 'com_demo.admin.article.footer');
-		$this->assertSame('window.fixture = 7;', trim($asset->getOption('content')));
-		$this->assertSame(['core', 'jquery', 'project.script'], $asset->getDependencies());
-		$this->assertCount(4, $assets->getAssets('script', true));
+		$this->assertSame(['core', 'jquery', 'project.script'], array_keys($assets->getAssets('script', true)));
 	}
 
 	/**
-	 * Module asset capture retains authored source and the caller's output buffer.
+	 * Module CSS retains WAM loading while authored field JavaScript follows its body.
 	 *
 	 * @param   string  $indent  Configured indentation unit.
 	 *
@@ -544,17 +543,24 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('indentations')]
-	public function testModuleInlineAssetsPreserveAuthoredSource(string $indent): void
+	public function testModuleFooterPreservesBodyPlacementAndNativeCss(string $indent): void
 	{
 		$this->configureIndentation($indent);
 		$assets = $this->assets();
-		$assets->registerScript('core', 'core.js');
-		$assets->registerScript('jquery', 'jquery.js');
 		$class = \VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Module\Template::class;
-		$renderer = $this->renderer($class);
-		$module = (object) ['folder_name' => 'mod_articles'];
+		$module = (object) ['folder_name' => 'mod_articles', 'default' => '<div id="module">Article</div>'];
 		$payload = "const authored = <?php echo 7; ?>;\n  window.moduleValue = authored;";
-		$source = (new ReflectionMethod($class, 'inlineAsset'))->invoke($renderer, $module, 'script', $payload);
+		$dispenser = $this->createMock(\VDM\Joomla\Componentbuilder\Compiler\Interfaces\Customcode\DispenserInterface::class);
+		$dispenser->expects($this->exactly(2))->method('get')->willReturnCallback(
+			function ($first, $second, $prefix, $note, $unset, $default, $suffix) use ($payload): string
+			{
+				$this->assertSame('module.article', $second);
+				$this->assertSame(['', '', true, null, ''], [$prefix, $note, $unset, $default, $suffix]);
+				return $first === 'css_views' ? '#module { color: red; }' : $payload;
+			}
+		);
+		$renderer = $this->renderer($class, ['dispenser' => $dispenser]);
+		$source = $renderer->default($module, 'module.article');
 		$this->assertStringContainsString($payload, $source);
 		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . 'ob_end_clean();', $source);
 		$resolved = $this->resolve('<?php namespace ' . __NAMESPACE__ . ';' . PHP_EOL . 'use stdClass as Factory;' . PHP_EOL . 'return function () { ?>' . $source . '<?php };');
@@ -565,8 +571,9 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		try
 		{
 			$run();
-			$run();
-			$this->assertSame('', trim(ob_get_contents()));
+			$this->assertSame('<div id="module">Article</div>' . PHP_EOL . PHP_EOL
+				. '<script type="text/javascript">const authored = 7;'
+				. "\n  window.moduleValue = authored;" . PHP_EOL . '</script>', trim(ob_get_contents()));
 			$this->assertSame($level + 1, ob_get_level());
 		}
 		finally
@@ -574,11 +581,12 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 			ob_end_clean();
 		}
 
-		$scripts = $assets->getAssets('script', true);
-		$this->assertCount(3, $scripts);
-		$asset = end($scripts);
-		$this->assertSame("const authored = 7;\n  window.moduleValue = authored;", trim($asset->getOption('content')));
-		$this->assertSame(['core', 'jquery'], $asset->getDependencies());
+		$this->assertSame([], $assets->getAssets('script', true));
+		$styles = $assets->getAssets('style', true);
+		$this->assertCount(1, $styles);
+		$style = reset($styles);
+		$this->assertSame('#module { color: red; }', trim($style->getOption('content')));
+		$this->assertSame([], $style->getDependencies());
 	}
 
 	/**

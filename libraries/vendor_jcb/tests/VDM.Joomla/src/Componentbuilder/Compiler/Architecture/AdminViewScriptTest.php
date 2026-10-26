@@ -690,7 +690,8 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		$this->assertStringContainsString("jQuery(function () {", $footer);
 		$this->assertStringContainsString(".on('change', '#jform_kind'", $footer);
 		$this->assertStringNotContainsString('SqueezeBox', $footer);
-		$this->assertStringContainsString('addInlineScript', $footer);
+		$this->assertStringContainsString('<script type="text/javascript">', $footer);
+		$this->assertStringNotContainsString('addInlineScript', $footer);
 	}
 
 	/**

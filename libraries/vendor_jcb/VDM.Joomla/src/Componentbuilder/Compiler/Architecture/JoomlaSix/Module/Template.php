@@ -134,7 +134,12 @@ final class Template implements TemplateInterface
 		}
 
 		$javascript = (string) $this->dispenser->get('views_footer', $key, '', '', true, null, '');
-		$default .= $this->inlineAsset($module, 'script', $javascript);
+
+		if ($javascript !== '')
+		{
+			$default .= PHP_EOL . '<script type="text/javascript">'
+				. $javascript . PHP_EOL . '</script>' . PHP_EOL;
+		}
 
 		// return the default content for the model default area
 		return $this->placeholder->update(

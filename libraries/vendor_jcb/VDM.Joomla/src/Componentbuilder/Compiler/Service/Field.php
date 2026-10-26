@@ -358,7 +358,7 @@ class Field implements ServiceProviderInterface
 	}
 
 	/**
-	 * Get the Joomla six field footer placement diagnostics.
+	 * Get the Joomla six field custom-code collector.
 	 *
 	 * @param   Container  $container  Compiler services.
 	 *
@@ -368,8 +368,7 @@ class Field implements ServiceProviderInterface
 	public function getJ6Customcode(Container $container): J6Customcode
 	{
 		return new J6Customcode(
-			$container->get('Customcode.Dispenser'),
-			\Joomla\CMS\Factory::getApplication()
+			$container->get('Customcode.Dispenser')
 		);
 	}
 

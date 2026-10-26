@@ -47,10 +47,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check out the migrated native plugin fixture
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: extension-builder/plugins
+          ref: 8456005f1de725ff30bb928accb20fd86eb37488
+          path: .api-tests/plugin-source
+          persist-credentials: false
+
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: curl, dom, fileinfo, gd, intl, mbstring, mysqli, openssl, simplexml, sodium, xml, xmlwriter, zip
           ini-values: memory_limit=1G
           coverage: none
@@ -70,6 +78,7 @@ jobs:
           JCB_DB_USER: root
           JCB_DB_PASS: root
           JCB_API_HAMMER: ${{ inputs.hammer || '25' }}
+          JCB_PLUGINS_SOURCE: ${{ github.workspace }}/.api-tests/plugin-source
           GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/api-tests/run.sh "${GITHUB_WORKSPACE}/.api-tests"
 

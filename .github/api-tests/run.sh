@@ -8,7 +8,9 @@
 # zipped, and handed to extension:install. The shipped demo component then
 # gets the one thing it lacks for an API, a plugin of the webservices group
 # carrying [[[API_ROUTES_METHOD]]], is compiled with this working tree's
-# compiler, and is installed together with that plugin. A user with an API
+# compiler, and is installed together with that plugin. A pinned migrated
+# content plugin is stored as a linked definition, compiled, installed, and
+# booted by Joomla to dispatch a real native form event. A user with an API
 # token drives v1/demo/looks through PHP's built-in server:
 # libraries/vendor_jcb/tests/api/scenarios.php says what is checked.
 #
@@ -29,6 +31,8 @@
 #   JCB_API_HAMMER     Concurrent creates in the burst scenario (default 25)
 #   JCB_API_REPRODUCE  Set to 1 to assert the create fails the way it did before
 #                      the record-key fix, instead of running the scenarios
+#   JCB_PLUGINS_SOURCE Checkout of extension-builder/plugins supplying the real
+#                      FieldOrderingTabs source/forms (default .api-tests/plugin-source)
 #   KEEP_SITE          Set to 1 to leave the site and server running afterwards
 #
 set -euo pipefail
@@ -121,6 +125,14 @@ start_server() {
 mkdir -p "${OUT_DIR}"
 OUT_DIR="$(cd "${OUT_DIR}" && pwd)"
 SITE="${OUT_DIR}/site"
+JCB_PLUGINS_SOURCE="${JCB_PLUGINS_SOURCE:-${OUT_DIR}/plugin-source}"
+if [[ ! -s "${JCB_PLUGINS_SOURCE}/plg_content_componentbuilderfieldorderingtabs/src/Extension/ComponentbuilderFieldOrderingTabs.php" \
+	|| ! -s "${JCB_PLUGINS_SOURCE}/plg_content_componentbuilderfieldorderingtabs/forms/admin_view.xml" ]]
+then
+	echo "Set JCB_PLUGINS_SOURCE to the pinned plugins checkout; the native plugin regression fixture is required."
+	exit 1
+fi
+JCB_PLUGINS_SOURCE="$(cd "${JCB_PLUGINS_SOURCE}" && pwd)"
 
 say "Joomla ${JCB_JOOMLA} into ${SITE}"
 if [[ ! -s "${OUT_DIR}/joomla.zip" ]]
@@ -167,6 +179,10 @@ verify_package tree
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
 
+say "Storing and linking the migrated native content plugin source and forms"
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-native-content-plugin.php" \
+	"${SITE}" "${JCB_PLUGINS_SOURCE}" "${DEMO_COMPONENT}" 2>&1 | tee "${OUT_DIR}/native-content-seed.log"
+
 say "Adding optional encoded fields to the disposable Demo source definition"
 JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
 
@@ -201,9 +217,11 @@ then
 	exit 1
 fi
 
-say "Installing the compiled demo and its webservices plugin"
-for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
+say "Installing the compiled demo and its linked webservices and content plugins"
+for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip \
+	"${SITE}"/tmp/plg_content_componentbuilderfieldorderingtabs_*.zip
 do
+	[[ -s "${package}" ]] || { echo "Compile left a missing component or linked plugin package: ${package}"; cat "${OUT_DIR}/compile.log"; exit 1; }
 	label="demo-$(basename "${package}" .zip)"
 	prepare_package "${package}" "${label}"
 	console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/demo-install.log" 2>&1
@@ -218,6 +236,10 @@ $db = new mysqli($host, $c->user, $c->password, $c->db, (int) $port);
 $db->query("UPDATE `{$c->dbprefix}extensions` SET enabled = 1 WHERE folder = \"webservices\" AND element LIKE \"demo%\"");
 echo "webservices plugin enabled\n";
 ' "${SITE}"
+
+say "Booting the installed native content provider and dispatching its real form event"
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/verify-native-content-plugin.php" \
+	"${SITE}" "${JCB_PLUGINS_SOURCE}" 2>&1 | tee "${OUT_DIR}/native-content-dispatch.log"
 
 say "A user with an API token"
 console user:add --username="${API_USER}" --name="API Tests" --password="${API_PASS}" \
@@ -260,7 +282,8 @@ else
 	compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
 		--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/model-role-compile.log" 2>&1
 
-	for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
+	for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip \
+		"${SITE}"/tmp/plg_content_componentbuilderfieldorderingtabs_*.zip
 	do
 		[[ -s "${package}" ]] || { echo "Second compile left a missing package."; cat "${OUT_DIR}/model-role-compile.log"; exit 1; }
 		while IFS= read -r file
@@ -276,6 +299,9 @@ else
 		console extension:install --path "${package}" --no-interaction >> "${OUT_DIR}/model-role-install.log" 2>&1
 		verify_package "${label}"
 	done
+
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/verify-native-content-plugin.php" \
+		"${SITE}" "${JCB_PLUGINS_SOURCE}" 2>&1 | tee "${OUT_DIR}/model-role-native-content-dispatch.log"
 
 	for file in Library_configModel.php Libraries_configModel.php
 	do

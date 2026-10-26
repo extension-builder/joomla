@@ -380,10 +380,10 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 
 		if ($major === 6)
 		{
-			$this->assertStringNotContainsString('<script', $rendered);
+			$this->assertStringContainsString('<script type="text/javascript">JS' . PHP_EOL . '</script>', $rendered);
 			$this->assertStringNotContainsString('<style', $rendered);
 			$this->assertStringContainsString('addInlineStyle', $rendered);
-			$this->assertStringContainsString('addInlineScript', $rendered);
+			$this->assertStringNotContainsString('addInlineScript', $rendered);
 			$this->assertTrue(strpos($rendered, 'CSS') < strpos($rendered, '<section>Body</section>'));
 			$this->assertTrue(strpos($rendered, '<section>Body</section>') < strpos($rendered, 'JS'));
 		}
