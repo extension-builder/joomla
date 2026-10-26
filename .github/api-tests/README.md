@@ -8,11 +8,16 @@ runs this on PHP 8.4. The vendor PHPUnit matrix separately covers PHP 8.3 and
 
 The existing webservices definition retains `[[[API_ROUTES_METHOD]]]`, so the
 installed HTTP scenarios exercise normal generated API routes. A second linked
-definition stores the migrated FieldOrderingTabs plugin's actual class body
+definition stores the FieldOrderingTabs plugin's authored native handler body
 and imports, with its real forms attached through JCB's folder records. These
 come from `extension-builder/plugins` commit
-`8456005f1de725ff30bb928accb20fd86eb37488`, checked out during workflow setup.
-No emitted PHP, provider, form or archive is patched after compilation.
+`3c37525d16d9183c54a1548051ce44ffb6b9176e`, checked out during workflow setup.
+The fixture rejects a supplied `getSubscribedEvents()` map or
+`SubscriberInterface`: Joomla 6 compilation must generate both. Only authored
+body/imports and the forms folder enter the definition; providers and installer
+scripts from the reference checkout are not imported. No lifecycle snippets
+are added to the fixture. No emitted PHP, provider, form or archive is patched
+after compilation.
 
 This is a representative source-definition fixture. It does not constitute a
 complete maintained JCB definition export or a full JCB self-compilation.
@@ -28,7 +33,7 @@ From the repository root, prepare the fixture once:
 
 ```sh
 git clone https://github.com/extension-builder/plugins.git .api-tests/plugin-source
-git -C .api-tests/plugin-source checkout --detach 8456005f1de725ff30bb928accb20fd86eb37488
+git -C .api-tests/plugin-source checkout --detach 3c37525d16d9183c54a1548051ce44ffb6b9176e
 ```
 
 Then run the normal installed harness:
@@ -48,8 +53,14 @@ and the workflow checkout SHA.
 ## What the installed checks prove
 
 - JCB loads stored plugin bodies/imports and component links from its database,
-  copies attached forms, and produces both plugin archives alongside Demo.
+  generates the subscriber map/interface, provider and installer lifecycle
+  wrappers, copies attached forms, and produces both plugin archives alongside
+  Demo. The stored authored body/imports must remain unchanged after compilation.
 - Joomla installs those archives; installed file hashes must match their ZIPs.
+- Joomla's real installer-script loader accepts the installed generated script
+  directly through `InstallerScriptInterface`, without a legacy adapter. The
+  definition retains empty authored lifecycle fields; native lifecycle wrappers
+  come from the compiler and run during the normal installation and update.
 - Joomla boots the generated content service provider and registers the actual
   installed class through `PluginHelper::importPlugin`, using an isolated real
   dispatcher. Class identity and loaded file path must match the manifest.
@@ -59,12 +70,14 @@ and the workflow checkout SHA.
 - The content check runs again after the second compile/install, which changes
   the Demo list-model names and reruns API CRUD and permission checks.
 
-Deprecation capture covers provider boot, native subscriber registration and
-event dispatch, including suppressed PHP deprecations. Only Joomla application
-bootstrap and published-plugin metadata loading happen before capture: Joomla
-6.1.2's own metadata loader still calls deprecated Factory accessors. No plugin
-class is loaded in that preparatory metadata call, and no deprecation is
-filtered out once provider boot begins.
+Deprecation capture covers generated installer-script loading, provider boot,
+native subscriber registration and event dispatch, including suppressed PHP
+deprecations. Joomla application bootstrap, published-plugin metadata loading
+and constructing the installer adapter happen before capture: Joomla 6.1.2's
+own metadata loader still calls deprecated Factory accessors, and its Installer
+constructor uses the deprecated Table factory. Those preparatory calls do not
+load this plugin's class or installer script. No deprecation is filtered out
+once generated script loading begins.
 
 `native-content-dispatch.log` and `model-role-native-content-dispatch.log`
 record the installed class path and behavior assertions. The workflow retains

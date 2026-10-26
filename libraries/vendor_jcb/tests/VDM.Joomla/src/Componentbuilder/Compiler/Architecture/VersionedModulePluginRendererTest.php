@@ -516,7 +516,7 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Protect plugin provider availability and exact plugin lookup identity.
+	 * Protect provider headers, constructor dependencies and plugin lookup identity.
 	 *
 	 * @param   string  $version  Target namespace segment.
 	 * @param   int     $major    Joomla target major.
@@ -527,6 +527,11 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 	#[DataProvider('versions')]
 	public function testPluginProviderIsAbsentOnlyFromJoomlaThree(string $version, int $major): void
 	{
+		$this->config()->set('joomla_version', $major);
+		$this->placeholder()->set('Component', 'Demo');
+		$this->placeholder()->set('ComponentNamespace', 'Demo');
+		$this->placeholder()->set('PluginGroupNamespace', 'System');
+		$this->placeholder()->set('PluginNamespace', 'Articles');
 		$subject = $this->renderer($this->rendererClass($version, 'Plugin/Provider'));
 		$plugin = (object) [
 			'group' => 'SYSTEM',
@@ -535,13 +540,29 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 			'service_provider' => "\t\t\t\t\$plugin->boot();",
 		];
 		$code = $subject->get($plugin);
+		$header = $this->renderer('VDM\\Joomla\\Componentbuilder\\Compiler\\' . $version . '\\Header')
+			->get('plugin.provider.header', $plugin->class_name);
 
 		if ($major === 3)
 		{
 			$this->assertSame('', $code);
+			$this->assertSame('', $header);
 			return;
 		}
 
+		$expectedHeader = [
+			'use Joomla\\CMS\\Factory;',
+			'use Joomla\\CMS\\Plugin\\PluginHelper;',
+			'use Joomla\\CMS\\Extension\\PluginInterface;',
+		];
+		if ($major < 6)
+		{
+			$expectedHeader[] = 'use Joomla\\Event\\DispatcherInterface;';
+		}
+		$expectedHeader[] = 'use Joomla\\DI\\ServiceProviderInterface;';
+		$expectedHeader[] = 'use Joomla\\DI\\Container;';
+		$expectedHeader[] = 'use Acme\\Plugin\\System\\Articles\\Extension\\ArticlesPlugin;';
+		$this->assertSame(implode(PHP_EOL, $expectedHeader), $header);
 		$this->assertStringContainsString("PluginHelper::getPlugin('system', 'articles')", $code);
 		$this->assertStringContainsString('$plugin = new ArticlesPlugin(', $code);
 
@@ -609,6 +630,12 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 	public function testJoomlaSixPluginProviderExecutesNativeConstruction(bool $customConstructor): void
 	{
 		$className = $customConstructor ? 'GeneratedConfigPlugin' : 'GeneratedInheritedPlugin';
+		$this->placeholder()->set('Component', 'Demo');
+		$this->placeholder()->set('ComponentNamespace', 'Demo');
+		$this->placeholder()->set('NamespacePrefix', __NAMESPACE__, false);
+		$this->placeholder()->set('PluginGroupNamespace', 'System');
+		$this->placeholder()->set('PluginNamespace', 'Fixture');
+		$extensionNamespace = __NAMESPACE__ . '\\Plugin\\System\\Fixture\\Extension';
 		$body = <<<'PHP'
 	use \Joomla\Database\DatabaseAwareTrait;
 
@@ -653,16 +680,16 @@ PHP;
 			'_namespace' => 'Joomla\\Event', 'class_name' => 'SubscriberInterface', 'type' => 'interface',
 		]);
 		$injector = new Injector($power, new Extractor($this->createStub(DatabaseInterface::class), 6), new Parser(), $this->renderer(Placeholder::class));
-		$extension = $injector->power('<?php' . PHP_EOL . 'namespace ' . __NAMESPACE__ . ';' . PHP_EOL
+		$extension = $injector->power('<?php' . PHP_EOL . 'namespace ' . $extensionNamespace . ';' . PHP_EOL
 			. 'use Joomla\\CMS\\Plugin\\CMSPlugin;' . PHP_EOL . $extension);
 		$this->assertStringNotContainsString('Joomla___', $extension);
 		eval(substr($extension, strlen('<?php')));
 
 		$code = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Provider'))->get($plugin);
-		$provider = eval('namespace ' . __NAMESPACE__ . '; '
-			. 'use Joomla\\CMS\\Factory; use Joomla\\CMS\\Plugin\\PluginHelper; '
-			. 'use Joomla\\CMS\\Extension\\PluginInterface; use Joomla\\DI\\Container; '
-			. 'use Joomla\\DI\\ServiceProviderInterface; use Joomla\\Event\\DispatcherInterface; ' . $code);
+		$header = $this->renderer('VDM\\Joomla\\Componentbuilder\\Compiler\\JoomlaSix\\Header')
+			->get('plugin.provider.header', $plugin->class_name);
+		$this->assertStringNotContainsString('DispatcherInterface', $header . $code);
+		$provider = eval('namespace ' . __NAMESPACE__ . '; ' . $header . PHP_EOL . $code);
 		$application = $this->createStub(CMSApplication::class);
 		$database = $this->createStub(DatabaseInterface::class);
 		$this->setJoomlaFactoryProperty('application', $application);

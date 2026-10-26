@@ -604,7 +604,6 @@ final class Header implements HeaderInterface
 				$headers[] = 'use Joomla\CMS\Factory;';
 				$headers[] = 'use Joomla\CMS\Plugin\PluginHelper;';
 				$headers[] = 'use Joomla\CMS\Extension\PluginInterface;';
-				$headers[] = 'use Joomla\Event\DispatcherInterface;';
 				$headers[] = 'use Joomla\DI\ServiceProviderInterface;';
 				$headers[] = 'use Joomla\DI\Container;';
 				break;
@@ -689,4 +688,3 @@ final class Header implements HeaderInterface
 		return !in_array($context, $this->disallowedContexts, true);
 	}
 }
-

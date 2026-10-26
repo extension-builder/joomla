@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: extension-builder/plugins
-          ref: 8456005f1de725ff30bb928accb20fd86eb37488
+          ref: 3c37525d16d9183c54a1548051ce44ffb6b9176e
           path: .api-tests/plugin-source
           persist-credentials: false
 
