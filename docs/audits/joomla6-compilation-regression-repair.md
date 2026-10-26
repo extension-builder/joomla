@@ -4,13 +4,36 @@ This repair coordinates native plugin definitions in `extension-builder/plugins`
 with the Joomla 6 compiler. Existing Joomla 3–5 compilation behavior must remain
 unchanged.
 
-## Plugin boundary
+## Plugin definitions and native dispatch
 
 The compiler consumes stored plugin `main_class_code`. Updating a method
 catalogue or suppressing validation does not migrate that source. The companion
 plugin changes supply reviewed native definitions for transfer back into JCB.
-Tests must exercise a real affected plugin through compilation and native event
-dispatch, alongside the existing negative validation cases.
+The companion migration covers all nine content plugins, the API plugin's
+explicit subscription, all 18 providers/installers, and target-aware privacy
+helper generation. JCB's own compiler extension hooks retain their explicit
+maps and positional/by-reference argument contract.
+
+Regression coverage must include successful compilation and native dispatch of
+the supplied plugin source, alongside the existing negative validation cases.
+Rejecting an unmigrated definition is not evidence that the maintained plugins
+can be rebuilt. Likewise, extracting a class body from generated PHP and passing
+it through the extension renderer does not exercise database loading, component
+links, file packaging, or installation.
+
+## Component-linked API plugin
+
+The maintained webservices plugin can contain `[[[API_ROUTES_METHOD]]]` instead
+of an authored route method. Keep that placeholder: the component's selected API
+views determine the generated routes. Do not paste the resolved route table or
+another generated subscription method back into that source field.
+
+`Compiler/Model/Joomlaplugins` prepares the route placeholders through
+`Architecture/Api/Plugin/Routes`. The Joomla 6 plugin extension renderer expands
+them before inspecting methods and generating native subscriptions. An existing
+explicit subscription map must remain authoritative and must not be duplicated.
+The repaired path must retain authenticated defaults, GUID routes, and selected
+component resources. Joomla 5 route and plugin output remain unchanged.
 
 ## JavaScript boundary
 
@@ -19,15 +42,60 @@ execution timing. Keeping its text unchanged did not preserve its behavior.
 The repair restores the existing footer execution position and removes blanket
 warnings while retaining the other Web Asset Manager and media migrations.
 
+The single-view footer contains both authored source and generated condition
+listeners. Restore that coherent block together rather than introducing a new
+execution order. The generated listeners keep their Joomla 6 ready wrapper and
+native media-field change events; published JavaScript files retain their media
+paths and WAM loading.
+
 Ordinary footer script tags are not deprecated Joomla APIs. Full Web Asset
 Manager migration of authored footer code remains a separate source migration:
 static logic can use deferred media assets; dynamic PHP data can use Joomla
 script options. Arbitrary source must not be silently wrapped, evaluated, or
 converted into modules because that can change globals, ordering, or scope.
 
+## Completion requirements
+
+- Exercise authored single-view, list-view, field, and module footer behavior,
+  including immediate DOM access, global functions, ordering, and dynamic PHP
+  values. Check actual browser execution, not only preserved source text or WAM
+  registration.
+- Compile the component-linked API placeholder and dispatch its generated
+  handler. Retain exact earlier-target output and explicit custom subscriptions.
+- Seed a supplied native content plugin into the disposable installed JCB
+  database, link it to the demo, compile and install its generated package, and
+  dispatch its form event against the packaged form XML.
+- Run the compiler and plugin suites against the same reviewed compiler
+  revision, and retain the full compiler, API, and GUI workflow gates.
+
+## Maintained source and release boundary
+
+The complete maintained JCB definition export is not included in either source
+repository. The public demo and Hello World blueprints are not JCB's own
+definition package. Representative installed regression tests therefore do not
+establish a complete JCB self-compilation.
+
+Transfer the reviewed authored changes into the maintained records using the
+[plugin transfer plan](https://github.com/extension-builder/plugins/blob/fix/joomla6-native-plugins/docs/joomla6-native-migration.md),
+preserving Joomla Powers and the API route placeholder. Regenerate providers and
+installers through the selected target compiler. Keep separate Joomla 4/5
+distributions; the migrated deployable plugin packages require Joomla 6.
+
 ## Validation status
 
-Implementation and regression coverage are in progress. Passing the existing
-focused tests is not evidence that the reported failure is fixed. Final results,
-remaining limitations, and transfer instructions will be recorded here before
-review.
+Local PHP 8.3.6 validation against Joomla 6.1.2 passes the complete blocking
+suite: **5,134 tests / 63,642 assertions**. The paired plugin suite passes
+**48 tests / 1,354 assertions** against this compiler checkout.
+
+The new API linked-definition test uses the real component/plugin loader,
+route generator, extension renderer and Power injector. It dispatches eleven
+routes, verifies GUID routes and authenticated/public defaults, and preserves
+custom subscription priorities. Its complete Joomla 5 output fixtures were
+generated from the unchanged PR base `e54c39eaf8803d614a522b651507fef0536f81c2`
+with compiler debug comments enabled and disabled; both match byte-for-byte.
+The existing API generation already expands the placeholder before native
+subscription inspection, so no duplicate generator or route map is introduced.
+
+Hosted PHP 8.4, installed API/plugin, browser and golden-master validation
+results will be recorded after the candidate is published. A green unit suite
+alone is not evidence of complete JCB self-compilation.

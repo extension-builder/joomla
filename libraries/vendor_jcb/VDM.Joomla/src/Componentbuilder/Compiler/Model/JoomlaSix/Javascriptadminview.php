@@ -12,64 +12,26 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Model\JoomlaSix;
 
 
-use Joomla\CMS\Application\CMSApplicationInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Javascriptadminview as SharedJavascriptadminview;
 
 
 /**
- * Collect Joomla 6 view scripts and explain changed footer execution timing.
+ * Collect Joomla 6 view scripts with their original authored footer semantics.
  *
- * The existing dispenser retains script content, GUI metadata, and global scope.
- *
- * @since  6.2.0
+ * @since 6.2.0
  */
 final class Javascriptadminview extends SharedJavascriptadminview
 {
 	/**
-	 * Compiler application's diagnostic channel.
+	 * Inject the shared custom-code collector for the Joomla 6 target.
 	 *
-	 * @var    CMSApplicationInterface
-	 * @since  6.2.0
-	 */
-	protected CMSApplicationInterface $app;
-
-	/**
-	 * Inject script collection and compiler diagnostics.
-	 *
-	 * @param   Dispenser                $dispenser  Existing custom-code collector.
-	 * @param   CMSApplicationInterface  $app        Compiler application.
+	 * @param   Dispenser  $dispenser  Existing custom-code collection service.
 	 *
 	 * @since   6.2.0
 	 */
-	public function __construct(Dispenser $dispenser, CMSApplicationInterface $app)
+	public function __construct(Dispenser $dispenser)
 	{
 		parent::__construct($dispenser);
-		$this->app = $app;
-	}
-
-	/**
-	 * Explain the head placement of an enabled, nonempty footer script.
-	 *
-	 * @param   object  $item      The view containing the decoded script.
-	 * @param   string  $scripter  The original JavaScript field name.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	protected function reportScriptPlacement(object $item, string $scripter): void
-	{
-		if (!in_array($scripter, ['javascript_view_footer', 'javascript_views_footer'], true)
-			|| trim((string) $item->{$scripter}) === '')
-		{
-			return;
-		}
-
-		$this->app->enqueueMessage(sprintf(
-			'Joomla 6 loads %s for the %s view through the Web Asset Manager in the document head. '
-			. 'The JavaScript remains unchanged and in global scope. Immediate DOM access must use DOMContentLoaded.',
-			$scripter,
-			htmlspecialchars((string) $item->name_single_code, ENT_QUOTES, 'UTF-8')
-		), 'warning');
 	}
 }

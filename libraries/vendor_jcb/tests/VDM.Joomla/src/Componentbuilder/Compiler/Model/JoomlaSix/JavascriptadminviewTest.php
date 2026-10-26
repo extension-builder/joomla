@@ -27,7 +27,7 @@ use VDM\Tests\Support\JoomlaTestCase;
 
 
 /**
- * Footer placement diagnostics preserve script contents and older target behavior.
+ * Footer collection preserves source, target identity and silent diagnostics.
  *
  * @since  6.2.0
  */
@@ -37,7 +37,7 @@ use VDM\Tests\Support\JoomlaTestCase;
 final class JavascriptadminviewTest extends JoomlaTestCase
 {
 	/**
-	 * The compile target alone selects the placement warning without rewriting JavaScript.
+	 * Every target preserves authored footer source without a placement warning.
 	 *
 	 * @param   int  $major  Requested Joomla target.
 	 *
@@ -45,17 +45,12 @@ final class JavascriptadminviewTest extends JoomlaTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('targets')]
-	public function testProviderWarnsOnlyForJoomlaSixAndPreservesGlobalSource(int $major): void
+	public function testProviderPreservesGlobalSourceWithoutPlacementWarnings(int $major): void
 	{
 		$scripts = [];
-		$messages = [];
 		$dispenser = $this->dispenser($scripts);
 		$app = $this->createMock(CMSApplicationInterface::class);
-		$app->expects($major === 6 ? $this->exactly(2) : $this->never())
-			->method('enqueueMessage')->willReturnCallback(static function ($message, $type) use (&$messages): void
-			{
-				$messages[] = [$message, $type];
-			});
+		$app->expects($this->never())->method('enqueueMessage');
 		$this->setJoomlaApplication($app);
 		$config = new Config(new Input([]), new Registry(), new Registry());
 		$config->set('joomla_version', $major);
@@ -78,15 +73,6 @@ final class JavascriptadminviewTest extends JoomlaTestCase
 		$this->assertSame(['view_footer' => $source, 'views_footer' => $source], $scripts);
 		$this->assertObjectNotHasProperty('javascript_view_footer', $item);
 		$this->assertObjectNotHasProperty('javascript_views_footer', $item);
-
-		foreach ($messages as [$message, $type])
-		{
-			$this->assertSame('warning', $type);
-			$this->assertStringContainsString('article view', $message);
-			$this->assertStringContainsString('Web Asset Manager in the document head', $message);
-			$this->assertStringContainsString('unchanged and in global scope', $message);
-			$this->assertStringContainsString('Immediate DOM access must use DOMContentLoaded.', $message);
-		}
 	}
 
 	/**
@@ -115,11 +101,11 @@ final class JavascriptadminviewTest extends JoomlaTestCase
 		$app = $this->createMock(CMSApplicationInterface::class);
 		$app->expects($this->never())->method('enqueueMessage');
 		$item = (object) (['id' => 42, 'name_single_code' => 'article'] + $fields);
-		(new Javascriptadminview($this->dispenser($scripts), $app))->set($item);
+		(new Javascriptadminview($this->dispenser($scripts)))->set($item);
 	}
 
 	/**
-	 * Boundary cases that have no footer timing migration.
+	 * Boundary cases retain the existing script collection rules.
 	 *
 	 * @return  array<string, array{array}>
 	 * @since   6.2.0

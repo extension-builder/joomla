@@ -135,6 +135,17 @@ jobs:
         id: unit-tests
         run: composer --working-dir=libraries/vendor_jcb/tests ${{ matrix.script }}
 
+      - name: Install locked compiler browser test dependencies
+        if: matrix.php == '8.4'
+        working-directory: libraries/vendor_jcb/tests/gui
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Execute compiled footer scripts in Chromium
+        if: matrix.php == '8.4'
+        run: node --test libraries/vendor_jcb/tests/javascript/footer-browser.cjs
+
       - name: Run documented known-contract failures
         id: known-defects
         if: matrix.php == '8.3'

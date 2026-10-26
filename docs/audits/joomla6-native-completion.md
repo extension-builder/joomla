@@ -64,11 +64,14 @@ compiler service providers. No Joomla 3, 4 or 5 template file is changed.
   of replacing core internals. Read/view/API boundaries follow Joomla 6's own
   exception-mode pattern. This is a Joomla 6 deprecation migration, not a claim
   that Joomla 7 runtime compatibility has already been proved.
-- Stored custom view and field footer JavaScript keeps its source and global scope when
-  registered with WAM. WAM renders it in the document head; immediate DOM access
-  must be moved into a DOMContentLoaded handler. The Joomla 6 compiler reports
-  the affected view or field and its collection target, including module field
-  scripts. Generated scripts are adapted directly.
+- The original migration registered authored view/field footer JavaScript with
+  WAM in the document head and emitted a DOM-ready timing warning. That changed
+  existing behavior despite preserving source text. The follow-up
+  [compilation regression repair](joomla6-compilation-regression-repair.md)
+  restores the original body position for view, field, and module footers and
+  removes those blanket warnings. Co-located generated condition listeners stay
+  with their footer block; their Joomla 6 ready/change-event adaptations remain.
+  Other WAM registration and media-file migrations remain in place.
 - Stored plugin code is not rewritten arbitrarily. Inferred event handlers must
   accept native event objects and write results to the event. Explicit subscriber
   maps and inherited native maps retain their intended contracts; maintainers

@@ -1,0 +1,50 @@
+<?php
+namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Api\Plugin;
+use Joomla\CMS\Plugin\CMSPlugin;
+
+/** Linked API plugin fixture. */
+final class LinkedApi extends \Joomla\CMS\Plugin\CMSPlugin
+{
+	/**
+	 * Register the JSON:API routes of com_demo.
+	 *
+	 * @param   \Joomla\CMS\Event\Application\BeforeApiRouteEvent  $event  The event.
+	 *
+	 * @return  void
+	 *
+	 * @since   5.0.0
+	 */
+	public function onBeforeApiRoute(\Joomla\CMS\Event\Application\BeforeApiRouteEvent $event): void
+	{
+		// [VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes 178] Take the API router from the event.
+		$router = $event->getRouter();
+
+		// [VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes 229] Register the JSON:API routes of com_demo.
+		$defaults = ['component' => 'com_demo'];
+		$getDefaults = ['public' => false, 'component' => 'com_demo'];
+		$publicDefaults = ['public' => true, 'component' => 'com_demo'];
+
+		// [VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes 333] The routes of the articles resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/articles', 'articles.displayList', [], $getDefaults),
+			new \Joomla\Router\Route(['GET'], 'v1/demo/articles/:id', 'article.displayItem', ['id' => '(\d+)'], $getDefaults),
+			new \Joomla\Router\Route(['GET'], 'v1/demo/articles/guid/:guid', 'article.displayItem', ['guid' => '([0-9a-fA-F-]{36})'], $getDefaults),
+			new \Joomla\Router\Route(['POST'], 'v1/demo/articles', 'article.add', [], $defaults),
+			new \Joomla\Router\Route(['PATCH'], 'v1/demo/articles/:id', 'article.edit', ['id' => '(\d+)'], $defaults),
+			new \Joomla\Router\Route(['PATCH'], 'v1/demo/articles/guid/:guid', 'article.edit', ['guid' => '([0-9a-fA-F-]{36})'], $defaults),
+			new \Joomla\Router\Route(['DELETE'], 'v1/demo/articles/:id', 'article.delete', ['id' => '(\d+)'], $defaults),
+			new \Joomla\Router\Route(['DELETE'], 'v1/demo/articles/guid/:guid', 'article.delete', ['guid' => '([0-9a-fA-F-]{36})'], $defaults),
+		]);
+
+		// [VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes 333] The routes of the report resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/report', 'report.displayList', [], $getDefaults),
+		]);
+
+		// [VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Plugin\Routes 333] The routes of the page resource.
+		$router->addRoutes([
+			new \Joomla\Router\Route(['GET'], 'v1/demo/page', 'page.displayItem', [], $publicDefaults),
+			new \Joomla\Router\Route(['GET'], 'v1/demo/page/:id', 'page.displayItem', ['id' => '(\d+)'], $publicDefaults),
+		]);
+	}
+}

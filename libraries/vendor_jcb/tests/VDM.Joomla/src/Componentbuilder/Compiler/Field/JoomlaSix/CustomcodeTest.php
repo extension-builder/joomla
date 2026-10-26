@@ -25,7 +25,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Service\Field;
 use VDM\Tests\Support\JoomlaTestCase;
 
 /**
- * Field-only footer placement diagnostics cover component and module consumers.
+ * Field footer collection preserves component and module source without warnings.
  *
  * @since 6.2.0
  */
@@ -35,7 +35,7 @@ use VDM\Tests\Support\JoomlaTestCase;
 final class CustomcodeTest extends JoomlaTestCase
 {
 	/**
-	 * Field scripts warn independently of view-level scripts and retain global source.
+	 * Field scripts retain global source and never warn about moved execution.
 	 *
 	 * @param   int     $major   Compile target.
 	 * @param   string  $single  Edit view or module collection key.
@@ -45,16 +45,11 @@ final class CustomcodeTest extends JoomlaTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('targets')]
-	public function testProviderWarnsOnlyForJoomlaSixFieldFooters(int $major, string $single, string $list): void
+	public function testProviderPreservesFieldFootersWithoutPlacementWarnings(int $major, string $single, string $list): void
 	{
 		$scripts = [];
-		$messages = [];
 		$app = $this->createMock(CMSApplicationInterface::class);
-		$app->expects($major === 6 ? $this->exactly(2) : $this->never())->method('enqueueMessage')
-			->willReturnCallback(static function ($message, $type) use (&$messages): void
-			{
-				$messages[] = [$message, $type];
-			});
+		$app->expects($this->never())->method('enqueueMessage');
 		$this->setJoomlaApplication($app);
 		$config = new Config(new Input([]), new Registry(), new Registry());
 		$config->set('joomla_version', $major);
@@ -74,7 +69,7 @@ final class CustomcodeTest extends JoomlaTestCase
 		]);
 		$subject->update(42, $field, $single, $list);
 		$subject->update(42, $field, $single, $list);
-		$this->assertCount(2, $scripts, 'A repeated field/view visit must not duplicate collection or warnings.');
+		$this->assertCount(2, $scripts, 'A repeated field/view visit must not duplicate authored scripts.');
 		$this->assertSame(['view_footer', 'views_footer'], array_column($scripts, 'placement'));
 		$this->assertSame([$source, $source], array_column($scripts, 'source'));
 		$this->assertSame(['javascript_view_footer', 'javascript_views_footer'], array_column(array_column($scripts, 'metadata'), 'field'));
@@ -82,16 +77,6 @@ final class CustomcodeTest extends JoomlaTestCase
 		$this->assertSame($source, $field->javascript_views_footer);
 		$this->assertTrue($field->javascript_view_footer_decoded);
 		$this->assertTrue($field->javascript_views_footer_decoded);
-
-		foreach ($messages as $index => [$message, $type])
-		{
-			$this->assertSame('warning', $type);
-			$this->assertStringContainsString($index === 0 ? 'javascript_view_footer' : 'javascript_views_footer', $message);
-			$this->assertStringContainsString('field 42 in ' . htmlspecialchars($index === 0 ? $single : $list, ENT_QUOTES, 'UTF-8'), $message);
-			$this->assertStringContainsString('Web Asset Manager in the document head', $message);
-			$this->assertStringContainsString('unchanged and in global scope', $message);
-			$this->assertStringContainsString('Immediate DOM access must use DOMContentLoaded.', $message);
-		}
 	}
 
 	/**
@@ -123,17 +108,17 @@ final class CustomcodeTest extends JoomlaTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('silentFooters')]
-	public function testOnlyEnabledNonemptyCollectedFooterSourcesWarn(array $overrides, ?string $single, ?string $list): void
+	public function testEmptyDisabledAndAbsentFieldFootersRemainSilent(array $overrides, ?string $single, ?string $list): void
 	{
 		$scripts = [];
 		$app = $this->createMock(CMSApplicationInterface::class);
 		$app->expects($this->never())->method('enqueueMessage');
 		$field = $this->field($overrides);
-		(new Customcode($this->dispenser($scripts), $app))->update(7, $field, $single, $list);
+		(new Customcode($this->dispenser($scripts)))->update(7, $field, $single, $list);
 	}
 
 	/**
-	 * Both footer fields share all warning boundary conditions.
+	 * Both footer fields retain the same collection boundary conditions.
 	 *
 	 * @return  iterable
 	 * @since   6.2.0
@@ -153,7 +138,7 @@ final class CustomcodeTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Previously decoded field sources are collected and warned without a second decode.
+	 * Previously decoded field sources are collected without a second decode or warning.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -162,14 +147,14 @@ final class CustomcodeTest extends JoomlaTestCase
 	{
 		$scripts = [];
 		$app = $this->createMock(CMSApplicationInterface::class);
-		$app->expects($this->exactly(2))->method('enqueueMessage');
+		$app->expects($this->never())->method('enqueueMessage');
 		$source = 'function sharedFieldAction() { return document.getElementById("field"); }';
 		$field = $this->field([
 			'add_javascript_view_footer' => 1,
 			'javascript_view_footer' => $source,
 			'javascript_view_footer_decoded' => true,
 		]);
-		$subject = new Customcode($this->dispenser($scripts), $app);
+		$subject = new Customcode($this->dispenser($scripts));
 		$subject->update(8, $field, 'article');
 		$subject->update(8, $field, 'module.article');
 		$this->assertSame([$source, $source], array_column($scripts, 'source'));

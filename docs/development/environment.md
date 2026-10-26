@@ -54,6 +54,21 @@ no npm dependencies. The GUI workflow runs them before the installed suite:
 node --test libraries/vendor_jcb/tests/javascript/*.test.cjs
 ```
 
+Authored footer timing also has a real Chromium regression suite. It renders
+PHP emitted by the actual collectors and template generators, then checks
+immediate DOM access, global callbacks, script order and dynamic PHP data:
+
+```bash
+npm --prefix libraries/vendor_jcb/tests/gui ci --no-audit --no-fund
+(cd libraries/vendor_jcb/tests/gui && npx playwright install --with-deps chromium)
+node --test libraries/vendor_jcb/tests/javascript/footer-browser.cjs
+```
+
+Prepare the PHPUnit/Joomla runtime above first. This suite reuses the GUI
+project's committed Playwright lock and runs in the PHP 8.4 unit workflow. It
+tests generated scripts in a real browser without requiring a Joomla database;
+the installed GUI and API suites remain separate integration gates.
+
 The suite lives in `libraries/vendor_jcb/tests/gui`; the harness in
 `.github/gui-tests` stands up `octoleo/joomengine:latest` (Joomla with the
 released JCB), installs this working tree over it, and runs the suite:
