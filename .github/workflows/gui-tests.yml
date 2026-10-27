@@ -111,6 +111,8 @@ jobs:
             .gui-tests/site-provenance.log
             .gui-tests/extrusion-*.log
             .gui-tests/extrusion-*.json
+            .gui-tests/language-translation-*.log
+            .gui-tests/language-translation-fixtures.json
           # Only the explicit evidence files above, never session/auth state.
           include-hidden-files: true
           if-no-files-found: warn
