@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper as SharedIncludeH
  */
 final class IncludeHelper extends SharedIncludeHelper
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

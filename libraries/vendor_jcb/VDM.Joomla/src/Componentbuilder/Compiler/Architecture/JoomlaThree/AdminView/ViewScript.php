@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as Sh
  */
 final class ViewScript extends SharedViewScript
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

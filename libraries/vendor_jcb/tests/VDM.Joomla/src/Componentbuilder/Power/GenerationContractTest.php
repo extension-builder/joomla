@@ -184,7 +184,7 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 	}
 
 	/**
-	 * Preserve each compiler wrapper's parsed empty body through Power save generation.
+	 * Preserve the comment that keeps each inherited wrapper out of auto-generation.
 	 *
 	 * @param   string  $path  The original compiler subclass below its source root.
 	 *
@@ -192,12 +192,12 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 	 * @since   6.2.1
 	 */
 	#[DataProvider('inheritedCompilerWrappers')]
-	public function testParsedEmptyCompilerWrappersKeepInheritedConstructors(string $path): void
+	public function testParsedCompilerWrapperCommentsPreserveInheritedConstructors(string $path): void
 	{
 		$source = file_get_contents(JCB_PROJECT_ROOT . '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/' . $path);
 		$parts = (new ClassFile(new Parser()))->read($source);
 		$this->assertNotNull($parts);
-		$this->assertSame('', $parts['body']);
+		$this->assertSame("\t// Preserve the inherited constructor when JCB saves this Power.", $parts['body']);
 		$this->assertCount(1, $parts['uses']);
 		$this->assertSame([$parts['uses'][0]['alias']], $parts['extends']);
 		$parentGuid = '46fbc151-4fe5-4b35-86df-6e48f7ec506c';
@@ -227,10 +227,17 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 		];
 
 		$this->assertNull($subject->get($definition), 'Saving the extracted subclass must preserve its inherited constructor.');
+
+		// An intentionally empty code field still requests JCB's existing DI scaffolding.
+		$emptyDefinition = array_replace($definition, ['main_class_code' => '']);
+		$this->assertStringContainsString(
+			'public function __construct(' . $parts['extends'][0] . ' $' . strtolower($parts['extends'][0]) . ')',
+			$subject->get($emptyDefinition)
+		);
 	}
 
 	/**
-	 * The 25 empty target variants that must survive the extrusion/save boundary.
+	 * The 25 inherited target variants that must preserve their nonempty Power bodies.
 	 *
 	 * @return  array<string, array{string}>  Source paths named by compiler variant.
 	 * @since   6.2.1
@@ -264,81 +271,6 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 		}
 
 		return $cases;
-	}
-
-	/**
-	 * Linked and custom parents preserve inheritance even with other selected imports.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function testGeneratorPreservesLinkedAndCustomParentConstructors(): void
-	{
-		$subject = $this->generator($this->bucket());
-		$definition = [
-			'main_class_code' => '',
-			'description' => 'An empty subclass. @since 6.2.1',
-			'power_version' => '1.0.0',
-			'implements_custom' => '',
-			'use_selection' => [['use' => 'dependency', 'as' => 'Widget']],
-		];
-
-		foreach ([
-			['extends' => '46fbc151-4fe5-4b35-86df-6e48f7ec506c', 'extends_custom' => ''],
-			['extends' => -1, 'extends_custom' => 'BaseCustomButtons'],
-			['extends' => '-1', 'extends_custom' => '\\External\\BaseClass'],
-		] as $inheritance)
-		{
-			$this->assertNull($subject->get($definition + $inheritance));
-		}
-	}
-
-	/**
-	 * Skipping an inherited class does not change later DI or service-provider output.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function testInheritedClassSkipPreservesOtherScaffoldingAndReusableState(): void
-	{
-		$subject = $this->generator($this->bucket());
-		$definition = [
-			'main_class_code' => '',
-			'description' => 'Generated service. @since 4.5.6',
-			'power_version' => '1.0.0',
-			'implements_custom' => '',
-			'use_selection' => [['use' => 'dependency', 'as' => 'default']],
-		];
-		$before = $subject->get($definition);
-		$this->assertStringContainsString('public function __construct(Widget $widget)', $before);
-		$this->assertNull($subject->get($definition + ['extends' => -1, 'extends_custom' => 'BaseWidget']));
-
-		$provider = $subject->get(array_replace($definition, [
-			'extends' => '-1',
-			'extends_custom' => 'BaseProvider',
-			'implements_custom' => 'ServiceProviderInterface',
-		]));
-		$this->assertStringContainsString("->share('Widget.Service', [\$this, 'getWidget'], true);", $provider);
-		$this->assertStringContainsString('return new Widget();', $provider);
-		$this->assertStringNotContainsString('__construct', $provider);
-		$this->assertSame($before, $subject->get($definition));
-
-		foreach ([
-			['extends' => '', 'extends_custom' => 'StaleBaseWidget'],
-			['extends' => 0, 'extends_custom' => ''],
-			['extends' => '0', 'extends_custom' => ''],
-			['extends' => null, 'extends_custom' => ''],
-			['extends' => -1, 'extends_custom' => ''],
-		] as $noParent)
-		{
-			$this->assertSame($before, $subject->get($definition + $noParent));
-		}
-
-		$this->assertNull($subject->get(array_replace($definition, [
-			'main_class_code' => 'public function __construct() {}',
-			'extends' => '-1',
-			'extends_custom' => 'BaseWidget',
-		])));
 	}
 
 	/**

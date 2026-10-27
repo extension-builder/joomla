@@ -21,4 +21,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsEmailHelper as S
  */
 final class ConfigFieldsetsEmailHelper extends SharedEmailHelper
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

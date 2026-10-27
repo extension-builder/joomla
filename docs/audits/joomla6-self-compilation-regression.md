@@ -59,18 +59,18 @@ Each listed version is a separate Power definition:
 | `JoomlaThree`, `JoomlaFour`, `JoomlaFive` | `Creator/<version>/` | `ConfigFieldsetsEmailHelper.php` | 3 |
 | `JoomlaThree`, `JoomlaFour`, `JoomlaFive` | `Library/<version>/` | `IncludeHelper.php` | 3 |
 
-The thin variants remain part of the version-dispatched architecture. Their
-empty bodies are deliberate and must remain empty during Power save.
+The thin variants remain part of the version-dispatched architecture. They
+inherit their implementation and now contain a comment in `main_class_code`.
+This uses JCB's established convention for suppressing automatic constructor
+scaffolding without changing the Power generator's behavior.
 
 ## Fix and verification
 
-`Power/Generator/ClassInjectorBuilder.php` now preserves inherited constructors
-when a definition has a GUID-linked parent or an active custom parent.
-Filtering only the parent's selected import would be insufficient: generating
-a constructor for other imports would still suppress unknown inherited
-initialization. Ordinary classes without parents retain their existing DI
-scaffolding, and the service-provider generation route remains unchanged.
-Authored nonempty bodies are not rewritten.
+Each of the 25 target variants contains a comment explaining that it inherits
+the parent implementation. The extrusion reader retains this comment in the
+Power body, so the existing `Power/Generator` empty-body check does not scaffold
+a constructor. Automatic DI generation remains unchanged for genuinely empty
+definitions. No Power generator implementation is changed.
 
 The third repair is in
 `Compiler/Architecture/JoomlaSix/Plugin/Extension.php`: native subscription
@@ -83,13 +83,11 @@ emitter defect. Regression inputs must omit previous generated subscription
 scaffolding and exercise generated plugins through the real event dispatcher.
 
 `Power/GenerationContractTest.php` parses all 25 actual wrapper files with the
-real extrusion ClassFile reader, retains their empty bodies and aliases in
-extrusion-shaped save data, and exercises the real Generator graph. All 25
-cases fail against the original builder with the unwanted constructor output;
-all pass with the fix. The tests also cover linked/custom parents, additional
-imports, stale inactive parent fields, existing bodies, service providers and
-repeated generator use. The focused owner passes 32 tests / 195 assertions;
-the blocking Power domain passes 71 tests / 743 assertions.
+real extrusion ClassFile reader, retains their comments and aliases in
+extrusion-shaped save data, and exercises the unchanged Generator graph. The
+original empty bodies produce unwanted constructors; the comment-bearing bodies
+preserve inherited initialization. Regression coverage checks this existing JCB
+convention at the source-to-definition-to-save boundary.
 
 The three Header regressions independently fail against their original
 emitters and pass after splitting the deferred namespace placeholders.
@@ -101,18 +99,22 @@ mutation. The explicit-map control remains unchanged. The renderer owner and
 J6 plugin tests pass **68 tests / 393 assertions**.
 
 The final complete blocking core suite, including the subscription repair,
-passes on PHP 8.4.27: **5,166 tests / 63,854 assertions**. The documented
-`known-defect` group is excluded. These are local results; CI gates and the
+passes on PHP 8.4.27: **5,164 tests / 63,862 assertions**. The paired plugin
+suite passes **50 tests / 1,997 assertions**, including all seven generated
+maps and the real Headers Compiler registration/header/Power-loading path.
+With the original plugin emitter those new plugin checks produce nine failures.
+The documented core `known-defect` group is excluded. These are local results; CI gates and the
 maintainer's complete self-build remain separate validation requirements.
 No unit-suite result substitutes for compiling the complete JCB definitions.
 
 ## Recovery and rollout gate
 
-1. Install the corrected compiler before restoring definitions. The save-time
-   guard prevents new corruption; it cannot repair already nonempty stored
-   bodies automatically.
-2. Restore the 25 verified empty Power definitions through extrusion from the
-   correct source. Reconcile all three Header Power records with the corrected
+1. Install the corrected component compiler. Installing code does not repair
+   already stored Power bodies or installed plugin subscription maps.
+2. Restore the 25 verified Power definitions through extrusion from the
+   corrected comment-bearing sources. Their `main_class_code` must retain the
+   comment so saving them does not generate a constructor. Reconcile the J6
+   Plugin Extension and all three Header Power records with the corrected
    emitters, and restore the shared ItemSave Power from authoritative current
    source. Do not clear arbitrary Power bodies or overwrite authored logic.
 3. Recompile and reinstall all seven extension/compiler plugins with the

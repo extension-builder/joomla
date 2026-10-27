@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts 
  */
 final class FootableScripts extends SharedFootableScripts
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }
