@@ -163,13 +163,43 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 			]);
 		$config = $this->compilerConfig();
 		$subject = new $class($power, $extractor, new Parser(), new Placeholder($config));
-		$code = "<?php\n\nclass Demo\n{\n\tpublic function run()\n\t{\n\t\treturn {$token}::get();\n\t}\n}\n";
+		$code = "<?php\n\nclass Demo\n{\n\tpublic function run()\n\t{\n\t\treturn {$token}::get();\n\t}\n\n\tpublic function other()\n\t{\n\t}\n}\n";
 
 		$output = $subject->power($code);
 
 		$this->assertStringContainsString('use Acme\Domain\Service;', $output);
+		$this->assertLessThan(strpos($output, 'class Demo'), strpos($output, 'use Acme\Domain\Service;'));
+		$this->assertNotEmpty(token_get_all($output, TOKEN_PARSE));
 		$this->assertStringContainsString('return Service::get();', $output);
 		$this->assertStringNotContainsString($token, $output);
+	}
+
+	/**
+	 * New imports precede the complete declaration without disturbing its metadata.
+	 *
+	 * @param   string  $code         PHP source without existing imports.
+	 * @param   string  $declaration  First byte of the complete declaration header.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('declarationProvider')]
+	public function testImportInsertionPreservesDeclarationHeader(string $code, string $declaration): void
+	{
+		$subject = new PowerInjector(
+			$this->createStub(PowerInterface::class),
+			$this->createStub(ExtractorInterface::class),
+			new Parser(),
+			new Placeholder($this->compilerConfig())
+		);
+		$statement = 'use Acme\Domain\Service;';
+
+		$output = (new ReflectionMethod(PowerInjector::class, 'addLines'))->invoke($subject, $code, $statement);
+
+		$this->assertSame(1, substr_count($output, $statement));
+		$this->assertLessThan(strpos($output, $declaration), strpos($output, $statement));
+		$this->assertSame($code, str_replace($statement . PHP_EOL, '', $output));
+		$this->assertNotEmpty(token_get_all($output, TOKEN_PARSE));
 	}
 
 	/**
@@ -536,6 +566,32 @@ final class PowerPipelineTest extends CompilerDomainTestCase
 		return [
 			'Super Powers' => [Power::class],
 			'Joomla Powers' => [JoomlaPower::class],
+		];
+	}
+
+	/**
+	 * Named declaration headers and misleading class-like text.
+	 *
+	 * @return  array<string, array{string, string}>
+	 * @since   6.2.1
+	 */
+	public static function declarationProvider(): array
+	{
+		return [
+			'attribute' => ["<?php\n\n#[ExampleAttribute]\nclass Demo {}\n", '#[ExampleAttribute]'],
+			'nested attribute argument' => ["<?php\n\n#[ExampleAttribute(['closing' => ']'])]\nfinal class Demo {}\n", '#[ExampleAttribute('],
+			'readonly' => ["<?php\n\nreadonly class Demo {}\n", 'readonly class Demo'],
+			'final readonly' => ["<?php\n\nfinal readonly class Demo {}\n", 'final readonly class Demo'],
+			'class docblock' => ["<?php\n\n/** Example: class Pretend { */\nclass Demo {}\n", '/** Example:'],
+			'class literal' => ["<?php\n\$description = 'class Pretend {';\nclass Demo {}\n", 'class Demo'],
+			'namespaced parent' => ["<?php\nnamespace Acme;\nclass Demo extends \\Acme\\Base {}\n", 'class Demo'],
+			'interface' => ["<?php\ninterface Demo {}\n", 'interface Demo'],
+			'trait' => ["<?php\ntrait Demo {}\n", 'trait Demo'],
+			'no line break' => ['<?php class Demo {}', 'class Demo'],
+			'guard fallback' => ["<?php\ndefined('_JEXEC') or die;\n\$value = Service::get();\n", '$value ='],
+			'CRLF' => ["<?php\r\nnamespace Acme;\r\n\r\n/** Documentation. */\r\nabstract class Demo {}\r\n", '/** Documentation.'],
+			'anonymous class before declaration' => ["<?php\n\$instance = new class {};\nclass Demo {}\n", 'class Demo'],
+			'class constant before declaration' => ["<?php\n\$name = Other::class;\nclass Demo {}\n", 'class Demo'],
 		];
 	}
 
