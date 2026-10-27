@@ -21,6 +21,11 @@ use ReflectionClass;
 use VDM\Joomla\Abstraction\Model;
 use VDM\Joomla\Componentbuilder\Crypt;
 use VDM\Joomla\Componentbuilder\Crypt\KeyLoader;
+use VDM\Joomla\Componentbuilder\Crypt\Aes;
+use VDM\Joomla\Componentbuilder\Crypt\Aes\Legacy;
+use VDM\Joomla\Componentbuilder\Crypt\FOF;
+use VDM\Joomla\Componentbuilder\Crypt\Password;
+use VDM\Joomla\FOF\Encrypt\AES as LegacyCipher;
 use VDM\Joomla\Componentbuilder\Server;
 use VDM\Joomla\Componentbuilder\Server\Ftp;
 use VDM\Joomla\Componentbuilder\Server\Load;
@@ -208,4 +213,49 @@ final class ServerContractTest extends TestCase
 		$this->assertFalse($sftp->move('/missing', 'file.txt'));
 		$this->assertNull($sftpReflection->getProperty('client')->getValue($sftp));
 	}
+	/**
+	 * Read actual legacy encrypted credentials without zero padding or lost spaces.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testLoadModelRemovesOnlyLegacyEncryptionPadding(): void
+	{
+		$password = $this->createMock(Password::class);
+		$password->expects($this->once())->method('get')->with('basic')->willReturn('server-storage-key');
+		$crypt = new Crypt(new FOF(), $this->createStub(Aes::class), $this->createStub(Legacy::class), $password);
+		$subject = new LoadModel($crypt, new Table());
+		$cipher = new LegacyCipher('server-storage-key', 128);
+
+		foreach ([
+			'host' => 'sftp.example.test',
+			'username' => 'alice',
+			'password' => ' secret with spaces ',
+			'secret' => '0',
+			'port' => '2222',
+			'path' => 'releases',
+			'signature' => 'host=ftp.example.test&port=21&username=alice&password=secret',
+		] as $field => $plain)
+		{
+			$this->assertSame($plain, $subject->value($cipher->encryptString($plain), $field, 'server'), $field);
+		}
+
+		$this->assertSame(' Name with spaces ', $subject->value(' Name with spaces ', 'name', 'server'));
+	}
+
+	/**
+	 * Failed decryption stays unavailable instead of becoming a plaintext credential.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testLoadModelPreservesDecryptionFailure(): void
+	{
+		$crypt = $this->createMock(Crypt::class);
+		$crypt->expects($this->once())->method('decrypt')->with('ciphertext', 'basic')->willReturn(null);
+		$subject = new LoadModel($crypt, new Table());
+
+		$this->assertNull($subject->value('ciphertext', 'password', 'server'));
+	}
+
 }

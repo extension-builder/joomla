@@ -5532,6 +5532,10 @@ return [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Server/ServerContractTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Server/ClientFactory.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Server/ClientFactoryTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Server/Ftp.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Server/ServerContractTest.php'
