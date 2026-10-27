@@ -13,8 +13,10 @@ namespace VDM\Joomla\Tests\Componentbuilder\Power;
 
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Extrusion\Powers\Reader\ClassFile;
 use VDM\Joomla\Componentbuilder\Power\Generator;
 use VDM\Joomla\Componentbuilder\Power\Generator\Bucket;
 use VDM\Joomla\Componentbuilder\Power\Generator\ClassInjector;
@@ -46,6 +48,7 @@ use VDM\Tests\Support\CompilerUtilityTestCase;
 #[CoversClass(Plantuml::class)]
 #[UsesClass(Indent::class)]
 #[UsesClass(Parser::class)]
+#[UsesClass(ClassFile::class)]
 final class GenerationContractTest extends CompilerUtilityTestCase
 {
 	/**
@@ -181,6 +184,164 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 	}
 
 	/**
+	 * Preserve each compiler wrapper's parsed empty body through Power save generation.
+	 *
+	 * @param   string  $path  The original compiler subclass below its source root.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('inheritedCompilerWrappers')]
+	public function testParsedEmptyCompilerWrappersKeepInheritedConstructors(string $path): void
+	{
+		$source = file_get_contents(JCB_PROJECT_ROOT . '/libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/' . $path);
+		$parts = (new ClassFile(new Parser()))->read($source);
+		$this->assertNotNull($parts);
+		$this->assertSame('', $parts['body']);
+		$this->assertCount(1, $parts['uses']);
+		$this->assertSame([$parts['uses'][0]['alias']], $parts['extends']);
+		$parentGuid = '46fbc151-4fe5-4b35-86df-6e48f7ec506c';
+		$parentName = substr($parts['uses'][0]['name'], strrpos($parts['uses'][0]['name'], '\\') + 1);
+		$bucket = $this->bucket();
+		$bucket->set('power.' . $parentGuid, (object) [
+			'guid' => $parentGuid,
+			'type' => 'class',
+			'name' => $parentName,
+			'namespace' => $parts['uses'][0]['name'],
+		]);
+		$subject = $this->generator($bucket);
+
+		// Extrusion retains an aliased parent in both custom inheritance and use_selection.
+		$definition = [
+			'name' => $parts['class'],
+			'type' => $parts['type'],
+			'main_class_code' => $parts['body'],
+			'description' => $parts['docblock'],
+			'power_version' => '1.0.0',
+			'extends' => '-1',
+			'extends_custom' => $parts['extends'][0],
+			'implements_custom' => '',
+			'use_selection' => [
+				'use_selection0' => ['use' => $parentGuid, 'as' => $parts['uses'][0]['alias']],
+			],
+		];
+
+		$this->assertNull($subject->get($definition), 'Saving the extracted subclass must preserve its inherited constructor.');
+	}
+
+	/**
+	 * The 25 empty target variants that must survive the extrusion/save boundary.
+	 *
+	 * @return  array<string, array{string}>  Source paths named by compiler variant.
+	 * @since   6.2.1
+	 */
+	public static function inheritedCompilerWrappers(): array
+	{
+		$cases = [];
+
+		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			foreach (['CustomButtons', 'DynamicButtons', 'View/GoogleChartLoader', 'View/Jquery', 'AdminView/ViewScript'] as $renderer)
+			{
+				$path = 'Architecture/' . $version . '/' . $renderer . '.php';
+				$cases[$path] = [$path];
+			}
+
+			foreach (['Creator' => 'ConfigFieldsetsEmailHelper', 'Library' => 'IncludeHelper'] as $domain => $renderer)
+			{
+				$path = $domain . '/' . $version . '/' . $renderer . '.php';
+				$cases[$path] = [$path];
+			}
+		}
+
+		foreach (['JoomlaFour', 'JoomlaFive'] as $version)
+		{
+			foreach (['View/LibrariesLoader', 'AdminView/FootableScripts'] as $renderer)
+			{
+				$path = 'Architecture/' . $version . '/' . $renderer . '.php';
+				$cases[$path] = [$path];
+			}
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Linked and custom parents preserve inheritance even with other selected imports.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testGeneratorPreservesLinkedAndCustomParentConstructors(): void
+	{
+		$subject = $this->generator($this->bucket());
+		$definition = [
+			'main_class_code' => '',
+			'description' => 'An empty subclass. @since 6.2.1',
+			'power_version' => '1.0.0',
+			'implements_custom' => '',
+			'use_selection' => [['use' => 'dependency', 'as' => 'Widget']],
+		];
+
+		foreach ([
+			['extends' => '46fbc151-4fe5-4b35-86df-6e48f7ec506c', 'extends_custom' => ''],
+			['extends' => -1, 'extends_custom' => 'BaseCustomButtons'],
+			['extends' => '-1', 'extends_custom' => '\\External\\BaseClass'],
+		] as $inheritance)
+		{
+			$this->assertNull($subject->get($definition + $inheritance));
+		}
+	}
+
+	/**
+	 * Skipping an inherited class does not change later DI or service-provider output.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testInheritedClassSkipPreservesOtherScaffoldingAndReusableState(): void
+	{
+		$subject = $this->generator($this->bucket());
+		$definition = [
+			'main_class_code' => '',
+			'description' => 'Generated service. @since 4.5.6',
+			'power_version' => '1.0.0',
+			'implements_custom' => '',
+			'use_selection' => [['use' => 'dependency', 'as' => 'default']],
+		];
+		$before = $subject->get($definition);
+		$this->assertStringContainsString('public function __construct(Widget $widget)', $before);
+		$this->assertNull($subject->get($definition + ['extends' => -1, 'extends_custom' => 'BaseWidget']));
+
+		$provider = $subject->get(array_replace($definition, [
+			'extends' => '-1',
+			'extends_custom' => 'BaseProvider',
+			'implements_custom' => 'ServiceProviderInterface',
+		]));
+		$this->assertStringContainsString("->share('Widget.Service', [\$this, 'getWidget'], true);", $provider);
+		$this->assertStringContainsString('return new Widget();', $provider);
+		$this->assertStringNotContainsString('__construct', $provider);
+		$this->assertSame($before, $subject->get($definition));
+
+		foreach ([
+			['extends' => '', 'extends_custom' => 'StaleBaseWidget'],
+			['extends' => 0, 'extends_custom' => ''],
+			['extends' => '0', 'extends_custom' => ''],
+			['extends' => null, 'extends_custom' => ''],
+			['extends' => -1, 'extends_custom' => ''],
+		] as $noParent)
+		{
+			$this->assertSame($before, $subject->get($definition + $noParent));
+		}
+
+		$this->assertNull($subject->get(array_replace($definition, [
+			'main_class_code' => 'public function __construct() {}',
+			'extends' => '-1',
+			'extends_custom' => 'BaseWidget',
+		])));
+	}
+
+	/**
 	 * Protect stable PlantUML colors, access signs, tags, and namespace depth.
 	 *
 	 * @return  void
@@ -242,5 +403,25 @@ final class GenerationContractTest extends CompilerUtilityTestCase
 		$bucket->set('service_providers.dependency', []);
 
 		return $bucket;
+	}
+
+	/**
+	 * Compose the real save-time generator with a deterministic Power catalogue.
+	 *
+	 * @param   Bucket  $bucket  Preloaded selected Power definitions.
+	 *
+	 * @return  Generator
+	 * @since   6.2.1
+	 */
+	private function generator(Bucket $bucket): Generator
+	{
+		$database = $this->createMock(Database::class);
+		$database->expects($this->never())->method('table');
+		$search = new Search($database, new Parser(), $bucket);
+
+		return new Generator(
+			new ClassInjectorBuilder($search, new ClassInjector()),
+			new ServiceProviderBuilder($search, new ServiceProvider())
+		);
 	}
 }
