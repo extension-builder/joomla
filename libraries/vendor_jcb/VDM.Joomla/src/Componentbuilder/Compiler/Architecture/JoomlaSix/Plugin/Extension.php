@@ -26,8 +26,9 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Plugin\Extensio
  * Native Joomla 6 plugin subscribers.
  *
  * Stored explicit subscription maps remain authoritative. Implicit on* handlers
- * use native events. Reviewed bundled privacy defaults are emitted natively;
- * other positional legacy definitions require explicit migration.
+ * use native events; jcb_ce_* hooks retain the compiler's positional arguments.
+ * Reviewed bundled privacy defaults are emitted natively; other positional
+ * legacy definitions require explicit migration.
  *
  * @since 5.1.2
  */
@@ -151,8 +152,17 @@ final class Extension implements ExtensionInterface
 
 			foreach ($methods as $method)
 			{
-				if ($method['access'] === 'public' && !$method['static'] && !$method['abstract']
-					&& str_starts_with($method['name'], 'on'))
+				if ($method['access'] !== 'public' || $method['static'] || $method['abstract'])
+				{
+					continue;
+				}
+
+				if (str_starts_with($method['name'], 'jcb_ce_'))
+				{
+					// The compiler invokes these native subscribers with positional references.
+					$events[$method['name']] = $method['name'];
+				}
+				elseif (str_starts_with($method['name'], 'on'))
 				{
 					$this->validateHandler($plugin, $method);
 					$events[$method['name']] = $method['name'];
