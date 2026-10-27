@@ -159,6 +159,65 @@ final class VersionedIntegrationTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * A rebuilt compiler resolves each new plugin namespace at its own render stage.
+	 *
+	 * @param   class-string  $class  Modern target header implementation.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('modernHeaderProvider')]
+	public function testPluginHeadersRemainTargetSpecificAfterSelfCompilation(string $class): void
+	{
+		$config = $this->compilerConfig(['build_target' => 'admin']);
+		$selfCompilation = new Placeholder($config);
+		$selfCompilation->set('PluginGroupNamespace', 'Webservices');
+		$selfCompilation->set('PluginNamespace', 'ComponentbuilderApiRoutes');
+		$original = new ReflectionClass($class);
+		$source = file_get_contents($original->getFileName());
+		$this->assertIsString($source);
+
+		// Power source is updated while the last linked plugin's placeholders are active.
+		$rebuiltSource = $selfCompilation->update_($source);
+		$rebuiltNamespace = $original->getNamespaceName() . '\\SelfCompiled';
+		$rebuiltSource = str_replace(
+			'namespace ' . $original->getNamespaceName() . ';',
+			'namespace ' . $rebuiltNamespace . ';',
+			$rebuiltSource
+		);
+		eval(substr($rebuiltSource, strlen('<?php')));
+
+		$placeholder = new Placeholder($config);
+		$event = $this->createStub(EventInterface::class);
+		$subjects = [];
+
+		foreach ([$class, $rebuiltNamespace . '\\Header'] as $headerClass)
+		{
+			$subject = (new ReflectionClass($headerClass))->newInstanceWithoutConstructor();
+			$this->setCompilerProperty($subject, 'config', $config);
+			$this->setCompilerProperty($subject, 'event', $event);
+			$this->setCompilerProperty($subject, 'placeholder', $placeholder);
+			$this->setCompilerProperty($subject, 'NamespacePrefix', 'Acme');
+			$subjects[] = $subject;
+		}
+
+		foreach ([['System', 'Example', 'ExamplePlugin'], ['Content', 'Article', 'ArticlePlugin']] as $plugin)
+		{
+			[$group, $namespace, $codeName] = $plugin;
+			$placeholder->set('PluginGroupNamespace', $group);
+			$placeholder->set('PluginNamespace', $namespace);
+			$expected = "use Acme\\Plugin\\{$group}\\{$namespace}\\Extension\\{$codeName};";
+			$firstPass = $subjects[0]->get('plugin.provider.header', $codeName);
+			$nextPass = $subjects[1]->get('plugin.provider.header', $codeName);
+
+			$this->assertStringContainsString($expected, $firstPass);
+			$this->assertStringContainsString($expected, $nextPass);
+			$this->assertSame($firstPass, $nextPass);
+			$this->assertStringNotContainsString('ComponentbuilderApiRoutes', $nextPass);
+		}
+	}
+
+	/**
 	 * History adapters use their host table and store one component lock exactly once.
 	 *
 	 * @param   class-string  $class  History implementation.
@@ -216,6 +275,21 @@ final class VersionedIntegrationTest extends CompilerDomainTestCase
 			'Joomla 4' => [JoomlaFourHeader::class, true],
 			'Joomla 5' => [JoomlaFiveHeader::class, true],
 			'Joomla 6' => [JoomlaSixHeader::class, true],
+		];
+	}
+
+	/**
+	 * Target headers that emit namespaced plugin service providers.
+	 *
+	 * @return  array<string, array{class-string}>
+	 * @since   6.2.1
+	 */
+	public static function modernHeaderProvider(): array
+	{
+		return [
+			'Joomla 4' => [JoomlaFourHeader::class],
+			'Joomla 5' => [JoomlaFiveHeader::class],
+			'Joomla 6' => [JoomlaSixHeader::class],
 		];
 	}
 
