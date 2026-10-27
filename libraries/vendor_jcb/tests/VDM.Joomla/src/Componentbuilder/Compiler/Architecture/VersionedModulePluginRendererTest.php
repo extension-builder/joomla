@@ -22,12 +22,14 @@ use Joomla\Event\Event;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionClass;
 use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Module\LibraryInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Customcode\DispenserInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaSix\Event as JoomlaSixEvent;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
@@ -513,6 +515,128 @@ final class VersionedModulePluginRendererTest extends ArchitectureTestCase
 		{
 			$this->assertStringContainsString("'collectArticles' => 'collectArticles'", $code);
 		}
+	}
+
+	/**
+	 * Compiler hooks authored without a map retain their positional and reference contract.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testJoomlaSixCompilerHooksSubscribeWithoutAnAuthoredMap(): void
+	{
+		$body = <<<'PHP'
+	public bool $loaded = false;
+
+	public function jcb_ce_onAfterGetComponentData(): void
+	{
+		$this->loaded = true;
+	}
+
+	public function jcb_ce_setClassHeader(&$context, &$viewName, &$headers): void
+	{
+		$context .= '.custom';
+		$viewName .= '.custom';
+		$headers[] = 'use Joomla\CMS\Form\Form;';
+	}
+
+	public function onReady(\Joomla\Event\EventInterface $event): void
+	{
+		$event->setArgument('ready', true);
+	}
+
+	public function customEvent($context, $item): bool
+	{
+		return false;
+	}
+
+	public static function jcb_ce_staticHelper(): void
+	{
+	}
+
+	protected function jcb_ce_protectedHelper(): void
+	{
+	}
+PHP;
+		$plugin = (object) [
+			'comment' => '/** Compiler hook fixture. */',
+			'class_name' => 'GeneratedCompilerHooksPlugin',
+			'extends' => '\\Joomla\\CMS\\Plugin\\CMSPlugin',
+			'main_class_code' => $body,
+		];
+		$extension = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Extension'))->get($plugin);
+		$this->assertSame($body, $plugin->main_class_code);
+		$this->assertStringContainsString($body, $extension);
+		$power = $this->createStub(PowerInterface::class);
+		$power->method('get')->willReturn((object) [
+			'_namespace' => 'Joomla\\Event', 'class_name' => 'SubscriberInterface', 'type' => 'interface',
+		]);
+		$injector = new Injector($power, new Extractor($this->createStub(DatabaseInterface::class), 6), new Parser(), $this->renderer(Placeholder::class));
+		$extension = $injector->power('<?php' . PHP_EOL . 'namespace ' . __NAMESPACE__ . ';' . PHP_EOL
+			. 'use Joomla\\CMS\\Plugin\\CMSPlugin;' . PHP_EOL . $extension);
+		eval(substr($extension, strlen('<?php')));
+		$class = __NAMESPACE__ . '\\' . $plugin->class_name;
+		$instance = new $class([]);
+		$this->assertSame([
+			'jcb_ce_onAfterGetComponentData' => 'jcb_ce_onAfterGetComponentData',
+			'jcb_ce_setClassHeader' => 'jcb_ce_setClassHeader',
+			'onReady' => 'onReady',
+		], $instance::getSubscribedEvents());
+		$dispatcher = new Dispatcher();
+		$dispatcher->addSubscriber($instance);
+		$adapter = (new ReflectionClass(JoomlaSixEvent::class))->newInstanceWithoutConstructor();
+		(new ReflectionProperty(JoomlaSixEvent::class, 'activePlugins'))->setValue($adapter, true);
+		(new ReflectionProperty(JoomlaSixEvent::class, 'dispatcher'))->setValue($adapter, $dispatcher);
+		$adapter->trigger('jcb_ce_onAfterGetComponentData');
+		$this->assertTrue($instance->loaded);
+
+		$context = 'custom.admin.view.html';
+		$viewName = 'compiler';
+		$headers = [];
+		$adapter->trigger('jcb_ce_setClassHeader', [&$context, &$viewName, &$headers]);
+		$this->assertSame('custom.admin.view.html.custom', $context);
+		$this->assertSame('compiler.custom', $viewName);
+		$this->assertSame(['use Joomla\\CMS\\Form\\Form;'], $headers);
+		$event = new Event('onReady');
+		$dispatcher->dispatch('onReady', $event);
+		$this->assertTrue($event->getArgument('ready'));
+	}
+
+	/**
+	 * Explicit compiler-hook aliases and priorities remain the authored contract.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testJoomlaSixExplicitCompilerHookMapRemainsAuthoritative(): void
+	{
+		$body = <<<'PHP'
+	public static function getSubscribedEvents(): array
+	{
+		return ['jcb_ce_setClassHeader' => ['headers', 30]];
+	}
+
+	public function headers(&$context, &$viewName, &$headers): void
+	{
+		$headers[] = 'use Joomla\CMS\Form\Form;';
+	}
+
+	public function jcb_ce_onAfterGetComponentData(): void
+	{
+	}
+PHP;
+		$plugin = (object) [
+			'comment' => '/** Explicit compiler hook fixture. */',
+			'class_name' => 'ExplicitCompilerHooksPlugin',
+			'extends' => '\\Joomla\\CMS\\Plugin\\CMSPlugin',
+			'main_class_code' => $body,
+		];
+		$extension = $this->renderer($this->rendererClass('JoomlaSix', 'Plugin/Extension'))->get($plugin);
+
+		$this->assertSame($body, $plugin->main_class_code);
+		$this->assertStringContainsString($body, $extension);
+		$this->assertSame(1, substr_count($extension, 'function getSubscribedEvents'));
+		$this->assertStringNotContainsString("\$events['jcb_ce_onAfterGetComponentData']", $extension);
 	}
 
 	/**
