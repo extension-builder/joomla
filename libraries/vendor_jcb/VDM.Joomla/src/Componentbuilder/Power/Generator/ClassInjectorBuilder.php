@@ -15,7 +15,6 @@ namespace VDM\Joomla\Componentbuilder\Power\Generator;
 use VDM\Joomla\Componentbuilder\Power\Generator\Search;
 use VDM\Joomla\Componentbuilder\Power\Generator\ClassInjector;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
-use VDM\Joomla\Utilities\GuidHelper;
 
 
 /**
@@ -62,20 +61,9 @@ final class ClassInjectorBuilder
 	 *
 	 * @return string|null
 	 * @since 3.2.0
-	 * @since 6.2.1 Preserve inherited constructors instead of scaffolding replacements.
 	 */
 	public function getCode(array $power): ?string
 	{
-		$extends = $power['extends'] ?? '';
-
-		// An empty subclass inherits its parent's constructor. Selected imports
-		// cannot tell us how to preserve that initialization in a new constructor.
-		if (GuidHelper::valid($extends)
-			|| ((string) $extends === '-1' && trim((string) ($power['extends_custom'] ?? '')) !== ''))
-		{
-			return null;
-		}
-
 		$this->setVersion($this->extractSinceVersion($power['description']) ?? $power['power_version'] ?? '1.0.0');
 
 		foreach ($power['use_selection'] as $use_selection)
@@ -260,3 +248,4 @@ final class ClassInjectorBuilder
 		return null;
 	}
 }
+

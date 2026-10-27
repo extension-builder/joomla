@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as 
  */
 final class GoogleChartLoader extends SharedGoogleChartLoader
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

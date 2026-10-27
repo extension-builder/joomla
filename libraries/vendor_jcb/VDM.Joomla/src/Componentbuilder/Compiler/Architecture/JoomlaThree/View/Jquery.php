@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as SharedJquer
  */
 final class Jquery extends SharedJquery
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

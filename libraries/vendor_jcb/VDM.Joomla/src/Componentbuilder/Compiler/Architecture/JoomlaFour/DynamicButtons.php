@@ -22,4 +22,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\DynamicButtons as BaseDyna
  */
 final class DynamicButtons extends BaseDynamicButtons
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

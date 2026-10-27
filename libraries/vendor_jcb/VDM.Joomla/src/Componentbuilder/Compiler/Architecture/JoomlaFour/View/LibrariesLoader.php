@@ -20,4 +20,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as Sh
  */
 final class LibrariesLoader extends SharedLibrariesLoader
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }

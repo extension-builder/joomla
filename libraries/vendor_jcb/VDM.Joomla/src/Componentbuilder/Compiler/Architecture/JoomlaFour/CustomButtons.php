@@ -22,4 +22,5 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomButtons as BaseCusto
  */
 final class CustomButtons extends BaseCustomButtons
 {
+	// Preserve the inherited constructor when JCB saves this Power.
 }
