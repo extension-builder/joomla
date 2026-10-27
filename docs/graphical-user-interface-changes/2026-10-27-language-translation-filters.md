@@ -72,20 +72,22 @@ The fix addresses both new and existing rows. Compiler insertion now explicitly 
 | `node --check libraries/vendor_jcb/tests/gui/specs/language_translations.spec.js` | Available Node runtime | Pass |
 | `bash -n .github/gui-tests/run.sh` | Bash | Pass |
 | `git diff --check` | Current working diff | Pass |
+| [Hosted disposable GUI run 40520663994](https://github.com/extension-builder/joomla/actions/runs/40520663994), job `Playwright against joomengine` | Installed source at `bf9a7a7371872f5999e2de50f75eae9c2ad54052`, Chromium against joomengine | Pass: 32 tests, 0 skipped, 0 failed; all three #1309 journeys passed |
 
 ### Manual scenarios
 
-No installed-browser scenarios have been run at this stage.
+No separate manual browser session was performed. The installed-browser scenarios below ran automatically in the hosted disposable stack.
 
 ### GUI test coverage
 
 - **Spec:** `libraries/vendor_jcb/tests/gui/specs/language_translations.spec.js`, with disposable fixture data supplied by `.github/gui-tests/language-translation-fixtures.php` through the existing harness.
 - **Compiler regression:** The fixture invokes the actual `Compiler/Language/Insert` service, then checks that the new row contains `''` and a separate legacy row still contains SQL NULL. Neither row is passed through the administrator save model. The browser journey must find both in untranslated and none results immediately.
 - **Other cases:** Blank JSON/subform values, a language tag appearing only inside another translation's text, valid `"0"`, published-language all, combined extension/language selections, clearing filters, contradictory selections, pagination and page clamping when the result set shrinks. The pagination case does not claim a general filter-change reset.
+- **Hosted evidence:** The run above completed seeding successfully, including the real compiler insertion and strict stored-value assertions, before Playwright began. Its three #1309 cases passed: `matches exact nonblank entries and combines the extension filter`; `finds compiler-created and legacy null rows before manual save and keeps all/none distinct`; `paginates and clamps the page when the selected result set becomes smaller`. The run retained the `gui-tests` report artifact (ID `12741821921`) and exact-source provenance. The artifact allowlist now also retains the language fixture seed/cleanup logs and manifest on subsequent runs.
 
 ### Checks not performed
 
-- The full disposable Joomla/browser harness has not run locally: Docker is unavailable in this execution environment. The seeded GUI journeys are committed for the hosted harness; no browser pass is claimed.
+- The disposable Joomla/browser harness was not run locally because Docker is unavailable in this execution environment; the hosted run above completed it successfully.
 - Rebuilding JCB from the owner's authoritative definitions has not run because that maintenance dataset is absent from this checkout.
 
 ## Risks, limitations, and rollback
@@ -108,4 +110,4 @@ The helper is an existing Power (`Componentbuilder/Utilities/FilterHelper`): syn
 - [x] The implementation is within the accepted proposal.
 - [x] Behavioral and visual impact are explicit.
 - [x] Transfer is required and reconciliation is not claimed.
-- [x] Focused automated results and added GUI coverage are recorded; unperformed hosted checks are explicit.
+- [x] Focused results and hosted GUI evidence are recorded; the unperformed authoritative-source self-build is explicit.
