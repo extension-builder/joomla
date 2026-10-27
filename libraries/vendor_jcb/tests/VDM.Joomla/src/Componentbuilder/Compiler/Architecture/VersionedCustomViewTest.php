@@ -12,9 +12,16 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Menu\AbstractMenu;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Router\Router;
+use Joomla\CMS\Router\SiteRouter;
+use Joomla\CMS\Uri\Uri;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\Body;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\CustomAdminViewListId;
@@ -84,13 +91,13 @@ A list with no marks
 GEN;
 
 	/**
-	 * The site form tag of every target before Joomla 6, captured from the compiler.
+	 * The site form tag names its component and configured view before Joomla 6.
 	 *
 	 * @var    string
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_FORM_SITE_SHARED = <<<'GEN'
-<form action="<?php echo Joomla___d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_demo'); ?>" method="post" name="adminForm" id="adminForm">
+<form action="<?php echo Joomla___d4c76099_4c32_408a_8701_d0a724484dfd___Power::_('index.php?option=com_demo&view=demo'); ?>" method="post" name="adminForm" id="adminForm">
 
 GEN;
 
@@ -209,22 +216,23 @@ GEN;
 	 * @param   string  $version  Target namespace segment.
 	 * @param   bool    $hasForm  Whether the view carries a form.
 	 * @param   bool    $hasId    Whether the view carries a list id.
+	 * @param   string  $view     Configured frontend view code.
 	 *
 	 * @return  object
 	 * @since   6.1.7
 	 */
-	private function form(string $version, bool $hasForm = true, bool $hasId = false): object
+	private function form(string $version, bool $hasForm = true, bool $hasId = false, string $view = 'demo'): object
 	{
 		$forms = new CustomForm();
 		if ($hasForm)
 		{
-			$forms->set($this->config()->build_target . '.demo', true);
+			$forms->set($this->config()->build_target . '.' . $view, true);
 		}
 
 		$ids = new CustomAdminViewListId();
 		if ($hasId)
 		{
-			$ids->set('demo', true);
+			$ids->set($view, true);
 		}
 
 		return $this->renderer(
@@ -305,7 +313,7 @@ GEN;
 	}
 
 	/**
-	 * A site form of an earlier target names the component it posts to.
+	 * A site form of an earlier target names the component and configured view it posts to.
 	 *
 	 * @param   string  $version  Target namespace segment.
 	 *
@@ -313,7 +321,7 @@ GEN;
 	 * @since   6.1.7
 	 */
 	#[DataProvider('earlierVersions')]
-	public function testASiteFormOfAnEarlierTargetNamesItsComponent(string $version): void
+	public function testASiteFormOfAnEarlierTargetNamesItsComponentAndView(string $version): void
 	{
 		$this->config()->set('build_target', 'site');
 		$view = 'demo';
@@ -339,6 +347,59 @@ GEN;
 		$this->assertSame(
 			self::EXPECTED_FORM_SITE_J6, $this->form('JoomlaSix')->get($view, $gettype, 1)
 		);
+	}
+
+	/**
+	 * Submitting a custom-named frontend form must not fall back to the component's default view.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('earlierVersions')]
+	public function testAConfiguredFrontendViewSurvivesFormSubmissionWithoutAMenu(string $version): void
+	{
+		$this->config()->set('build_target', 'site');
+		$view = 'public_catalogues';
+		$subject = $this->form($version, true, false, $view);
+
+		foreach ([1, 2] as $gettype)
+		{
+			$action = $this->renderSiteFormAction($subject->get($view, $gettype, 1), []);
+			$this->assertSame('index.php', $action->getPath());
+			$this->assertSame('com_demo', $action->getVar('option'));
+			$this->assertSame('public_catalogues', $action->getVar('view'));
+		}
+	}
+
+	/**
+	 * Joomla 6 routes its current view and context when the form does not replace the parsed query.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testAJoomlaSixSiteFormPreservesItsViewAndParsedRouteContext(): void
+	{
+		$this->config()->set('build_target', 'site');
+		$view = 'public_catalogues';
+		$subject = $this->form('JoomlaSix', true, false, $view);
+
+		foreach ([1, 2] as $gettype)
+		{
+			foreach ([[], ['Itemid' => 71]] as $menu)
+			{
+				$context = $menu + [
+					'option' => 'com_demo',
+					'view' => $view,
+					'id' => 19,
+					'lang' => 'de',
+					'filter' => 'bread',
+				];
+				$action = $this->renderSiteFormAction($subject->get($view, $gettype, 1), $context);
+				$this->assertEquals($context, $action->getQuery(true));
+			}
+		}
 	}
 
 	/**
@@ -405,5 +466,51 @@ GEN;
 			self::EXPECTED_FORM_BOTTOM_WITH_ID,
 			$this->form('JoomlaSix', true, true)->get($view, $gettype, 2)
 		);
+	}
+
+	/**
+	 * Execute the emitted template through Joomla's route and query-inheritance boundary.
+	 *
+	 * Component-specific SEF rules are deliberately outside this isolated contract.
+	 *
+	 * @param   string  $source   Generated form template.
+	 * @param   array   $context  Parsed request variables held by the site router.
+	 *
+	 * @return  Uri  The browser's decoded form action.
+	 * @since   6.2.1
+	 */
+	private function renderSiteFormAction(string $source, array $context): Uri
+	{
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('getName')->willReturn('site');
+		$this->setJoomlaApplication($app);
+		$siteRouter = new SiteRouter($app, $this->createStub(AbstractMenu::class));
+		$siteRouter->setVars($context);
+		$router = new Router();
+		$router->attachBuildRule([$siteRouter, 'buildInit'], Router::PROCESS_BEFORE);
+		$property = new ReflectionProperty(Route::class, '_router');
+		$previous = $property->getValue();
+		$property->setValue(null, ['site' => $router]);
+		$source = str_replace(
+			'Joomla___d4c76099_4c32_408a_8701_d0a724484dfd___Power',
+			'\\' . Route::class,
+			$source
+		);
+
+		ob_start();
+		try
+		{
+			eval('?>' . $source);
+			$html = ob_get_contents();
+		}
+		finally
+		{
+			ob_end_clean();
+			$property->setValue(null, $previous);
+		}
+
+		$this->assertSame(1, preg_match('/<form action="([^"]*)" method="post"/', $html, $matches));
+
+		return new Uri(html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8'));
 	}
 }
