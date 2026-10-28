@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as SharedGoogleChartLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
+
 /**
  * Joomla six GoogleChartLoader renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class GoogleChartLoader extends SharedGoogleChartLoader
@@ -45,3 +47,4 @@ final class GoogleChartLoader extends SharedGoogleChartLoader
 			. PHP_EOL . Indent::_(2) . "\$jcbChartAssets->useScript('google.charts');";
 	}
 }
+

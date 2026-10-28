@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\RouterMethodsManual as SharedRo
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class RouterMethodsManual extends SharedRouterMethodsManual
@@ -30,3 +30,4 @@ final class RouterMethodsManual extends SharedRouterMethodsManual
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

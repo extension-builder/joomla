@@ -1006,3 +1006,4 @@ class ListView
 		return PHP_EOL . '<script type="text/javascript">' . $script . '</script>';
 	}
 }
+

@@ -24,12 +24,12 @@ use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\Plugin\Extensio
 
 /**
  * Native Joomla 6 plugin subscribers.
- *
+ * 
  * Stored explicit subscription maps remain authoritative. Implicit on* handlers
  * use native events; jcb_ce_* hooks retain the compiler's positional arguments.
  * Reviewed bundled privacy defaults are emitted natively; other positional
  * legacy definitions require explicit migration.
- *
+ * 
  * @since 5.1.2
  */
 final class Extension implements ExtensionInterface
@@ -559,3 +559,4 @@ final class Extension implements ExtensionInterface
 			. $method['name'] . '(): ' . $reason . '. Joomla 3–5 definitions are unchanged.');
 	}
 }
+

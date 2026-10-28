@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\DisplayMethod a
 
 /**
  * Let native Joomla 6 view exception mode report model retrieval failures.
- *
+ * 
  * @since  6.2.0
  */
 final class DisplayMethod extends SharedDisplayMethod
@@ -30,3 +30,4 @@ final class DisplayMethod extends SharedDisplayMethod
 	 */
 	protected bool $checkErrors = false;
 }
+

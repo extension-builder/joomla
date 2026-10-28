@@ -1312,3 +1312,4 @@ class Config extends ComponentConfig
 		return 0;
 	}
 }
+

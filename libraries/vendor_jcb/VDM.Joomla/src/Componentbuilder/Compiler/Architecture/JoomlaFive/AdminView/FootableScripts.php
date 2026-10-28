@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminView;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedFootableScripts;
+
 
 /**
  * Joomla five FootableScripts renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class FootableScripts extends SharedFootableScripts
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

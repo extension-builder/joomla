@@ -18,7 +18,7 @@ use VDM\Joomla\Utilities\String\NamespaceHelper;
 
 /**
  * Email configuration fieldsets for Joomla six.
- *
+ * 
  * @since  6.2.0
  */
 final class ConfigFieldsetsEmailHelper extends SharedEmailHelper
@@ -47,3 +47,4 @@ final class ConfigFieldsetsEmailHelper extends SharedEmailHelper
 			. '\Administrator\Field"';
 	}
 }
+

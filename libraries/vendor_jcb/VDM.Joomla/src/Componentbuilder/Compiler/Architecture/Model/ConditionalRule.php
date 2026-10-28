@@ -118,3 +118,4 @@ final class ConditionalRule
 			. PHP_EOL . Indent::_(1) . '}';
 	}
 }
+

@@ -17,10 +17,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomButtons as BaseCusto
 
 /**
  * Joomla 3 custom buttons renderer.
- *
+ * 
  * @since  6.2.0
  */
 final class CustomButtons extends BaseCustomButtons
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

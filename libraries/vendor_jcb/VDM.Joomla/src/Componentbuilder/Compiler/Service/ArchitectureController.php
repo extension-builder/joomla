@@ -654,3 +654,4 @@ class ArchitectureController implements ServiceProviderInterface
 		);
 	}
 }
+

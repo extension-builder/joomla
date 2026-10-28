@@ -271,3 +271,4 @@ final class Template implements TemplateInterface
 		}
 	}
 }
+

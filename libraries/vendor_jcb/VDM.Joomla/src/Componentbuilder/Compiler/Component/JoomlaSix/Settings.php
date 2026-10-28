@@ -598,3 +598,4 @@ final class Settings implements SettingsInterface
 		$this->component->remove('files');
 	}
 }
+

@@ -414,3 +414,4 @@ class ArchitecturePlugin implements ServiceProviderInterface
 		);
 	}
 }
+

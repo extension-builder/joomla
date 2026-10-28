@@ -376,3 +376,4 @@ final class Whmcs
 			. " Please note that you will need to enable the add-on in the Joomla Component area (Add WHMCS)->Yes.";
 	}
 }
+

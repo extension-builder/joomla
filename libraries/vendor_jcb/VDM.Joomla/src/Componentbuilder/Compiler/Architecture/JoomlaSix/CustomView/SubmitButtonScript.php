@@ -19,7 +19,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Register custom-view submit handlers through the Joomla 6 asset manager.
- *
+ * 
  * @since  6.2.0
  */
 final class SubmitButtonScript extends SharedSubmitButtonScript
@@ -75,3 +75,4 @@ final class SubmitButtonScript extends SharedSubmitButtonScript
 		return $code;
 	}
 }
+

@@ -17,10 +17,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\DynamicButtons as BaseDyna
 
 /**
  * Joomla 5 dynamic buttons renderer.
- *
+ * 
  * @since  6.2.0
  */
 final class DynamicButtons extends BaseDynamicButtons
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

@@ -400,3 +400,4 @@ class ViewBody implements ViewBodyInterface
 		return $lines;
 	}
 }
+

@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ListQuery as SharedL
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class ListQuery extends SharedListQuery
@@ -38,3 +38,4 @@ final class ListQuery extends SharedListQuery
 	 */
 	protected string $categoryTable = 'new \\Joomla\\CMS\\Table\\Category($db)';
 }
+

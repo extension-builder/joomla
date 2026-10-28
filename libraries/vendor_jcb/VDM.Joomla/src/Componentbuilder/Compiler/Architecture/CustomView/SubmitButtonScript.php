@@ -81,5 +81,5 @@ class SubmitButtonScript
 		return PHP_EOL . '<script type="text/javascript">' . PHP_EOL
 			. $script . PHP_EOL . '</script>';
 	}
-
 }
+

@@ -663,3 +663,4 @@ class Injector implements InjectorInterface
 		return $code;
 	}
 }
+

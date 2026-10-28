@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Field\JoomlaSix;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Customcode as SharedCustomcode;
 
+
 /**
  * Collect Joomla 6 field scripts without changing authored footer semantics.
- *
+ * 
  * @since 6.2.0
  */
 final class Customcode extends SharedCustomcode
@@ -33,3 +35,4 @@ final class Customcode extends SharedCustomcode
 		parent::__construct($dispenser);
 	}
 }
+

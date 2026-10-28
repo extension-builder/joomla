@@ -18,11 +18,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Render the reviewed bundled privacy definitions as native Joomla 6 events.
- *
+ * 
  * Only selected store definitions with their exact executable default contract
  * are migrated. Edited handlers remain subject to the normal plugin diagnostic.
  * No stored source or earlier-target definition is changed.
- *
+ * 
  * @since 6.2.0
  */
 final class Privacy
@@ -267,3 +267,4 @@ final class Privacy
 		return $script;
 	}
 }
+

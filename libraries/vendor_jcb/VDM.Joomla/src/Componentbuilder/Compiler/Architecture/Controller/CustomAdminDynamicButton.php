@@ -183,3 +183,4 @@ class CustomAdminDynamicButton implements CustomAdminDynamicButtonInterface
 		return Indent::_(3) . '$input = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->input;';
 	}
 }
+

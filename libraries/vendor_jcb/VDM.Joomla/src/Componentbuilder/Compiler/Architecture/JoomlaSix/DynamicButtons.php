@@ -17,12 +17,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\DynamicButtons as BaseDyna
 
 /**
  * Joomla 6 dynamic buttons renderer.
- *
+ * 
  * @since  6.2.0
  */
 final class DynamicButtons extends BaseDynamicButtons
 {
-
 	/**
 	 * Render a redirect button on the existing document toolbar.
 	 *
@@ -42,3 +41,4 @@ final class DynamicButtons extends BaseDynamicButtons
 			. ')->listCheck(true);';
 	}
 }
+

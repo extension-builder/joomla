@@ -458,3 +458,4 @@ class ListQuery implements ListQueryInterface
 		return PHP_EOL . Indent::_(2) . "\$db = \$this->getDatabase();";
 	}
 }
+

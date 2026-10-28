@@ -12,13 +12,13 @@
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller;
 
 
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Factory;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Creator\Permission;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Factory;
 
 
 /**
@@ -203,3 +203,4 @@ final class AllowView
 			. $action . "', 'com_" . $this->component . "'))";
 	}
 }
+

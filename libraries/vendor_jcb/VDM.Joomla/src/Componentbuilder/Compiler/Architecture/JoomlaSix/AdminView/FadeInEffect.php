@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FadeInEffect as SharedFadeInEffect;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
+
 /**
  * Joomla six loading overlay registration and document readiness.
- *
+ * 
  * @since 6.2.0
  */
 final class FadeInEffect extends SharedFadeInEffect
@@ -74,3 +76,4 @@ final class FadeInEffect extends SharedFadeInEffect
 		return $code;
 	}
 }
+

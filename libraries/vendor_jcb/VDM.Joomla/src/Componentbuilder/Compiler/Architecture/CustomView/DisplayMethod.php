@@ -436,3 +436,4 @@ class DisplayMethod implements DisplayMethodInterface
 		return $method;
 	}
 }
+

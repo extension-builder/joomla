@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\GetItem as SharedGetItem;
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class GetItem extends SharedGetItem
@@ -30,3 +30,4 @@ final class GetItem extends SharedGetItem
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

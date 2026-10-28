@@ -336,3 +336,4 @@ final class InputButton implements InputButtonInterface
 		return '';
 	}
 }
+

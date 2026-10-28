@@ -112,7 +112,6 @@ final class Insert
 			{
 				if (count((array) $values) == 7)
 				{
-					// Match an unsupplied translation in the administrator save path.
 					$values[] = $this->db->quote('');
 					$query->values(implode(',', $values));
 					$continue = true;
@@ -138,3 +137,4 @@ final class Insert
 		}
 	}
 }
+

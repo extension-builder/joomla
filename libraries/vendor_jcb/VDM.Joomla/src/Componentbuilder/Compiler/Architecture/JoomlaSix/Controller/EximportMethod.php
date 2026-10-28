@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Admin list controller export and import methods for Joomla 6.
- *
+ * 
  * @since  6.2.0
  */
 final class EximportMethod extends ExtendingEximportMethod
@@ -45,3 +45,4 @@ final class EximportMethod extends ExtendingEximportMethod
 		return Indent::_(3) . '$input = $this->input;';
 	}
 }
+

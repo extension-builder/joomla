@@ -468,3 +468,4 @@ class ItemsMethod implements ItemsMethodInterface
 		return PHP_EOL . Indent::_($indent) . "\$db = \$this->getDatabase();";
 	}
 }
+

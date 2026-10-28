@@ -445,3 +445,4 @@ final class ValidationFix
 		return '[' . implode(', ', $items) . ']';
 	}
 }
+

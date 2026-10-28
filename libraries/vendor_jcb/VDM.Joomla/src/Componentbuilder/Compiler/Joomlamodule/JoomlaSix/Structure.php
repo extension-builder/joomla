@@ -1263,3 +1263,4 @@ final class Structure implements StructureInterface
 		}
 	}
 }
+

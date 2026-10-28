@@ -446,77 +446,82 @@ class ItemSave implements ItemSaveInterface
 	private function patchRefreshField(string $field, int $indent = 2): string
 	{
 		$name = var_export($field, true);
+		$code = [];
+		$code[] = PHP_EOL . PHP_EOL . Indent::_($indent)
+			. "if (array_key_exists({$name}, \$jcbPatchStored)";
+		$code[] = Indent::_($indent + 1) . "&& (!array_key_exists({$name}, \$data)"
+			. " || serialize(\$data[{$name}]) !== \$jcbPatchInput[{$name}]))";
+		$code[] = Indent::_($indent) . '{';
+		$code[] = Indent::_($indent + 1) . "unset(\$jcbPatchStored[{$name}]);";
+		$code[] = Indent::_($indent) . '}';
 
-		return PHP_EOL . PHP_EOL . Indent::_($indent)
-			. "if (array_key_exists({$name}, \$jcbPatchStored)"
-			. PHP_EOL . Indent::_($indent + 1) . "&& (!array_key_exists({$name}, \$data)"
-			. " || serialize(\$data[{$name}]) !== \$jcbPatchInput[{$name}]))"
-			. PHP_EOL . Indent::_($indent) . '{'
-			. PHP_EOL . Indent::_($indent + 1) . "unset(\$jcbPatchStored[{$name}]);"
-			. PHP_EOL . Indent::_($indent) . '}';
+		return implode(PHP_EOL, $code);
 	}
 
 	/**
-	 * Report a failed PATCH snapshot with the older targets' error contract.
+	 * Snapshot raw omitted columns and validated input before custom save modelling.
 	 *
-	 * @return  string  The generated failure statements.
-	 * @since   6.2.0
-	 */
-	protected function patchLoadFailure(): string
-	{
-		return Indent::_(4) . '$this->setError(Text::_(\'JLIB_APPLICATION_ERROR_RECORD_LOAD\'));'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(4) . 'return false;';
-	}
-
-	/**
-	 * Snapshot omitted API PATCH columns before save modelling.
+	 * The request payload determines presence; null and empty values are supplied.
+	 * Only existing API PATCH records use this boundary. The primary key and guid
+	 * remain owned by RecordKeyFix, and ACL-filtered columns stay absent.
 	 *
 	 * @return  string  The generated snapshot block.
 	 * @since   6.2.0
 	 */
 	private function patchSnapshot(): string
 	{
-		return PHP_EOL . PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__) . ' Preserve omitted API PATCH values in their original storage representation.'
-			. PHP_EOL . Indent::_(2) . '$jcbPatchStored = [];'
-			. PHP_EOL . Indent::_(2) . '$jcbPatchInput = [];'
-			. PHP_EOL . Indent::_(2) . '$jcbPatchId = $data[\'id\'];'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(2) . 'if ($input->getMethod() === \'PATCH\' && Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->isClient(\'api\') && $jcbPatchId > 0)'
-			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . '$jcbPatchSubmitted = $input->get(\'data\', json_decode($input->json->getRaw(), true), \'array\');'
-			. PHP_EOL . Indent::_(3) . '$jcbPatchSubmitted = is_array($jcbPatchSubmitted) ? $jcbPatchSubmitted : [];'
-			. PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' Joomla\'s API inserts an empty tags array after validation. It must not'
-			. PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' clear omitted relationships or bypass the form\'s field permissions.'
-			. PHP_EOL . Indent::_(3) . '$jcbPatchForm = $this->getState(\'jcb.api.patch.form\');'
-			. PHP_EOL . Indent::_(3) . 'if (!array_key_exists(\'tags\', $jcbPatchSubmitted)'
-			. PHP_EOL . Indent::_(4) . '|| ($jcbPatchForm !== null && (!$jcbPatchForm->getField(\'tags\')'
-			. PHP_EOL . Indent::_(5) . '|| strtolower((string) $jcbPatchForm->getFieldAttribute(\'tags\', \'filter\', \'\')) === \'unset\''
-			. PHP_EOL . Indent::_(5) . '|| in_array(strtolower((string) $jcbPatchForm->getFieldAttribute(\'tags\', \'disabled\', \'\')), [\'true\', \'1\'], true))))'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'unset($data[\'tags\']);'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(3) . '$jcbPatchTable = $this->getTable();'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(3) . 'if (!$jcbPatchTable->load($jcbPatchId))'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . $this->patchLoadFailure()
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(3) . 'foreach ($jcbPatchTable->getFields() as $jcbPatchField)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$jcbPatchName = $jcbPatchField->Field;'
-			. PHP_EOL
-			. PHP_EOL . Indent::_(4) . 'if ($jcbPatchName !== $jcbPatchTable->getKeyName() && $jcbPatchName !== \'guid\''
-			. PHP_EOL . Indent::_(5) . '&& !array_key_exists($jcbPatchName, $jcbPatchSubmitted)'
-			. PHP_EOL . Indent::_(5) . '&& array_key_exists($jcbPatchName, $data))'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$jcbPatchStored[$jcbPatchName] = $jcbPatchTable->{$jcbPatchName};'
-			. PHP_EOL . Indent::_(5) . '$jcbPatchInput[$jcbPatchName] = serialize($data[$jcbPatchName]);'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(2) . '}';
+		$code = <<<'PHP'
+
+
+		// Preserve omitted API PATCH values in their original storage representation.
+		$jcbPatchStored = [];
+		$jcbPatchInput = [];
+		$jcbPatchId = $data['id'];
+
+		if ($input->getMethod() === 'PATCH' && [[[JCB_API_FACTORY]]]::getApplication()->isClient('api') && $jcbPatchId > 0)
+		{
+			$jcbPatchSubmitted = $input->get('data', json_decode($input->json->getRaw(), true), 'array');
+			$jcbPatchSubmitted = is_array($jcbPatchSubmitted) ? $jcbPatchSubmitted : [];
+			// Joomla's API inserts an empty tags array after validation. It must not
+			// clear omitted relationships or bypass the form's field permissions.
+			$jcbPatchForm = $this->getState('jcb.api.patch.form');
+			if (!array_key_exists('tags', $jcbPatchSubmitted)
+				|| ($jcbPatchForm !== null && (!$jcbPatchForm->getField('tags')
+					|| strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'filter', '')) === 'unset'
+					|| in_array(strtolower((string) $jcbPatchForm->getFieldAttribute('tags', 'disabled', '')), ['true', '1'], true))))
+			{
+				unset($data['tags']);
+			}
+
+			$jcbPatchTable = $this->getTable();
+
+			if (!$jcbPatchTable->load($jcbPatchId))
+			{
+				$this->setError(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'));
+
+				return false;
+			}
+
+			foreach ($jcbPatchTable->getFields() as $jcbPatchField)
+			{
+				$jcbPatchName = $jcbPatchField->Field;
+
+				if ($jcbPatchName !== $jcbPatchTable->getKeyName() && $jcbPatchName !== 'guid'
+					&& !array_key_exists($jcbPatchName, $jcbPatchSubmitted)
+					&& array_key_exists($jcbPatchName, $data))
+				{
+					$jcbPatchStored[$jcbPatchName] = $jcbPatchTable->{$jcbPatchName};
+					$jcbPatchInput[$jcbPatchName] = serialize($data[$jcbPatchName]);
+				}
+			}
+		}
+PHP;
+
+		return str_replace(
+			'[[[JCB_API_FACTORY]]]',
+			'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
+			$code
+		);
 	}
 
 	/**
@@ -527,22 +532,26 @@ class ItemSave implements ItemSaveInterface
 	 */
 	private function patchRetainUnchanged(): string
 	{
-		return PHP_EOL . PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__) . ' A copy or a custom derivation must follow the normal storage transforms.'
-			. PHP_EOL . Indent::_(2) . 'if ((int) $data[\'id\'] !== $jcbPatchId)'
-			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . '$jcbPatchStored = [];'
-			. PHP_EOL . Indent::_(2) . '}'
-			. PHP_EOL . Indent::_(2) . 'else'
-			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . 'foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'if (!array_key_exists($jcbPatchName, $data)'
-			. PHP_EOL . Indent::_(5) . '|| serialize($data[$jcbPatchName]) !== $jcbPatchInput[$jcbPatchName])'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'unset($jcbPatchStored[$jcbPatchName]);'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(2) . '}';
+		return <<<'PHP'
+
+
+		// A copy or a custom derivation must follow the normal storage transforms.
+		if ((int) $data['id'] !== $jcbPatchId)
+		{
+			$jcbPatchStored = [];
+		}
+		else
+		{
+			foreach ($jcbPatchStored as $jcbPatchName => $jcbPatchValue)
+			{
+				if (!array_key_exists($jcbPatchName, $data)
+					|| serialize($data[$jcbPatchName]) !== $jcbPatchInput[$jcbPatchName])
+				{
+					unset($jcbPatchStored[$jcbPatchName]);
+				}
+			}
+		}
+PHP;
 	}
 
 	/**
@@ -590,3 +599,4 @@ class ItemSave implements ItemSaveInterface
 		};
 	}
 }
+

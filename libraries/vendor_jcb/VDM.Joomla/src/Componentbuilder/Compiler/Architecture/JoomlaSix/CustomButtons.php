@@ -18,12 +18,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Joomla 6 custom buttons renderer.
- *
+ * 
  * @since  6.2.0
  */
 final class CustomButtons extends BaseCustomButtons
 {
-
 	/**
 	 * Register the toolbar submit handler through Joomla's asset manager.
 	 *
@@ -82,3 +81,4 @@ final class CustomButtons extends BaseCustomButtons
 			. ')->listCheck(' . ($selection ? 'true' : 'false') . ');';
 	}
 }
+

@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Model title and alias uniqueness fix for Joomla 6.
- *
+ * 
  * @since  6.2.0
  */
 final class AliasTitleFix extends ExtendingAliasTitleFix
@@ -35,3 +35,4 @@ final class AliasTitleFix extends ExtendingAliasTitleFix
 			. "_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->get('unicodeslugs') == 1)";
 	}
 }
+

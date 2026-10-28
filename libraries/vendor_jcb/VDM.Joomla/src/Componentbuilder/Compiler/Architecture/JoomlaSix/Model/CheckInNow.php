@@ -107,3 +107,4 @@ final class CheckInNow implements CheckInNowInterface
 		return $checkin;
 	}
 }
+

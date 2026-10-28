@@ -663,3 +663,4 @@ final class MainXML implements MainXMLInterface
 		return $languageFiles;
 	}
 }
+

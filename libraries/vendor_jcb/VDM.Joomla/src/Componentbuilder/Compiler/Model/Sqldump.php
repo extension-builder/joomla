@@ -337,3 +337,4 @@ class Sqldump
 		return $this->quote($value);
 	}
 }
+

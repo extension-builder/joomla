@@ -184,7 +184,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\Shared as Admin
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomAdminViews\Builder as CustomAdminViewsBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\CodeBody as CustomViewCodeBody;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\CustomView\ExtraDisplayMethods as CustomViewExtraDisplayMethods;
-
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\AdminView\FootableScripts as J4AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminView\FootableScripts as J5AdminViewFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView\FootableScripts as J6AdminViewFootableScripts;
@@ -203,6 +202,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\GoogleChart
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\View\LibrariesLoader as J4ViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\View\LibrariesLoader as J5ViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader as J6ViewLibrariesLoader;
+
 
 /**
  * Architecture View Service Provider
@@ -4640,3 +4640,4 @@ class ArchitectureView implements ServiceProviderInterface
 		return new J6AdminViewFadeInEffect($container->get('Config'));
 	}
 }
+

@@ -16,10 +16,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\ConfigFieldsetsEmailHelper as S
 
 /**
  * Email configuration fieldsets for Joomla three.
- *
+ * 
  * @since  6.2.0
  */
 final class ConfigFieldsetsEmailHelper extends SharedEmailHelper
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

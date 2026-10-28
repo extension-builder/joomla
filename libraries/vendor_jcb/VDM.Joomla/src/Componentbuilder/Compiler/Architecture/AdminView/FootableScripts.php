@@ -230,3 +230,4 @@ class FootableScripts implements FootableScriptsInterface
 			. PHP_EOL;
 	}
 }
+

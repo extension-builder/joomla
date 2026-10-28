@@ -779,3 +779,4 @@ class CustomGetMethods
 		return $methods;
 	}
 }
+

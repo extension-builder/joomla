@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GoogleChartLoader as SharedGoogleChartLoader;
+
 
 /**
  * Joomla three GoogleChartLoader renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class GoogleChartLoader extends SharedGoogleChartLoader
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

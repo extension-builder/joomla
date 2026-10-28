@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\ListQuery as SharedListQuery
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class ListQuery extends SharedListQuery
@@ -30,3 +30,4 @@ final class ListQuery extends SharedListQuery
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

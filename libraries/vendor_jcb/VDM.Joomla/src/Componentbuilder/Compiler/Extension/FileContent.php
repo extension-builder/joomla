@@ -249,3 +249,4 @@ final class FileContent
 		return $suffix === '' || str_ends_with(strtolower($file), '.' . strtolower($suffix));
 	}
 }
+

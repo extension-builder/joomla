@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\View;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as SharedLibrariesLoader;
+
 
 /**
  * Joomla five LibrariesLoader renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class LibrariesLoader extends SharedLibrariesLoader
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

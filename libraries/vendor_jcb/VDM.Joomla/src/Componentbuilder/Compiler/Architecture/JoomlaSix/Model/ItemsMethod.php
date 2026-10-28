@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ItemsMethod as Share
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class ItemsMethod extends SharedItemsMethod
@@ -30,3 +30,4 @@ final class ItemsMethod extends SharedItemsMethod
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

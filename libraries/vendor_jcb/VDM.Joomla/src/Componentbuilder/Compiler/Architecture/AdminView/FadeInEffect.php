@@ -122,3 +122,4 @@ class FadeInEffect
 		return '<script type="text/javascript">' . PHP_EOL . $script . PHP_EOL . '</script>';
 	}
 }
+

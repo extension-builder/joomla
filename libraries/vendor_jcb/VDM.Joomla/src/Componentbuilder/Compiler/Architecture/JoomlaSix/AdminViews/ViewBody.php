@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Render Joomla 6 native ordering controls and draggable rows.
- *
+ * 
  * @since  6.2.0
  */
 final class ViewBody extends SharedViewBody
@@ -67,3 +67,4 @@ final class ViewBody extends SharedViewBody
 		return $lines;
 	}
 }
+

@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as Sha
 
 /**
  * Place Joomla 6 view scripts inside the component media package.
- *
+ * 
  * @since  6.2.0
  */
 final class JavaScriptFile extends SharedJavaScriptFile
@@ -38,3 +38,4 @@ final class JavaScriptFile extends SharedJavaScriptFile
 			. '/js/' . $client . '/' . $name . '.js';
 	}
 }
+

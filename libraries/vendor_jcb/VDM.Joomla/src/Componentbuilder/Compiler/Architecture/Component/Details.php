@@ -515,3 +515,4 @@ final class Details
 		return implode(PHP_EOL, $files);
 	}
 }
+

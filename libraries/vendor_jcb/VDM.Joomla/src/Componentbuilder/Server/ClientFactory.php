@@ -2,7 +2,7 @@
 /**
  * @package    Joomla.Component.Builder
  *
- * @created    27th October, 2026
+ * @created    15th August, 2026
  * @author     Llewellyn van der Merwe <https://dev.vdm.io>
  * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
  * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
@@ -18,7 +18,7 @@ use phpseclib3\Net\SFTP as SftpClient;
 
 /**
  * Creates independent FTP and SFTP clients without opening a connection.
- *
+ * 
  * @since  6.2.1
  */
 class ClientFactory
@@ -50,3 +50,4 @@ class ClientFactory
 		return new SftpClient($host, $port);
 	}
 }
+

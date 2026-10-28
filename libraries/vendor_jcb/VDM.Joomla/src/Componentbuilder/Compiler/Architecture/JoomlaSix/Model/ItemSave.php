@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Propagate a missing Joomla 6 API PATCH record through the exception boundary.
- *
+ * 
  * @since  6.2.0
  */
 final class ItemSave extends SharedItemSave
@@ -34,3 +34,4 @@ final class ItemSave extends SharedItemSave
 		return Indent::_(4) . "throw new \\RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 404);";
 	}
 }
+

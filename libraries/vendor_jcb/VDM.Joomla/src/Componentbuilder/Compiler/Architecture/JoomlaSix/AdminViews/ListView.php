@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\ListView as Sha
 
 /**
  * Retain authored Joomla 6 list footer execution after the list body.
- *
+ * 
  * @since  6.2.0
  */
 final class ListView extends SharedListView
@@ -36,3 +36,4 @@ final class ListView extends SharedListView
 		return parent::getFooterScript($script, $name);
 	}
 }
+

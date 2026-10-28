@@ -283,10 +283,7 @@ final class Header implements HeaderInterface
 				break;
 
 			case 'plugin.provider.header':
-				// Defer plugin placeholders until this compiler renders the target plugin.
-				$headers[] = "use {$this->NamespacePrefix}\\Plugin\\"
-					. Placefix::_('PluginGroupNamespace') . '\\'
-					. Placefix::_('PluginNamespace') . "\\Extension\\{$codeName};";
+				$headers[] = "use {$this->NamespacePrefix}\\Plugin\\[[[PluginGroupNamespace]]]\\[[[PluginNamespace]]]\\Extension\\{$codeName};";
 				break;
 
 			default:
@@ -693,3 +690,4 @@ final class Header implements HeaderInterface
 		return !in_array($context, $this->disallowedContexts, true);
 	}
 }
+

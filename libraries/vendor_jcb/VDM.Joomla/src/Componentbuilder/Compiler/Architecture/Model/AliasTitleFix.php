@@ -319,3 +319,4 @@ class AliasTitleFix
 			. "_39403062_84fb_46e0_bac4_0023f766e827___Power::getConfig()->get('unicodeslugs') == 1)";
 	}
 }
+

@@ -1138,3 +1138,4 @@ final class Data implements ModuleDataInterface
 		return null;
 	}
 }
+

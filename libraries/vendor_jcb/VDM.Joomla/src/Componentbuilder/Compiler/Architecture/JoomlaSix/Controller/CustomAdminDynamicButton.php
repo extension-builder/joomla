@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 /**
  * Custom admin controller button input for Joomla 6.
- *
+ * 
  * @since  6.2.0
  */
 final class CustomAdminDynamicButton extends ExtendingCustomAdminDynamicButton
@@ -34,3 +34,4 @@ final class CustomAdminDynamicButton extends ExtendingCustomAdminDynamicButton
 		return Indent::_(3) . '$input = $this->input;';
 	}
 }
+

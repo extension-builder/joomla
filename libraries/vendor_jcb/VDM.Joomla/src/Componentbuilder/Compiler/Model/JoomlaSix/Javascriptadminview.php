@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Model\Javascriptadminview as SharedJava
 
 /**
  * Collect Joomla 6 view scripts with their original authored footer semantics.
- *
+ * 
  * @since 6.2.0
  */
 final class Javascriptadminview extends SharedJavascriptadminview
@@ -35,3 +35,4 @@ final class Javascriptadminview extends SharedJavascriptadminview
 		parent::__construct($dispenser);
 	}
 }
+

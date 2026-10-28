@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Creator\Helper as SharedHelper;
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class Helper extends SharedHelper
@@ -30,3 +30,4 @@ final class Helper extends SharedHelper
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

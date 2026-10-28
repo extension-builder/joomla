@@ -717,3 +717,4 @@ class CustomButtons
 			. $task . "', '" . $icon . "', '', '" . $label . "', " . $selected . ");";
 	}
 }
+

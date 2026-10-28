@@ -11,11 +11,13 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as SharedLibrariesLoader;
+
 
 /**
  * Joomla six LibrariesLoader renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class LibrariesLoader extends SharedLibrariesLoader
@@ -31,3 +33,4 @@ final class LibrariesLoader extends SharedLibrariesLoader
 		return "\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
 	}
 }
+

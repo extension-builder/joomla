@@ -17,7 +17,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Dynamicget\CustomGetMethods as SharedCu
 
 /**
  * Emit fresh database queries through the native Joomla 6 query factory.
- *
+ * 
  * @since  6.2.0
  */
 final class CustomGetMethods extends SharedCustomGetMethods
@@ -30,3 +30,4 @@ final class CustomGetMethods extends SharedCustomGetMethods
 	 */
 	protected string $queryMethod = 'createQuery()';
 }
+

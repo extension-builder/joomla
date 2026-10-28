@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFour\View;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\Jquery as SharedJquery;
+
 
 /**
  * Joomla four Jquery renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class Jquery extends SharedJquery
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

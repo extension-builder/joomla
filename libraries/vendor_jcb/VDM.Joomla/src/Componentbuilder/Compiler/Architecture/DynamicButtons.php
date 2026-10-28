@@ -139,3 +139,4 @@ class DynamicButtons
 			. $task . "', '" . $icon . "', '', '" . $label . "', true);";
 	}
 }
+

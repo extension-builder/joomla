@@ -18,11 +18,11 @@ use VDM\Joomla\Componentbuilder\Compiler\Library\Data;
 use VDM\Joomla\Componentbuilder\Compiler\Library\Structure;
 use VDM\Joomla\Componentbuilder\Compiler\Library\Document;
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper;
-
 use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaThree\IncludeHelper as J3IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaFour\IncludeHelper as J4IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaFive\IncludeHelper as J5IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper as J6IncludeHelper;
+
 
 /**
  * Compiler Library
@@ -194,3 +194,4 @@ class Library implements ServiceProviderInterface
 		return new J6IncludeHelper();
 	}
 }
+

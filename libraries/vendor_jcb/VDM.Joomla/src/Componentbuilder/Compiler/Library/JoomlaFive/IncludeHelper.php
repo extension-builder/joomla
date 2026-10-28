@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaFive;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper as SharedIncludeHelper;
+
 
 /**
  * Joomla five IncludeHelper renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class IncludeHelper extends SharedIncludeHelper
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

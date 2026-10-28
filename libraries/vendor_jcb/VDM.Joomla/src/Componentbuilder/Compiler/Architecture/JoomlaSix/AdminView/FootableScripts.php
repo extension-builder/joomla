@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\FootableScripts as SharedFootableScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
+
 /**
  * Joomla six Footable assets and their explicit dependencies.
- *
+ * 
  * @since 6.2.0
  */
 final class FootableScripts extends SharedFootableScripts
@@ -147,3 +149,4 @@ final class FootableScripts extends SharedFootableScripts
 		return $code . PHP_EOL;
 	}
 }
+

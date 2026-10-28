@@ -489,3 +489,4 @@ class BatchCopy implements BatchCopyInterface
 			. "\$this->user " . Indent::_(2) . "= Joomla__"."_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getIdentity();";
 	}
 }
+

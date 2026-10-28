@@ -887,3 +887,4 @@ abstract class FilterHelper
 		return null;
 	}
 }
+

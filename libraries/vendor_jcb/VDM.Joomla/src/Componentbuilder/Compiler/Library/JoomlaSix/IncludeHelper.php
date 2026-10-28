@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper as SharedIncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
+
 /**
  * Joomla six IncludeHelper renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class IncludeHelper extends SharedIncludeHelper
@@ -62,3 +64,4 @@ final class IncludeHelper extends SharedIncludeHelper
 			. PHP_EOL . Indent::_(0) . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
 	}
 }
+

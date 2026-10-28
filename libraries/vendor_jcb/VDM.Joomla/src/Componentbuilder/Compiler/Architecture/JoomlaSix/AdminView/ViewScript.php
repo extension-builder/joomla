@@ -11,12 +11,14 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\AdminView;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as SharedViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
+
 /**
  * Joomla six ViewScript renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class ViewScript extends SharedViewScript
@@ -72,3 +74,4 @@ final class ViewScript extends SharedViewScript
 		return parent::footerScript($script, $view);
 	}
 }
+

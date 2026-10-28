@@ -11,14 +11,17 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaFive\AdminView;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript as SharedViewScript;
+
 
 /**
  * Joomla five ViewScript renderer.
- *
+ * 
  * @since 6.2.0
  */
 final class ViewScript extends SharedViewScript
 {
 	// Preserve the inherited constructor when JCB saves this Power.
 }
+

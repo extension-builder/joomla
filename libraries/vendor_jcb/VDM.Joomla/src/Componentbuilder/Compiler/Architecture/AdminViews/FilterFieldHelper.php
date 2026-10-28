@@ -562,3 +562,4 @@ class FilterFieldHelper implements FilterFieldHelperInterface
 		];
 	}
 }
+

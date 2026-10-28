@@ -933,5 +933,5 @@ class ConfigFieldsetsEmailHelper
 	{
 		return 'type="note"';
 	}
-
 }
+

@@ -361,3 +361,4 @@ final class CreateUser implements CreateUserInterface
 		return '';
 	}
 }
+
