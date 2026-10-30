@@ -12,9 +12,11 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
+use Joomla\DI\Container;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
+use ReflectionProperty;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\CanDo;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\ComHelperClass\UserPermissionCheckAccess;
@@ -22,10 +24,13 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\Field\SetAccessControl;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\UniqueFields;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseTables;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseUniqueGuid;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DatabaseUniqueKeys;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\DynamicButtons;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureModel;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -205,6 +210,28 @@ GEN;
 	protected function getUniqueFields()
 	{
 		return false;
+	}
+GEN;
+
+	/**
+	 * Empty schema metadata preserves the absence of configured database fields.
+	 *
+	 * @var    string
+	 * @since  6.2.1
+	 */
+	private const EXPECTED_UNIQUE_SETTINGS_NONE = <<<'GEN'
+
+
+	/**
+	 * Database column settings used when generating unique values.
+	 *
+	 * @return  array  Column types, character limits and nullability.
+	 * @since   6.2.1
+	 */
+	protected function getUniqueFieldSettings()
+	{
+		return [
+		];
 	}
 GEN;
 
@@ -433,7 +460,7 @@ GEN;
 		]);
 		$view = 'demo';
 
-		$this->assertSame(self::EXPECTED_UNIQUE_NONE, $subject->get($view));
+		$this->assertSame(self::EXPECTED_UNIQUE_NONE . self::EXPECTED_UNIQUE_SETTINGS_NONE, $subject->get($view));
 	}
 
 	/**
@@ -455,7 +482,73 @@ GEN;
 		]);
 		$view = 'demo';
 
-		$this->assertSame(self::EXPECTED_UNIQUE, $subject->get($view));
+		$this->assertSame(self::EXPECTED_UNIQUE . self::EXPECTED_UNIQUE_SETTINGS_NONE, $subject->get($view));
+	}
+
+	/**
+	 * The provider shares schema metadata without inferring types from values.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testUniqueSettingsUseTheCompiledSchemaAndProviderDependencies(): void
+	{
+		$tables = new DatabaseTables();
+		$tables->set('demo', [
+			'user' => ['type' => 'INT', 'lenght' => '11', 'null_switch' => 'NOT NULL'],
+			'code' => ['type' => 'varchar', 'lenght' => 'Other', 'lenght_other' => '32', 'null_switch' => 'NULL'],
+			'title' => ['type' => 'VARCHAR', 'lenght' => '255', 'null_switch' => 'NOT NULL'],
+			'guid' => ['type' => 'CHAR', 'lenght' => 'Other', 'lenght_other' => ' 36 ', 'null_switch' => 'NOT NULL'],
+			'amount' => ['type' => 'DECIMAL', 'lenght' => 'Other', 'lenght_other' => '10,2'],
+			'unknown' => [],
+		]);
+		$container = new Container();
+		$container->share('Config', $this->config(), true);
+		$container->share('Language', $this->language(), true);
+		$container->share('Compiler.Builder.Database.Unique.Guid', new DatabaseUniqueGuid(), true);
+		$container->share('Compiler.Builder.Database.Unique.Keys', new DatabaseUniqueKeys(), true);
+		$container->share('Compiler.Builder.Database.Tables', $tables, true);
+		(new ArchitectureModel())->register($container);
+		$subject = $container->get('Architecture.Model.UniqueFields');
+		$this->assertSame($subject, $container->get(UniqueFields::class));
+		$this->assertSame($subject, $container->get('Architecture.Model.UniqueFields'));
+		$view = 'demo';
+		$code = $subject->get($view);
+		$expected = str_replace(
+			"\t\treturn [\n",
+			"\t\treturn [\n"
+			. "\t\t\t'user' => ['type' => 'INT', 'length' => 11, 'nullable' => false],\n"
+			. "\t\t\t'code' => ['type' => 'VARCHAR', 'length' => 32, 'nullable' => true],\n"
+			. "\t\t\t'title' => ['type' => 'VARCHAR', 'length' => 255, 'nullable' => false],\n"
+			. "\t\t\t'guid' => ['type' => 'CHAR', 'length' => 36, 'nullable' => false],\n"
+			. "\t\t\t'amount' => ['type' => 'DECIMAL', 'length' => null, 'nullable' => false],\n"
+			. "\t\t\t'unknown' => ['type' => '', 'length' => null, 'nullable' => false],\n",
+			self::EXPECTED_UNIQUE_SETTINGS_NONE
+		);
+		$this->assertSame(self::EXPECTED_UNIQUE_NONE . $expected, $code);
+		$this->assertSame($code, $subject->get($view));
+		foreach (['admin', 'site'] as $target)
+		{
+			$this->assertSame(
+				'The value for "%s" already exists. Enter a different value before copying.',
+				$this->language()->get($target, 'COM_DEMO_UNIQUE_FIELD_CONFLICT')
+			);
+			$this->assertSame(
+				'Could not generate a unique value for "%s" after 100 attempts. Enter a different value before copying.',
+				$this->language()->get($target, 'COM_DEMO_UNIQUE_FIELD_LIMIT')
+			);
+			$this->assertSame(
+				'The copied value for "%s" exceeds the column length. Enter a shorter value before copying.',
+				$this->language()->get($target, 'COM_DEMO_UNIQUE_FIELD_LENGTH')
+			);
+			$this->assertSame(
+				'Could not verify a unique value for "%s". The copy was not saved.',
+				$this->language()->get($target, 'COM_DEMO_UNIQUE_FIELD_ERROR')
+			);
+		}
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		$this->assertSame(str_replace("\t", '  ', $code), $subject->get($view));
 	}
 
 	/**

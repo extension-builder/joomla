@@ -213,6 +213,48 @@ final class VersionedModelBatchTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * A failed unique value is never assigned to a copied table or stored.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('versions')]
+	public function testBatchCopyPropagatesUniqueFailures(string $version, int $major): void
+	{
+		$code = $this->batch('BatchCopy', $version);
+		$this->assertStringContainsString(
+			"\$uniqueValue = \$this->generateUnique(\$uniqueField, \$this->table->\$uniqueField);\n"
+			. "\t\t\t\t\tif (\$uniqueValue === false)\n\t\t\t\t\t{\n"
+			. "\t\t\t\t\t\treturn false;\n\t\t\t\t\t}\n"
+			. "\t\t\t\t\t\$this->table->\$uniqueField = \$uniqueValue;", $code
+		);
+	}
+
+	/**
+	 * A title without an alias uses the same checked generation result.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   int     $major    Joomla target major.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('versions')]
+	public function testBatchTitlePropagatesUniqueFailures(string $version, int $major): void
+	{
+		$code = $this->batch('BatchCopy', $version, false);
+		$this->assertStringContainsString(
+			"\$uniqueValue = \$this->generateUnique('title', \$this->table->title);\n"
+			. "\t\t\t\tif (\$uniqueValue === false)\n\t\t\t\t{\n"
+			. "\t\t\t\t\treturn false;\n\t\t\t\t}\n"
+			. "\t\t\t\t\$this->table->title = \$uniqueValue;", $code
+		);
+	}
+
+	/**
 	 * A moved record is stored back rather than inserted.
 	 *
 	 * @return  void
@@ -230,12 +272,13 @@ final class VersionedModelBatchTest extends ArchitectureTestCase
 	 * Build one batch method of one target.
 	 *
 	 * @param   string  $family   BatchCopy or BatchMove.
-	 * @param   string  $version  Target namespace segment.
+	 * @param   string  $version    Target namespace segment.
+	 * @param   bool    $withAlias  Whether the view has an alias.
 	 *
 	 * @return  string
 	 * @since   6.1.7
 	 */
-	private function batch(string $family, string $version): string
+	private function batch(string $family, string $version, bool $withAlias = true): string
 	{
 		// only Joomla 3 takes the current user from the global factory
 		$class = $this->targetClass($version, 'Model\\' . $family, ['JoomlaThree']);
@@ -244,7 +287,10 @@ final class VersionedModelBatchTest extends ArchitectureTestCase
 		$contentone->set('Component', 'Demo');
 
 		$alias = new Alias();
-		$alias->set('article', 'alias');
+		if ($withAlias)
+		{
+			$alias->set('article', 'alias');
+		}
 
 		$title = new Title();
 		$title->set('article', 'title');
