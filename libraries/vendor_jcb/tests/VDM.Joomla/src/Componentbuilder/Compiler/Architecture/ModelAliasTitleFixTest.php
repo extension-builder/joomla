@@ -128,6 +128,31 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Failed uniqueness generation stops save before false can become field data.
+	 *
+	 * @param   string  $version  Target namespace segment.
+	 * @param   string  $lookup   Expected configuration lookup.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('versions')]
+	public function testCopyPropagatesUniqueFailuresAndPreservesExplicitNull(string $version,
+		string $lookup): void
+	{
+		$code = $this->fix(false, true, null, $version);
+		$this->assertStringContainsString(
+			"if (!array_key_exists(\$uniqueField, \$data))\n\t\t\t\t\t{\n\t\t\t\t\t\tcontinue;", $code
+		);
+		$this->assertStringContainsString(
+			"\$uniqueValue = \$this->generateUnique(\$uniqueField, \$data[\$uniqueField]);\n"
+			. "\t\t\t\t\tif (\$uniqueValue === false)\n\t\t\t\t\t{\n"
+			. "\t\t\t\t\t\treturn false;\n\t\t\t\t\t}\n"
+			. "\t\t\t\t\t\$data[\$uniqueField] = \$uniqueValue;", $code
+		);
+	}
+
+	/**
 	 * Saving as a copy gives the record a fresh title and alias.
 	 *
 	 * @return  void
