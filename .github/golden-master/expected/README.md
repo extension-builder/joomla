@@ -279,3 +279,64 @@ PHP). All 1,723 installed candidate compiler-source hashes verify per target.
 Final Power snapshots remain byte-identical to the baseline. The installed
 0/100/1,000 Power discovery probes remain required after the exact comparison
 passes on the rerun. No normalization, exclusion or workflow bypass is added.
+
+## Issue 1328: bounded, type-aware copy values
+
+Source baseline: `a8d89f35fdffad8275fc158d175bd37911bb867b`.
+Reviewed candidate: `e88b784d264b117720f0be358bb0cda0b777d7f2`, compiled by PR
+merge commit `144c6a878cdb5489f2f17a5a6bf60ca6bab09cd8`.
+Evidence: [workflow run 41123337362](https://github.com/extension-builder/joomla/actions/runs/41123337362).
+The hosted comparisons passed source and Power checks, then correctly rejected
+the intentional generated-output changes before these expectations existed.
+
+| Target | Artifact | Artifact SHA-256 | Exact candidate tree | Raw patch bytes |
+| --- | --- | --- | --- | ---: |
+| 3 | `13009277476` | `c384701791555a0f1585192c719e64477a302a3361fe78dcc0d932f38416486e` | `6f66f32dd9d16d2f31dc7f9d00474fa3fece690d` | 14,666 |
+| 4 | `13009233104` | `9173064669f8a000c01972fc3abf06492ff79240ff27f6d0206715aab7680e2a` | `504d56cefd75451380a68707ec12743f1e87886a` | 13,362 |
+| 5 | `13008988206` | `90d9aebfcf5ad0745071d638631e6f52d17e31caa6540da39eea82c259091806` | `9866616fdddd4cc644f170d140784b6997baf1a8` | 13,882 |
+| 6 | `13010215476` | `c89077240c1ff20db48520c8a032957bb955ba7cf1edde42a95a1f428d8b2d4f` | `7a5af004240f5c5002c42c39a9a4b8476e39f882` | 13,760 |
+
+Each target changes exactly six paths: the administrator and site greeting
+models, their two `en-GB.com_helloworld.ini` language files, `README.md`, and
+`admin/README.txt`. The archived trees contain 1,369 / 291 / 296 / 252 compared
+files for Joomla 3 / 4 / 5 / 6 respectively. No path or executable mode changes.
+
+Every changed model adds schema metadata matching the compiled table:
+`greeting VARCHAR(255) NULL` and `alias CHAR(64) NULL`. The existing unique-field
+list is unchanged. Save as Copy preserves absent inputs and checks strict
+`false` before assigning a generated value. The helper preserves nullable NULL,
+checks character limits, rejects non-text collisions without changing IDs,
+detects repeated matching rows, catches lookup failures, and stops after at
+most 100 candidate lookups. It returns an error instead of returning a known
+collision. Joomla 3 additionally emits the checked batch-copy assignment in
+both greeting models; this blueprint does not emit that method for modern
+targets. Numeric collisions, GUID generation, and batch scenarios also have
+separate executed regression coverage.
+
+Four messages are added to each administrator/site language file for conflicts,
+lookup failures, length overflow, and exhausted attempts. Both language files
+parse with Joomla's `INI_SCANNER_RAW` behavior and preserve their `%s` field
+placeholder. This blueprint has no GUID column, so no GUID generator method or
+additional Power dependency is emitted. Baseline and candidate final Power
+identity/placement snapshots are byte-identical for every target.
+
+The README deltas are the direct generated line-count and time estimates:
+
+| Target | Lines | Base hours | Overhead hours | Total hours |
+| --- | --- | --- | --- | --- |
+| 3 | 29,381 -> 29,605 | 77 -> 78 | 51 -> 51 | 128 -> 129 |
+| 4 | 30,391 -> 30,606 | 80 -> 81 | 53 -> 52 | 133 -> 133 |
+| 5 | 30,651 -> 30,866 | 81 -> 81 | 53 -> 54 | 134 -> 135 |
+| 6 | 30,756 -> 30,971 | 81 -> 82 | 53 -> 53 | 134 -> 135 |
+
+All changed estimates were recomputed using the unchanged `Utilities/Valuation`
+formulas. Joomla 4's overhead decreases because base and total hours are
+truncated separately. Other README metrics remain unchanged.
+
+All eight changed generated PHP models pass syntax checking. Each baseline and
+candidate verifies all 1,736 installed compiler-source hashes. Extracting the
+archived packages reproduces the measured Git trees, and the unmodified raw
+`full.diff` for each target reproduces the candidate tree exactly, including
+all bytes and modes. Each fixture retains the original CRLF and diff-context
+whitespace through base64 encoding. The installed 0/100/1,000 Power discovery
+probes still must pass after the reviewed output gate accepts this change.
