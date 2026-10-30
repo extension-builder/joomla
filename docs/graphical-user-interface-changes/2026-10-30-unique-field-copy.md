@@ -5,7 +5,7 @@
 - Date first changed: 2026-10-30
 - Implementer: Codex
 - Task: upstream Component-Builder issue #1328; review in extension-builder/joomla.
-- Status: Draft PR; focused validation complete, hosted output review in progress.
+- Status: Ready for review; the unrelated baseline suite failures remain visible.
 
 ## Explicit permission
 
@@ -56,18 +56,30 @@ Commands below run from `libraries/vendor_jcb/tests` unless otherwise noted.
 
 | Check | Result |
 | --- | --- |
-| `vendor/bin/phpunit --filter 'ModelAliasTitleFixTest\|VersionedModelBatchTest\|VersionedViewGuardsTest' --exclude-group known-defect --no-coverage` | Initial renderer validation: 55 tests, 160 assertions pass; conditional-GUID assertions added afterward |
-| `vendor/bin/phpunit VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/GenerateUniqueTest.php --no-coverage` | 66 tests, 1,752 assertions pass before the conditional-GUID refinement; final totals recorded in the PR |
+| `vendor/bin/phpunit --filter 'GenerateUniqueTest\|ModelAliasTitleFixTest\|VersionedModelBatchTest\|VersionedViewGuardsTest' --exclude-group known-defect --no-coverage` | Final focused validation: 122 tests, 1,928 assertions pass |
+| `vendor/bin/phpunit VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/GenerateUniqueTest.php --no-coverage` | 66 tests, 1,758 assertions pass; includes actual emitted conditional GUID factory |
 | Actual baseline helper bodies, bounded table adapter | All six still collide through 105 queries; only the test safety guard stops them at query 106 |
-| Actual patched helper bodies against disposable MariaDB 10.11.14 | 66 checks pass (11 per template); original row unchanged, database dropped and daemon stopped afterward |
-| Complete PHPUnit suite, excluding documented known-defect group | 5,325 tests, 66,038 assertions; 14 errors and 16 failures |
+| Final helpers plus emitted schema/GUID methods against disposable MariaDB 10.11.14 | 66 checks pass (11 per template); original row unchanged, database dropped and daemon stopped afterward |
+| `composer test` (complete PHPUnit suite, excluding documented known-defect group) | 5,326 tests, 66,054 assertions; 14 errors and 16 failures |
 | Untouched baseline `a8d89f35fdffad8275fc158d175bd37911bb867b`, same dependencies and PHP | 5,246 tests, 64,249 assertions; the exact same 14 errors and 16 failures by test/dataset identity; zero candidate-only failures |
 | `php bin/check-php-style.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass |
 | `php bin/check-test-ownership.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass: all 1,546 eligible declarations owned |
 | `php bin/check-moved-conditions.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass: no moved legacy conditions |
 | `php bin/check-container-keys.php` | Pass |
 | Changed PHP syntax; `git diff --check` | Pass; runtime tests also parse and execute the generated method bodies |
+| Hosted GUI workflow on final source `e88b784` | Pass: 32 Playwright tests, 5 generated JavaScript tests, 19 provenance checks; run `41123337488` |
+| Hosted API workflow on final source `e88b784` | Pass; run `41123337363` |
+| Hosted complete compilation for targets J3/J4/J5/J6 | All produce packages; run `41123337362`. Exact output changes reviewed and pinned in `.github/golden-master/expected/README.md`; all four local comparison gates accept those exact fixtures |
 
+The full-tree review covers 1,369 / 291 / 296 / 252 files, respectively. Each
+target changes only six expected files: two model files, two language files,
+and the two generated READMEs. All eight changed generated PHP models lint;
+all language files parse correctly. Baseline and candidate Power snapshots are
+identical and all 1,736 installed-source hashes verify on each side. The hosted
+rerun additionally exercises the installed discovery probes after accepting
+these reviewed output changes; its final status is reported on the PR.
+
+The baseline comparison matches exact test/dataset identities, not just counts.
 The 30 shared suite problems are: missing distributed privacy definition (14),
 translation filters (6), ItemSave contracts (5), plugin headers (3), compiler
 emission style in unrelated ItemSave code (1), and SFTP (1). These are not
@@ -110,3 +122,35 @@ metadata assumes the installed SQL schema matches the component definition.
 | `admin/compiler/joomla_6/SITE_ADMIN_VIEW_MODEL.php` | Corresponding J6 core compiler template | Yes | Source identified | Maintainer ports after review and recompiles |
 
 Upstream core and maintained JCB definitions are not modified by this PR.
+
+## Backport and deployment sequence
+
+1. Port `Architecture/Model/UniqueFields.php`, `AliasTitleFix.php`,
+   `BatchCopy.php` and `Service/ArchitectureModel.php` together under
+   `libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/`. Keep the
+   new constructor injection and translated error registrations together.
+2. Port the appropriate administrator and site templates: the `joomla_4`
+   pair supplies J4/J5, and the `joomla_6` pair supplies J6. Keep the J3 pair
+   only where that generation target remains in the source catalogue.
+3. Carry the regression tests and run them in each maintained branch. Retain
+   the target-specific Joomla Power/import spelling; the underlying behavior
+   and error propagation are shared.
+4. Recompile and reinstall affected extensions. A compiler update does not
+   rewrite PHP that was already generated and installed. Self-compile JCB
+   from its authoritative definition to synchronize its installed helpers.
+   Review custom `generateUnique()` callers (including `LibraryModel::save`)
+   so they also handle the new strict false failure result.
+5. Verify Save as Copy with unchanged UNIQUE INT 3881 (clear error, no new
+   row), an unused INT (preserved), numeric-looking VARCHAR (suffix), and
+   Batch Copy (same outcomes) in an installed generated extension.
+
+No upstream core branch, maintained component definition, or deployed Joomla
+site is changed by this PR.
+
+## Final consistency check
+
+- The six protected paths above match the final protected-path diff.
+- Every protected edit targets `generateUnique()` and has source reconciliation recorded.
+- Behavior, visual impact, actual checks and unperformed installed-copy UI coverage are explicit.
+- Upstream source transfer remains pending maintainer review.
+- The implementation stays within the requested compiler fix.
