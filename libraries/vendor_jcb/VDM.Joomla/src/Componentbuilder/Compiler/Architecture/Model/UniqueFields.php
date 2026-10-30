@@ -195,6 +195,22 @@ final class UniqueFields
 		$fields[] = Indent::_(2) . "];";
 		$fields[] = Indent::_(1) . "}";
 
+		// Only views with a GUID column need to resolve and ship the GUID Power.
+		if ($this->databasetables->exists($view . '.guid'))
+		{
+			$fields[] = PHP_EOL . Indent::_(1) . "/**";
+			$fields[] = Indent::_(1) . " * Generate a valid GUID candidate for a copied record.";
+			$fields[] = Indent::_(1) . " *";
+			$fields[] = Indent::_(1) . " * @return  string  A new GUID candidate.";
+			$fields[] = Indent::_(1) . " * @since   6.2.1";
+			$fields[] = Indent::_(1) . " */";
+			$fields[] = Indent::_(1) . "protected function generateUniqueGuid()";
+			$fields[] = Indent::_(1) . "{";
+			$fields[] = Indent::_(2) . "return (string) Super_"
+				. "__9c513baf_b279_43fd_ae29_a585c8cbc4f0___Power::get();";
+			$fields[] = Indent::_(1) . "}";
+		}
+
 		return implode(PHP_EOL, $fields);
 	}
 

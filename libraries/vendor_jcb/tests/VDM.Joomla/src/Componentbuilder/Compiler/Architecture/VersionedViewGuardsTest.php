@@ -236,6 +236,27 @@ GEN;
 GEN;
 
 	/**
+	 * The GUID dependency is emitted only for views with that database column.
+	 *
+	 * @var    string
+	 * @since  6.2.1
+	 */
+	private const EXPECTED_UNIQUE_GUID_GENERATOR = <<<'GEN'
+
+
+	/**
+	 * Generate a valid GUID candidate for a copied record.
+	 *
+	 * @return  string  A new GUID candidate.
+	 * @since   6.2.1
+	 */
+	protected function generateUniqueGuid()
+	{
+		return (string) Super___9c513baf_b279_43fd_ae29_a585c8cbc4f0___Power::get();
+	}
+GEN;
+
+	/**
 	 * The access check that turns a user away to the default view, captured
 	 * from the compiler.
 	 *
@@ -525,7 +546,7 @@ GEN;
 			. "\t\t\t'unknown' => ['type' => '', 'length' => null, 'nullable' => false],\n",
 			self::EXPECTED_UNIQUE_SETTINGS_NONE
 		);
-		$this->assertSame(self::EXPECTED_UNIQUE_NONE . $expected, $code);
+		$this->assertSame(self::EXPECTED_UNIQUE_NONE . $expected . self::EXPECTED_UNIQUE_GUID_GENERATOR, $code);
 		$this->assertSame($code, $subject->get($view));
 		foreach (['admin', 'site'] as $target)
 		{
@@ -549,6 +570,29 @@ GEN;
 		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, '  ');
 		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
 		$this->assertSame(str_replace("\t", '  ', $code), $subject->get($view));
+	}
+
+	/**
+	 * Views without GUID columns never pull the UUID Power into their generated tree.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testGuidPowerDependencyIsScopedToTheViewsDatabaseColumn(): void
+	{
+		$tables = new DatabaseTables();
+		$tables->set('demo.code', ['type' => 'VARCHAR', 'lenght' => '32']);
+		$tables->set('other.guid', ['type' => 'CHAR', 'lenght' => '36']);
+		$subject = $this->renderer(UniqueFields::class, ['databasetables' => $tables]);
+		$view = 'demo';
+		$withoutGuid = $subject->get($view);
+		$this->assertStringNotContainsString('generateUniqueGuid', $withoutGuid);
+		$this->assertStringNotContainsString('9c513baf_b279_43fd_ae29_a585c8cbc4f0', $withoutGuid);
+
+		$view = 'other';
+		$withGuid = $subject->get($view);
+		$this->assertStringEndsWith(self::EXPECTED_UNIQUE_GUID_GENERATOR, $withGuid);
+		$this->assertSame(1, substr_count($withGuid, '9c513baf_b279_43fd_ae29_a585c8cbc4f0'));
 	}
 
 	/**
