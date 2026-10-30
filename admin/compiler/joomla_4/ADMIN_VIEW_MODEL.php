@@ -446,7 +446,7 @@ class ###View###Model extends AdminModel
 
 				if ($field === 'guid')
 				{
-					$value = (string) Super___9c513baf_b279_43fd_ae29_a585c8cbc4f0___Power::get();
+					$value = $this->generateUniqueGuid();
 				}
 				elseif ($isText && $column['length'] !== null)
 				{
