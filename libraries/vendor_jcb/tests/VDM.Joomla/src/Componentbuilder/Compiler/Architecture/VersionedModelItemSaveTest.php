@@ -556,13 +556,16 @@ PHP;
 	 */
 	public function testPatchFailsClosedWhenStoredRowCannotBeLoaded(): void
 	{
-		foreach (['JoomlaFour', 'JoomlaFive'] as $version)
+		foreach (['JoomlaThree', 'JoomlaFour', 'JoomlaFive'] as $version)
 		{
 			$fixture = new GeneratedSaveModelFixture(['id' => 7], ['name' => 'After']);
 			$fixture->loadSucceeds = false;
-			$save = $this->executableSave($fixture, $version);
-			$this->assertFalse($save(['id' => 7, 'name' => 'After']));
+			$save = $this->executableSave($fixture, $version, $this->storageFields());
+			$this->assertFalse($save(['id' => 7, 'name' => 'After', 'expert' => 'replacement']));
 			$this->assertSame('JLIB_APPLICATION_ERROR_RECORD_LOAD', $fixture->error);
+			$this->assertSame(1, $fixture->loads);
+			$this->assertSame(0, $fixture->expertInitializers);
+			$this->assertSame(0, $fixture->expertConversions);
 		}
 
 		$fixture = new GeneratedSaveModelFixture(['id' => 7], ['name' => 'After']);
