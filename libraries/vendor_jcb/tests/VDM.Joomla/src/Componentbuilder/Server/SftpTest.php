@@ -13,6 +13,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Server;
 
 
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\CMS\Language\Language;
 use phpseclib3\Crypt\EC;
 use phpseclib3\Crypt\Common\PrivateKey;
 use phpseclib3\Net\SFTP as SftpClient;
@@ -205,6 +206,61 @@ final class SftpTest extends FilesystemTestCase
 		$subject->set($details);
 
 		$this->assertFalse($subject->move($this->writeTemporaryFile('release.zip', 'data'), 'release.zip'));
+	}
+
+	/**
+	 * Report one localized diagnostic for a rejected key without connecting.
+	 *
+	 * @param   int          $authentication  Configured key authentication mode.
+	 * @param   string|null  $privateKey      Key contents, or a missing key file.
+	 * @param   string       $message         Expected user-facing message.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('invalidKeys')]
+	public function testInvalidKeysHaveLocalizedDiagnostics(int $authentication, ?string $privateKey, string $message): void
+	{
+		$language = new Language('en-GB');
+		$this->assertTrue($language->load('com_componentbuilder', JPATH_COMPONENT_ADMINISTRATOR, 'en-GB', true));
+		$this->setJoomlaFactoryProperty('language', $language);
+		$clients = $this->createMock(ClientFactory::class);
+		$clients->expects($this->never())->method('sftp');
+		$app = $this->createMock(CMSApplicationInterface::class);
+		$app->expects($this->once())->method('enqueueMessage')->with($message, 'Error');
+		$subject = new Sftp(new KeyLoader(), $app, $clients);
+		$details = $this->details();
+		$details->authentication = $authentication;
+		$details->private_key = $privateKey;
+		$details->private = $privateKey === null
+			? $this->temporaryPath('missing.pem')
+			: $this->writeTemporaryFile('key.pem', $privateKey);
+		$subject->set($details);
+
+		$this->assertFalse($subject->move($this->writeTemporaryFile('release.zip', 'data'), 'release.zip'));
+	}
+
+	/**
+	 * Cover missing, empty and malformed keys for every key authentication mode.
+	 *
+	 * @return  iterable<string, array{int, string|null, string}>
+	 * @since   6.2.1
+	 */
+	public static function invalidKeys(): iterable
+	{
+		foreach ([2, 3] as $authentication)
+		{
+			yield 'missing file mode ' . $authentication => [$authentication, null, 'Loading the private key file failed'];
+			yield 'empty file mode ' . $authentication => [$authentication, '', 'Loading the private key file failed'];
+			yield 'invalid file mode ' . $authentication => [$authentication, 'invalid', 'Loading the private key file failed'];
+		}
+
+		foreach ([4, 5] as $authentication)
+		{
+			yield 'missing text mode ' . $authentication => [$authentication, null, 'Loading the private key text failed'];
+			yield 'empty text mode ' . $authentication => [$authentication, '', 'Loading the private key text failed'];
+			yield 'invalid text mode ' . $authentication => [$authentication, 'invalid', 'Loading the private key text failed'];
+		}
 	}
 
 	/**
