@@ -90,8 +90,8 @@ final class LanguageTranslationsFilterTest extends JoomlaTestCase
 
 			return $query;
 		});
-		$db = $this->createStub(DatabaseDriver::class);
-		$db->method('getQuery')->willReturn($query);
+		$db = $this->createMock(DatabaseDriver::class);
+		$db->expects($this->once())->method('createQuery')->willReturn($query);
 		$db->method('quoteName')->willReturnArgument(0);
 		$db->method('escape')->willReturnArgument(0);
 		$model->setDatabase($db);
