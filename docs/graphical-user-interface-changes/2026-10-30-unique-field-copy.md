@@ -5,7 +5,7 @@
 - Date first changed: 2026-10-30
 - Implementer: Codex
 - Task: upstream Component-Builder issue #1328; review in extension-builder/joomla.
-- Status: Ready for review; the unrelated baseline suite failures remain visible.
+- Status: Ready for review; the 2026-10-31 follow-up repairs all 30 previously failing blocking-suite cases.
 
 ## Explicit permission
 
@@ -60,16 +60,17 @@ Commands below run from `libraries/vendor_jcb/tests` unless otherwise noted.
 | `vendor/bin/phpunit VDM.Joomla/src/Componentbuilder/Compiler/Architecture/Model/GenerateUniqueTest.php --no-coverage` | 66 tests, 1,758 assertions pass; includes actual emitted conditional GUID factory |
 | Actual baseline helper bodies, bounded table adapter | All six still collide through 105 queries; only the test safety guard stops them at query 106 |
 | Final helpers plus emitted schema/GUID methods against disposable MariaDB 10.11.14 | 66 checks pass (11 per template); original row unchanged, database dropped and daemon stopped afterward |
-| `composer test` (complete PHPUnit suite, excluding documented known-defect group) | 5,326 tests, 66,054 assertions; 14 errors and 16 failures |
-| Untouched baseline `a8d89f35fdffad8275fc158d175bd37911bb867b`, same dependencies and PHP | 5,246 tests, 64,249 assertions; the exact same 14 errors and 16 failures by test/dataset identity; zero candidate-only failures |
+| `composer test` (complete PHPUnit suite, excluding documented known-defect group) | Follow-up: 5,338 tests, 66,353 assertions pass; zero errors or failures |
+| Initial diagnostic baseline `a8d89f35fdffad8275fc158d175bd37911bb867b`, same dependencies and PHP | 5,246 tests, 64,249 assertions; the exact same 14 errors and 16 failures by test/dataset identity; zero candidate-only failures |
 | `php bin/check-php-style.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass |
 | `php bin/check-test-ownership.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass: all 1,546 eligible declarations owned |
 | `php bin/check-moved-conditions.php --base=a8d89f35fdffad8275fc158d175bd37911bb867b` | Pass: no moved legacy conditions |
 | `php bin/check-container-keys.php` | Pass |
 | Changed PHP syntax; `git diff --check` | Pass; runtime tests also parse and execute the generated method bodies |
-| Hosted GUI workflow on final source `e88b784` | Pass: 32 Playwright tests, 5 generated JavaScript tests, 19 provenance checks; run `41123337488` |
-| Hosted API workflow on final source `e88b784` | Pass; run `41123337363` |
-| Hosted complete compilation for targets J3/J4/J5/J6 | All produce packages; run `41123337362`. Exact output changes reviewed and pinned in `.github/golden-master/expected/README.md`; all four local comparison gates accept those exact fixtures |
+| Hosted Vendor JCB workflow on repaired source `d56b48c` | Pass: PHP 8.3 and 8.4 each pass 5,338 tests / 66,353 assertions; Chromium footer tests pass 5/5; run `41180271140` |
+| Hosted GUI workflow on repaired source `d56b48c` | Pass: 32 browser tests, 19 provenance tests and 5 JavaScript tests; run `41180271169`, including the expanded translation-filter journey |
+| Hosted API workflow on repaired source `d56b48c` | Pass: 222 checks across two view variants; run `41180271115` |
+| Hosted complete compilation for targets J3/J4/J5/J6 | Run `41180271242`: J3/J4/J5 pass unchanged expectations; J6 emits the intended missing-PATCH-record exception and requires the additionally reviewed expectation in `.github/golden-master/expected/README.md` |
 
 The full-tree review covers 1,369 / 291 / 296 / 252 files, respectively. Each
 target changes only six expected files: two model files, two language files,
@@ -77,13 +78,24 @@ and the two generated READMEs. All eight changed generated PHP models lint;
 all language files parse correctly. Baseline and candidate Power snapshots are
 identical and all 1,736 installed-source hashes verify on each side. The hosted
 rerun additionally exercises the installed discovery probes after accepting
-these reviewed output changes; its final status is reported on the PR.
+these reviewed output changes; its final status is reported on the PR. The
+2026-10-31 J6 expectation also includes the missing-PATCH-record 404 exception;
+its original source snapshot had incorrectly bypassed that existing version hook.
 
-The baseline comparison matches exact test/dataset identities, not just counts.
-The 30 shared suite problems are: missing distributed privacy definition (14),
-translation filters (6), ItemSave contracts (5), plugin headers (3), compiler
-emission style in unrelated ItemSave code (1), and SFTP (1). These are not
-quarantined, weakened or fixed as part of this issue.
+The initial baseline comparison identified 30 failing cases: privacy fixture
+lookup (14), translation filters (6), ItemSave contracts (5), plugin headers
+(3), compiler emission style (1), and SFTP (1). The 2026-10-31 follow-up fixes
+all of them in this PR. No assertion is weakened, skipped or moved to the
+known-defect group. The existing recovery audit also passes: none of its 84 separately documented
+known-defect cases is a clean recovery left outside the blocking suite.
+
+The compiler follow-up uses configured indentation and comment origins for
+API PATCH snapshots, invokes the existing Joomla 6 missing-record exception
+hook, and protects plugin namespace placeholders during self-compilation.
+Privacy tests select the actual shipped definition. Administrator cache and
+SFTP message changes have their own records:
+`2026-10-31-language-filter-ci-regressions.md` and
+`2026-10-31-sftp-key-errors.md`.
 
 The live SQL reproduction confirms `3881 (2)` and `3881 (3)` still match
 `INT 3881`, while the suffixed value does not match `VARCHAR '3881'`. BIGINT
@@ -149,8 +161,8 @@ site is changed by this PR.
 
 ## Final consistency check
 
-- The six protected paths above match the final protected-path diff.
-- Every protected edit targets `generateUnique()` and has source reconciliation recorded.
+- The six protected paths above match the compiler-template portion of the final diff; the two administrator follow-up paths have separate records linked above.
+- Every compiler-template edit targets `generateUnique()` and has source reconciliation recorded.
 - Behavior, visual impact, actual checks and unperformed installed-copy UI coverage are explicit.
 - Upstream source transfer remains pending maintainer review.
-- The implementation stays within the requested compiler fix.
+- The compiler fix and subsequent CI repairs remain separately reviewable in the PR.

@@ -72,7 +72,7 @@ one call. Its empty-query and returned-query assertions are retained.
 | --- | --- | --- |
 | `php -d memory_limit=1G vendor/bin/phpunit --filter LanguageTranslationsFilterTest --exclude-group known-defect --no-coverage` | PHP 8.3.6, pinned Joomla 6.1.2 test runtime | Pass: 6 tests, 23 assertions |
 | `php -l` on the model and contract test; `node --check` on the GUI spec; scoped `git diff --check` | PHP 8.3.6 and available Node runtime | Pass |
-| Hosted GUI workflow | Disposable installed Joomla and Chromium | Pending execution |
+| [Hosted GUI workflow 41180271169](https://github.com/extension-builder/joomla/actions/runs/41180271169) | Disposable installed Joomla and Chromium; source `d56b48c` | Pass, including expanded filter-reset journey |
 
 ### Manual scenarios
 
@@ -107,4 +107,4 @@ No separate manual browser session performed.
 - [x] Behavioral impact, original regression and test-boundary correction are distinguished.
 - [x] GUI coverage and the stronger same-model unit contract are identified.
 - [x] Source transfer remains explicitly required; reconciliation is not claimed.
-- [ ] Final local and hosted verification results are recorded.
+- [x] Final local and hosted verification results are recorded.
