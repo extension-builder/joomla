@@ -51,6 +51,12 @@ test.describe('Language Translations filters', () => {
 		await sources(page, ['zero', 'translated']);
 		await select(page, 'extension', fixtures.extension_b);
 		await sources(page, ['other_extension']);
+		await select(page, 'extension', '');
+		await sources(page, ['zero', 'translated', 'other_extension']);
+		await select(page, 'not_translated', '');
+		await sources(page, ['zero', 'translated', 'complete', 'other_extension']);
+		await select(page, 'translated', '');
+		await sources(page, Object.keys(fixtures.sources));
 	});
 
 	test('finds compiler-created and legacy null rows before manual save and keeps all/none distinct', async ({ page }) => {
