@@ -340,3 +340,45 @@ archived packages reproduces the measured Git trees, and the unmodified raw
 all bytes and modes. Each fixture retains the original CRLF and diff-context
 whitespace through base64 encoding. The installed 0/100/1,000 Power discovery
 probes still must pass after the reviewed output gate accepts this change.
+
+## Issue 1328 follow-up: restore the Joomla 6 PATCH error boundary
+
+The Joomla 6 patch above now includes the reviewed result from candidate
+`d56b48c145dcb507d6264598fdcfd8ac55a3e4d9`, compiled by PR merge commit
+`ecd8f03d4bdd72639d0402104dce3c847fd56c62`.
+Evidence: [workflow run 41180271242](https://github.com/extension-builder/joomla/actions/runs/41180271242),
+artifact `13034074402` (`golden-master-j6`), SHA-256
+`bbe0841628324e2852308d3779c9e42e95a16c4e328ef436393520b32efe6c9a`.
+
+The restored shared `ItemSave::patchLoadFailure()` hook makes the existing
+Joomla 6 override reachable. In each administrator/site greeting model, an
+unavailable API PATCH snapshot now throws
+`RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 404)` instead
+of using legacy model error storage and returning `false`. This is the only
+PHP behavior change relative to the previous reviewed candidate tree
+`7a5af004240f5c5002c42c39a9a4b8476e39f882`.
+
+Exactly four paths change relative to that candidate: the two models and the
+two README files. Each model removes two generated lines, so both README line
+counts decrease from 30,971 to 30,967. Recomputing the unchanged valuation
+formulas leaves base hours at 82, overhead hours at 53, total hours at 135, and
+all other estimates unchanged. No additional path, executable mode, language,
+manifest, asset or Power change appears. The complete baseline diff continues
+to cover the same six paths as the original issue 1328 change.
+
+All four baseline trees match their pinned contexts. Joomla 3, 4 and 5 retain
+their previous candidate trees and their raw `full.diff` bytes exactly; their
+existing patches and all four context files remain unchanged. Those three
+hosted jobs also pass the installed discovery probes at 0, 100 and 1,000
+records. Every baseline and candidate verifies all 1,736 installed compiler
+source hashes, and the candidate manifests also match the reviewed checkout.
+Final Power identity/placement evidence remains byte-identical for every target.
+
+Both changed Joomla 6 models pass PHP syntax checks. Re-extracting the
+252-file packages reproduces baseline tree
+`93268907987e8f3254bda37a991e01ed04e9a544` and candidate tree
+`c07758620196313baf2c802c37a1e8dccea2b8df`. The updated fixture encodes the
+unmodified 14,470-byte hosted diff, preserving CRLF and diff-context whitespace;
+applying it to the pinned baseline reproduces the complete candidate tree
+exactly. The Joomla 6 installed discovery probe remains required on the rerun
+after this exact reviewed expectation is accepted.
