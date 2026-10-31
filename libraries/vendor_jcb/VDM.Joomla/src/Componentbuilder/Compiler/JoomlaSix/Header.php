@@ -283,7 +283,10 @@ final class Header implements HeaderInterface
 				break;
 
 			case 'plugin.provider.header':
-				$headers[] = "use {$this->NamespacePrefix}\\Plugin\\[[[PluginGroupNamespace]]]\\[[[PluginNamespace]]]\\Extension\\{$codeName};";
+				// Defer plugin placeholders until rendering, including after self-compilation.
+				$headers[] = "use {$this->NamespacePrefix}\\Plugin\\"
+					. Placefix::_('PluginGroupNamespace') . '\\'
+					. Placefix::_('PluginNamespace') . "\\Extension\\{$codeName};";
 				break;
 
 			default:

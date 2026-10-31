@@ -342,7 +342,7 @@ final class JoomlaSixPluginPrivacyTest extends ArchitectureTestCase
 	{
 		foreach (file(JCB_PROJECT_ROOT . '/admin/sql/install.mysql.utf8.sql') as $line)
 		{
-			if (str_contains($line, "'8aa96d76-94e3-47d1-8dd8-f430b72ed0f7'"))
+			if (str_contains($line, "'6618d863-8751-4476-931a-5599fb9da7bb'"))
 			{
 				$row = str_getcsv(substr(trim($line), 1, -2), ',', "'", '\\');
 
