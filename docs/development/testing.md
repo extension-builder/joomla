@@ -569,3 +569,16 @@ while other documented defects remain reproducible. This visibility
 must not be interpreted as permission to add new known defects. A final
 always-run hygiene step also rejects any per-process Joomla cache root left by
 the normal, coverage, or known-defect run.
+
+## Joomla 7 preparation and PHP 8.5 compatibility regressions
+
+`composer test:compatibility` runs the administrator help-selection contract,
+FOF AES contracts, application-configuration fallbacks, helper generation, and
+the FileHelper, GuidHelper, MimeHelper and UploadHelper regressions. The PHP 8.5 CI lane
+runs this focused command with the same strict diagnostics as the full suite.
+PHP 8.3 and 8.4 continue to run the complete blocking suite.
+
+The host source remains the pinned Joomla 6.1.2 runtime. The helper regression
+forbids `User::get()`, and configuration tests distinguish the application's
+Registry from the legacy Factory Registry. These protect the replacements
+required by Joomla 7 without claiming a complete installed Joomla 7 test.

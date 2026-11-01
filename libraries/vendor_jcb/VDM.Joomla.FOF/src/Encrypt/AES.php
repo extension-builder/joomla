@@ -57,7 +57,7 @@ class AES
 	 * @param   Phpfunc  $phpfunc  For testing
 	 * @param   string          $priority Priority which adapter we should try first
 	 */
-	public function __construct($key, $strength = 128, $mode = 'cbc', Phpfunc $phpfunc = null, $priority = 'openssl')
+	public function __construct($key, $strength = 128, $mode = 'cbc', ?Phpfunc $phpfunc = null, $priority = 'openssl')
 	{
 		if ($priority == 'openssl')
 		{
@@ -174,7 +174,7 @@ class AES
 	 *
 	 * @return boolean
 	 */
-	public static function isSupported(Phpfunc $phpfunc = null)
+	public static function isSupported(?Phpfunc $phpfunc = null)
 	{
 		if (!is_object($phpfunc) || !($phpfunc instanceof $phpfunc))
 		{

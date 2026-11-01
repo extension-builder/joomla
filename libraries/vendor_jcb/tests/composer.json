@@ -106,6 +106,7 @@
 			"@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --exclude-group known-defect --coverage-clover build/coverage/clover.xml --coverage-text --only-summary-for-coverage-text"
 		],
 		"test:known-defects": "@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --group known-defect --no-coverage",
+		"test:compatibility": "@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --exclude-group known-defect --no-coverage Contract/ComponentbuilderHelperHelpUrlTest.php Contract/FofAesCompatibilityTest.php VDM.Joomla/src/Componentbuilder/HostConfigurationTest.php VDM.Joomla/src/Componentbuilder/Compiler/Creator/CreatorStateTest.php VDM.Joomla/src/Utilities/FileHelperTest.php VDM.Joomla/src/Utilities/GuidHelperTest.php VDM.Joomla/src/Utilities/MimeHelperTest.php VDM.Joomla/src/Utilities/UploadHelperTest.php",
 		"test:joomla": "@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --testsuite VDM.Joomla --exclude-group known-defect --no-coverage",
 		"test:gitea": "@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --testsuite VDM.Joomla.Gitea --exclude-group known-defect --no-coverage",
 		"test:openai": "@php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --testsuite VDM.Joomla.Openai --exclude-group known-defect --no-coverage",

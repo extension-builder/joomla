@@ -123,7 +123,7 @@ class Openssl extends Abstraction implements AesInterface
 		return $plainText;
 	}
 
-	public function isSupported(Phpfunc $phpfunc = null)
+	public function isSupported(?Phpfunc $phpfunc = null)
 	{
 		if (!is_object($phpfunc) || !($phpfunc instanceof $phpfunc))
 		{

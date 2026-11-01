@@ -56,7 +56,7 @@ class Config extends ComponentConfig
 	{
 		parent::__construct($input, $params);
 
-		$this->config = $config ?: JoomlaFactory::getConfig();
+		$this->config = $config ?: JoomlaFactory::getApplication()->getConfig();
 	}
 
 	/**
@@ -233,4 +233,3 @@ class Config extends ComponentConfig
 		return "\t";
 	}
 }
-

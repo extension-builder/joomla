@@ -14,6 +14,8 @@ namespace VDM\Joomla\Tests\Utilities;
 
 use Joomla\Registry\Registry;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionProperty;
 use VDM\Joomla\Utilities\ArrayHelper;
@@ -21,6 +23,7 @@ use VDM\Joomla\Utilities\Component\Helper;
 use VDM\Joomla\Utilities\FileHelper;
 use VDM\Joomla\Utilities\StringHelper;
 use VDM\Tests\Support\FilesystemTestCase;
+use VDM\Tests\Support\FileHelperCurlFixture;
 
 
 /**
@@ -114,6 +117,52 @@ final class FileHelperTest extends FilesystemTestCase
 		);
 		$this->assertFalse(FileHelper::write('', 'data'));
 		$this->assertFalse(FileHelper::write($file, ['not', 'a string']));
+	}
+
+	/**
+	 * Preserve cURL fallback content and failure results while releasing handles.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testCurlContentFallbackPreservesResultsAndReleasesHandles(): void
+	{
+		require dirname(__DIR__, 3) . '/Support/FileHelperCurlFixture.php';
+
+		foreach (["downloaded\0bytes", '', false] as $response)
+		{
+			FileHelperCurlFixture::$response = $response;
+			$this->assertSame(
+				$response === "downloaded\0bytes" ? $response : 'missing',
+				FileHelper::getContent('https://example.invalid/content', 'missing')
+			);
+			$this->assertNotNull(FileHelperCurlFixture::$handle);
+			$this->assertNull(FileHelperCurlFixture::$handle->get());
+		}
+	}
+
+	/**
+	 * Retain successful, missing, and failed cURL existence-check semantics.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState(false)]
+	public function testCurlExistenceChecksPreserveStatusAndReleaseHandles(): void
+	{
+		require dirname(__DIR__, 3) . '/Support/FileHelperCurlFixture.php';
+
+		foreach ([[true, 200, true], [true, 404, false], [false, 0, false]] as [$response, $status, $expected])
+		{
+			FileHelperCurlFixture::$response = $response;
+			FileHelperCurlFixture::$status = $status;
+			$this->assertSame($expected, FileHelper::exists('https://example.invalid/content'));
+			$this->assertNotNull(FileHelperCurlFixture::$handle);
+			$this->assertNull(FileHelperCurlFixture::$handle->get());
+		}
 	}
 
 	/**

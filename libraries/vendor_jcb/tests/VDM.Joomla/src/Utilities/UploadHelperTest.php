@@ -12,6 +12,9 @@
 namespace VDM\Joomla\Tests\Utilities;
 
 
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\Filesystem\Exception\FilesystemException;
+use Joomla\Input\Files;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 use Joomla\CMS\Language\Language;
@@ -202,5 +205,53 @@ final class UploadHelperTest extends FilesystemTestCase
 		$this->assertNull(UploadHelper::get('missing-upload', 'file', 'raw'));
 		$this->assertTrue(UploadHelper::$allowUnsafe);
 		$this->assertContains('COM_COMPONENTBUILDER_NO_UPLOAD_SELECTED', UploadHelper::getError());
+	}
+
+	/**
+	 * Select the application temporary directory before propagating an upload failure.
+	 *
+	 * A CLI fixture is not a genuine HTTP upload, so Joomla must reject the move
+	 * after preparing the destination selected by the application configuration.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testGetUsesTheApplicationTemporaryDirectory(): void
+	{
+		$source = $this->writeTemporaryFile('incoming/readme.txt', 'JCB upload fixture');
+		$destination = $this->temporaryPath('application-tmp');
+		$staleDestination = $this->temporaryPath('stale-factory-tmp');
+		$files = new Files([
+			'upload' => [
+				'name' => 'readme.txt',
+				'type' => 'text/plain',
+				'tmp_name' => $source,
+				'error' => UPLOAD_ERR_OK,
+				'size' => filesize($source),
+			],
+		]);
+		$input = $this->createMock(Input::class);
+		$input->expects($this->once())->method('__get')->with('files')->willReturn($files);
+		$application = $this->createMock(CMSApplication::class);
+		$application->expects($this->once())->method('getInput')->willReturn($input);
+		$application->expects($this->once())->method('getConfig')
+			->willReturn(new Registry(['tmp_path' => $destination]));
+		$this->setJoomlaApplication($application);
+		$this->setJoomlaFactoryProperty('config', new Registry(['tmp_path' => $staleDestination]));
+
+		try
+		{
+			UploadHelper::get('upload', 'file', 'raw');
+			$this->fail('A local CLI file must not be accepted as an HTTP upload.');
+		}
+		catch (FilesystemException $error)
+		{
+			$this->assertStringContainsString('Failed to move file', $error->getMessage());
+		}
+
+		$this->assertDirectoryExists($destination);
+		$this->assertDirectoryDoesNotExist($staleDestination);
+		$this->assertFileExists($source);
+		$this->assertSame([], UploadHelper::getError());
 	}
 }

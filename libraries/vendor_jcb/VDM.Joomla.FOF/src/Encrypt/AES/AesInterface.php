@@ -93,6 +93,6 @@ interface AesInterface
 	 *
 	 * @return  bool
 	 */
-	public function isSupported(Phpfunc $phpfunc = null);
+	public function isSupported(?Phpfunc $phpfunc = null);
 }
 

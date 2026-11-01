@@ -34,6 +34,9 @@ jobs:
           - php: '8.4'
             coverage: pcov
             script: test:coverage
+          - php: '8.5'
+            coverage: none
+            script: test:compatibility
     env:
       COMPOSER_NO_INTERACTION: '1'
       COMPOSER_PROCESS_TIMEOUT: '0'
