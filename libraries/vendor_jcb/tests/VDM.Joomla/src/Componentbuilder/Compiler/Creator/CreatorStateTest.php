@@ -12,6 +12,8 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Creator;
 
 
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\QueryInterface;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -284,6 +286,75 @@ final class CreatorStateTest extends CreatorTestCase
 		$this->assertStringContainsString("a.admin_view = ", $contentOne->get('HELP'));
 		$this->assertStringContainsString("a.site_view = ", $contentOne->get('HELP_SITE'));
 		$this->assertSame('blabla', $contentMulti->get('help|BLABLA'));
+
+		foreach (['HELP', 'HELP_SITE'] as $key)
+		{
+			$this->assertStringContainsString('$groups = $user->groups;', $contentOne->get($key));
+			$this->assertStringNotContainsString("\$user->get('groups')", $contentOne->get($key));
+		}
+	}
+
+	/**
+	 * Generated help keeps group filtering with identities that have no get method.
+	 *
+	 * @param   int     $major        Compile target major.
+	 * @param   string  $queryMethod  Expected fresh-query method.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('queryTargets')]
+	public function testGeneratedHelpFiltersDirectUserGroups(int $major, string $queryMethod): void
+	{
+		$helperClass = $major === 6 ? J6Helper::class : Helper::class;
+		$structure = $this->createStub(Structure::class);
+		$structure->method('build')->willReturn(true);
+		$content = new ContentOne();
+		$subject = new $helperClass(
+			$this->config(['joomla_version' => $major, 'component_code_name' => 'demo']),
+			$structure,
+			$content,
+			new ContentMulti()
+		);
+		$this->assertTrue($subject->set('help_document'));
+
+		$query = $this->createStub(QueryInterface::class);
+		$query->method('select')->willReturnSelf();
+		$query->method('from')->willReturnSelf();
+		$query->method('where')->willReturnSelf();
+		$database = $this->createStub(DatabaseInterface::class);
+		$database->method(strstr($queryMethod, '(', true))->willReturn($query);
+		$database->method('getNumRows')->willReturn(2);
+		$database->method('quote')->willReturn("'article'");
+		$database->method('loadObjectList')->willReturn([
+			(object) ['target' => 1, 'groups' => '[8]', 'type' => 3, 'url' => 'https://example.test/admin-help'],
+			(object) ['target' => 1, 'groups' => '[2]', 'type' => 3, 'url' => 'https://example.test/member-help'],
+		]);
+
+		foreach (['HELP', 'HELP_SITE'] as $key)
+		{
+			$this->assertSame(1, preg_match(
+				'/public static function getHelpUrl\(string \$view\)\s*\{(.*?)\n\t\}/s',
+				$content->get($key),
+				$matches
+			));
+			// Supply only external identity/database boundaries; execute the emitted filtering unchanged.
+			$body = preg_replace(
+				'/^\s*\$(?:user|db)\s*=\s*Joomla___[^;]+;\R/m',
+				'',
+				$matches[1]
+			);
+			$body = str_replace(
+				'Super___0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power',
+				'\\VDM\\Joomla\\Utilities\\ArrayHelper',
+				$body
+			);
+			$resolve = eval('return static function (string $view, object $user, \\Joomla\\Database\\DatabaseInterface $db) {' . $body . '};');
+
+			$this->assertSame('https://example.test/admin-help', $resolve('article', (object) ['groups' => [8]], $database));
+			$this->assertSame('https://example.test/member-help', $resolve('article', (object) ['groups' => [2]], $database));
+			$this->assertFalse($resolve('article', (object) ['groups' => []], $database));
+		}
 	}
 
 	/**
