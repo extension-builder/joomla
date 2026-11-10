@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-11-10
 - **Author/implementer:** ChatGPT, at the user's request
 - **Task/issue/PR:** [PR #67](https://github.com/extension-builder/joomla/pull/67), branch `fix/note-spacer-field-validation`
-- **Change record status:** Draft
+- **Change record status:** Ready for review
 
 ## Explicit permission
 
@@ -100,8 +100,10 @@ The affected save path is the installed administrator Field model. A library-onl
 | Known-defect recovery audit | PHP 8.4.27 | Pass; no clean passes among the 84 documented nonblocking cases |
 | `composer test:coverage` | PHP 8.4.27 / PCOV; published source `e13a80c7` | Pass; 5,422 tests, 66,981 assertions, no warnings/errors; Clover report generated |
 | Changed-file style, ownership, moved-condition and container-key guards; `git diff --check 24c4671d...HEAD` | Published commit `e13a80c7` against the PR base | Pass; new test file checked, all ownership/container contracts retained |
-| [Vendor JCB unit tests](https://github.com/extension-builder/joomla/actions/runs/42845463473) | GitHub Actions, source `e13a80c7` | Pass; PHP 8.3 full suite, PHP 8.4 coverage/Chromium scripts, PHP 8.5 compatibility |
-| [Initial GUI run](https://github.com/extension-builder/joomla/actions/runs/42845463616) | Installed joomengine / Chromium | 32 passed; three new cases stopped before saving because the description shares its element with the note heading. The test now asserts the rendered note container and its contained text. Follow-up execution is required. |
+| [Vendor JCB unit tests](https://github.com/extension-builder/joomla/actions/runs/42847675313) | GitHub Actions, source `5062112b` | Pass; PHP 8.3 full suite, PHP 8.4 coverage/Chromium scripts, PHP 8.5 compatibility |
+| [Initial GUI run](https://github.com/extension-builder/joomla/actions/runs/42845463616) | Installed joomengine / Chromium | 32 passed; three new cases stopped before saving because the description shares its element with the note heading. The test was corrected to assert the rendered note container and its contained text; the successful follow-up is recorded below. |
+
+| [GUI regression suite](https://github.com/extension-builder/joomla/actions/runs/42847675131) | Installed joomengine / Chromium, source `5062112b` | Pass; 35/35 tests, no retries. New and existing Note/Spacer saves, XML reloads, Note-to-Text requirement restoration, and fixture cleanup all passed. Evidence artifact: `13779800146`. |
 
 ### Manual scenarios
 
@@ -115,13 +117,14 @@ The affected save path is the installed administrator Field model. A library-onl
 
 ### Checks not performed
 
+- API and compiler golden-master workflows were not selected by the repository path filters: this repair changes the installed Field editor, its tests, and this record, with no compiler renderer, API generator, or template changes. The applicable unit and GUI workflows both passed.
 - JCB self-compilation from its authoritative authoring definitions: that authoritative maintenance definition package is not available in this checkout. The public demo compiler comparison is not evidence of JCB self-generation reconciliation.
 
 ## Risks, limitations, and rollback
 
 - **Known risks:** One bounded metadata lookup is added to validation when a valid selected type is present. Missing or malformed types do not relax requirements. Database failures follow the existing database exception behavior.
 - **Known limitations:** Self-compilation can overwrite the model correction until the authoritative Field definition/generation source is reconciled.
-- **Rollback:** Revert the fix commit and its tests/change record together. No schema change or data migration is needed.
+- **Rollback:** Revert this pull request as a whole, including its tests and change record. No schema change or data migration is needed.
 
 ## Authoritative JCB source reconciliation
 
@@ -134,7 +137,7 @@ The affected save path is the installed administrator Field model. A library-onl
 - [x] The affected-path lists match the final diff exactly.
 - [x] Every path has a stable location and exact what/why details.
 - [x] Behavioral and visual impact are explicit.
-- [ ] Verification records actual results and identifies skipped checks.
+- [x] Verification records actual results and identifies skipped checks.
 - [x] Every protected path has an authoritative-source mapping and reconciliation status.
 - [x] `Transfer required` is `Yes` for the pending authoritative source reconciliation.
 - [x] The changed interface behavior has GUI test coverage.
