@@ -102,7 +102,6 @@ The affected save path is the installed administrator Field model. A library-onl
 | Changed-file style, ownership, moved-condition and container-key guards; `git diff --check 24c4671d...HEAD` | Published commit `e13a80c7` against the PR base | Pass; new test file checked, all ownership/container contracts retained |
 | [Vendor JCB unit tests](https://github.com/extension-builder/joomla/actions/runs/42847675313) | GitHub Actions, source `5062112b` | Pass; PHP 8.3 full suite, PHP 8.4 coverage/Chromium scripts, PHP 8.5 compatibility |
 | [Initial GUI run](https://github.com/extension-builder/joomla/actions/runs/42845463616) | Installed joomengine / Chromium | 32 passed; three new cases stopped before saving because the description shares its element with the note heading. The test was corrected to assert the rendered note container and its contained text; the successful follow-up is recorded below. |
-
 | [GUI regression suite](https://github.com/extension-builder/joomla/actions/runs/42847675131) | Installed joomengine / Chromium, source `5062112b` | Pass; 35/35 tests, no retries. New and existing Note/Spacer saves, XML reloads, Note-to-Text requirement restoration, and fixture cleanup all passed. Evidence artifact: `13779800146`. |
 
 ### Manual scenarios
