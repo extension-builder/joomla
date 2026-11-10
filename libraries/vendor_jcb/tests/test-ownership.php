@@ -2996,6 +2996,10 @@ return [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Customcode/HashAndLockBaseTest.php'
 	],
+	'VDM.Joomla/src/Componentbuilder/Compiler/Customcode/RequiredFields.php' => [
+		'mode' => 'unit',
+		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Customcode/RequiredFieldsTest.php'
+	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Customview/Data.php' => [
 		'mode' => 'unit',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Customview/DataTest.php'

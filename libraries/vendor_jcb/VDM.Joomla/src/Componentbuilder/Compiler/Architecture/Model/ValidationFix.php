@@ -85,7 +85,7 @@ final class ValidationFix
 		$fix = '';
 		if (ArrayHelper::check(
 				$this->validationfix->get($view)
-			))
+			) || $this->validationfix->getCustomFields($view) !== [])
 		{
 			$fix .= PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
 			$fix .= PHP_EOL . Indent::_(1)
@@ -108,7 +108,7 @@ final class ValidationFix
 			$fix .= PHP_EOL . Indent::_(1)
 				. "public function validate(\$form, \$data, \$group = null)";
 			$fix .= PHP_EOL . Indent::_(1) . "{";
-			$fix .= $this->validationfix->getConditions($view) === []
+			$fix .= $this->validationfix->getConditions($view) === [] && $this->validationfix->getCustomFields($view) === []
 				? PHP_EOL . Indent::_(2) . "return parent::validate(\$form, \$data, \$group);"
 				: $this->lifecycle($view);
 			$fix .= PHP_EOL . Indent::_(1) . "}";
@@ -217,13 +217,13 @@ final class ValidationFix
 	protected function conditions(string $view): string
 	{
 		$groups = $this->validationfix->getConditions($view);
-		if ($groups === [])
+		if ($groups === [] && $this->validationfix->getCustomFields($view) === [])
 		{
 			return '';
 		}
 
 		$code = PHP_EOL . Indent::_(3) . '$conditionGroups = ' . $this->export($groups) . ';';
-		$code .= PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' The browser\'s not_required list is informational, never an authority.'
+		$code .= PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . $this->requirementPolicy($view)
 			. PHP_EOL . Indent::_(3) . '$conditionInput = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($data);'
 			. PHP_EOL . Indent::_(3) . '$conditionData = $group ? (array) $conditionInput->get($group, []) : $data;'
 			. PHP_EOL . Indent::_(3) . '$conditionStored = [];'
@@ -405,7 +405,7 @@ final class ValidationFix
 			. PHP_EOL . Indent::_(6) . '$conditionalRequired[$target] = $required;'
 			. PHP_EOL . Indent::_(5) . '}'
 			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
+			. PHP_EOL . Indent::_(3) . '}' . $this->customRequirements($view)
 			. PHP_EOL . Indent::_(3) . 'foreach ($conditionalRequired as $field => $required)'
 			. PHP_EOL . Indent::_(3) . '{'
 			. PHP_EOL . Indent::_(4) . '$conditionElement = $form->getFieldXml($field, $group);'
@@ -444,5 +444,70 @@ final class ValidationFix
 
 		return '[' . implode(', ', $items) . ']';
 	}
-}
 
+	/**
+	 * Describe the active policy without changing existing generated comments.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  string
+	 * @since   6.2.1
+	 */
+	protected function requirementPolicy(string $view): string
+	{
+		if ($this->validationfix->getCustomFields($view) === [])
+		{
+			return ' The browser\'s not_required list is informational, never an authority.';
+		}
+
+		return ' Structured requirements remain authoritative; authored custom exemptions are bounded below.';
+	}
+
+	/**
+	 * Restore browser exemptions only for registered custom fields outside conditions.
+	 *
+	 * Custom JavaScript decides when these fields are optional. API clients cannot
+	 * supply that decision, and structured or protected fields remain authoritative.
+	 * The existing native lifecycle applies and restores the resulting attributes.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  string
+	 * @since   6.2.1
+	 */
+	protected function customRequirements(string $view): string
+	{
+		$fields = $this->validationfix->getCustomFields($view);
+		if ($fields === [])
+		{
+			return '';
+		}
+
+		return PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' Custom browser exemptions never replace structured server conditions or native validation.'
+			. PHP_EOL . Indent::_(3) . '$customNotRequired = $conditionData[\'not_required\'] ?? null;'
+			. PHP_EOL . Indent::_(3) . '$customListAvailable = $form->getFieldAttribute(\'not_required\', \'name\', null, $group) !== null;'
+			. PHP_EOL . Indent::_(3) . '$customListDisabled = strtolower((string) $form->getFieldAttribute(\'not_required\', \'disabled\', \'\', $group));'
+			. PHP_EOL . Indent::_(3) . '$customListFilter = strtolower((string) $form->getFieldAttribute(\'not_required\', \'filter\', \'\', $group));'
+			. PHP_EOL . Indent::_(3) . 'if (!$conditionApp->isClient(\'api\') && $customListAvailable && is_string($customNotRequired)'
+			. PHP_EOL . Indent::_(4) . '&& !in_array($customListDisabled, [\'true\', \'1\', \'disabled\'], true) && $customListFilter !== \'unset\')'
+			. PHP_EOL . Indent::_(3) . '{'
+			. PHP_EOL . Indent::_(4) . 'foreach (explode(\',\', $customNotRequired) as $field)'
+			. PHP_EOL . Indent::_(4) . '{'
+			. PHP_EOL . Indent::_(5) . '$field = trim($field);'
+			. PHP_EOL . Indent::_(5) . 'if (!in_array($field, ' . $this->export($fields) . ', true) || array_key_exists($field, $conditionalRequired)'
+			. PHP_EOL . Indent::_(6) . '|| in_array($field, [\'not_required\', \'__jcb_conditional_required\'], true))'
+			. PHP_EOL . Indent::_(5) . '{'
+			. PHP_EOL . Indent::_(6) . 'continue;'
+			. PHP_EOL . Indent::_(5) . '}'
+			. PHP_EOL . Indent::_(5) . '$available = $form->getFieldAttribute($field, \'name\', null, $group) !== null;'
+			. PHP_EOL . Indent::_(5) . '$disabled = strtolower((string) $form->getFieldAttribute($field, \'disabled\', \'\', $group));'
+			. PHP_EOL . Indent::_(5) . '$filter = strtolower((string) $form->getFieldAttribute($field, \'filter\', \'\', $group));'
+			. PHP_EOL . Indent::_(5) . 'if (!$available || in_array($disabled, [\'true\', \'1\', \'disabled\'], true) || $filter === \'unset\')'
+			. PHP_EOL . Indent::_(5) . '{'
+			. PHP_EOL . Indent::_(6) . 'continue;'
+			. PHP_EOL . Indent::_(5) . '}'
+			. PHP_EOL . Indent::_(5) . '$conditionalRequired[$field] = false;'
+			. PHP_EOL . Indent::_(4) . '}'
+			. PHP_EOL . Indent::_(3) . '}';
+	}
+}

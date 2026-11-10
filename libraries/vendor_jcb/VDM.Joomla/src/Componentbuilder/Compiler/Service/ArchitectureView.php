@@ -4357,7 +4357,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Field.OptionsScript'),
 			$container->get('Architecture.Field.IfValueScript'),
 			$container->get('Architecture.Field.TargetControlsScript'),
-			$container->get('Architecture.Field.TargetRelationScript')
+			$container->get('Architecture.Field.TargetRelationScript'),
+			$container->get('Customcode.RequiredFields')
 		);
 	}
 
@@ -4388,7 +4389,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Field.OptionsScript'),
 			$container->get('Architecture.Field.IfValueScript'),
 			$container->get('Architecture.Field.TargetControlsScript'),
-			$container->get('Architecture.Field.TargetRelationScript')
+			$container->get('Architecture.Field.TargetRelationScript'),
+			$container->get('Customcode.RequiredFields')
 		);
 	}
 
@@ -4419,7 +4421,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Field.OptionsScript'),
 			$container->get('Architecture.Field.IfValueScript'),
 			$container->get('Architecture.Field.TargetControlsScript'),
-			$container->get('Architecture.Field.TargetRelationScript')
+			$container->get('Architecture.Field.TargetRelationScript'),
+			$container->get('Customcode.RequiredFields')
 		);
 	}
 
@@ -4450,7 +4453,8 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.Field.OptionsScript'),
 			$container->get('Architecture.Field.IfValueScript'),
 			$container->get('Architecture.Field.TargetControlsScript'),
-			$container->get('Architecture.Field.TargetRelationScript')
+			$container->get('Architecture.Field.TargetRelationScript'),
+			$container->get('Customcode.RequiredFields')
 		);
 	}
 
@@ -4640,4 +4644,3 @@ class ArchitectureView implements ServiceProviderInterface
 		return new J6AdminViewFadeInEffect($container->get('Config'));
 	}
 }
-
