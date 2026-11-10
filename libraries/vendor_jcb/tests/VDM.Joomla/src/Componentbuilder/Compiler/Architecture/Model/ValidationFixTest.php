@@ -21,6 +21,7 @@ use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Event\Dispatcher;
 use Joomla\Input\Input;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminView\ViewScript;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ConditionalRule;
 use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
 use Joomla\CMS\Factory;
@@ -31,7 +32,11 @@ use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript as ViewScriptBuilder;
+use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
+use VDM\Joomla\Componentbuilder\Compiler\Customcode\RequiredFields;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor as JoomlaPowerExtractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector as JoomlaPowerInjector;
@@ -127,6 +132,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$definitions = new ValidationFixRegistry();
 		$definitions->set('record', ['details']);
 		$definitions->setConditions('record', [self::group()]);
+		$definitions->setCustomFields('record', ['datatype', 'null_switch', 'store']);
 		$compiler = new CompilerRegistry();
 		$generator = new ValidationFix($definitions, $compiler, new ConditionalRule());
 		$method = $generator->get('record', 'Demo');
@@ -159,6 +165,11 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$data = ['id' => 9, 'name' => 'Complete', 'details' => 'Required value'];
 		$this->assertSame($data, $validate($form, $data));
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+		$validate = $this->validator([], [], false, null, ['datatype', 'null_switch', 'store']);
+		$form = $this->databaseForm();
+		$data = ['name' => 'Note', 'not_required' => 'datatype,null_switch,store'];
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertFalse($validate($form, ['name' => 'Text']));
 	}
 
 	/**
@@ -234,6 +245,323 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertFalse($validate($form, ['id' => 9, 'name' => 'Renamed', 'not_required' => 'details,name']));
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$this->assertSame('true', $form->getFieldAttribute('name', 'required'));
+	}
+
+	/**
+	 * Custom targets stay normalized, isolated by view, and replaceable between builds.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomTargetRegistryNormalizesAndResetsEachView(): void
+	{
+		$registry = new ValidationFixRegistry();
+		$registry->setCustomFields('record', ['datatype', 'null_switch', 'datatype', 'with-hyphen', '', 'settings.store', 'bad name', 4, null, [], true]);
+		$registry->setCustomFields('other', ['store']);
+		$this->assertSame(['datatype', 'null_switch', 'with-hyphen'], $registry->getCustomFields('record'));
+		$this->assertSame(['store'], $registry->getCustomFields('other'));
+		$this->assertSame([], $registry->getCustomFields('missing'));
+		$registry->setCustomFields('record', []);
+		$this->assertSame([], $registry->getCustomFields('record'));
+		$this->assertSame(['store'], $registry->getCustomFields('other'));
+	}
+
+	/**
+	 * The shipped Note/Spacer custom script reaches a working generated model.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testShippedDatabaseCheckerSurvivesCustomOnlyCompilation(): void
+	{
+		$source = file_get_contents(dirname(__DIR__, 9) . '/media/js/admin/field.js');
+		$this->assertIsString($source);
+		$start = strpos($source, 'function dbChecker(type)');
+		$this->assertNotFalse($start);
+		$script = substr($source, $start);
+		$registry = new ValidationFixRegistry();
+		$scripts = new ViewScriptBuilder();
+		$dispenser = $this->createStub(Dispenser::class);
+		$dispenser->hub = [];
+		$dispenser->method('get')->willReturnCallback(static function (
+			string $first, string $second, string $prefix = '', ?string $note = null,
+			bool $unset = false, $default = null, string $suffix = ''
+		) use ($script)
+		{
+			return $first === 'view_file' ? $script : $default;
+		});
+		$this->renderer(ViewScript::class, [
+			'dispenser' => $dispenser,
+			'requiredfields' => new RequiredFields(),
+			'validationfix' => $registry,
+			'viewscript' => $scripts,
+			'contentmulti' => new ContentMulti(),
+		])->get(['settings' => (object) ['name_single_code' => 'record', 'name_list_code' => 'records']]);
+
+		$this->assertSame(['datatype', 'null_switch', 'store'], $registry->getCustomFields('record'));
+		$this->assertSame([], $registry->getConditions('record'));
+		$this->assertNull($registry->get('record'));
+		$this->assertSame(1, substr_count($scripts->get('record.fileScript'), 'function updateFieldRequired('));
+		$this->assertStringContainsString($script, $scripts->get('record.fileScript'));
+		foreach (['note', 'spacer'] as $type)
+		{
+			foreach ([[], ['id' => 9, 'datatype' => '', 'null_switch' => '', 'store' => '']] as $stored)
+			{
+				$validate = $this->validator([], $stored, false, null, [], $registry);
+				$form = $this->databaseForm();
+				$data = ['name' => $type, 'fieldtype' => $type, 'datatype' => '', 'null_switch' => '', 'store' => '', 'not_required' => 'datatype,null_switch,store'];
+				if ($stored !== [])
+				{
+					$data = ['id' => 9] + $data;
+				}
+				$this->assertSame($data, $validate($form, $data));
+				$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+				$this->assertSame('true', $form->getFieldAttribute('null_switch', 'required'));
+				$this->assertSame('true', $form->getFieldAttribute('store', 'required'));
+				unset($data['not_required']);
+				$this->assertFalse($validate($form, $data));
+			}
+		}
+	}
+
+	/**
+	 * Authored exemptions coexist with structured rules without relaxing ordinary fields.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomRequirementsCoexistWithStructuredRulesAndPreserveValues(): void
+	{
+		$validate = $this->validator([self::group()], ['id' => 9, 'mode' => 'plain'], false, null, ['datatype', 'null_switch', 'store']);
+		$form = $this->databaseForm();
+		$form->load('<form><field name="details" type="text" required="true" filter="raw" /></form>');
+		$form->setFieldAttribute('store', 'filter', 'int');
+		$data = [
+			'id' => 9, 'name' => 'Note', 'mode' => 'plain',
+			'datatype' => '', 'null_switch' => '', 'store' => '6garbage',
+			'not_required' => ' datatype, null_switch,store,datatype,name,details,unknown ',
+			'details' => 'Keep inactive code',
+		];
+		$this->assertSame(array_replace($data, ['store' => 6]), $validate($form, $data));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		unset($data['name']);
+		$this->assertFalse($validate($form, $data));
+		$data['name'] = 'Note';
+		$data['mode'] = 'expert';
+		unset($data['details']);
+		$this->assertFalse($validate($form, $data));
+		$this->assertSame('true', $form->getFieldAttribute('name', 'required'));
+	}
+
+	/**
+	 * A registered custom target cannot override a structured or unsupported condition.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomListsCannotOverrideStructuredTargets(): void
+	{
+		foreach ([true, false] as $supported)
+		{
+			$group = self::group();
+			$group['targets'] = ['datatype'];
+			$group['matches'][0]['supported'] = $supported;
+			$validate = $this->validator([$group], [], false, null, ['datatype', 'null_switch', 'store']);
+			$form = $this->databaseForm();
+			$data = ['name' => 'Note', 'mode' => 'expert', 'not_required' => 'datatype,null_switch,store'];
+			$this->assertFalse($validate($form, $data));
+			$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+			$data['mode'] = 'plain';
+			if ($supported)
+			{
+				$this->assertSame($data, $validate($form, $data));
+			}
+			else
+			{
+				$this->assertFalse($validate($form, $data));
+			}
+		}
+	}
+
+	/**
+	 * Native filtering determines the list; malformed or unavailable lists grant nothing.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomListsUseFilteredStringsAndRespectFormAvailability(): void
+	{
+		$validate = $this->validator([], [], false, null, ['datatype', 'null_switch', 'store']);
+		foreach ([null, [], ['datatype', 'null_switch', 'store'], (object) ['datatype' => true], 1, true, '', 'settings.datatype,null_switch,store'] as $list)
+		{
+			$form = $this->databaseForm();
+			$this->assertFalse($validate($form, ['name' => 'Note', 'not_required' => $list]));
+			$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+			$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		}
+		foreach (['removed', 'unset', 'disabled', 'int', 'cmd'] as $protection)
+		{
+			$form = $this->databaseForm();
+			if ($protection === 'removed')
+			{
+				$form->removeField('not_required');
+			}
+			else
+			{
+				$form->setFieldAttribute('not_required', $protection === 'disabled' ? 'disabled' : 'filter', $protection === 'disabled' ? 'true' : $protection);
+			}
+			try
+			{
+				$this->assertFalse($validate($form, ['name' => 'Note', 'not_required' => 'datatype,null_switch,store']));
+			}
+			catch (RuntimeException $error)
+			{
+				$this->assertSame('disabled', $protection);
+				$this->assertSame('JLIB_FORM_VALIDATE_FIELD_INVALID', $error->getMessage());
+			}
+			$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+			$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		}
+		$form = $this->databaseForm();
+		$form->setFieldAttribute('not_required', 'filter', 'string');
+		$this->assertSame(
+			['name' => 'Note', 'not_required' => 'datatype,null_switch,store'],
+			$validate($form, ['name' => 'Note', 'not_required' => '<b>datatype</b>,<i>null_switch</i>,store'])
+		);
+	}
+
+	/**
+	 * Grouped custom lists cannot exempt fields outside the group being validated.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomListsUseOnlyTheValidatedGroup(): void
+	{
+		$validate = $this->validator([], [], false, null, ['datatype', 'null_switch', 'store']);
+		$form = $this->databaseForm(null, 'settings');
+		$data = ['settings' => ['name' => 'Note', 'not_required' => 'datatype,null_switch,store']];
+		$this->assertSame($data, $validate($form, $data, 'settings'));
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required', null, 'settings'));
+		$this->assertFalse($validate($form, ['settings' => ['name' => 'Note'], 'not_required' => 'datatype,null_switch,store'], 'settings'));
+		$this->assertFalse($validate($form, ['settings' => ['name' => 'Note'], 'other' => ['not_required' => 'datatype,null_switch,store']], 'settings'));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required', 'settings'));
+	}
+
+	/**
+	 * A custom hint neither restores removed controls nor changes protected requirements.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomTargetsRespectRemovedDisabledAndUnsetFields(): void
+	{
+		$validate = $this->validator([], [], false, null, ['datatype']);
+		$data = ['name' => 'Note', 'null_switch' => 'NULL', 'store' => '6', 'not_required' => 'datatype'];
+		$form = $this->databaseForm();
+		$form->removeField('datatype');
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertFalse($form->getFieldXml('datatype'));
+		foreach (['unset', 'true', '1', 'disabled'] as $protection)
+		{
+			$form = $this->databaseForm();
+			$form->setFieldAttribute('datatype', $protection === 'unset' ? 'filter' : 'disabled', $protection);
+			$this->assertFalse($validate($form, $data));
+			$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+			$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		}
+	}
+
+	/**
+	 * Native events supply the filtered custom hint once and keep plugin edits on failure.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testNativePluginCustomListsAndExceptionsKeepFormState(): void
+	{
+		$form = $this->databaseForm();
+		$dispatcher = new Dispatcher();
+		$calls = 0;
+		$throw = false;
+		$grant = true;
+		$dispatcher->addListener('onContentBeforeValidateData', function (BeforeValidateDataEvent $event) use ($form, &$calls, &$throw, &$grant): void
+		{
+			$this->assertSame($form, $event->getForm());
+			$calls++;
+			$form->setFieldAttribute('not_required', 'filter', 'string');
+			$form->setFieldAttribute('null_switch', 'required', 'false');
+			$event->updateData(array_replace($event->getData(), ['not_required' => $grant ? '<b>datatype</b>,null_switch,store' : '']));
+			if ($throw)
+			{
+				throw new RuntimeException('custom plugin failure');
+			}
+		});
+		$validate = $this->validator([], [], false, $dispatcher, ['datatype', 'null_switch', 'store']);
+		$this->assertSame(['name' => 'Note', 'not_required' => 'datatype,null_switch,store'], $validate($form, ['name' => 'Note']));
+		$this->assertSame(1, $calls);
+		$this->assertSame('false', $form->getFieldAttribute('null_switch', 'required'));
+		$throw = true;
+		try
+		{
+			$validate($form, ['name' => 'Note']);
+			$this->fail('The custom plugin exception must remain observable.');
+		}
+		catch (RuntimeException $error)
+		{
+			$this->assertSame('custom plugin failure', $error->getMessage());
+		}
+		$this->assertSame(2, $calls);
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		$this->assertSame('false', $form->getFieldAttribute('null_switch', 'required'));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$throw = false;
+		$grant = false;
+		$this->assertFalse($validate($form, ['name' => 'Text']));
+		$this->assertSame(3, $calls);
+	}
+
+	/**
+	 * Custom exemptions preserve non-empty native validators and exact XML attributes.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCustomRequirementsPreserveNativeRulesAndAbsentAttributes(): void
+	{
+		$validate = $this->validator([], [], false, null, ['datatype', 'null_switch', 'store']);
+		$form = $this->databaseForm();
+		$form->setFieldAttribute('datatype', 'validate', 'email');
+		unset($form->getFieldXml('null_switch')['required']);
+		$data = ['name' => 'Note', 'datatype' => 'invalid-email', 'not_required' => 'datatype,null_switch,store'];
+		$this->assertFalse($validate($form, $data));
+		$this->assertSame('email', $form->getFieldAttribute('datatype', 'validate'));
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		$this->assertNull($form->getFieldAttribute('null_switch', 'required', null));
+		$data['datatype'] = 'valid@example.test';
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		$this->assertNull($form->getFieldAttribute('null_switch', 'required', null));
+	}
+
+	/**
+	 * API updates retain strict fields even when the browser custom list is supplied.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testApiCannotUseCustomBrowserExemptions(): void
+	{
+		foreach ([true, false] as $patch)
+		{
+			$validate = $this->validator([], ['id' => 9, 'datatype' => 'VARCHAR', 'null_switch' => 'NULL', 'store' => '6'], $patch, null, ['datatype', 'null_switch', 'store'], null, true);
+			$form = $this->databaseForm();
+			$this->assertFalse($validate($form, ['id' => 9, 'name' => 'Updated', 'not_required' => 'datatype,null_switch,store']));
+			$data = ['id' => 9, 'name' => 'Updated', 'datatype' => 'VARCHAR', 'null_switch' => 'NULL', 'store' => '6', 'not_required' => 'datatype,null_switch,store'];
+			$this->assertSame($data, $validate($form, $data));
+			$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		}
 	}
 
 	/**
@@ -648,6 +976,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			{
 				$this->calls[] = 'filter';
 				$data['mode'] = 'expert';
+				$data['not_required'] = 'datatype,null_switch,store';
 				return parent::filter($data, $group);
 			}
 
@@ -686,18 +1015,22 @@ final class ValidationFixTest extends ArchitectureTestCase
 				return $data;
 			}
 		};
-		$this->form($form);
+		$this->databaseForm($form);
+		$form->load('<form><field name="details" type="text" required="true" filter="raw" /></form>');
 		$form->setFieldAttribute('details', 'required', 'false');
-		$validate = $this->validator([self::group()], []);
+		$form->setFieldAttribute('null_switch', 'required', 'false');
+		unset($form->getFieldXml('store')['required']);
+		$validate = $this->validator([self::group()], [], false, null, ['datatype', 'null_switch', 'store']);
 		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
 		$this->assertSame(['filter', 'validate'], $form->calls);
 		$form->calls = [];
 		$this->assertSame(
-			['name' => 'Record processed', 'mode' => 'expert', 'details' => 'present'],
+			['name' => 'Record processed', 'mode' => 'expert', 'not_required' => 'datatype,null_switch,store', 'details' => 'present'],
 			$validate($form, ['name' => 'Record', 'mode' => 'plain', 'details' => 'present'])
 		);
 		$this->assertSame(['filter', 'validate', 'postProcess'], $form->calls);
 		$form->throw = true;
+		$form->calls = [];
 		try
 		{
 			$validate($form, ['name' => 'Record', 'details' => 'present']);
@@ -707,7 +1040,11 @@ final class ValidationFixTest extends ArchitectureTestCase
 		{
 			$this->assertSame('post-process failure', $error->getMessage());
 		}
+		$this->assertSame(['filter', 'validate', 'postProcess'], $form->calls);
 		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $form->getFieldAttribute('datatype', 'required'));
+		$this->assertSame('false', $form->getFieldAttribute('null_switch', 'required'));
+		$this->assertNull($form->getFieldAttribute('store', 'required', null));
 		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
 		$form->throw = false;
 		$this->assertIsArray($validate($form, ['name' => 'Record', 'details' => 'present']));
@@ -716,26 +1053,38 @@ final class ValidationFixTest extends ArchitectureTestCase
 	/**
 	 * Execute the generated override on the real FormModel parent lifecycle.
 	 *
-	 * @param   array            $groups      Normalized condition groups.
-	 * @param   array|false      $stored      Decoded values or a failed load.
-	 * @param   bool             $patch       Whether this is an API PATCH request.
-	 * @param   Dispatcher|null  $dispatcher  Native validation plugin dispatcher.
+	 * @param   array                       $groups        Normalized condition groups.
+	 * @param   array|false                 $stored        Decoded values or a failed load.
+	 * @param   bool                        $patch         Whether this is a PATCH request.
+	 * @param   Dispatcher|null             $dispatcher    Native validation plugin dispatcher.
+	 * @param   array                       $customFields  Authored custom-script targets.
+	 * @param   ValidationFixRegistry|null  $registry      Optional upstream compiler state.
+	 * @param   bool|null                   $api           API client; defaults to the PATCH flag.
 	 *
 	 * @return  Closure
 	 * @since   6.2.0
 	 */
-	private function validator(array $groups, array|false $stored, bool $patch = true, ?Dispatcher $dispatcher = null): Closure
+	private function validator(array $groups, array|false $stored, bool $patch = true, ?Dispatcher $dispatcher = null,
+		array $customFields = [], ?ValidationFixRegistry $registry = null, ?bool $api = null): Closure
 	{
-		$registry = new ValidationFixRegistry();
-		$registry->set('record', ['details']);
-		$registry->setConditions('record', $groups);
+		if ($registry === null)
+		{
+			$registry = new ValidationFixRegistry();
+			if ($groups !== [])
+			{
+				$registry->set('record', ['details']);
+			}
+			$registry->setConditions('record', $groups);
+			$registry->setCustomFields('record', $customFields);
+		}
 		$compiler = new CompilerRegistry();
 		$method = (new ValidationFix($registry, $compiler, new ConditionalRule()))->get('record', 'Demo');
 		$this->assertStringContainsString('parent::validate(', $method);
 		$this->assertStringNotContainsString('->filter(', $method);
 		$this->assertSame((new ConditionalRule())->get(), $compiler->get('validation.rules.jcbconditionalrequired'));
 		$app = $this->createStub(CMSApplication::class);
-		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $patch && $client === 'api');
+		$api ??= $patch;
+		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $client === ($api ? 'api' : 'administrator'));
 		$input = new Input([]);
 		$input->server->set('REQUEST_METHOD', $patch ? 'PATCH' : 'POST');
 		$app->method('getInput')->willReturn($input);
@@ -789,6 +1138,33 @@ final class ValidationFixTest extends ArchitectureTestCase
 			. '<field name="details" type="text" required="true" filter="raw" />'
 			. '<field name="not_required" type="hidden" filter="raw" />'
 			. '</form>');
+
+		return $form;
+	}
+
+	/**
+	 * Build the required database controls changed by authored Note/Spacer JavaScript.
+	 *
+	 * @param   Form|null    $form   Optional custom Form implementation.
+	 * @param   string|null  $group  Optional nested form group.
+	 *
+	 * @return  Form
+	 * @since   6.2.1
+	 */
+	private function databaseForm(?Form $form = null, ?string $group = null): Form
+	{
+		$form ??= new Form('custom-database');
+		$form->setDatabase($this->createStub(DatabaseInterface::class));
+		$form->setCurrentUser(new User());
+		$fields = '<field name="id" type="text" filter="int" />'
+			. '<field name="name" type="text" required="true" filter="raw" />'
+			. '<field name="fieldtype" type="text" filter="raw" />'
+			. '<field name="mode" type="text" default="plain" filter="raw" />'
+			. '<field name="datatype" type="text" required="true" filter="raw" />'
+			. '<field name="null_switch" type="text" required="true" filter="raw" />'
+			. '<field name="store" type="text" required="true" filter="raw" />'
+			. '<field name="not_required" type="hidden" filter="raw" />';
+		$form->load('<form>' . ($group === null ? $fields : '<fields name="' . $group . '">' . $fields . '</fields>') . '</form>');
 
 		return $form;
 	}
