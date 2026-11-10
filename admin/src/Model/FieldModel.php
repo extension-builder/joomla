@@ -990,6 +990,68 @@ class FieldModel extends AdminModel
 					}
 				}
 			}
+			// Note and Spacer have no database column. Resolve the effective type from
+			// trusted metadata, using the same ACL and PATCH policy as other selectors.
+			$fieldTypeDisabled = strtolower((string) $form->getFieldAttribute('fieldtype', 'disabled', '', $group));
+			$fieldTypeFilter = strtolower((string) $form->getFieldAttribute('fieldtype', 'filter', '', $group));
+			$fieldTypeAvailable = $form->getFieldAttribute('fieldtype', 'name', null, $group) !== null;
+			$fieldTypeProtected = !$fieldTypeAvailable
+				|| in_array($fieldTypeDisabled, ['true', '1', 'disabled'], true)
+				|| $fieldTypeFilter === 'unset';
+			$fieldTypeValues = $fieldTypeProtected ? $conditionStored : $conditionData;
+
+			if (array_key_exists('fieldtype', $fieldTypeValues))
+			{
+				$fieldType = $fieldTypeValues['fieldtype'];
+			}
+			elseif (!$fieldTypeProtected && $conditionPatch && array_key_exists('fieldtype', $conditionStored))
+			{
+				$fieldType = $conditionStored['fieldtype'];
+			}
+			else
+			{
+				$fieldType = $form->getFieldAttribute('fieldtype', 'default', null, $group);
+			}
+
+			$fieldTypeKey = null;
+			if (is_string($fieldType) && GuidHelper::valid($fieldType))
+			{
+				$fieldTypeKey = 'guid';
+			}
+			elseif ((is_int($fieldType) || (is_string($fieldType) && ctype_digit($fieldType))) && (int) $fieldType > 0)
+			{
+				$fieldTypeKey = 'id';
+			}
+
+			if ($fieldTypeKey !== null)
+			{
+				$db = $this->getDatabase();
+				$query = $db->createQuery()
+					->select($db->quoteName('name'))
+					->from($db->quoteName('#__componentbuilder_fieldtype'))
+					->where($db->quoteName($fieldTypeKey) . ' = ' . $db->quote((string) $fieldType));
+				$fieldTypeName = $db->setQuery($query, 0, 1)->loadResult();
+
+				if (is_string($fieldTypeName) && in_array(strtolower(trim($fieldTypeName)), ['note', 'spacer'], true))
+				{
+					// Stale length/default/expert settings must not require a column either.
+					foreach ([
+						'datatype',
+						'datalenght',
+						'datalenght_other',
+						'datadefault_other',
+						'indexes',
+						'null_switch',
+						'store',
+						'on_get_model_field',
+						'on_save_model_field',
+					] as $field)
+					{
+						$conditionalRequired[$field] = false;
+					}
+				}
+			}
+
 			foreach ($conditionalRequired as $field => $required)
 			{
 				$conditionElement = $form->getFieldXml($field, $group);
