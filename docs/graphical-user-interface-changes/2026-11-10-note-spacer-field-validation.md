@@ -4,7 +4,7 @@
 
 - **Date first changed:** 2026-11-10
 - **Author/implementer:** ChatGPT, at the user's request
-- **Task/issue/PR:** `fix/note-spacer-field-validation`; PR link added after creation
+- **Task/issue/PR:** [PR #67](https://github.com/extension-builder/joomla/pull/67), branch `fix/note-spacer-field-validation`
 - **Change record status:** Draft
 
 ## Explicit permission
@@ -98,7 +98,10 @@ The affected save path is the installed administrator Field model. A library-onl
 | Locked Composer validation, platform requirements and audit | Composer 2.10.2 / PHP 8.4.27 | Pass; no locked vulnerability advisories |
 | `node --test libraries/vendor_jcb/tests/javascript/*.test.cjs` | Local Node runtime | Pass; 5 tests |
 | Known-defect recovery audit | PHP 8.4.27 | Pass; no clean passes among the 84 documented nonblocking cases |
-| Full coverage run and PR workflows | Local PHP 8.4 and GitHub Actions | Pending; actual outcomes will be recorded before handoff |
+| `composer test:coverage` | PHP 8.4.27 / PCOV; published source `e13a80c7` | Pass; 5,422 tests, 66,981 assertions, no warnings/errors; Clover report generated |
+| Changed-file style, ownership, moved-condition and container-key guards; `git diff --check 24c4671d...HEAD` | Published commit `e13a80c7` against the PR base | Pass; new test file checked, all ownership/container contracts retained |
+| [Vendor JCB unit tests](https://github.com/extension-builder/joomla/actions/runs/42845463473) | GitHub Actions, source `e13a80c7` | Pass; PHP 8.3 full suite, PHP 8.4 coverage/Chromium scripts, PHP 8.5 compatibility |
+| [Initial GUI run](https://github.com/extension-builder/joomla/actions/runs/42845463616) | Installed joomengine / Chromium | 32 passed; three new cases stopped before saving because the description shares its element with the note heading. The test now asserts the rendered note container and its contained text. Follow-up execution is required. |
 
 ### Manual scenarios
 

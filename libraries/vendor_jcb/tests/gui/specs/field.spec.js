@@ -72,8 +72,10 @@ async function selectFieldType(page, name) {
 
 async function expectNoDatabase(page, name) {
 	await page.getByRole('tab', { name: 'Database', exact: true }).click();
-	await expect(page.getByText('This field does not require any database settings to function correctly.', { exact: true }),
-		`${name} explains why no database configuration is needed`).toBeVisible();
+	const notice = page.locator('.note_no_database_settings_needed');
+	await expect(notice, `${name} displays its database configuration notice`).toBeVisible();
+	await expect(notice, `${name} explains why no database configuration is needed`)
+		.toContainText('This field does not require any database settings to function correctly.');
 	await expect(page.locator('#jform_datatype'), `${name} keeps its database type empty`).toHaveValue('');
 	for (const field of ['datatype', 'null_switch', 'store']) {
 		await expect(page.locator('#jform_' + field), `${name} hides the unused ${field} control`).toBeHidden();
