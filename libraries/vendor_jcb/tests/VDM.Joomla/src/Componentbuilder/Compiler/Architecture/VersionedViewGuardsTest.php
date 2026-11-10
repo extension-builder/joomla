@@ -112,12 +112,12 @@ GEN;
 GEN;
 
 	/**
-	 * The validation method this contract protects, captured from the compiler.
+	 * The validation method header this contract protects, captured from the compiler.
 	 *
 	 * @var    string
 	 * @since  6.1.7
 	 */
-	private const EXPECTED_VALIDATION = <<<'GEN'
+	private const EXPECTED_VALIDATION_HEADER = <<<'GEN'
 
 
 	/**
@@ -135,8 +135,6 @@ GEN;
 	 */
 	public function validate($form, $data, $group = null)
 	{
-		return parent::validate($form, $data, $group);
-	}
 GEN;
 
 	/**
@@ -463,8 +461,11 @@ GEN;
 		$fixes->set('demo', ['conditional_name']);
 
 		$subject = $this->renderer(ValidationFix::class, ['validationfix' => $fixes]);
+		$method = $subject->get('demo', 'Demo');
 
-		$this->assertSame(self::EXPECTED_VALIDATION, $subject->get('demo', 'Demo'));
+		$this->assertStringStartsWith(self::EXPECTED_VALIDATION_HEADER, $method);
+		$this->assertStringContainsString('$conditionGroups = [];', $method);
+		$this->assertStringContainsString('parent::validate($form, $conditionInput->toArray(), $group)', $method);
 	}
 
 	/**

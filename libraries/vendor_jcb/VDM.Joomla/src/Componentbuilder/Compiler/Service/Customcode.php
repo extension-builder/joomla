@@ -23,7 +23,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Customcode\LockBase;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Extractor\Paths;
-use VDM\Joomla\Componentbuilder\Compiler\Customcode\RequiredFields;
 
 
 /**
@@ -66,9 +65,6 @@ class Customcode implements ServiceProviderInterface
 
 		$container->alias(Extractor::class, 'Customcode.Extractor')
 			->share('Customcode.Extractor', [$this, 'getExtractor'], true);
-
-		$container->alias(RequiredFields::class, 'Customcode.RequiredFields')
-			->share('Customcode.RequiredFields', [$this, 'getRequiredFields'], true);
 	}
 
 	/**
@@ -217,17 +213,5 @@ class Customcode implements ServiceProviderInterface
 			$container->get('Joomla.Database')
 		);
 	}
-
-	/**
-	 * Get the authored JavaScript requirement-target collector.
-	 *
-	 * @param   Container  $container  The compiler services.
-	 *
-	 * @return  RequiredFields
-	 * @since   6.2.1
-	 */
-	public function getRequiredFields(Container $container): RequiredFields
-	{
-		return new RequiredFields();
-	}
 }
+

@@ -24,7 +24,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript as ViewScriptBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Config;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
-use VDM\Joomla\Componentbuilder\Compiler\Customcode\RequiredFields;
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Createdate;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Modifieddate;
@@ -79,14 +78,6 @@ class ViewScript
 	 * @since 6.1.7
 	 */
 	protected Dispenser $dispenser;
-
-	/**
-	 * The authored JavaScript requirement-target collector.
-	 *
-	 * @var    RequiredFields
-	 * @since  6.2.1
-	 */
-	protected RequiredFields $requiredfields;
 
 	/**
 	 * The Structure Class.
@@ -220,7 +211,6 @@ class ViewScript
 	 * @param IfValueScript         $ifvaluescript         The Field If Value Script Class.
 	 * @param TargetControlsScript  $targetcontrolsscript  The Field Target Controls Script Class.
 	 * @param TargetRelationScript  $targetrelationscript  The Field Target Relation Script Class.
-	 * @param RequiredFields        $requiredfields        The custom requirement-target collector.
 	 *
 	 * @since 6.1.7
 	 */
@@ -240,13 +230,11 @@ class ViewScript
 		OptionsScript $optionsscript,
 		IfValueScript $ifvaluescript,
 		TargetControlsScript $targetcontrolsscript,
-		TargetRelationScript $targetrelationscript,
-		RequiredFields $requiredfields)
+		TargetRelationScript $targetrelationscript)
 	{
 		$this->config = $config;
 		$this->placeholder = $placeholder;
 		$this->dispenser = $dispenser;
-		$this->requiredfields = $requiredfields;
 		$this->structure = $structure;
 		$this->includehelper = $includehelper;
 		$this->createdate = $createdate;
@@ -280,7 +268,6 @@ class ViewScript
 		// set the view name
 		$nameSingleCode = $viewArray['settings']->name_single_code;
 		$this->validationfix->setConditions($nameSingleCode, []);
-		$this->validationfix->setCustomFields($nameSingleCode, []);
 		// add conditions to this view
 		if (isset($viewArray['settings']->conditions)
 			&& ArrayHelper::check(
@@ -731,11 +718,9 @@ class ViewScript
 		{
 			$fileScript = '';
 		}
-		$customFileScript = $this->dispenser->get(
+		$fileScript .= $this->dispenser->get(
 			'view_file', $nameSingleCode, PHP_EOL . PHP_EOL, null, true, ''
 		);
-		$fileScript .= $customFileScript;
-		$customRequiredFields = $this->requiredfields->get($customFileScript);
 		// add custom script to footer
 		if (isset($this->dispenser->hub['view_footer'][$nameSingleCode])
 			&& StringHelper::check(
@@ -745,7 +730,6 @@ class ViewScript
 			$customFooterScript = PHP_EOL . PHP_EOL . $this->placeholder->update_(
 					$this->dispenser->hub['view_footer'][$nameSingleCode]
 				);
-			$customRequiredFields = array_merge($customRequiredFields, $this->requiredfields->get($customFooterScript));
 			if (strpos($customFooterScript, '<?php') === false)
 			{
 				// only add now if no php is added to the footer script
@@ -756,12 +740,6 @@ class ViewScript
 				$footerScript .= $customFooterScript;
 				unset($customFooterScript);
 			}
-		}
-		$this->validationfix->setCustomFields($nameSingleCode, $customRequiredFields);
-		if ($customRequiredFields !== [] && empty($validation))
-		{
-			// Hoisted helpers preserve an authored file's leading strict-mode directive.
-			$fileScript .= $this->validationScript($nameSingleCode);
 		}
 		// set view listname
 		$nameListCode = $viewArray['settings']->name_list_code;
@@ -1034,7 +1012,7 @@ class ViewScript
 	// add the needed validation to file
 	if (ArrayHelper::check(
 		$this->validationfix->get($nameSingleCode)
-	) || $this->validationfix->getCustomFields($nameSingleCode) !== [])
+	))
 	{
 		$validation .= PHP_EOL . "/**";
 		$validation .= PHP_EOL . " * Update the \"not required\" field list by adding or removing a field name.";
@@ -1139,3 +1117,4 @@ class ViewScript
 		return $isSet;
 	}
 }
+
