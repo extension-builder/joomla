@@ -14,8 +14,6 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use ReflectionClass;
 use ReflectionProperty;
@@ -32,7 +30,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ScriptUserSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ViewScript as ViewScriptBuilder;
 use VDM\Joomla\Componentbuilder\Compiler\Customcode\Dispenser;
-use VDM\Joomla\Componentbuilder\Compiler\Customcode\RequiredFields;
 use VDM\Joomla\Componentbuilder\Compiler\Field\Groups as FieldGroups;
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Createdate;
@@ -152,7 +149,6 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		return $this->renderer($class, [
 			'dispenser' => $this->dispenser(),
-			'requiredfields' => new RequiredFields(),
 			'structure' => $this->structure(),
 			'includehelper' => new IncludeHelper(),
 			'createdate' => $this->date(Createdate::class, '1st January, 2026'),
@@ -540,134 +536,6 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Authored requirement switches register their targets for every Joomla target.
-	 *
-	 * @param   string  $class  The target script renderer.
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	#[DataProvider('customRequirementRenderers')]
-	public function testCustomRequirementsWorkWithoutStructuredConditions(string $class): void
-	{
-		$this->customcode = ['view_file' => "updateFieldRequired('datatype', 1);"];
-		$this->footercode = ['look' => "updateFieldRequired('null_switch', 1); updateFieldRequired('datatype', 0);"];
-		$subject = $this->subject($class);
-		$subject->get(self::view());
-		$script = $subject->script('look', 'fileScript');
-
-		$this->assertStringContainsString('function updateFieldRequired(name, status)', $script);
-		$this->assertSame(1, substr_count($script, 'function updateFieldRequired('));
-		$this->assertStringContainsString($this->customcode['view_file'], $script);
-		$this->assertSame(['datatype', 'null_switch'], $this->fixes->getCustomFields('look'));
-		$this->assertSame([], $this->fixes->getConditions('look'));
-		$this->assertSame([], $this->fixes->getCustomFields('other'));
-	}
-
-	/**
-	 * The shared collector is reached through every supported target renderer.
-	 *
-	 * @return  iterable<string, array{class-string<ViewScript>}>
-	 * @since   6.2.1
-	 */
-	public static function customRequirementRenderers(): iterable
-	{
-		foreach (['Three', 'Four', 'Five', 'Six'] as $version)
-		{
-			yield 'Joomla ' . $version => [
-				'VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\Joomla' . $version . '\\AdminView\\ViewScript',
-			];
-		}
-	}
-
-	/**
-	 * Generated switches do not authorize unrelated fields, and the helper stays unique.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function testCustomTargetsStaySeparateFromStructuredRequirements(): void
-	{
-		$this->customcode = ['view_file' => "updateFieldRequired('datatype', 1);"];
-		$subject = $this->subject();
-		$subject->get(self::view([self::condition([
-			'target_field' => [['name' => 'colour', 'type' => 'text', 'required' => 'yes']],
-		])]));
-
-		$this->assertSame(['datatype'], $this->fixes->getCustomFields('look'));
-		$this->assertSame(['colour'], $this->fixes->getConditions('look')[0]['targets']);
-		$this->assertSame(1, substr_count($subject->script('look', 'fileScript'), 'function updateFieldRequired('));
-	}
-
-	/**
-	 * Literal JavaScript calls are declarations; opaque PHP templates are not.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function testCustomTargetDiscoveryIgnoresNonCallsAndDynamicNames(): void
-	{
-		$this->customcode = ['view_file' => implode(PHP_EOL, [
-			"// updateFieldRequired('line_comment', 1);",
-			"/* updateFieldRequired('block_comment', 1); */",
-			'const example = "updateFieldRequired(\'quoted\', 1)";',
-			'const template = `updateFieldRequired("template", 1)`;',
-			"const pattern = /updateFieldRequired('pattern', 1)/;",
-			"other.updateFieldRequired('method', 1);",
-			"updateFieldRequired(fieldName, 1);",
-			"updateFieldRequired('prefix_' + suffix, 1);",
-			"updateFieldRequired('datatype', 1);",
-		])];
-		$this->footercode = ['look' => '<?php $example = "updateFieldRequired(\'php_string\', 1)"; ?>'
-			. PHP_EOL . 'updateFieldRequired("store", 1);'];
-		$subject = $this->subject();
-		$subject->get(self::view());
-
-		$this->assertSame(['datatype'], $this->fixes->getCustomFields('look'));
-		$this->assertStringContainsString($this->customcode['view_file'], $subject->script('look', 'fileScript'));
-		$this->assertStringContainsString($this->footercode['look'], $subject->script('look', 'footerScript'));
-	}
-
-	/**
-	 * Collection precedes minification and is reset if the same view is rebuilt.
-	 * A separate process isolates the build-scoped minifier's accumulated source.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState(false)]
-	public function testCustomTargetCollectionSurvivesMinificationWithoutLeaking(): void
-	{
-		$this->config()->set('minify', 1);
-		$this->footercode = ['look' => "updateFieldRequired('datatype', 1);"];
-		$subject = $this->subject();
-		$subject->get(self::view());
-		$this->assertSame(['datatype'], $this->fixes->getCustomFields('look'));
-		$this->assertStringContainsString('function updateFieldRequired(', $subject->script('look', 'fileScript'));
-
-		(new ReflectionProperty(ViewScript::class, 'dispenser'))->getValue($subject)->hub = [];
-		$subject->get(self::view());
-		$this->assertSame([], $this->fixes->getCustomFields('look'));
-	}
-
-	/**
-	 * Adding hoisted helpers keeps the authored strict-mode directive effective.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function testCustomOnlyHelpersPreserveStrictModePrologue(): void
-	{
-		$this->customcode = ['view_file' => "'use strict';\nupdateFieldRequired('datatype', 1);"];
-		$subject = $this->subject();
-		$subject->get(self::view());
-		$script = $subject->script('look', 'fileScript');
-
-		$this->assertStringStartsWith($this->customcode['view_file'], $script);
-		$this->assertSame(1, substr_count($script, 'function updateFieldRequired('));
-	}
-
-	/**
 	 * Custom footer code is wrapped in the script tags the edit body expects.
 	 *
 	 * @return  void
@@ -745,8 +613,6 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	#[RunInSeparateProcess]
-	#[PreserveGlobalState(false)]
 	public function testAMinifyingBuildGetsMinifiedJavascript(): void
 	{
 		$this->config()->set('minify', 1);

@@ -43,14 +43,6 @@ final class ValidationFix extends Registry implements Registryinterface
 	protected array $conditions = [];
 
 	/**
-	 * Fields explicitly switched by the view's authored JavaScript.
-	 *
-	 * @var    array<string, array<string>>
-	 * @since  6.2.1
-	 */
-	protected array $customFields = [];
-
-	/**
 	 * Store the exact condition groups selected for the browser script.
 	 *
 	 * @param   string  $view    The single view name.
@@ -76,36 +68,5 @@ final class ValidationFix extends Registry implements Registryinterface
 	{
 		return $this->conditions[$view] ?? [];
 	}
-
-	/**
-	 * Register the custom targets whose browser requirements need compatibility.
-	 *
-	 * Structured server conditions retain precedence over these declarations.
-	 *
-	 * @param   string         $view    The single view name.
-	 * @param   array<string>  $fields  Authored custom requirement targets.
-	 *
-	 * @return  void
-	 * @since   6.2.1
-	 */
-	public function setCustomFields(string $view, array $fields): void
-	{
-		$this->customFields[$view] = array_values(array_unique(array_filter(
-			$fields,
-			static fn ($field): bool => is_string($field) && preg_match('/^[a-zA-Z_][a-zA-Z0-9_-]*$/D', $field) === 1
-		)));
-	}
-
-	/**
-	 * Read custom targets independently of the structured condition registry.
-	 *
-	 * @param   string  $view  The single view name.
-	 *
-	 * @return  array<string>
-	 * @since   6.2.1
-	 */
-	public function getCustomFields(string $view): array
-	{
-		return $this->customFields[$view] ?? [];
-	}
 }
+
