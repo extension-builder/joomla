@@ -30,6 +30,22 @@ The generated rule must run after filtering and before target required checks.
 The internal first-position XML rule field supplies that boundary; its
 installation and removal belong inside the rule implementation.
 
+### The live form remains authoritative
+
+`getForm()` and native plugins already apply permissions and form changes.
+Conditional validation receives that same Form object and performs no ACL
+lookup of its own. It cannot restore a requirement that the live form has
+removed: absent fields remain absent, and optional, disabled or `filter="unset"`
+targets cannot be promoted back to required. Joomla continues to filter unset
+values and reject submitted disabled values through its native lifecycle.
+
+The requirement cap follows the pinned native validation flag semantics;
+`type="hidden"` or `readonly` alone is not a required-field exemption. Regression
+tests execute the existing GetForm permission emitter first, then pass that
+exact Form into the generated validator. Separate cases compare native and
+conditional validation for the supported required-attribute representations.
+This preserves the prior form decision instead of duplicating its ACL logic.
+
 ## Browser and server contract
 
 Both sides evaluate the same normalized definitions in source order. Every
