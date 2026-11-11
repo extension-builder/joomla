@@ -1,0 +1,67 @@
+{
+    "view": "joomla_component",
+    "baseline": "2dab8eb3249185d18b11a55694adb559c349addc",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/Joomla_componentModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "add_update_server",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "update_server_target"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "add_changelog_server",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "changelog_server_target"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "buildcomp",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "buildcompsql"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

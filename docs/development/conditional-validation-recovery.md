@@ -134,10 +134,9 @@ Verification must cover:
 
 ## Current verification status
 
-The model/rule refactor and template integration pass 83 focused PHPUnit tests
-with 791 assertions on PHP 8.3.6, PHPUnit 12.5.33 and pinned Joomla 6.1.2.
-These tests execute emitted PHP against Joomla's native form lifecycle and
-verify property placement for Joomla 3, 4, 5 and 6 administrator/site models.
+Native validation tests use PHP 8.3.6, PHPUnit 12.5.33 and pinned Joomla 6.1.2.
+They execute emitted PHP against Joomla's form lifecycle and verify property
+placement for Joomla 3, 4, 5 and 6 administrator/site models.
 
 A separate pristine worktree at `2dab8eb3` was tested before comparison. Its
 normal full suite has 4,777 tests, 60,018 assertions, 40 errors and 33 failures.
@@ -147,8 +146,23 @@ The baseline failures are in ValidationFix (37 errors), AllowView (3 errors,
 did not resolve deferred Joomla Power references before executing emitted PHP;
 the refactored test fixture now does so without changing condition literals.
 
+The complete candidate suite runs 4,852 tests and 61,338 assertions. Comparing
+JUnit test identities against the pristine baseline shows **zero new errors or
+failures**, with 37 old ValidationFix errors removed. Three AllowView errors and
+the same 33 unrelated failures remain. No tests were quarantined or disabled.
+The existing VersionedViewGuards expectation for a browser-only field list was
+updated to require no unused override/property, matching the explicit new
+generation contract; its 15 checks pass with 16 assertions.
+
+| Full normal suite | Tests | Assertions | Errors | Failures |
+| --- | ---: | ---: | ---: | ---: |
+| Pristine recovery `2dab8eb3` | 4,777 | 60,018 | 40 | 33 |
+| Candidate including generated previews | 4,852 | 61,338 | 3 | 33 |
+
 The core, template and browser-emitter checks together pass 194 PHPUnit tests
 with 1,113 assertions after the numeric conversion corrections.
+The nine-model preview tests separately pass 11 tests and 494 assertions,
+including exact emitter parity and the original-five/proposed-six Field cases.
 
 The separate `node bin/check-conditional-browser.mjs` check executes freshly
 emitted JavaScript and PHP against explicit expected results. It passes 46
@@ -166,6 +180,12 @@ The unit workflow stopped at `composer audit --locked` before PHPUnit, reporting
 eight advisories affecting four unchanged locked test dependencies. Those
 dependency findings are separate from the local baseline test failures above.
 
-The complete candidate-suite comparison, conditional native compilation and
-generated Field integration remain in progress. No JCB self-compilation is
-claimed.
+All nine installed conditional models and the shared rule now reproduce the
+reviewed normalized input through the real emitters. The Field browser prefix
+and listeners also reproduce exactly. Both preview commands are CI checks.
+The twelve new/updated GUI scenarios plus login setup are discoverable, but
+this executor cannot launch Chromium because Unix socket creation is denied;
+the supported GitHub GUI workflow must supply installed browser evidence.
+
+The conditional native compilation comparison and installed GUI execution
+remain in progress. No JCB self-compilation is claimed.
