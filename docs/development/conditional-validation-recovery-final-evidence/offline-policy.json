@@ -1,0 +1,38 @@
+{
+  "mode": "offline",
+  "allow_url_fopen": false,
+  "disabled_functions": [
+    "curl_exec",
+    "curl_multi_exec",
+    "fsockopen",
+    "pfsockopen",
+    "stream_socket_client",
+    "socket_connect",
+    "socket_send",
+    "socket_sendto",
+    "ftp_connect",
+    "ftp_ssl_connect",
+    "ssh2_connect",
+    "mail",
+    "exec",
+    "shell_exec",
+    "system",
+    "passthru",
+    "popen",
+    "proc_open"
+  ],
+  "compiler_config": {
+    "approved_paths": [],
+    "approved_joomla_paths": [],
+    "backup": 0,
+    "repository": 0,
+    "add_super_powers": false,
+    "approved_package_paths": []
+  },
+  "database": {
+    "host": "127.0.0.1:33070",
+    "name": "jcb_conditional_golden",
+    "disposable": true
+  },
+  "measurement": "No dependency downloads or online fallback during the measured native installs and compiles."
+}

@@ -1,0 +1,7 @@
+{
+  "purpose": "Avoid stale main-only files, including Joomla6 templates, during the recovery downgrade comparison",
+  "quarantined_files": 219,
+  "verified_against_main_archives": true,
+  "recovery_joomla6_template_directory_absent": true,
+  "complete_manifest_sha256": "111a536ea115af92c09add4630eae78db592530f49afc4b49f4c647db3355308"
+}

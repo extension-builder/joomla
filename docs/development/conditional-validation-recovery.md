@@ -13,6 +13,47 @@ and verification. [PR #68](https://github.com/extension-builder/joomla/pull/68)
 targets the recovery branch. This document records the source boundary and
 actual verification; no JCB self-compilation is claimed.
 
+## Final implementation verification
+
+The final implementation at remote commit
+`23f01da023e5f5dc79f3ff3af20eb6be9473c8e2` includes the generic generated names,
+the live Form requirement cap, native selector-shape checks and preservation
+of rendered optional/disabled state. Neither the browser nor server repeats
+ACL decisions. Native `getForm()` configuration remains authoritative.
+
+| Check | Final implementation result |
+| --- | --- |
+| PHP 8.3 and 8.4 unit jobs | 4,880 tests / 59,320 assertions on each; no failures, errors or warnings |
+| Dependency/known-defect audits | Clean locked dependencies; all 84 existing known-defect audit cases accounted for |
+| PHP 8.4 coverage | Generated and uploaded |
+| Installed GUI | 40 passed |
+| API integration | Passed, including compiled resources, partial PATCH and denied-user checks |
+| Standard full compiler checks | Passed for Joomla 3, 4, 5 and 6 |
+| Browser/server parity | 50 fixtures / 156 transitions |
+| Final complete conditional compilation | All four targets passed against the original restored input; no normalization |
+| Generated-package syntax | 1,355 PHP and 70 JavaScript files passed |
+
+The verified implementation workflows are
+[units](https://github.com/extension-builder/joomla/actions/runs/43107777309),
+[GUI](https://github.com/extension-builder/joomla/actions/runs/43107777327),
+[API](https://github.com/extension-builder/joomla/actions/runs/43107777319) and
+[golden](https://github.com/extension-builder/joomla/actions/runs/43107777332).
+Subsequent documentation-only commits retain this implementation; current
+exact-head checks are attached to the PR.
+
+The separate [final native evidence](conditional-validation-recovery-final-evidence/README.md)
+records source identity, 5,407 matching deployed-source hashes, original baseline
+archive verification and the complete comparison. Each target has eight expected
+modified files plus the shared-rule rename; all other output bytes and all 65
+resolved-Power completion records remain identical. No main-only template files
+were allowed to contaminate recovery's existing template selection.
+
+The later implementation and evidence supersede the initial test/audit failures
+and pre-rename package counts retained below as development history. The
+stabilization fixes and audited test dependency updates are separate reviewable
+commits. No assertion, test or audit gate was weakened or newly quarantined.
+The integration on current main is tracked in [PR #69](https://github.com/extension-builder/joomla/pull/69).
+
 ## Generated architecture
 
 - `Architecture.Model.ValidationFix` emits a documented multiline model
