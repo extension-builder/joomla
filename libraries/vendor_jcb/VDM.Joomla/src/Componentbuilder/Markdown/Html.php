@@ -48,8 +48,8 @@ final class Html
 		$html = $this->convertInlineCode($html);
 		$html = $this->convertHeadings($html);
 		$html = $this->convertBoldItalic($html);
-		$html = $this->convertLinks($html);
 		$html = $this->convertImages($html);
+		$html = $this->convertLinks($html);
 		$html = $this->convertTaskLists($html);
 		$html = $this->convertOrderedLists($html);
 		$html = $this->convertUnorderedLists($html);
@@ -120,6 +120,9 @@ final class Html
 	/**
 	 * Transform markdown link format [label](url) into HTML <a href>.
 	 *
+	 * Keep generated tags intact within labels and skip their attributes when
+	 * finding the next link, including bracketed alternative text in images.
+	 *
 	 * @param  string  $text  Raw Markdown content to be converted.
 	 *
 	 * @return string  HTML output with anchor tags.
@@ -128,7 +131,7 @@ final class Html
 	protected function convertLinks(string $text): string
 	{
 		return preg_replace_callback(
-			'/\[(.*?)\]\((.*?)\)/',
+			'/<[^>]*>(*SKIP)(*F)|\[((?:<[^>]*>|[^<\n])*?)\]\((.*?)\)/',
 			fn($m) => '<a href="' . $this->safeUrl($m[2]) . '">' . $m[1] . '</a>',
 			$text
 		);
@@ -321,4 +324,3 @@ final class Html
 		);
 	}
 }
-
