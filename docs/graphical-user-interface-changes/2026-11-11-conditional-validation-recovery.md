@@ -23,6 +23,8 @@
   The naming follow-up explicitly requests generic model, rule and browser
   symbols throughout the compiler and its previews. It authorizes renaming the
   generated rule file together with its callers.
+  The subsequent ACL clarification requires conditional validation to honour
+  the same Form after getForm changes, without repeating permission checks.
 
 ## Purpose and rationale
 
@@ -179,7 +181,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 - **Change type:** Created, replacing `admin/src/Rule/JcbconditionalrequiredRule.php`.
 - **Stable locations:** Class body, lifecycle methods and named matchers.
 - **What changed:** Replaced the callback dispatcher with exact production ConditionalRule output: prepare, evaluate, complete and release, plus focused match methods. The class, file and form-rule identifier use the generic `ConditionalrequiredRule` / `conditionalrequired` names.
-- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together.
+- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together. The live Form's optional/disabled/unset targets cap conditional requirements; the rule performs no additional ACL lookup.
 - **Related source:** `Architecture/Model/ConditionalRule.php`; `regenerate-conditional-model-preview.php`.
 
 ### `admin/tmpl/field/default.php`
@@ -290,6 +292,22 @@ all four targets.
   workflow before PHPUnit. Eight advisories affect four existing dependencies.
   The local full-suite comparison above was completed separately; no audit
   gate, test or assertion was disabled to obtain a passing result.
+
+### Naming and live-form follow-up
+
+All generated model, rule and browser names use the requested generic names.
+The initial evidence above retains its original tested-source identities; the
+naming follow-up has separate production-emitter preview checks. Browser
+parity remains green at 46 fixtures / 142 transitions, and the renamed browser
+emitter tests pass 24 tests / 61 assertions.
+
+The live-form regressions execute generated GetForm permission guards against
+native Joomla forms before conditional validation. They cover removed targets,
+disabled targets with and without an existing value, hidden/unset targets,
+forged values and ordinary required hidden/readonly fields. Native required
+flag representations and exact cleanup are also checked. The focused model,
+preview, template and GetForm suites pass 185 tests / 2,053 assertions. No ACL
+logic is repeated in the rule; it respects metadata on the same Form object.
 
 ## Risks, limitations, and rollback
 

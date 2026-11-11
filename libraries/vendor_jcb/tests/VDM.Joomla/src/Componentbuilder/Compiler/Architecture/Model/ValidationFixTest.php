@@ -23,6 +23,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Event\Dispatcher;
 use Joomla\Input\Input;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ConditionalRule;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\GetForm;
 use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -46,6 +47,7 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[CoversClass(ValidationFix::class)]
 #[CoversClass(ValidationFixRegistry::class)]
 #[CoversClass(ConditionalRule::class)]
+#[CoversClass(GetForm::class)]
 final class ValidationFixTest extends ArchitectureTestCase
 {
 	/**
@@ -172,6 +174,194 @@ final class ValidationFixTest extends ArchitectureTestCase
 				$this->assertSame('JLIB_FORM_VALIDATE_FIELD_INVALID', $error->getMessage());
 			}
 			$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+		}
+	}
+
+	/**
+	 * Native getForm permission guards remain authoritative for target fields.
+	 *
+	 * @param   string  $permission  The generated field permission guard.
+	 * @param   string  $type        The field type supplied to the guard emitter.
+	 * @param   mixed   $bound       The existing value loaded into the form.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('protectedTargets')]
+	public function testGeneratedFormPermissionsKeepTargetsOptional(string $permission, string $type, $bound): void
+	{
+		$validate = $this->validator([self::group()], ['id' => 9, 'mode' => 'expert'], false);
+		$form = $this->form();
+		$this->applyTargetPermission($form, $permission, $type, $bound);
+		$definition = $form->getXml()->asXML();
+		$data = ['name' => 'Record', 'mode' => 'expert'];
+
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertSame($definition, $form->getXml()->asXML());
+		$this->assertFalse($validate($form, array_replace($data, ['name' => ''])));
+		$this->assertSame($definition, $form->getXml()->asXML());
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
+	}
+
+	/**
+	 * Real generated ACL states include removed, disabled and hidden controls.
+	 *
+	 * @return  array<string, array{string,string,mixed}>
+	 * @since   6.2.1
+	 */
+	public static function protectedTargets(): array
+	{
+		return [
+			'edit denied without a value' => ['edit', 'text', null],
+			'edit denied with an existing value' => ['edit', 'text', 'Stored value'],
+			'view denied without a value' => ['view', 'text', null],
+			'access denied without a value' => ['access', 'text', null],
+			'access denied with an existing value' => ['access', 'text', 'Stored value'],
+			'view denied for an array value' => ['view', 'text', ['Stored value']],
+			'edit denied for an empty subform' => ['edit', 'subform', null],
+		];
+	}
+
+	/**
+	 * Ignored ACL values never reach validated data when an attacker submits them.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testUnsetPermissionTargetsDiscardForgedValues(): void
+	{
+		$validate = $this->validator([self::group()], [], false);
+		foreach (['view', 'access'] as $permission)
+		{
+			$form = $this->form();
+			$this->applyTargetPermission($form, $permission, 'text', null);
+			$definition = $form->getXml()->asXML();
+			$data = ['name' => 'Record', 'mode' => 'expert'];
+
+			$this->assertSame($data, $validate($form, $data + ['details' => 'Forged value']));
+			$this->assertSame($definition, $form->getXml()->asXML());
+		}
+	}
+
+	/**
+	 * Lowering presence requirements does not bypass native disabled-input rejection.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testDisabledPermissionTargetStillRejectsSubmittedValue(): void
+	{
+		$validate = $this->validator([self::group()], [], false);
+		$form = $this->form();
+		$this->applyTargetPermission($form, 'edit', 'text', 'Stored value');
+		$definition = $form->getXml()->asXML();
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('JLIB_FORM_VALIDATE_FIELD_INVALID');
+
+		try
+		{
+			$validate($form, ['name' => 'Record', 'mode' => 'expert', 'details' => 'Forged value']);
+		}
+		finally
+		{
+			$this->assertSame($definition, $form->getXml()->asXML());
+			$this->assertFalse($form->getFieldXml('__conditional_required'));
+		}
+	}
+
+	/**
+	 * An explicit optional target from a native plugin is not made required again.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testLiveOptionalTargetMetadataIsPreserved(): void
+	{
+		$dispatcher = new Dispatcher();
+		$dispatcher->addListener('onContentBeforeValidateData', static function (BeforeValidateDataEvent $event): void
+		{
+			$event->getForm()->setFieldAttribute('details', 'required', 'false');
+		});
+		$validate = $this->validator([self::group()], [], false, $dispatcher);
+		$form = $this->form();
+		$data = ['name' => 'Record', 'mode' => 'expert'];
+
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+	}
+
+	/**
+	 * Conditional presence never exceeds the same form's native required state.
+	 *
+	 * @param   string|null  $attribute  The live XML value, or null to remove it.
+	 * @param   bool         $required   Whether native Joomla enforces presence.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('requiredAttributes')]
+	public function testLiveRequiredAttributesMatchNativeValidation(?string $attribute, bool $required): void
+	{
+		$validate = $this->validator([self::group()], [], false);
+		$form = $this->form();
+		if ($attribute === null)
+		{
+			unset($form->getFieldXml('details')['required']);
+		}
+		else
+		{
+			$form->setFieldAttribute('details', 'required', $attribute);
+		}
+		$definition = $form->getXml()->asXML();
+		$data = ['name' => 'Record', 'mode' => 'expert'];
+
+		$this->assertSame(!$required, $form->validate($form->filter($data)));
+		$this->assertSame($required ? false : $data, $validate($form, $data));
+		$this->assertSame($definition, $form->getXml()->asXML());
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
+	}
+
+	/**
+	 * Native validation uses exact true/required strings, not rendering coercion.
+	 *
+	 * @return  array<string, array{?string,bool}>
+	 * @since   6.2.1
+	 */
+	public static function requiredAttributes(): array
+	{
+		return [
+			'explicit true' => ['true', true],
+			'required alias' => ['required', true],
+			'explicit false' => ['false', false],
+			'zero' => ['0', false],
+			'empty attribute' => ['', false],
+			'removed attribute' => [null, false],
+			'one is a rendering flag only' => ['1', false],
+			'uppercase is not a native validation flag' => ['TRUE', false],
+		];
+	}
+
+	/**
+	 * Hidden and readonly controls alone keep normal presence and value validation.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testHiddenAndReadonlyTargetsAreNotImplicitlyOptional(): void
+	{
+		$validate = $this->validator([self::group()], [], false);
+		foreach (['type' => 'hidden', 'readonly' => 'true'] as $attribute => $value)
+		{
+			$form = $this->form();
+			$form->setFieldAttribute('details', $attribute, $value);
+			$form->setFieldAttribute('details', 'validate', 'email');
+			$definition = $form->getXml()->asXML();
+			$data = ['name' => 'Record', 'mode' => 'expert'];
+
+			$this->assertFalse($validate($form, $data));
+			$this->assertFalse($validate($form, $data + ['details' => 'invalid email']));
+			$this->assertSame($data + ['details' => 'person@example.test'], $validate($form, $data + ['details' => 'person@example.test']));
+			$this->assertSame($definition, $form->getXml()->asXML());
 		}
 	}
 
@@ -540,6 +730,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 
 	/**
 	 * Native plugins change the actual form and submitted selector before filtering.
+	 * The native required alias probes exact restoration without waiving presence.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -553,14 +744,14 @@ final class ValidationFixTest extends ArchitectureTestCase
 		{
 			$this->assertSame($form, $event->getForm());
 			$calls++;
-			$form->setFieldAttribute('details', 'required', 'false');
+			$form->setFieldAttribute('details', 'required', 'required');
 			$event->updateData(array_replace($event->getData(), ['mode' => 'expert']));
 		});
 		$validate = $this->validator([self::group()], [], true, $dispatcher);
 
 		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
 		$this->assertSame(1, $calls);
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('required', $form->getFieldAttribute('details', 'required'));
 		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		$this->assertSame(
 			['name' => 'Record', 'mode' => 'expert', 'details' => 'present'],
@@ -662,7 +853,10 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$validate = $this->validator([self::group()], []);
 		$form = $this->form();
 		unset($form->getFieldXml('details')['required']);
-		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', '__conditional_required' => 'forged']));
+		$this->assertSame(
+			['name' => 'Record', 'mode' => 'expert'],
+			$validate($form, ['name' => 'Record', 'mode' => 'expert', '__conditional_required' => 'forged'])
+		);
 		$this->assertNull($form->getFieldAttribute('details', 'required', null));
 		$this->assertSame(
 			['name' => 'Record', 'mode' => 'plain'],
@@ -673,6 +867,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 
 	/**
 	 * Custom form methods keep their original identity and execute once per request.
+	 * The native required alias also verifies exact cleanup after an exception.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -748,7 +943,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			}
 		};
 		$this->form($form);
-		$form->setFieldAttribute('details', 'required', 'false');
+		$form->setFieldAttribute('details', 'required', 'required');
 		$validate = $this->validator([self::group()], []);
 		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
 		$this->assertSame(['filter', 'validate'], $form->calls);
@@ -768,7 +963,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		{
 			$this->assertSame('post-process failure', $error->getMessage());
 		}
-		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
+		$this->assertSame('required', $form->getFieldAttribute('details', 'required'));
 		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		$form->throw = false;
 		$this->assertIsArray($validate($form, ['name' => 'Record', 'details' => 'present']));
@@ -979,6 +1174,35 @@ final class ValidationFixTest extends ArchitectureTestCase
 			. '</form>');
 
 		return $form;
+	}
+
+	/**
+	 * Execute the production getForm field guard on the same native validation form.
+	 *
+	 * @param   Form    $form        The existing native form.
+	 * @param   string  $permission  The access, edit or view guard to emit.
+	 * @param   string  $type        The target field's definition type.
+	 * @param   mixed   $bound       The existing value loaded into the form.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	private function applyTargetPermission(Form $form, string $permission, string $type, $bound): void
+	{
+		$form->setValue('details', null, $bound);
+		$renderer = $this->renderer(GetForm::class);
+		$guard = [];
+		$method = 'setPermission' . ucfirst($permission) . 'Fields';
+		$renderer->$method($guard, 'record', 'details', $type, 'demo');
+		$code = str_replace(
+			'Super___0a59c65c_9daf_4bc9_baf4_e063ff9e6a8a___Power',
+			'\\VDM\\Joomla\\Utilities\\ArrayHelper',
+			implode(PHP_EOL, $guard)
+		);
+		$apply = eval('return static function (\\Joomla\\CMS\\Form\\Form $form, \\Joomla\\CMS\\User\\User $user, int $id): void {' . $code . '};');
+		$user = $this->createStub(User::class);
+		$user->method('authorise')->willReturn(false);
+		$apply($form, $user, 9);
 	}
 
 	/**

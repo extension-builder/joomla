@@ -785,6 +785,11 @@ final class ConditionalRule
 			if ($element !== false)
 			{
 				$this->attributes[] = [$element, isset($element['required']) ? (string) $element['required'] : null];
+				// Conditions cannot restore a requirement removed by the live form.
+				$required = $required
+					&& in_array((string) $element['required'], ['true', 'required'], true)
+					&& strtolower((string) $element['filter']) !== 'unset'
+					&& !in_array((string) $element['disabled'], ['true', '1', 'disabled'], true);
 				$this->form->setFieldAttribute($field, 'required', $required ? 'true' : 'false', $this->group);
 			}
 		}
