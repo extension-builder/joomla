@@ -1,0 +1,10 @@
+{
+  "baseline_commit": "86b1900a87ccd979233572e47f1f2513fc1493f1",
+  "baseline_tree": "d74374eff580f9505164f3b4449518a85f8f0bd1",
+  "candidate_commit": "e88903dcbb2c63f4446fb47d6f62e0d37ccf5e24",
+  "candidate_tree": "8848fb460a603776c5137edc1889748ed89e9c5b",
+  "component": "3745af8f-f96b-4e17-831e-eb4062cd4389",
+  "definition_snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+  "source": "Complete git archives; no uncommitted source or recovery output",
+  "remote_candidate_commit": "539a9562635fac4173d140971d0c8c883acfdbc5"
+}

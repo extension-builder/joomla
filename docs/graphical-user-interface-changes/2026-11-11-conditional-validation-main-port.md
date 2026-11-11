@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-11-11
 - **Author/implementer:** ChatGPT, at the maintainer's request
 - **Task/issue/PR:** Port recovery [PR #68](https://github.com/extension-builder/joomla/pull/68) to main `86b1900a`; [PR #69](https://github.com/extension-builder/joomla/pull/69).
-- **Change record status:** Implementation in progress; external maintenance-source transfer remains required
+- **Change record status:** Implementation and verification complete; external maintenance-source transfer remains required
 
 ## Explicit permission
 
@@ -261,7 +261,13 @@ Token-based regeneration preserves unrelated model members byte for byte.
 | Generated model/template/preview contracts | All supported model-template locations and nine previews | Pass: 45 tests / 676 assertions |
 | Browser condition emitters | Main's shared and target-specific renderers | Pass: 65 tests / 161 assertions |
 | Browser/server condition parity | Joomla 3 and Joomla 6 emitted scripts | Pass: 100 fixtures / 312 transitions, including rendered optional/disabled state |
-| Hosted unit/coverage, GUI, API and full compiler checks | Final main candidate | Pending exact-head verification |
+| Hosted PHP 8.3 / 8.4 unit jobs | Implementation commit `539a9562` | Pass: 5,530 tests / 69,067 assertions per runtime; dependency audits clean and PHP 8.4 coverage uploaded |
+| PHP 8.5 readiness / real Chromium footer checks | Existing main compatibility lanes | Pass: 74 tests / 400 assertions; all five footer scenarios pass |
+| Installed GUI | Actual installed main component | Pass: 46 tests, including save/reopen and owned-row cleanup |
+| API / standard full compiler checks | Existing main integration workflows | Pass; compiler targets Joomla 3, 4, 5 and 6 |
+| Separate complete native conditional comparison | Fresh main baseline and candidate, restored immutable input, offline guard | Pass: 5,645 deployed source hashes per install; eight modified files and one rule rename per target; remaining bytes and all 65 resolved Powers identical |
+| Generated-package syntax | All four complete conditional packages | Pass: 1,355 PHP and 70 JavaScript files |
+| Contribution gates | Complete change against main | Pass: 1,546 tested production owners; 969 container keys with five existing exceptions; style, moved conditions and whitespace clean |
 
 ### Manual scenarios
 
@@ -275,8 +281,9 @@ Other/Expert changes and stale AJAX-response coverage. The eight additional
 specs are `admin_view.spec.js`, `custom_code.spec.js`, `dynamic_get.spec.js`,
 `fieldtype.spec.js`, `help_document.spec.js`, `joomla_component.spec.js`,
 `library.spec.js` and `server.spec.js`, using `gui/helpers/conditions.js`.
-All paths are relative to `libraries/vendor_jcb/tests/`. Hosted execution remains
-pending; no manual browser result is claimed.
+All paths are relative to `libraries/vendor_jcb/tests/`. Hosted GUI execution
+passes all 46 scenarios; no manual browser result is claimed. The exact
+implementation run is [43107705057](https://github.com/extension-builder/joomla/actions/runs/43107705057).
 
 ### Checks not performed
 
@@ -326,5 +333,7 @@ these templates also need the new placeholder in their property section.
 The implementation inventory matches all nineteen protected changed paths,
 including both paths of the shared-rule replacement. Main-only model members and
 the Field loading overlay/authored footer are byte-preserved outside the intended
-conditional regions. Final hosted and full-compile verification remain pending. Every source mapping remains transfer-required;
+conditional regions. Hosted and fresh main full-compile verification are complete. The
+[development record](../development/conditional-validation-main-port.md) links
+the implementation workflows and separate sanitized compilation evidence. Every source mapping remains transfer-required;
 no external maintenance reconciliation is claimed.
