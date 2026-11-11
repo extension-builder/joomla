@@ -145,6 +145,76 @@ final class ValidationFixTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Effective selector collections must agree with the native field's multiplicity.
+	 *
+	 * @param   string  $attributes  Live native selector attributes.
+	 * @param   mixed   $value       Effective submitted selector.
+	 * @param   bool    $accepted    Whether the native field accepts this shape.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('selectorShapes')]
+	public function testSelectorShapeUsesNativeFieldMetadata(string $attributes, $value, bool $accepted): void
+	{
+		$group = self::group();
+		$group['show'] = false;
+		$group['matches'][0]['checkbox'] = str_contains($attributes, 'type="checkbox"');
+		$validate = $this->validator([$group], [], false);
+		$form = $this->form();
+		$form->load('<form><field name="mode" filter="raw" ' . $attributes . ' /></form>');
+		$data = ['name' => 'Record', 'mode' => $value, 'details' => 'Present even for rejected shapes'];
+
+		if ($accepted)
+		{
+			$this->assertSame($data, $validate($form, $data));
+		}
+		else
+		{
+			$this->assertFalse($validate($form, $data));
+		}
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
+	}
+
+	/**
+	 * Native scalar and collection selectors, including implicit checkboxes multiplicity.
+	 *
+	 * @return  array
+	 * @since   6.2.1
+	 */
+	public static function selectorShapes(): array
+	{
+		return [
+			'single list indexed array' => ['type="list" multiple="false"', ['expert'], false],
+			'single list object-shaped array' => ['type="list" multiple="false"', ['guid' => 'expert'], false],
+			'implicit scalar empty array' => ['type="list"', [], false],
+			'checkbox before boolean coercion' => ['type="checkbox"', ['expert'], false],
+			'multiple list' => ['type="list" multiple="true"', ['plain', 'expert'], true],
+			'implicit checkboxes' => ['type="checkboxes"', ['plain', 'expert'], true],
+			'multiple nested array' => ['type="list" multiple="true"', [['expert']], false],
+			'single list scalar' => ['type="list" multiple="false"', 'expert', true],
+		];
+	}
+
+	/**
+	 * Removed selectors still use trusted stored collections, never submitted values.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testRemovedSelectorRetainsTrustedStoredCollection(): void
+	{
+		$group = self::group();
+		$group['show'] = false;
+		$validate = $this->validator([$group], ['id' => 9, 'mode' => ['plain', 'expert']]);
+		$form = $this->form();
+		$form->removeField('mode');
+		$data = ['id' => 9, 'name' => 'Record'];
+		$this->assertSame($data, $validate($form, $data + ['mode' => ['untrusted' => ['plain']]]));
+	}
+
+	/**
 	 * Protected selectors cannot bypass requirements with values Joomla will discard.
 	 *
 	 * @return  void
@@ -525,6 +595,8 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$validate = $this->validator([$group], []);
 		$form = $this->form();
 
+		$form->setFieldAttribute('mode', 'multiple', 'true');
+		$form->setFieldAttribute('level', 'multiple', 'true');
 		$data = ['name' => 'One', 'mode' => ['plain', 'expert'], 'level' => ['low']];
 		$this->assertSame($data, $validate($form, $data));
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
@@ -549,6 +621,10 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$validate = $this->validator([$group], []);
 		$form = $this->form();
 		$form->setFieldAttribute('mode', 'default', '');
+		if (is_array($value))
+		{
+			$form->setFieldAttribute('mode', 'multiple', 'true');
+		}
 		$data = ['name' => 'Record', 'mode' => $value];
 		$result = $validate($form, $data);
 

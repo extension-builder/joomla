@@ -397,6 +397,12 @@ final class ConditionalRule
 		$input = new Registry($data);
 		$values = $this->group ? (array) $input->get($this->group, []) : $data;
 		$requirements = $this->requirements($values, $context['stored'], $context['patch']);
+
+		if ($this->error !== null)
+		{
+			return false;
+		}
+
 		$this->applyRequirements($requirements);
 
 		return true;
@@ -509,7 +515,46 @@ final class ConditionalRule
 			$value = $this->form->getFieldAttribute($name, 'default', null, $this->group);
 		}
 
+		if (!$this->hasValidShape($name, $value))
+		{
+			return null;
+		}
+
 		return $rule['checkbox'] ? (bool) $value : $value;
+	}
+
+	/**
+	 * Reject selector collections that the live native field cannot represent.
+	 *
+	 * @param   string  $name   The selector name within the selected group.
+	 * @param   mixed   $value  The effective filtered or stored selector value.
+	 *
+	 * @return  bool
+	 * @since   6.2.1
+	 */
+	private function hasValidShape(string $name, $value): bool
+	{
+		if ($value === null || is_scalar($value))
+		{
+			return true;
+		}
+
+		$field = $this->form->getField($name, $this->group);
+
+		if (!is_array($value) || ($field && !$field->multiple))
+		{
+			return $this->fail('Invalid value shape for conditional selector: ' . $name . '.');
+		}
+
+		foreach ($value as $entry)
+		{
+			if ($entry !== null && !is_scalar($entry))
+			{
+				return $this->fail('Invalid value shape for conditional selector: ' . $name . '.');
+			}
+		}
+
+		return true;
 	}
 
 	/**

@@ -181,7 +181,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 - **Change type:** Created, replacing `admin/src/Rule/JcbconditionalrequiredRule.php`.
 - **Stable locations:** Class body, lifecycle methods and named matchers.
 - **What changed:** Replaced the callback dispatcher with exact production ConditionalRule output: prepare, evaluate, complete and release, plus focused match methods. The class, file and form-rule identifier use the generic `ConditionalrequiredRule` / `conditionalrequired` names.
-- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together. The live Form's optional/disabled/unset targets cap conditional requirements; the rule performs no additional ACL lookup.
+- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together. The live Form's optional/disabled/unset targets cap conditional requirements; the rule performs no additional ACL lookup. The same native field metadata rejects malformed collection values for single-value selectors before a condition can waive requirements.
 - **Related source:** `Architecture/Model/ConditionalRule.php`; `regenerate-conditional-model-preview.php`.
 
 ### `admin/tmpl/field/default.php`
@@ -308,6 +308,20 @@ forged values and ordinary required hidden/readonly fields. Native required
 flag representations and exact cleanup are also checked. The focused model,
 preview, template and GetForm suites pass 185 tests / 2,053 assertions. No ACL
 logic is repeated in the rule; it respects metadata on the same Form object.
+
+The main-port review exposed a separate malformed-input boundary: Joomla retains
+an array submitted to a single-select field unless its own filter or rule rejects
+that shape. The shared rule now checks the effective filtered or stored selector
+against the native `FormField::multiple` property before checkbox boolean
+coercion. A malformed shape fails validation before any conditional waiver is
+applied. Genuine multiselect and checkbox collections retain their existing
+matching behavior, and removed selectors continue to use trusted stored values.
+Nine focused native cases cover indexed and associative single-select attacks,
+checkbox coercion, empty and nested collections, supported multiselects, implicit
+checkboxes and removed selectors. The runtime and exact generated shared-rule
+preview suites pass **124 tests / 1,566 assertions**. These hostile request shapes
+are covered in native PHP tests because ordinary browser controls cannot submit
+them; this follow-up does not change the rendered interface.
 
 ## Risks, limitations, and rollback
 
