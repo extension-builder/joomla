@@ -1,5 +1,7 @@
 # Conditional validation port to main
 
+Implementation: [PR #69](https://github.com/extension-builder/joomla/pull/69).
+
 ## Baselines and scope
 
 This port starts from main `86b1900a87ccd979233572e47f1f2513fc1493f1` and
@@ -41,6 +43,28 @@ ordinary Field condition and authored JavaScript changes into that source
 before a self-build. The
 [protected-path record](../graphical-user-interface-changes/2026-11-11-conditional-validation-main-port.md)
 tracks the exact templates, models, rule and Field assets.
+
+## Main-specific integration
+
+The compiler emits condition definitions into a protected model property and
+keeps orchestration in `validate()` plus `resolveConditionalData()`. Its shared
+rule owns evaluation, temporary form state and cleanup. The models invoke the
+native parent validator once, so the existing filtering and plugin lifecycle
+remain in charge. The rule cannot re-enable a requirement removed from that
+same live Form by getForm or a plugin; it does not repeat permission decisions.
+
+Main has six edit-model templates, including separate administrator and site
+Joomla 6 templates. Each receives only the property placeholder after
+`typeAlias`. The shared browser producer retains all four target hooks, and the
+Joomla 6 renderer retains its DOM-ready listener wrapper, media path and footer
+timing. The installed Field asset remains `media/js/admin/field.js`; the loading
+overlay and authored footer outside the condition listeners are unchanged.
+
+The nine original normalized condition-group literals were checked against main
+and recovery and are identical. Token-based preview generation replaces only
+conditional members, preserving main's native database queries, unique-copy
+logic and API behavior. Main's Field save/reopen scenarios and their record
+cleanup remain, alongside the added condition-transition scenarios.
 
 ## Verification status
 
