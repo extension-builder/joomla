@@ -8,7 +8,7 @@
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
-// Original display state is captured once per element before conditions run.
+// Original display and required state are captured before conditions run.
 var updateFieldConditionsBaseline = null;
 
 /**
@@ -21,7 +21,7 @@ function updateFieldConditions()
 {
 	if (updateFieldConditionsBaseline === null)
 	{
-		updateFieldConditionsBaseline = [];
+		updateFieldConditionsBaseline = {containers: [], required: []};
 		var selectors = ["#jform_datalenght_other","#jform_datadefault_other","#jform_indexes","#jform_datadefault","#jform_datalenght","#jform_on_get_model_field","#jform_on_save_model_field","#jform_initiator_on_get_model","#jform_initiator_on_save_model",".note_expert_field_save_mode","#jform_css_view-lbl","#jform_css_views-lbl","#jform_javascript_view_footer-lbl","#jform_javascript_views_footer-lbl","#jform_datatype","#jform_null_switch","#jform_store"];
 		var elements = [];
 		for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -33,22 +33,40 @@ function updateFieldConditions()
 				if (element && element.style && elements.indexOf(element) === -1)
 				{
 					elements.push(element);
-					updateFieldConditionsBaseline.push({element: element, display: element.style.display});
+					updateFieldConditionsBaseline.containers.push({element: element, display: element.style.display});
 				}
+			}
+		}
+		var requiredNames = ["datalenght_other","datadefault_other","indexes","datalenght","on_get_model_field","on_save_model_field","datatype","null_switch","store"];
+		for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+		{
+			var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+			for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+			{
+				var element = controls[controlIndex];
+				var control = jQuery(element);
+				updateFieldConditionsBaseline.required.push({
+					element: element,
+					required: !control.is(':disabled')
+						&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+				});
 			}
 		}
 	}
 
-	for (var index = 0; index < updateFieldConditionsBaseline.length; index++)
+	for (var index = 0; index < updateFieldConditionsBaseline.containers.length; index++)
 	{
-		var baseline = updateFieldConditionsBaseline[index];
+		var baseline = updateFieldConditionsBaseline.containers[index];
 		baseline.element.style.display = baseline.display;
 	}
-	var required = ["datalenght_other","datadefault_other","indexes","datalenght","on_get_model_field","on_save_model_field","datatype","null_switch","store"];
+	var required = updateFieldConditionsBaseline.required;
 	for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 	{
-		jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-			.attr('aria-required', true).addClass('required');
+		if (required[requiredIndex].required)
+		{
+			jQuery(required[requiredIndex].element).prop('required', true)
+				.attr('aria-required', true).addClass('required');
+		}
 	}
 
 	var datalenght_vvvvvvv = jQuery("#jform_datalenght").val();
@@ -80,6 +98,15 @@ function updateFieldConditions()
 
 	var fieldtype_vvvvvwe = jQuery("#jform_fieldtype").val();
 	vvvvvwe(fieldtype_vvvvvwe);
+
+	for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+	{
+		if (!required[requiredIndex].required)
+		{
+			jQuery(required[requiredIndex].element).removeAttr('required')
+				.removeAttr('aria-required').removeClass('required');
+		}
+	}
 }
 
 document.addEventListener('DOMContentLoaded', updateFieldConditions);

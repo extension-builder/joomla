@@ -798,7 +798,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_SIMPLE_FILE = <<<'JS'
-		// Original display state is captured once per element before conditions run.
+		// Original display and required state are captured before conditions run.
 		var updateLookConditionsBaseline = null;
 
 		/**
@@ -811,7 +811,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		{
 			if (updateLookConditionsBaseline === null)
 			{
-				updateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = {containers: [], required: []};
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -823,26 +823,53 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							updateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
 						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
 					}
 				}
 			}
 
-			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
 			{
-				var baseline = updateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline.containers[index];
 				baseline.element.style.display = baseline.display;
 			}
-			var required = [];
+			var required = updateLookConditionsBaseline.required;
 			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 			{
-				jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-					.attr('aria-required', true).addClass('required');
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
 			}
 
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
 		}
 
 		document.addEventListener('DOMContentLoaded', updateLookConditions);
@@ -919,7 +946,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_NO_TOGGLE_FILE = <<<'JS'
-		// Original display state is captured once per element before conditions run.
+		// Original display and required state are captured before conditions run.
 		var updateLookConditionsBaseline = null;
 
 		/**
@@ -932,7 +959,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		{
 			if (updateLookConditionsBaseline === null)
 			{
-				updateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = {containers: [], required: []};
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -944,26 +971,53 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							updateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
 						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
 					}
 				}
 			}
 
-			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
 			{
-				var baseline = updateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline.containers[index];
 				baseline.element.style.display = baseline.display;
 			}
-			var required = [];
+			var required = updateLookConditionsBaseline.required;
 			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 			{
-				jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-					.attr('aria-required', true).addClass('required');
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
 			}
 
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
 		}
 
 		document.addEventListener('DOMContentLoaded', updateLookConditions);
@@ -1019,7 +1073,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_TEXT_FILE = <<<'JS'
-		// Original display state is captured once per element before conditions run.
+		// Original display and required state are captured before conditions run.
 		var updateLookConditionsBaseline = null;
 
 		/**
@@ -1032,7 +1086,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		{
 			if (updateLookConditionsBaseline === null)
 			{
-				updateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = {containers: [], required: []};
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1044,26 +1098,53 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							updateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
 						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
 					}
 				}
 			}
 
-			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
 			{
-				var baseline = updateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline.containers[index];
 				baseline.element.style.display = baseline.display;
 			}
-			var required = [];
+			var required = updateLookConditionsBaseline.required;
 			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 			{
-				jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-					.attr('aria-required', true).addClass('required');
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
 			}
 
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
 		}
 
 		document.addEventListener('DOMContentLoaded', updateLookConditions);
@@ -1099,7 +1180,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_REQUIRED_FILE = <<<'JS'
-		// Original display state is captured once per element before conditions run.
+		// Original display and required state are captured before conditions run.
 		var updateLookConditionsBaseline = null;
 
 		/**
@@ -1112,7 +1193,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		{
 			if (updateLookConditionsBaseline === null)
 			{
-				updateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = {containers: [], required: []};
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1124,26 +1205,53 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							updateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
 						}
+					}
+				}
+				var requiredNames = ["colour"];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
 					}
 				}
 			}
 
-			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
 			{
-				var baseline = updateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline.containers[index];
 				baseline.element.style.display = baseline.display;
 			}
-			var required = ["colour"];
+			var required = updateLookConditionsBaseline.required;
 			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 			{
-				jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-					.attr('aria-required', true).addClass('required');
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
 			}
 
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
 		}
 
 		document.addEventListener('DOMContentLoaded', updateLookConditions);
@@ -1211,7 +1319,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_CHAINED_FILE = <<<'JS'
-		// Original display state is captured once per element before conditions run.
+		// Original display and required state are captured before conditions run.
 		var updateLookConditionsBaseline = null;
 
 		/**
@@ -1224,7 +1332,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		{
 			if (updateLookConditionsBaseline === null)
 			{
-				updateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = {containers: [], required: []};
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1236,27 +1344,54 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							updateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
 						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
 					}
 				}
 			}
 
-			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
 			{
-				var baseline = updateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline.containers[index];
 				baseline.element.style.display = baseline.display;
 			}
-			var required = [];
+			var required = updateLookConditionsBaseline.required;
 			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
 			{
-				jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-					.attr('aria-required', true).addClass('required');
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
 			}
 
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			var level_vvvvvvv = jQuery("#jform_level").val();
 			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
 		}
 
 		document.addEventListener('DOMContentLoaded', updateLookConditions);

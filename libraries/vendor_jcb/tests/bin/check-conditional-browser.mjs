@@ -30,9 +30,16 @@ function browser(fixture) {
 
   for (const condition of fixture.conditions) {
     for (const target of condition.target_field) {
+      const metadata = fixture.form?.[target.name] ?? {};
+      const required = metadata.required ?? target.required === 'yes';
+      const wrapper = ['radio', 'checkboxes'].includes(metadata.type ?? target.type);
+      const attributes = {};
+      if (required && metadata.requiredAttribute !== false) attributes.required = '';
+      if (metadata.disabled) attributes.disabled = '';
       fields.set(target.name, {
-        name: target.name, required: target.required === 'yes',
-        attributes: {}, classes: new Set(),
+        name: target.name, required: wrapper ? undefined : required, disabled: metadata.disabled ?? false,
+        attributes, classes: new Set(required ? ['required'] : []),
+        hasAttribute(attribute) { return Object.hasOwn(this.attributes, attribute); },
       });
       const key = fixture.containerBindings?.[target.name] ?? target.name;
       if (!containers.has(key)) {
@@ -42,6 +49,10 @@ function browser(fixture) {
   }
 
   function selection(selector) {
+    if (typeof selector === 'function') {
+      ready.push(selector);
+      return;
+    }
     const nodes = typeof selector === 'object' ? [selector] : [];
     const name = typeof selector === 'string'
       ? selector.replace(/^#jform_|^\./, '').split(' ')[0].replace(/-lbl$/, '').replace(/_id$/, '')
@@ -50,6 +61,7 @@ function browser(fixture) {
     const field = absent ? undefined : fields.get(name);
     const value = () => context.fixtureValues?.[name];
     const collection = {
+      get() { return field ? [field] : []; },
       val() { return value(); },
       prop(key, next) {
         if (arguments.length === 2) {
@@ -72,7 +84,8 @@ function browser(fixture) {
       },
       addClass(key) { field?.classes.add(key); return collection; },
       removeClass(key) { field?.classes.delete(key); return collection; },
-      is() { return nodes[0]?.checked ?? false; },
+      hasClass(key) { return field?.classes.has(key) ?? false; },
+      is(selector) { return selector === ':disabled' ? field?.disabled ?? false : nodes[0]?.checked ?? false; },
       each(callback) {
         for (const selected of value() ?? []) callback.call({ value: selected, checked: true });
         return collection;
@@ -98,6 +111,7 @@ function browser(fixture) {
   context = vm.createContext({
     jQuery: selection,
     document: { addEventListener(event, callback) { if (event === 'DOMContentLoaded') ready.push(callback); } },
+    window: { SqueezeBox: { initialize(options) { listeners.set('modal:close', options.onClose); } } },
   });
   vm.runInContext(fixture.script, context, { filename: `${fixture.name}.js` });
   vm.runInContext(fixture.footer.replace(/<\/?script[^>]*>/g, ''), context);
@@ -105,6 +119,7 @@ function browser(fixture) {
   return {
     fields,
     context,
+    listeners,
     step(step, initial) {
       // Construct arrays inside the JavaScript realm used by generated .constructor checks.
       vm.runInContext(`fixtureValues = JSON.parse(${JSON.stringify(JSON.stringify(step.values))});`, context);
@@ -114,8 +129,10 @@ function browser(fixture) {
         context.updateParityConditions();
       } else {
         const name = step.event ?? fixture.conditions[0].match_name;
-        const callback = listeners.get(`change:#jform_${name}`)
-          ?? listeners.get(`change:#jform_${name}_id`);
+        const media = fixture.conditions.some((condition) => condition.match_name === name && condition.match_type === 'media');
+        const callback = media && fixture.target === 3
+          ? listeners.get('modal:close')
+          : listeners.get(`change:#jform_${name}`) ?? listeners.get(`change:#jform_${name}_id`);
         assert.equal(typeof callback, 'function', `missing generated change handler for ${name}`);
         callback();
       }
@@ -144,13 +161,27 @@ for (const fixture of cases) {
   assert.equal(typeof page.context.updateParityConditions, 'function', fixture.name);
   assert.ok(!fixture.script.includes('not_required'), fixture.name);
   assert.ok(!fixture.script.includes('updateFieldRequired'), fixture.name);
+  if (fixture.target === 6) {
+    assert.ok(fixture.footer.includes('jQuery(function () {'), `${fixture.name}: DOM-ready listeners`);
+    assert.ok(!fixture.footer.includes('SqueezeBox'), `${fixture.name}: native media events`);
+    assert.equal(page.listeners.size, 0, `${fixture.name}: no listener binding before DOM ready`);
+  } else {
+    assert.ok(!fixture.footer.includes('jQuery(function () {'), `${fixture.name}: legacy listener timing`);
+    assert.ok(page.listeners.size > 0, `${fixture.name}: legacy listeners bound at footer`);
+  }
   for (const [index, step] of fixture.steps.entries()) {
     const label = `${fixture.name}, transition ${index + 1}`;
     page.step(step, index === 0);
     assert.equal(step.phpRequired.details ?? false, step.required, `${label}: PHP required`);
     assert.equal(page.fields.get('details').required, step.required, `${label}: browser required`);
     assert.equal(page.visible('details'), step.visible ?? step.required, `${label}: browser visibility`);
-    assert.equal(page.context.updateParityConditionsBaseline.length, fixture.baselineCount ?? 1, `${label}: baseline`);
+    assert.equal(page.context.updateParityConditionsBaseline.containers.length, fixture.baselineCount ?? 1, `${label}: baseline`);
+    if (fixture.form?.details?.required === false || fixture.form?.details?.disabled) {
+      const field = page.fields.get('details');
+      assert.equal(field.hasAttribute('required'), false, `${label}: original optional required attribute`);
+      assert.equal(field.hasAttribute('aria-required'), false, `${label}: original optional ARIA attribute`);
+      assert.equal(field.classes.has('required'), false, `${label}: original optional validation class`);
+    }
     transitions++;
   }
 }

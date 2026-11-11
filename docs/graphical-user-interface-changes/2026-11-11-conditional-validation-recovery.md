@@ -196,7 +196,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 
 - **Change type:** Modified
 - **Stable locations:** Generated condition prefix; `dbChecker()`; `getFieldTypeProperties()`.
-- **What changed:** Regenerated the prefix from the six required groups and existing optional editor groups. Authored code retains value clearing/notices, refreshes before and after resets and after AJAX defaults, ignores stale type responses, and accepts numeric zero defaults for store/indexes. Removed duplicated database visibility/required handling and retired exemption-list calls.
+- **What changed:** Regenerated the prefix from the six required groups and existing optional editor groups. The shared refresh captures rendered required/disabled state and caps the final required attributes against it. Authored code retains value clearing/notices, refreshes before and after resets and after AJAX defaults, ignores stale type responses, and accepts numeric zero defaults for store/indexes. Removed duplicated database visibility/required handling and retired exemption-list calls.
 - **Why:** Browser behavior must follow the same definitions as the server, including repeated type changes and asynchronous defaults.
 - **Related source:** `field-input.json`, production ViewScript emitter, and Field's authored custom JavaScript in the maintenance package.
 
@@ -322,6 +322,39 @@ checkboxes and removed selectors. The runtime and exact generated shared-rule
 preview suites pass **124 tests / 1,566 assertions**. These hostile request shapes
 are covered in native PHP tests because ordinary browser controls cannot submit
 them; this follow-up does not change the rendered interface.
+
+### Rendered-form browser cap follow-up
+
+The generic `ViewScript::refreshScript()` and regenerated `media/js/field.js`
+now capture each target control's original required property, required attribute
+or required class, together with its native disabled state. The same initial
+capture still records each display container once. After replaying all conditions
+in source order, the refresh removes required, ARIA-required and required-class
+flags from originally optional or disabled controls. Required radio/checkbox
+wrappers remain supported when their requirement is expressed through an
+attribute or class instead of a native input property. No permission check is
+repeated in JavaScript.
+
+This prevents a schema-required target from becoming browser-required when the
+rendered form relaxed or disabled it. It also avoids Joomla's existing validator
+edge where a bare disabled attribute on a required text input is not treated the
+same as `disabled="disabled"`. Ordinary required targets retain their ordered
+show/hide toggles, and each generated view retains its own refresh function.
+
+The recovery browser/PHP comparison passes **50 fixtures / 156 transitions**,
+including rendered-optional text, disabled text, a class-required radio wrapper,
+repeated refreshes and explicitly declared multiselect metadata. The focused
+browser-emitter PHPUnit suite passes **60 tests / 128 assertions**. The Field
+browser preview reproducer matches the exact production emitter; its authored
+custom JavaScript and footer listeners are unchanged by this follow-up. Existing
+Field GUI scenarios continue to cover normal required-state transitions; their
+earlier hosted run identities above are historical evidence, not a claim that
+this later follow-up has already run in that job.
+
+The complete local recovery suite after both the selector-shape guard and
+rendered-form baseline cap passes **4,880 tests / 59,320 assertions**, with zero
+errors, failures or warnings. Exact generated model/rule and browser preview
+checks pass. Hosted checks are rerun on the final published head.
 
 ## Risks, limitations, and rollback
 

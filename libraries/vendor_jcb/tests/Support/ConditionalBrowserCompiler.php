@@ -14,6 +14,8 @@ namespace VDM\Tests\Support;
 
 use Closure;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\User\User;
+use Joomla\Database\Mysqli\MysqliDriver;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry;
 use ReflectionClass;
@@ -94,6 +96,8 @@ final class ConditionalBrowserCompiler
 			$dispenser->hub = [];
 			$users = new ScriptUserSwitch();
 			$users->set('user', 'user');
+			$media = new ScriptMediaSwitch();
+			$media->set('media', 'media');
 			$fixes = new ValidationFix();
 			$scripts = new Scripts();
 			$renderer = new ViewScript(
@@ -105,7 +109,7 @@ final class ConditionalBrowserCompiler
 				(new ReflectionClass(Createdate::class))->newInstanceWithoutConstructor(),
 				(new ReflectionClass(Modifieddate::class))->newInstanceWithoutConstructor(),
 				new ContentMulti(),
-				new ScriptMediaSwitch(),
+				$media,
 				$users,
 				$fixes,
 				$scripts,
@@ -142,15 +146,16 @@ final class ConditionalBrowserCompiler
 	 * Native filtering, plugins and API PATCH have their separate PHPUnit tests.
 	 * This comparison isolates the shared predicate and ordered-action contract.
 	 *
-	 * @param   array  $groups  The generator's trusted condition groups.
-	 * @param   array  $values  Fixture values after any input filtering.
+	 * @param   array  $groups    The generator's trusted condition groups.
+	 * @param   array  $values    Fixture values after any input filtering.
+	 * @param   array  $metadata  Explicit native type, required, disabled and multiple field attributes.
 	 *
 	 * @return  array<string, bool>  Required attributes decided by the generated rule.
 	 *
 	 * @throws  \RuntimeException  When the generated rule cannot evaluate its form.
 	 * @since   6.2.1
 	 */
-	public function requirements(array $groups, array $values): array
+	public function requirements(array $groups, array $values, array $metadata = []): array
 	{
 		if ($groups === [])
 		{
@@ -191,10 +196,30 @@ final class ConditionalBrowserCompiler
 		$xml = '<form>';
 		foreach ($fields as $name => $required)
 		{
-			$xml .= '<field name="' . htmlspecialchars($name, ENT_QUOTES | ENT_XML1, 'UTF-8')
-				. '" type="text" filter="raw" required="' . ($required ? 'true' : 'false') . '" />';
+			$attributes = [
+				'name' => $name,
+				'type' => $metadata[$name]['type'] ?? 'text',
+				'filter' => 'raw',
+				'required' => ($metadata[$name]['required'] ?? $required) ? 'true' : 'false',
+			];
+			foreach (['disabled', 'multiple'] as $attribute)
+			{
+				if (isset($metadata[$name][$attribute]))
+				{
+					$attributes[$attribute] = $metadata[$name][$attribute] ? 'true' : 'false';
+				}
+			}
+			$xml .= '<field';
+			foreach ($attributes as $attribute => $value)
+			{
+				$xml .= ' ' . $attribute . '="' . htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8') . '"';
+			}
+			$xml .= ' />';
 		}
 		$form = new Form('conditional-browser-parity');
+		// Native field setup needs a typed database dependency but performs no query.
+		$form->setDatabase((new ReflectionClass(MysqliDriver::class))->newInstanceWithoutConstructor());
+		$form->setCurrentUser(new User());
 		$form->load($xml . '</form>');
 		$rule = new $class();
 

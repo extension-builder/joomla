@@ -40,7 +40,13 @@
         },
         "required": false
       }
-    ]
+    ],
+    "form": {
+      "mode": {
+        "type": "list",
+        "multiple": true
+      }
+    }
   },
   {
     "name": "is not preserves any unequal option",
@@ -75,7 +81,13 @@
         },
         "required": false
       }
-    ]
+    ],
+    "form": {
+      "mode": {
+        "type": "list",
+        "multiple": true
+      }
+    }
   },
   {
     "name": "is not one option and any selected value",
@@ -113,7 +125,13 @@
         },
         "required": false
       }
-    ]
+    ],
+    "form": {
+      "mode": {
+        "type": "list",
+        "multiple": true
+      }
+    }
   },
   {
     "name": "any selection with dynamic options",
@@ -148,7 +166,13 @@
         },
         "required": false
       }
-    ]
+    ],
+    "form": {
+      "mode": {
+        "type": "list",
+        "multiple": true
+      }
+    }
   },
   {
     "name": "any selection among configured options",
@@ -180,7 +204,13 @@
         },
         "required": true
       }
-    ]
+    ],
+    "form": {
+      "mode": {
+        "type": "list",
+        "multiple": true
+      }
+    }
   },
   {
     "name": "active text",
@@ -792,7 +822,12 @@
         },
         "required": false
       }
-    ]
+    ],
+    "form": {
+      "level": {
+        "type": "checkboxes"
+      }
+    }
   },
   {
     "name": "mixed list and text retains shared array semantics",
@@ -1448,5 +1483,159 @@
       }
     ],
     "error": "operator 1, type \"text\""
+  },
+  {
+    "name": "media field follows target event hook",
+    "conditions": [
+      {
+        "match_type": "media",
+        "match_options": "images/example.png"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "images/example.png"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "images/other.png"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "images/example.png"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "rendered optional target caps schema requirement",
+    "form": {
+      "details": {
+        "required": false
+      }
+    },
+    "conditions": [
+      {}
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false,
+        "visible": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true,
+        "event": "refresh"
+      }
+    ]
+  },
+  {
+    "name": "rendered disabled text cannot become browser required",
+    "form": {
+      "details": {
+        "type": "text",
+        "disabled": true
+      }
+    },
+    "conditions": [
+      {}
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false,
+        "visible": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true,
+        "event": "refresh"
+      }
+    ]
+  },
+  {
+    "name": "required radio wrapper retains class based baseline",
+    "form": {
+      "details": {
+        "type": "radio",
+        "requiredAttribute": false
+      }
+    },
+    "conditions": [
+      {
+        "target_field": [
+          {
+            "name": "details",
+            "type": "radio",
+            "required": "yes"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      }
+    ]
   }
 ]
