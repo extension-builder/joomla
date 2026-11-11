@@ -1,0 +1,196 @@
+{
+    "view": "field",
+    "baseline": "86b1900a87ccd979233572e47f1f2513fc1493f1",
+    "provenance": "Five normalized groups extracted from the baseline FieldModel; final group is the proposed declarative Hide Only migration, not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "datalenght",
+                    "behavior": 1,
+                    "options": [
+                        "Other"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datalenght_other"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datadefault",
+                    "behavior": 1,
+                    "options": [
+                        "Other"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datadefault_other"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "DATETIME",
+                        "DATE",
+                        "TIME",
+                        "INT",
+                        "TINYINT",
+                        "BIGINT",
+                        "FLOAT",
+                        "DECIMAL",
+                        "DOUBLE"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "indexes"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "INT",
+                        "TINYINT",
+                        "BIGINT",
+                        "FLOAT",
+                        "DECIMAL",
+                        "DOUBLE"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datalenght"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "store",
+                    "behavior": 1,
+                    "options": [
+                        "6"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "on_get_model_field",
+                "on_save_model_field"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "fieldtype",
+                    "behavior": 1,
+                    "options": [
+                        "f9ecacd0-8481-4157-8c71-d7aaefc2b7c3",
+                        "626d0cba-a908-4a4f-a447-96d781aeaa0b"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datatype",
+                "datalenght",
+                "datalenght_other",
+                "datadefault_other",
+                "indexes",
+                "null_switch",
+                "store",
+                "on_get_model_field",
+                "on_save_model_field"
+            ],
+            "show": false,
+            "toggle": false
+        }
+    ],
+    "fieldtypeCatalog": {
+        "note": "f9ecacd0-8481-4157-8c71-d7aaefc2b7c3",
+        "spacer": "626d0cba-a908-4a4f-a447-96d781aeaa0b"
+    },
+    "browserExtraTargets": {
+        "2": [
+            "datadefault"
+        ],
+        "4": [
+            "initiator_on_get_model",
+            "initiator_on_save_model",
+            "note_expert_field_save_mode"
+        ],
+        "5": [
+            "datadefault",
+            "initiator_on_get_model",
+            "initiator_on_save_model",
+            "note_expert_field_save_mode"
+        ]
+    },
+    "browserOnlyGroups": [
+        {
+            "match": "add_css_view",
+            "target": "css_view",
+            "option": "1"
+        },
+        {
+            "match": "add_css_views",
+            "target": "css_views",
+            "option": "1"
+        },
+        {
+            "match": "add_javascript_view_footer",
+            "target": "javascript_view_footer",
+            "option": "1"
+        },
+        {
+            "match": "add_javascript_views_footer",
+            "target": "javascript_views_footer",
+            "option": "1"
+        }
+    ]
+}

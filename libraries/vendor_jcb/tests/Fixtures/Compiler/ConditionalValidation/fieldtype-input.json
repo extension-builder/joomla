@@ -1,0 +1,249 @@
+{
+    "view": "fieldtype",
+    "baseline": "86b1900a87ccd979233572e47f1f2513fc1493f1",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/FieldtypeModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "datalenght",
+                    "behavior": 1,
+                    "options": [
+                        "Other"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datalenght_other"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datadefault",
+                    "behavior": 1,
+                    "options": [
+                        "Other"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datadefault_other"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "INT",
+                        "TINYINT",
+                        "BIGINT",
+                        "FLOAT",
+                        "DECIMAL",
+                        "DOUBLE"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datalenght"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "DATETIME",
+                        "DATE",
+                        "TIME",
+                        "INT",
+                        "TINYINT",
+                        "BIGINT",
+                        "FLOAT",
+                        "DECIMAL",
+                        "DOUBLE"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "indexes"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "DATETIME",
+                        "DATE",
+                        "TIME",
+                        "INT",
+                        "TINYINT",
+                        "BIGINT",
+                        "FLOAT",
+                        "DECIMAL",
+                        "DOUBLE"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "indexes"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "datatype",
+                    "behavior": 1,
+                    "options": [
+                        "CHAR",
+                        "VARCHAR",
+                        "TEXT",
+                        "MEDIUMTEXT",
+                        "LONGTEXT",
+                        "BLOB",
+                        "TINYBLOB",
+                        "MEDIUMBLOB",
+                        "LONGBLOB"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "store"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "has_defaults",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "datatype",
+                "null_switch"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

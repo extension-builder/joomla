@@ -138,6 +138,16 @@ jobs:
         id: unit-tests
         run: composer --working-dir=libraries/vendor_jcb/tests ${{ matrix.script }}
 
+      - name: Verify conditional model and browser previews
+        working-directory: libraries/vendor_jcb/tests
+        run: |
+          php bin/regenerate-conditional-model-preview.php
+          php bin/regenerate-conditional-browser-preview.php
+
+      - name: Verify compiled browser and server conditional parity
+        working-directory: libraries/vendor_jcb/tests
+        run: node bin/check-conditional-browser.mjs
+
       - name: Install locked compiler browser test dependencies
         if: matrix.php == '8.4'
         working-directory: libraries/vendor_jcb/tests/gui

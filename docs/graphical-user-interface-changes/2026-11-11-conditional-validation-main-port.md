@@ -215,7 +215,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 
 - **Change type:** Modified
 - **Stable locations:** Generated condition prefix; `dbChecker()`; `getFieldTypeProperties()`.
-- **What changed:** Regenerated the prefix from the six required groups and existing optional editor groups. Authored code retains value clearing/notices, refreshes before and after resets and after AJAX defaults, ignores stale type responses, and accepts numeric zero defaults for store/indexes. Removed duplicated database visibility/required handling and retired exemption-list calls.
+- **What changed:** Regenerated the prefix from the six required groups and existing optional editor groups. Authored code retains value clearing/notices, refreshes before and after resets and after AJAX defaults, ignores stale type responses, and accepts numeric zero defaults for store/indexes. Removed duplicated database visibility/required handling and retired exemption-list calls. The generated refresh preserves the rendered form's originally optional or disabled target state after every condition pass.
 - **Why:** Browser behavior must follow the same definitions as the server, including repeated type changes and asynchronous defaults.
 - **Related source:** `field-input.json`, production ViewScript emitter, and Field's authored custom JavaScript in the maintenance package.
 
@@ -256,7 +256,12 @@ Token-based regeneration preserves unrelated model members byte for byte.
 | Check | Environment | Result |
 | --- | --- | --- |
 | Pristine main normal unit suite | PHP 8.3.6, PHPUnit 12.5.33, pinned Joomla 6.1.2, main's exact lock | Pass: 5,425 tests / 67,104 assertions; zero errors, failures or skips |
-| Port-specific unit, generated-script, GUI, API and full compiler checks | Main target/runtime contracts | Pending implementation and verification |
+| Main normal unit suite | PHP 8.3.6, PHPUnit 12.5.33, pinned Joomla 6.1.2 | Pass: 5,530 tests / 69,067 assertions; zero errors, failures or skips |
+| Installed Field native contract | Actual Field form/model/rule, isolated persistence | Pass: 36 tests / 207 assertions, including malformed single-select arrays |
+| Generated model/template/preview contracts | All supported model-template locations and nine previews | Pass: 45 tests / 676 assertions |
+| Browser condition emitters | Main's shared and target-specific renderers | Pass: 65 tests / 161 assertions |
+| Browser/server condition parity | Joomla 3 and Joomla 6 emitted scripts | Pass: 100 fixtures / 312 transitions, including rendered optional/disabled state |
+| Hosted unit/coverage, GUI, API and full compiler checks | Final main candidate | Pending exact-head verification |
 
 ### Manual scenarios
 
@@ -264,9 +269,14 @@ No manual browser execution is claimed.
 
 ### GUI test coverage
 
-Retain main's existing Field save/reopen tests and record cleanup. Port recovery's
-Field transitions, stale AJAX response and the eight other conditional-view
-specs in the same change. Final exact paths/results will be recorded before review.
+Main's existing `gui/specs/field.spec.js` save/reopen scenarios and owned-row
+cleanup are preserved. The same spec adds Note/Spacer transitions, repeated
+Other/Expert changes and stale AJAX-response coverage. The eight additional
+specs are `admin_view.spec.js`, `custom_code.spec.js`, `dynamic_get.spec.js`,
+`fieldtype.spec.js`, `help_document.spec.js`, `joomla_component.spec.js`,
+`library.spec.js` and `server.spec.js`, using `gui/helpers/conditions.js`.
+All paths are relative to `libraries/vendor_jcb/tests/`. Hosted execution remains
+pending; no manual browser result is claimed.
 
 ### Checks not performed
 
@@ -313,7 +323,8 @@ these templates also need the new placeholder in their property section.
 
 ## Final consistency check
 
-Draft inventory covers nineteen anticipated protected paths, including both
-paths of the shared-rule replacement. The exact final diff and port verification
-will be checked before review. Every source mapping remains transfer-required;
+The implementation inventory matches all nineteen protected changed paths,
+including both paths of the shared-rule replacement. Main-only model members and
+the Field loading overlay/authored footer are byte-preserved outside the intended
+conditional regions. Final hosted and full-compile verification remain pending. Every source mapping remains transfer-required;
 no external maintenance reconciliation is claimed.
