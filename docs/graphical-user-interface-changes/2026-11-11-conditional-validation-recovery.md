@@ -4,7 +4,8 @@
 
 - **Date first changed:** 2026-11-11
 - **Author/implementer:** ChatGPT, at the maintainer's request
-- **Task/issue/PR:** Conditional validation recovery from `2dab8eb3`
+- **Task/issue/PR:** [PR #68](https://github.com/extension-builder/joomla/pull/68),
+  conditional validation recovery from `2dab8eb3`
 - **Change record status:** Draft
 
 ## Explicit permission
@@ -34,8 +35,10 @@ property placeholder. Runtime logic belongs in the shared generated rule.
 
 ### Modified
 
-Implementation in progress; the final changed-path inventory will be recorded
-with each protected-path commit.
+- `admin/compiler/joomla_3/AdminModel.php`
+- `admin/compiler/joomla_3/AdminModel_site.php`
+- `admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php`
+- `admin/compiler/joomla_4/SITE_ADMIN_VIEW_MODEL.php`
 
 ### Moved or renamed
 
@@ -47,8 +50,38 @@ with each protected-path commit.
 
 ## Implementation details
 
-Template integration is being prepared at each model's property section.
-No protected-path implementation is claimed by this initial record.
+### `admin/compiler/joomla_3/AdminModel.php`
+
+- **Change type:** Modified
+- **Stable location:** Immediately after the `typeAlias` property.
+- **What changed:** Added `###VALIDATION_PROPERTIES###` before the first method.
+- **Why:** Place readable condition definitions with model properties.
+- **Related symbols:** `Architecture\AdminViews\EditView::build()` and
+  `Architecture\Model\ValidationFix::getProperties()`.
+
+### `admin/compiler/joomla_3/AdminModel_site.php`
+
+- **Change type:** Modified
+- **Stable location:** Immediately after the `typeAlias` property.
+- **What changed:** Added the same property placeholder for site-edit models.
+- **Why:** Site editing must use the same conditional-validation declarations.
+- **Related symbols:** The shared EditView producer and ValidationFix emitter.
+
+### `admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php`
+
+- **Change type:** Modified
+- **Stable location:** Immediately after the `typeAlias` property.
+- **What changed:** Added the property placeholder for modern admin models.
+- **Why:** Joomla 4, 5 and 6 share this model template.
+- **Related symbols:** The shared EditView producer and ValidationFix emitter.
+
+### `admin/compiler/joomla_4/SITE_ADMIN_VIEW_MODEL.php`
+
+- **Change type:** Modified
+- **Stable location:** Immediately after the `typeAlias` property.
+- **What changed:** Added the property placeholder for modern site-edit models.
+- **Why:** Keep modern site-edit validation aligned with administrator models.
+- **Related symbols:** The shared EditView producer and ValidationFix emitter.
 
 ## Impact
 
@@ -64,7 +97,13 @@ No protected-path implementation is claimed by this initial record.
 
 ### Automated checks
 
-Implementation and verification are in progress; no checks are yet claimed.
+| Check | Environment | Result |
+| --- | --- | --- |
+| `phpunit ValidationFixTest.php EditViewTest.php --no-coverage` using their mirrored Architecture paths | PHP 8.3.6, PHPUnit 12.5.33, Joomla 6.1.2 | Pass: 83 tests, 791 assertions |
+| `git diff --check` | Recovery worktree | Pass |
+
+The focused tests execute emitted rules through native form validation and
+cover all four target majors, both model locations and empty substitution.
 
 ### Manual scenarios
 
@@ -72,7 +111,10 @@ Not yet performed.
 
 ### GUI test coverage
 
-The final record will identify the relevant view specs and actual results.
+No installed GUI behavior has changed in this template-only stage. Native
+validation tests and generated template-placement tests cover the changed
+output. Browser behavior verification is being developed with the later
+condition-generation corrections and will be recorded separately here.
 
 ### Checks not performed
 
@@ -89,12 +131,19 @@ The final record will identify the relevant view specs and actual results.
 
 ## Authoritative JCB source reconciliation
 
-The compiler templates and library emitters identify the generation source.
-The final inventory will map each protected path separately. The external JCB
-maintenance definition remains unavailable; no external reconciliation or
-self-compilation is claimed.
+| Repository path | Authoritative source identity/path | Transfer required | Status | Evidence, owner, and next action |
+| --- | --- | --- | --- | --- |
+| `admin/compiler/joomla_3/AdminModel.php` | J3 administrator model template, populated by `EditView::build()` / `ValidationFix::getProperties()` | Yes | Source identified | Eight target/location tests cover producer placement; maintainer must reconcile any external template source. |
+| `admin/compiler/joomla_3/AdminModel_site.php` | J3 site-edit model template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
+| `admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php` | Shared J4/J5/J6 administrator template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
+| `admin/compiler/joomla_4/SITE_ADMIN_VIEW_MODEL.php` | Shared J4/J5/J6 site-edit template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
+
+External JCB maintenance definitions remain unavailable. No external
+reconciliation or JCB self-compilation is claimed. Downstream custom copies of
+these templates also need the new placeholder in their property section.
 
 ## Final consistency check
 
-Draft: exact path inventory, implementation details, source mappings and actual
-verification results will be completed alongside the implementation.
+The current inventory covers the four template edits. Later protected changes
+must update this inventory in their own commit. Final acceptance and generated
+output verification remain in progress.

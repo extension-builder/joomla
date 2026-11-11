@@ -14,6 +14,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\Model;
 
 use Closure;
 use RuntimeException;
+use ReflectionClass;
 use ReflectionProperty;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Event\Model\BeforeValidateDataEvent;
@@ -32,6 +33,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -234,6 +237,92 @@ final class ValidationFixTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Inactive required fields retain their submitted values and native validators.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testInactiveFieldStillValidatesNonemptySubmittedValue(): void
+	{
+		$validate = $this->validator([self::group()], []);
+		$form = $this->form();
+		$form->setFieldAttribute('details', 'validate', 'email');
+		$data = ['name' => 'Record', 'mode' => 'plain', 'details' => ''];
+
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertFalse($validate($form, array_replace($data, ['details' => 'invalid email'])));
+		$data['details'] = 'record@example.com';
+		$this->assertSame($data, $validate($form, $data));
+		$this->assertSame('email', $form->getFieldAttribute('details', 'validate'));
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
+	}
+
+	/**
+	 * Empty condition registries do not add properties, methods or a shared rule.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testViewsWithoutConditionsHaveNoValidationScaffolding(): void
+	{
+		$registry = new ValidationFixRegistry();
+		$compiler = new CompilerRegistry();
+		$renderer = new ValidationFix($registry, $compiler, new ConditionalRule());
+
+		foreach ([false, true] as $registered)
+		{
+			if ($registered)
+			{
+				$registry->set('record', ['details']);
+				$registry->setConditions('record', []);
+			}
+
+			$this->assertSame('', $renderer->getProperties('record'));
+			$this->assertSame('', $renderer->get('record', 'Demo'));
+			$this->assertNull($compiler->get('validation.rules.jcbconditionalrequired'));
+		}
+	}
+
+	/**
+	 * Configured indentation and source comments never change condition literals.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testEmitterFormattingPreservesLiteralConditionValues(): void
+	{
+		$group = self::group();
+		$group['matches'] = [self::rule(['options' => ["quote'\\path\n\tline\r\n__JCB_VALIDATION_FACTORY__"]])];
+		$registry = new ValidationFixRegistry();
+		$registry->set('record', ['details']);
+		$registry->setConditions('record', [$group]);
+		$renderer = new ValidationFix($registry, new CompilerRegistry(), new ConditionalRule());
+
+		foreach (["\t", '    '] as $indent)
+		{
+			(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+			(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+
+			foreach ([false, true] as $debug)
+			{
+				(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+				$properties = $renderer->getProperties('record');
+				$model = eval('return new class {' . $properties . '};');
+				$property = (new ReflectionClass($model))->getProperty('jcbConditionalRequirements');
+				$this->assertSame([$group], $property->getValue($model));
+				$this->assertStringContainsString($indent . 'protected $jcbConditionalRequirements = [', $properties);
+				$this->assertStringContainsString($indent . $indent . '[', $properties);
+
+				$rule = (new ConditionalRule())->get();
+				$this->assertStringContainsString($indent . 'public function prepare(', $rule);
+				$this->assertStringContainsString($indent . $indent . '$this->error = null;', $rule);
+				$this->assertStringNotContainsString('function (', $rule);
+				$this->assertSame($debug, strpos($rule, '[' . ConditionalRule::class . ' ') !== false);
+			}
+		}
+	}
+
+	/**
 	 * Related conditions use AND and multiselects use the browser's some semantics.
 	 *
 	 * @return  void
@@ -293,25 +382,47 @@ final class ValidationFixTest extends ArchitectureTestCase
 	public static function matchCases(): array
 	{
 		return [
+			'matching selection' => [['options' => ['expert']], 'expert', true],
+			'nonmatching selection' => [['options' => ['expert']], 'plain', false],
 			'numeric radio string' => [['options' => ['6'], 'array' => false], '6', true],
 			'numeric radio integer' => [['options' => ['6'], 'array' => false], 6, true],
+			'numeric option rejects text' => [['options' => ['6'], 'array' => false], '6garbage', false],
+			'numeric zero matches empty DOM value' => [['options' => ['0'], 'array' => false], '', true],
 			'zero is present' => [['behavior' => 3, 'options' => []], '0', true],
 			'empty selection' => [['behavior' => 3, 'options' => []], [], false],
+			'empty scalar selection' => [['behavior' => 3, 'options' => [], 'array' => false], '', false],
 			'unselected user' => [['behavior' => 3, 'options' => [], 'user' => true], '0', false],
+			'selected user' => [['behavior' => 3, 'options' => [], 'user' => true], '12', true],
 			'is not one' => [['behavior' => 2, 'options' => ['expert']], 'plain', true],
+			'is not rejects equal option' => [['behavior' => 2, 'options' => ['expert']], 'expert', false],
 			'is not multiple keeps OR' => [['behavior' => 2, 'options' => ['expert', 'plain']], 'expert', true],
+			'is not without options matches empty' => [['behavior' => 2, 'options' => [], 'array' => false], '', true],
+			'is not without options rejects present' => [['behavior' => 2, 'options' => [], 'array' => false], '0', false],
 			'checkbox true' => [['options' => ['true'], 'checkbox' => true, 'array' => false], 1, true],
 			'checkbox false' => [['options' => ['false'], 'checkbox' => true, 'array' => false], 0, true],
+			'checkbox unchecked rejects true' => [['options' => ['true'], 'checkbox' => true, 'array' => false], 0, false],
 			'text active' => [['behavior' => 4, 'options' => [], 'array' => false], '0', true],
+			'text inactive' => [['behavior' => 4, 'options' => [], 'array' => false], '', false],
 			'text empty' => [['behavior' => 5, 'options' => [], 'array' => false], '', true],
+			'text not empty' => [['behavior' => 5, 'options' => [], 'array' => false], '0', false],
 			'all keywords' => [['behavior' => 6, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'red blue', true],
 			'all missing keyword' => [['behavior' => 6, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'red', false],
+			'all keywords are case sensitive' => [['behavior' => 6, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'RED BLUE', false],
 			'any keyword' => [['behavior' => 7, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'blue', true],
+			'no keyword' => [['behavior' => 7, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'green', false],
 			'insensitive all' => [['behavior' => 8, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'RED BLUE', true],
+			'insensitive all missing keyword' => [['behavior' => 8, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'RED', false],
 			'insensitive any' => [['behavior' => 9, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'BLUE', true],
+			'insensitive any without match' => [['behavior' => 9, 'options' => ['keywords' => ['red', 'blue']], 'array' => false], 'GREEN', false],
+			'empty keywords retain error marker' => [['behavior' => 7, 'options' => [], 'array' => false], 'error', true],
+			'empty keywords reject other text' => [['behavior' => 7, 'options' => [], 'array' => false], 'other', false],
 			'minimum length' => [['behavior' => 10, 'options' => ['length' => 3], 'array' => false], 'abc', true],
+			'below minimum length' => [['behavior' => 10, 'options' => ['length' => 3], 'array' => false], 'ab', false],
+			'maximum length boundary' => [['behavior' => 11, 'options' => ['length' => 3], 'array' => false], 'abc', true],
 			'maximum length' => [['behavior' => 11, 'options' => ['length' => 3], 'array' => false], 'abcd', false],
 			'exact unicode length' => [['behavior' => 12, 'options' => ['length' => 2], 'array' => false], '😀', true],
+			'different unicode length' => [['behavior' => 12, 'options' => ['length' => 1], 'array' => false], '😀', false],
+			'default length' => [['behavior' => 12, 'options' => [], 'array' => false], 'abcde', true],
 			'quoted option stays data' => [['options' => ["x'\\\\y"]], "x'\\\\y", true],
 		];
 	}
@@ -333,6 +444,28 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertSame(['name' => 'Hidden', 'mode' => 'expert'], $validate($form, ['name' => 'Hidden', 'mode' => 'expert']));
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 		$this->assertFalse($validate($form, ['name' => 'Visible', 'mode' => 'plain']));
+	}
+
+	/**
+	 * Multiple groups retain their declared order and one-way update behavior.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testGroupsRetainDeclaredOrderForSharedTargets(): void
+	{
+		$first = self::group();
+		$second = self::group();
+		$second['matches'] = [self::rule(['name' => 'level', 'options' => ['high']])];
+		$data = ['name' => 'Record', 'mode' => 'expert', 'level' => 'low'];
+		$validate = $this->validator([$first, $second], []);
+
+		$this->assertSame($data, $validate($this->form(), $data));
+		$validate = $this->validator([$second, $first], []);
+		$this->assertFalse($validate($this->form(), $data));
+		$second['toggle'] = false;
+		$validate = $this->validator([$first, $second], []);
+		$this->assertFalse($validate($this->form(), $data));
 	}
 
 	/**
@@ -617,6 +750,144 @@ final class ValidationFixTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Forms with the same name have independent sessions and reject only recursion.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testConcurrentFormsAndRecursivePreparationRemainIsolated(): void
+	{
+		$firstForm = $this->form();
+		$secondForm = $this->form();
+		$first = new JcbconditionalrequiredRule();
+		$second = new JcbconditionalrequiredRule();
+		$recursive = new JcbconditionalrequiredRule();
+		$resolver = static fn (array $data, Form $form, ?string $group): array => ['stored' => [], 'patch' => false];
+
+		try
+		{
+			$this->assertTrue($first->prepare($firstForm, [self::group()], $resolver));
+			$this->assertTrue($second->prepare($secondForm, [self::group()], $resolver));
+			$this->assertFalse($recursive->prepare($firstForm, [self::group()], $resolver));
+			$this->assertStringContainsString('already active', $recursive->getError());
+			$recursive->release();
+			$this->assertNotFalse($firstForm->getFieldXml('__jcb_conditional_required'));
+
+			$data = $firstForm->filter(['name' => 'First', 'mode' => 'plain']);
+			$this->assertTrue($firstForm->validate($data));
+			$this->assertSame($data, $first->complete($data));
+			$this->assertSame('false', $firstForm->getFieldAttribute('details', 'required'));
+			$this->assertSame('true', $secondForm->getFieldAttribute('details', 'required'));
+			$first->release();
+
+			$this->assertNotFalse($secondForm->getFieldXml('__jcb_conditional_required'));
+			$data = $secondForm->filter(['name' => 'Second', 'mode' => 'expert']);
+			$this->assertFalse($secondForm->validate($data));
+			$this->assertFalse($second->complete(false));
+			$this->assertNull($second->getError());
+			$this->assertNotEmpty($secondForm->getErrors());
+		}
+		finally
+		{
+			$recursive->release();
+			$first->release();
+			$second->release();
+		}
+
+		$this->assertFalse($firstForm->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($secondForm->getFieldXml('__jcb_conditional_required'));
+		$this->assertSame('true', $firstForm->getFieldAttribute('details', 'required'));
+		$this->assertSame('true', $secondForm->getFieldAttribute('details', 'required'));
+	}
+
+	/**
+	 * Failed preparation preserves pre-existing fields and releases any owned state.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testPreparationFailuresPreserveReservedFieldsAndAllowReuse(): void
+	{
+		$rule = new JcbconditionalrequiredRule();
+		$resolver = static fn (array $data, Form $form, ?string $group): array => ['stored' => [], 'patch' => false];
+		$form = $this->form();
+		$form->load('<form><field name="__jcb_conditional_required" type="text" required="true" /></form>');
+		$definition = $form->getFieldXml('__jcb_conditional_required')->asXML();
+
+		$this->assertFalse($rule->prepare($form, [self::group()], $resolver));
+		$this->assertStringContainsString('reserved', $rule->getError());
+		$rule->release();
+		$this->assertSame($definition, $form->getFieldXml('__jcb_conditional_required')->asXML());
+		$this->assertFalse($rule->prepare($this->form(), [self::group()], $resolver, 'missing'));
+		$this->assertStringContainsString('install', $rule->getError());
+		$rule->release();
+
+		$form = $this->form();
+		try
+		{
+			$this->assertTrue($rule->prepare($form, [self::group()], $resolver));
+			$this->assertNull($rule->getError());
+			$this->assertFalse($rule->complete(false));
+			$this->assertNull($rule->getError());
+			$this->assertFalse($rule->complete(['name' => 'Skipped native validation']));
+			$this->assertStringContainsString('did not run', $rule->getError());
+		}
+		finally
+		{
+			$rule->release();
+		}
+
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+	}
+
+	/**
+	 * The named model resolver receives filtered values, form identity and group once.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testResolverReceivesNativeFilteredContextOnce(): void
+	{
+		$form = $this->form();
+		$form->load('<form><fields name="settings"><fields name="advanced">'
+			. '<field name="mode" type="text" filter="int" />'
+			. '<field name="details" type="text" required="true" filter="raw" />'
+			. '</fields></fields></form>');
+		$group = self::group();
+		$group['matches'] = [self::rule(['options' => ['6'], 'array' => false])];
+		$rule = new JcbconditionalrequiredRule();
+		$seen = [];
+		$resolver = static function (array $data, Form $original, ?string $selected) use (&$seen): array
+		{
+			$seen[] = [$data, $original, $selected];
+			return ['stored' => [], 'patch' => false];
+		};
+		$data = ['settings' => ['advanced' => ['mode' => '6garbage', 'details' => 'present', '__jcb_conditional_required' => 'forged']]];
+
+		try
+		{
+			$this->assertTrue($rule->prepare($form, [$group], $resolver, 'settings.advanced'));
+			$this->assertSame([], $seen);
+			$filtered = $form->filter($rule->filterInternalInput($data), 'settings.advanced');
+			$this->assertTrue($form->validate($filtered, 'settings.advanced'));
+			$this->assertSame([[$filtered, $form, 'settings.advanced']], $seen);
+			$this->assertSame(6, $filtered['settings']['advanced']['mode']);
+			$this->assertSame($filtered, $rule->complete($filtered));
+			$this->assertArrayNotHasKey('__jcb_conditional_required', $filtered['settings']['advanced']);
+			$this->assertFalse($form->validate($filtered, 'settings.advanced'));
+			$this->assertCount(1, $seen);
+			$this->assertStringContainsString('more than once', $rule->getError());
+		}
+		finally
+		{
+			$rule->release();
+		}
+
+		$this->assertSame('true', $form->getFieldAttribute('details', 'required', null, 'settings.advanced'));
+		$this->assertFalse($form->getFieldXml('__jcb_conditional_required', 'settings.advanced'));
+	}
+
+	/**
 	 * Execute the generated override on the real FormModel parent lifecycle.
 	 *
 	 * @param   array            $groups      Normalized condition groups.
@@ -626,6 +897,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 	 *
 	 * @return  Closure
 	 * @since   6.2.0
+	 * @since   6.2.1  Include the separately emitted model requirements property.
 	 */
 	private function validator(array $groups, array|false $stored, bool $patch = true, ?Dispatcher $dispatcher = null): Closure
 	{
@@ -633,9 +905,14 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$registry->set('record', ['details']);
 		$registry->setConditions('record', $groups);
 		$compiler = new CompilerRegistry();
-		$method = (new ValidationFix($registry, $compiler, new ConditionalRule()))->get('record', 'Demo');
+		$renderer = new ValidationFix($registry, $compiler, new ConditionalRule());
+		$method = $renderer->get('record', 'Demo');
+		$properties = $renderer->getProperties('record');
 		$this->assertStringContainsString('parent::validate(', $method);
 		$this->assertStringNotContainsString('->filter(', $method);
+		$this->assertStringNotContainsString('function (', $method);
+		$this->assertStringNotContainsString('not_required', $method);
+		$this->assertStringContainsString('protected $jcbConditionalRequirements = [', $properties);
 		$this->assertSame((new ConditionalRule())->get(), $compiler->get('validation.rules.jcbconditionalrequired'));
 		$app = $this->createStub(CMSApplication::class);
 		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $patch && $client === 'api');
@@ -644,8 +921,13 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$app->method('getInput')->willReturn($input);
 		Factory::$application = $app;
 		$dispatcher ??= new Dispatcher();
-		$record = eval('use Joomla\\String\\StringHelper; return new class($stored, $dispatcher) extends \\'
-			. GeneratedConditionalModelFixture::class . ' {' . $method . '};');
+		$method = strtr($method, [
+			'Joomla___571422c4_0340_49f8_b846_5729c7af6ed7___Power' => '\\Joomla\\CMS\\Form\\FormHelper',
+			'Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power' => '\\Joomla\\Registry\\Registry',
+			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power' => '\\Joomla\\CMS\\Factory',
+		]);
+		$record = eval('return new class($stored, $dispatcher) extends \\'
+			. GeneratedConditionalModelFixture::class . ' {' . $properties . $method . '};');
 
 		return Closure::fromCallable([$record, 'validate']);
 	}

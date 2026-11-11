@@ -69,6 +69,18 @@ Verification must cover:
 
 ## Current verification status
 
-Implementation in progress. No new implementation or test result is claimed
-by this initial record. Final evidence and remaining limitations will replace
-this status before handoff.
+The model/rule refactor and template integration pass 83 focused PHPUnit tests
+with 791 assertions on PHP 8.3.6, PHPUnit 12.5.33 and pinned Joomla 6.1.2.
+These tests execute emitted PHP against Joomla's native form lifecycle and
+verify property placement for Joomla 3, 4, 5 and 6 administrator/site models.
+
+A separate pristine worktree at `2dab8eb3` was tested before comparison. Its
+normal full suite has 4,777 tests, 60,018 assertions, 40 errors and 33 failures.
+The baseline failures are in ValidationFix (37 errors), AllowView (3 errors,
+4 failures), Markdown Html (19 failures), SearchBoundaryAndOrchestration
+(9 failures) and ProviderWiring (1 failure). The old ValidationFix fixture
+did not resolve deferred Joomla Power references before executing emitted PHP;
+the refactored test fixture now does so without changing condition literals.
+
+Browser parity corrections, complete candidate-suite comparison and generated
+output verification remain in progress. No JCB self-compilation is claimed.

@@ -13,13 +13,16 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\AdminViews;
 
 
 use PHPUnit\Framework\Attributes\CoversNamespace;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesNamespace;
 use stdClass;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\AdminViews\EditView;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\Api\Controller\AllowView;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\Model\ValidationFix;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\AccessSwitch;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixRegistry;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -208,6 +211,104 @@ final class EditViewTest extends ArchitectureTestCase
 		$this->assertStringContainsString("\$user->authorise('demo.access', 'com_demo.demo.' . \$item->id)", $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
 		$this->assertStringContainsString('getAuthorisedViewLevels()', $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
 		$this->assertStringContainsString("'JERROR_ALERTNOAUTHOR'), 403)", $written['###ADMIN_VIEW_MODEL_ITEM_ACCESS###']);
+	}
+
+	/**
+	 * Conditional definitions occupy the property area in every generated model.
+	 *
+	 * @param   int     $target    The generated Joomla major.
+	 * @param   string  $template  The administrator or site edit model template.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('modelTemplates')]
+	public function testConditionalPropertiesPrecedeMethodsInEveryModelTemplate(int $target, string $template): void
+	{
+		$this->config()->set('joomla_version', $target);
+		$definitions = new ValidationFixRegistry();
+		$definitions->set('demo', ['details']);
+		$definitions->setConditions('demo', [[
+			'matches' => [[
+				'name' => 'mode',
+				'behavior' => 1,
+				'options' => ['expert'],
+				'array' => true,
+				'user' => false,
+				'checkbox' => false,
+				'supported' => true,
+			]],
+			'targets' => ['details'],
+			'show' => true,
+			'toggle' => true,
+		]]);
+		$this->build($this->view('demo'), [
+			'validationfix' => $this->renderer(ValidationFix::class, [
+				'validationfix' => $definitions,
+			]),
+		]);
+		$written = $this->multi->get('demo');
+		$properties = $written['###VALIDATION_PROPERTIES###'];
+		$methods = $written['###VALIDATIONFIX###'];
+		$source = file_get_contents(JCB_PROJECT_ROOT . '/admin/compiler/' . $template);
+
+		$this->assertIsString($source);
+		$this->assertSame(1, substr_count($source, '###VALIDATION_PROPERTIES###'));
+		$this->assertSame(1, substr_count($source, '###VALIDATIONFIX###'));
+		$this->assertStringContainsString('protected $jcbConditionalRequirements = [', $properties);
+		$this->assertStringContainsString("'name' => 'mode'", $properties);
+		$this->assertStringContainsString("'details'", $properties);
+		$this->assertStringNotContainsString('function ', $properties);
+		$this->assertStringContainsString('public function validate(', $methods);
+		$this->assertStringNotContainsString('protected $jcbConditionalRequirements', $methods);
+
+		$generated = strtr($source, [
+			'###VALIDATION_PROPERTIES###' => $properties,
+			'###VALIDATIONFIX###' => $methods,
+		]);
+		$propertyOffset = strpos($generated, 'protected $jcbConditionalRequirements');
+		$tableOffset = strpos($generated, 'public function getTable(');
+		$this->assertIsInt($propertyOffset);
+		$this->assertIsInt($tableOffset);
+		$this->assertGreaterThan(strpos($generated, 'public $typeAlias'), $propertyOffset);
+		$this->assertLessThan($tableOffset, $propertyOffset);
+		$this->assertStringNotContainsString('###VALIDATION_PROPERTIES###', $generated);
+		$this->assertStringNotContainsString('###VALIDATIONFIX###', $generated);
+	}
+
+	/**
+	 * Views without conditions add no validation properties or model methods.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testViewsWithoutConditionsReceiveEmptyValidationFragments(): void
+	{
+		$this->build($this->view('demo'));
+		$written = $this->multi->get('demo');
+
+		$this->assertSame('', $written['###VALIDATION_PROPERTIES###']);
+		$this->assertSame('', $written['###VALIDATIONFIX###']);
+	}
+
+	/**
+	 * Both edit model locations remain covered for every supported compile target.
+	 *
+	 * @return  array<string, array{int, string}>
+	 * @since   6.2.1
+	 */
+	public static function modelTemplates(): array
+	{
+		return [
+			'Joomla 3 administrator' => [3, 'joomla_3/AdminModel.php'],
+			'Joomla 3 site' => [3, 'joomla_3/AdminModel_site.php'],
+			'Joomla 4 administrator' => [4, 'joomla_4/ADMIN_VIEW_MODEL.php'],
+			'Joomla 4 site' => [4, 'joomla_4/SITE_ADMIN_VIEW_MODEL.php'],
+			'Joomla 5 administrator' => [5, 'joomla_4/ADMIN_VIEW_MODEL.php'],
+			'Joomla 5 site' => [5, 'joomla_4/SITE_ADMIN_VIEW_MODEL.php'],
+			'Joomla 6 administrator' => [6, 'joomla_4/ADMIN_VIEW_MODEL.php'],
+			'Joomla 6 site' => [6, 'joomla_4/SITE_ADMIN_VIEW_MODEL.php'],
+		];
 	}
 
 	/**

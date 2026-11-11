@@ -543,6 +543,11 @@ final class EditView
 			// LINKEDVIEWTABLESCRIPTS <<<DYNAMIC>>>
 			$this->contentmulti->set($nameSingleCode . '|LINKEDVIEWTABLESCRIPTS', '');
 
+			// VALIDATION_PROPERTIES <<<DYNAMIC>>>
+			$this->contentmulti->set($nameSingleCode . '|VALIDATION_PROPERTIES',
+				$this->validationfix->getProperties($nameSingleCode)
+			);
+
 			// VALIDATEFIX <<<DYNAMIC>>>
 			$this->contentmulti->set($nameSingleCode . '|VALIDATIONFIX',
 				$this->validationfix->get(
@@ -847,4 +852,3 @@ final class EditView
 		}
 	}
 }
-
