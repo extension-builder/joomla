@@ -1,0 +1,107 @@
+{
+    "view": "help_document",
+    "baseline": "86b1900a87ccd979233572e47f1f2513fc1493f1",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/Help_documentModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "location",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "admin_view"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "location",
+                    "behavior": 1,
+                    "options": [
+                        "2"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "site_view"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "type",
+                    "behavior": 1,
+                    "options": [
+                        "3"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "url"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "type",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "article"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "target",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "groups"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

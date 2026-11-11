@@ -19,7 +19,6 @@ use Joomla\CMS\Language\Language;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\User\User;
 use Joomla\Database\DatabaseInterface;
-use Joomla\Database\Mysqli\MysqliQuery;
 use Joomla\Event\Dispatcher;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry;
@@ -27,12 +26,12 @@ use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionProperty;
 use VDM\Component\Componentbuilder\Administrator\Model\FieldModel;
-use VDM\Component\Componentbuilder\Administrator\Rule\JcbconditionalrequiredRule;
+use VDM\Component\Componentbuilder\Administrator\Rule\ConditionalrequiredRule;
 use VDM\Tests\Support\JoomlaTestCase;
 
 
 require_once dirname(__DIR__, 4) . '/admin/src/Model/FieldModel.php';
-require_once dirname(__DIR__, 4) . '/admin/src/Rule/JcbconditionalrequiredRule.php';
+require_once dirname(__DIR__, 4) . '/admin/src/Rule/ConditionalrequiredRule.php';
 
 
 /**
@@ -47,12 +46,12 @@ require_once dirname(__DIR__, 4) . '/admin/src/Rule/JcbconditionalrequiredRule.p
 final class FieldValidationTest extends JoomlaTestCase
 {
 	/**
-	 * Identifiers for trusted field type metadata at the database boundary.
+	 * Note identifier declared by the installed catalogue and Field conditions.
 	 *
 	 * @var    string
 	 * @since  6.2.1
 	 */
-	private const NOTE = 'b85696a0-92bb-4db1-8939-6eed795ca378';
+	private const NOTE = 'f9ecacd0-8481-4157-8c71-d7aaefc2b7c3';
 
 	/**
 	 * Identifier for a second display-only field type.
@@ -60,7 +59,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	 * @var    string
 	 * @since  6.2.1
 	 */
-	private const SPACER = '08d2d38d-6e90-402d-b56d-c07711c9ee20';
+	private const SPACER = '626d0cba-a908-4a4f-a447-96d781aeaa0b';
 
 	/**
 	 * Identifier for a field type that needs a database column.
@@ -68,7 +67,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	 * @var    string
 	 * @since  6.2.1
 	 */
-	private const TEXT = 'cae42ee9-12a6-45e7-b72f-21dc7e3430ab';
+	private const TEXT = '201327fe-3067-4316-a155-3fe2a52e05c0';
 
 	/**
 	 * Process-static form and plugin state restored after each test.
@@ -94,14 +93,14 @@ final class FieldValidationTest extends JoomlaTestCase
 			[FormHelper::class, 'prefixes'],
 			[FormHelper::class, 'entities'],
 			[FormHelper::class, 'paths'],
-			[JcbconditionalrequiredRule::class, 'callbacks'],
+			[ConditionalrequiredRule::class, 'validations'],
 		] as [$class, $name])
 		{
 			$property = new ReflectionProperty($class, $name);
 			$this->globals[] = [$property, $property->getValue()];
 		}
 		(new ReflectionProperty(PluginHelper::class, 'plugins'))->setValue(null, []);
-		(new ReflectionProperty(JcbconditionalrequiredRule::class, 'callbacks'))->setValue(null, null);
+		(new ReflectionProperty(ConditionalrequiredRule::class, 'validations'))->setValue(null, null);
 		FormHelper::addRulePrefix('VDM\\Component\\Componentbuilder\\Administrator\\Rule');
 	}
 
@@ -123,45 +122,41 @@ final class FieldValidationTest extends JoomlaTestCase
 	/**
 	 * New and existing notes/spacers save without browser exemption hints.
 	 *
-	 * @param   string|int  $type      Selected field type identifier.
-	 * @param   string      $name      Trusted type name returned by the database.
-	 * @param   bool        $existing  Whether a stored field is being edited.
+	 * @param   string  $type      Selected field type identifier.
+	 * @param   bool    $existing  Whether a stored field is being edited.
 	 *
 	 * @return  void
 	 * @since   6.2.1
 	 */
 	#[DataProvider('displayTypes')]
-	public function testDisplayTypesNeedNoDatabaseColumn(string|int $type, string $name, bool $existing): void
+	public function testDisplayTypesNeedNoDatabaseColumn(string $type, bool $existing): void
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$model = $this->model($type, $name, $existing ? ['id' => 42, 'fieldtype' => $type] : []);
+		$model = $this->model($existing ? ['id' => 42, 'fieldtype' => $type] : []);
 		$result = $model->validate($form, ['id' => $existing ? 42 : 0, 'name' => 'Instructions', 'fieldtype' => $type]);
 
 		$this->assertIsArray($result);
 		$this->assertSame('Instructions', $result['name']);
 		$this->assertSame((string) $type, (string) $result['fieldtype']);
 		$this->assertArrayNotHasKey('datatype', $result);
-		$this->assertArrayNotHasKey('__jcb_conditional_required', $result);
+		$this->assertArrayNotHasKey('__conditional_required', $result);
 		$this->assertSame($before, $form->getXml()->asXML());
 	}
 
 	/**
-	 * Cover GUIDs, legacy identifiers, metadata normalization and record edits.
+	 * Cover each authored display-only identity on new records and record edits.
 	 *
-	 * @return  array<string, array{string|int, string, bool}>
+	 * @return  array<string, array{string, bool}>
 	 * @since   6.2.1
 	 */
 	public static function displayTypes(): array
 	{
 		return [
-			'new note' => [self::NOTE, 'Note', false],
-			'existing note' => [self::NOTE, 'note', true],
-			'new spacer' => [self::SPACER, 'Spacer', false],
-			'existing spacer' => [self::SPACER, 'spacer', true],
-			'normalized metadata' => [self::NOTE, '  nOtE  ', false],
-			'legacy integer identifier' => [19, 'Note', true],
-			'legacy string identifier' => ['20', 'Spacer', false],
+			'new note' => [self::NOTE, false],
+			'existing note' => [self::NOTE, true],
+			'new spacer' => [self::SPACER, false],
+			'existing spacer' => [self::SPACER, true],
 		];
 	}
 
@@ -175,7 +170,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$model = $this->model(self::NOTE, 'Note');
+		$model = $this->model();
 		$result = $model->validate($form, [
 			'name' => 'Instructions', 'fieldtype' => self::NOTE, 'datatype' => '',
 			'null_switch' => '', 'store' => '', 'indexes' => '', 'datalenght' => '',
@@ -198,15 +193,15 @@ final class FieldValidationTest extends JoomlaTestCase
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$note = $this->model(self::NOTE, 'Note');
+		$note = $this->model();
 		$this->assertIsArray($note->validate($form, ['name' => 'Instructions', 'fieldtype' => self::NOTE]));
 		$this->assertSame($before, $form->getXml()->asXML());
 
-		$text = $this->model(self::TEXT, 'Text', ['id' => 42, 'fieldtype' => self::NOTE]);
+		$text = $this->model(['id' => 42, 'fieldtype' => self::NOTE]);
 		$this->assertFalse($text->validate($form, ['id' => 42, 'name' => 'Title', 'fieldtype' => self::TEXT]));
 		$this->assertSame($before, $form->getXml()->asXML());
 
-		$complete = $this->model(self::TEXT, 'Text', ['id' => 42, 'fieldtype' => self::NOTE]);
+		$complete = $this->model(['id' => 42, 'fieldtype' => self::NOTE]);
 		$this->assertIsArray($complete->validate($form, $this->columnData()));
 		$this->assertSame($before, $form->getXml()->asXML());
 	}
@@ -223,7 +218,7 @@ final class FieldValidationTest extends JoomlaTestCase
 		unset($form->getFieldXml('indexes')['required']);
 		$form->setFieldAttribute('null_switch', 'required', 'required');
 		$before = $form->getXml()->asXML();
-		$model = $this->model(self::NOTE, 'Note', ['id' => 42, 'fieldtype' => self::TEXT]);
+		$model = $this->model(['id' => 42, 'fieldtype' => self::TEXT]);
 		$data = [
 			'id' => 42, 'name' => 'Instructions', 'fieldtype' => self::NOTE, 'datatype' => 'VARCHAR',
 			'datalenght' => 'Other', 'datadefault' => 'Other', 'store' => '6',
@@ -253,7 +248,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$model = $this->model(self::TEXT, 'Text', ['id' => 42, 'fieldtype' => self::NOTE]);
+		$model = $this->model(['id' => 42, 'fieldtype' => self::NOTE]);
 		$data = $this->columnData();
 		$data['not_required'] = 'datatype,null_switch,store,datalenght,indexes,name,fieldtype';
 		unset($data[$missing]);
@@ -288,7 +283,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	 */
 	public function testOrdinaryFieldsWithColumnSettingsStillValidate(): void
 	{
-		$model = $this->model(self::TEXT, 'Text', ['id' => 42, 'fieldtype' => self::NOTE]);
+		$model = $this->model(['id' => 42, 'fieldtype' => self::NOTE]);
 		$result = $model->validate($this->form(), $this->columnData());
 
 		$this->assertIsArray($result);
@@ -298,7 +293,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	}
 
 	/**
-	 * The exception does not make a note's ordinary name requirement optional.
+	 * Display-only conditions do not make the ordinary name requirement optional.
 	 *
 	 * @return  void
 	 * @since   6.2.1
@@ -307,7 +302,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$model = $this->model(self::NOTE, 'Note');
+		$model = $this->model();
 
 		$this->assertFalse($model->validate($form, ['fieldtype' => self::NOTE, 'not_required' => 'name']));
 		$this->assertNotEmpty($model->getErrors());
@@ -343,7 +338,7 @@ final class FieldValidationTest extends JoomlaTestCase
 			}
 		}
 		$type = $storedNote ? self::NOTE : self::TEXT;
-		$model = $this->model($type, $storedNote ? 'Note' : 'Text', ['id' => 42, 'fieldtype' => $type]);
+		$model = $this->model(['id' => 42, 'fieldtype' => $type]);
 		$before = $form->getXml()->asXML();
 		$result = $model->validate($form, $data);
 
@@ -382,7 +377,7 @@ final class FieldValidationTest extends JoomlaTestCase
 		// The API normally hydrates stored columns. Also protect the model's sparse-form contract.
 		$form->setFieldAttribute('fieldtype', 'required', 'false');
 		$inherits = $patch && !$explicit;
-		$model = $this->model($inherits ? self::NOTE : null, 'Note', ['id' => 42, 'fieldtype' => self::NOTE], $patch);
+		$model = $this->model(['id' => 42, 'fieldtype' => self::NOTE], $patch);
 		$data = ['id' => 42, 'name' => 'Instructions'];
 		if ($explicit)
 		{
@@ -408,7 +403,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Untrusted labels and malformed identifiers neither query nor relax requirements.
+	 * Untrusted labels and malformed identifiers cannot relax requirements.
 	 *
 	 * @param   mixed  $type  Invalid field type identifier.
 	 *
@@ -416,9 +411,9 @@ final class FieldValidationTest extends JoomlaTestCase
 	 * @since   6.2.1
 	 */
 	#[DataProvider('malformedTypes')]
-	public function testMalformedIdentifiersCannotClaimTheNoteException(mixed $type): void
+	public function testMalformedIdentifiersCannotClaimADisplayOnlyCondition(mixed $type): void
 	{
-		$model = $this->model(null, 'Note');
+		$model = $this->model();
 
 		$this->assertFalse($model->validate($this->form(), [
 			'name' => 'Instructions', 'fieldtype' => $type, 'not_required' => 'datatype,null_switch,store',
@@ -446,39 +441,78 @@ final class FieldValidationTest extends JoomlaTestCase
 	}
 
 	/**
-	 * A valid identifier is exempt only when the trusted record is Note or Spacer.
-	 *
-	 * @param   mixed  $name  Database result for an otherwise valid identifier.
+	 * Even the installed Note identity needs an authored conditional definition.
 	 *
 	 * @return  void
 	 * @since   6.2.1
 	 */
-	#[DataProvider('nonDisplayMetadata')]
-	public function testUnknownOrDifferentMetadataKeepsDatabaseRequirements(mixed $name): void
+	public function testNoteRequiresAnAuthoredDisplayOnlyCondition(): void
 	{
-		$model = $this->model(self::NOTE, $name);
+		$form = $this->form();
+		$before = $form->getXml()->asXML();
+		$model = $this->model();
+		$property = new ReflectionProperty($model, 'conditionalRequirements');
+		$conditions = $property->getValue($model);
+		$display = array_pop($conditions);
+		$this->assertSame('fieldtype', $display['matches'][0]['name']);
+		$this->assertSame([self::NOTE, self::SPACER], $display['matches'][0]['options']);
+		$property->setValue($model, $conditions);
 
-		$this->assertFalse($model->validate($this->form(), ['name' => 'Instructions', 'fieldtype' => self::NOTE]));
+		$this->assertFalse($model->validate($form, [
+			'name' => 'Instructions', 'fieldtype' => self::NOTE,
+			'not_required' => 'datatype,null_switch,store',
+		]));
+		$this->assertSame($before, $form->getXml()->asXML());
 	}
 
 	/**
-	 * Cover missing rows and names which must not match by prefix or truthiness.
+	 * Custom and legacy identities work only when the trusted condition declares them.
 	 *
-	 * @return  array<string, array{mixed}>
+	 * @param   string|int  $type  Additional field type identity to declare.
+	 *
+	 * @return  void
 	 * @since   6.2.1
 	 */
-	public static function nonDisplayMetadata(): array
+	#[DataProvider('additionalDisplayIdentities')]
+	public function testAdditionalIdentitiesRequireAnAuthoredCondition(string|int $type): void
+	{
+		$form = $this->form();
+		$before = $form->getXml()->asXML();
+		$model = $this->model();
+		$data = ['name' => 'Instructions', 'fieldtype' => $type];
+		$this->assertFalse($model->validate($form, $data));
+
+		$property = new ReflectionProperty($model, 'conditionalRequirements');
+		$conditions = $property->getValue($model);
+		$last = array_key_last($conditions);
+		$this->assertSame('fieldtype', $conditions[$last]['matches'][0]['name']);
+		$conditions[$last]['matches'][0]['options'][] = (string) $type;
+		$property->setValue($model, $conditions);
+		$result = $model->validate($form, $data);
+
+		$this->assertIsArray($result);
+		$this->assertSame((string) $type, (string) $result['fieldtype']);
+		$this->assertArrayNotHasKey('datatype', $result);
+		$this->assertSame($before, $form->getXml()->asXML());
+	}
+
+	/**
+	 * Include custom GUIDs and explicitly authored legacy catalogue identifiers.
+	 *
+	 * @return  array<string, array{string|int}>
+	 * @since   6.2.1
+	 */
+	public static function additionalDisplayIdentities(): array
 	{
 		return [
-			'missing row' => [null],
-			'empty name' => [''],
-			'ordinary type' => ['Text'],
-			'similar name' => ['Notebook'],
+			'custom GUID' => ['b85696a0-92bb-4db1-8939-6eed795ca378'],
+			'legacy integer identifier' => [19],
+			'legacy string identifier' => ['20'],
 		];
 	}
 
 	/**
-	 * A failed persisted-record load must stop before the metadata lookup.
+	 * A failed persisted-record load cannot relax any required field.
 	 *
 	 * @return  void
 	 * @since   6.2.1
@@ -487,7 +521,7 @@ final class FieldValidationTest extends JoomlaTestCase
 	{
 		$form = $this->form();
 		$before = $form->getXml()->asXML();
-		$model = $this->model(null, 'Note', false);
+		$model = $this->model(false);
 
 		$this->assertFalse($model->validate($form, ['id' => 42, 'name' => 'Instructions', 'fieldtype' => self::NOTE]));
 		$this->assertSame($before, $form->getXml()->asXML());
@@ -536,17 +570,15 @@ final class FieldValidationTest extends JoomlaTestCase
 	}
 
 	/**
-	 * Isolate stored records and SQL while running the actual model and native parent.
+	 * Isolate stored records while running the actual model and native parent.
 	 *
-	 * @param   string|int|null  $lookup  Expected effective identifier, or no lookup.
-	 * @param   mixed            $name    Trusted metadata result.
-	 * @param   array|false      $stored  Existing record, new record, or failed load.
-	 * @param   bool             $patch   Whether the application handles API PATCH.
+	 * @param   array|false  $stored  Existing record, new record, or failed load.
+	 * @param   bool         $patch   Whether the application handles API PATCH.
 	 *
 	 * @return  FieldModel
 	 * @since   6.2.1
 	 */
-	private function model(string|int|null $lookup, mixed $name, array|false $stored = [], bool $patch = false): FieldModel
+	private function model(array|false $stored = [], bool $patch = false): FieldModel
 	{
 		$app = $this->createStub(CMSApplication::class);
 		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $patch && $client === 'api');
@@ -567,24 +599,10 @@ final class FieldValidationTest extends JoomlaTestCase
 		(new ReflectionProperty($model, 'events_map'))->setValue($model, ['validate' => 'content']);
 		$model->setDispatcher(new Dispatcher());
 		$db = $this->createMock(DatabaseInterface::class);
-		$db->expects($lookup === null ? $this->never() : $this->once())->method('createQuery')
-			->willReturn(new MysqliQuery());
-		if ($lookup !== null)
-		{
-			$db->method('quoteName')->willReturnCallback(static fn (string $value): string => '`' . $value . '`');
-			$db->method('quote')->willReturnCallback(static fn (string $value): string => "'" . $value . "'");
-			$key = ctype_digit((string) $lookup) ? 'id' : 'guid';
-			$sql = "SELECT `name`\nFROM `#__componentbuilder_fieldtype`\nWHERE `" . $key . "` = '" . $lookup . "'";
-			$db->expects($this->once())->method('setQuery')
-				->with($this->callback(static fn (MysqliQuery $query): bool => trim((string) $query) === $sql), 0, 1)
-				->willReturnSelf();
-			$db->expects($this->once())->method('loadResult')->willReturn($name);
-		}
-		else
-		{
-			$db->expects($this->never())->method('setQuery');
-			$db->expects($this->never())->method('loadResult');
-		}
+		// Conditions use declared identities, never special field type name lookups.
+		$db->expects($this->never())->method('createQuery');
+		$db->expects($this->never())->method('setQuery');
+		$db->expects($this->never())->method('loadResult');
 		$model->setDatabase($db);
 
 		return $model;

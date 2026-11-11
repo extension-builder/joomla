@@ -1,0 +1,49 @@
+{
+    "view": "custom_code",
+    "baseline": "86b1900a87ccd979233572e47f1f2513fc1493f1",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/Custom_codeModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "target",
+                    "behavior": 1,
+                    "options": [
+                        "2"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "function_name"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "target",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "component",
+                "path",
+                "type"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

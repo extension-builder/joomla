@@ -21,7 +21,8 @@ using its own locked dependencies and pinned Joomla 6.1.2 runtime.
   `update<ViewCode>Conditions()`.
 - Validation uses the same Form that getForm and native plugins have already
   configured. It preserves optional/disabled/unset target metadata and performs
-  no additional ACL lookup.
+  no additional ACL lookup. The browser refresh also preserves the original
+  rendered optional/disabled state after evaluating conditions.
 - Main's target-specific ViewScript hooks, dedicated Joomla 6 templates,
   current asset paths, footer execution timing and API/PATCH behavior remain.
 - Compiler-owned output follows main's line-by-line PHP_EOL/Indent standard,
@@ -68,6 +69,14 @@ cleanup remain, alongside the added condition-transition scenarios.
 
 ## Verification status
 
-Implementation and port-specific verification are in progress. Recovery
+The normal main suite passes **5,530 tests / 69,067 assertions**. The installed
+Field native contract passes **36 / 207**, including malformed indexed and
+associative input for a single-select field. Shared runtime tests also preserve
+genuine multiselect and checkbox collections using native field multiplicity.
+Browser/server parity passes **100 fixtures / 312 transitions** across Joomla 3
+and 6, including rendered optional/disabled targets.
+
+Exact-head hosted checks and a separate main full compilation comparison remain
+in progress. Recovery
 results are evidence for the source implementation; they do not substitute
 for main's own unit, native-script, GUI, API and full compiler checks.
