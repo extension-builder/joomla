@@ -503,6 +503,7 @@ GEN;
 		$method = str_replace('###ADMIN_VIEW_MODEL_ITEM_ACCESS###', $subject->getItemGuard('demo', $apiEnabled), $match[0]);
 		$method = strtr($method, [
 			'###component###' => 'demo',
+			'Joomla___2fa1c08d_c4ff_4cb0_8338_7221e95c1fe4___Power' => '\\' . NotAllowed::class,
 			'Joomla___39403062_84fb_46e0_bac4_0023f766e827___Power' => 'self',
 			'Joomla___ba6326ef_cb79_4348_80f4_ab086082e3c5___Power' => 'self',
 			'Joomla___a87c432d_b5b4_428e_b7ff_14b51664c624___Power' => '\\Joomla\\Registry\\Registry',
