@@ -255,18 +255,18 @@ final class EditViewTest extends ArchitectureTestCase
 		$this->assertIsString($source);
 		$this->assertSame(1, substr_count($source, '###VALIDATION_PROPERTIES###'));
 		$this->assertSame(1, substr_count($source, '###VALIDATIONFIX###'));
-		$this->assertStringContainsString('protected $jcbConditionalRequirements = [', $properties);
+		$this->assertStringContainsString('protected $conditionalRequirements = [', $properties);
 		$this->assertStringContainsString("'name' => 'mode'", $properties);
 		$this->assertStringContainsString("'details'", $properties);
 		$this->assertStringNotContainsString('function ', $properties);
 		$this->assertStringContainsString('public function validate(', $methods);
-		$this->assertStringNotContainsString('protected $jcbConditionalRequirements', $methods);
+		$this->assertStringNotContainsString('protected $conditionalRequirements', $methods);
 
 		$generated = strtr($source, [
 			'###VALIDATION_PROPERTIES###' => $properties,
 			'###VALIDATIONFIX###' => $methods,
 		]);
-		$propertyOffset = strpos($generated, 'protected $jcbConditionalRequirements');
+		$propertyOffset = strpos($generated, 'protected $conditionalRequirements');
 		$tableOffset = strpos($generated, 'public function getTable(');
 		$this->assertIsInt($propertyOffset);
 		$this->assertIsInt($tableOffset);

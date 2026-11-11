@@ -84,10 +84,10 @@ final class ValidationFixTest extends ArchitectureTestCase
 		}
 		(new ReflectionProperty(PluginHelper::class, 'plugins'))->setValue(null, []);
 		FormHelper::addRulePrefix(__NAMESPACE__);
-		if (!class_exists(__NAMESPACE__ . '\\JcbconditionalrequiredRule', false))
+		if (!class_exists(__NAMESPACE__ . '\\ConditionalrequiredRule', false))
 		{
 			eval('namespace ' . __NAMESPACE__ . '; use Joomla\\CMS\\Form\\Form; use Joomla\\Registry\\Registry; '
-				. 'class JcbconditionalrequiredRule extends \\Joomla\\CMS\\Form\\FormRule {' . (new ConditionalRule())->get() . '}');
+				. 'class ConditionalrequiredRule extends \\Joomla\\CMS\\Form\\FormRule {' . (new ConditionalRule())->get() . '}');
 		}
 	}
 
@@ -279,7 +279,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 
 			$this->assertSame('', $renderer->getProperties('record'));
 			$this->assertSame('', $renderer->get('record', 'Demo'));
-			$this->assertNull($compiler->get('validation.rules.jcbconditionalrequired'));
+			$this->assertNull($compiler->get('validation.rules.conditionalrequired'));
 		}
 	}
 
@@ -292,7 +292,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 	public function testEmitterFormattingPreservesLiteralConditionValues(): void
 	{
 		$group = self::group();
-		$group['matches'] = [self::rule(['options' => ["quote'\\path\n\tline\r\n__JCB_VALIDATION_FACTORY__"]])];
+		$group['matches'] = [self::rule(['options' => ["quote'\\path\n\tline\r\n__VALIDATION_FACTORY__"]])];
 		$registry = new ValidationFixRegistry();
 		$registry->set('record', ['details']);
 		$registry->setConditions('record', [$group]);
@@ -308,9 +308,9 @@ final class ValidationFixTest extends ArchitectureTestCase
 				(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
 				$properties = $renderer->getProperties('record');
 				$model = eval('return new class {' . $properties . '};');
-				$property = (new ReflectionClass($model))->getProperty('jcbConditionalRequirements');
+				$property = (new ReflectionClass($model))->getProperty('conditionalRequirements');
 				$this->assertSame([$group], $property->getValue($model));
-				$this->assertStringContainsString($indent . 'protected $jcbConditionalRequirements = [', $properties);
+				$this->assertStringContainsString($indent . 'protected $conditionalRequirements = [', $properties);
 				$this->assertStringContainsString($indent . $indent . '[', $properties);
 
 				$rule = (new ConditionalRule())->get();
@@ -561,7 +561,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'plain']));
 		$this->assertSame(1, $calls);
 		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		$this->assertSame(
 			['name' => 'Record', 'mode' => 'expert', 'details' => 'present'],
 			$validate($form, ['name' => 'Record', 'details' => 'present'])
@@ -586,7 +586,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertSame($data, $admin($form, $data));
 		$patch = $this->validator([$group], ['id' => 9, 'mode' => 1]);
 		$this->assertFalse($patch($form, $data));
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 	}
 
 	/**
@@ -606,17 +606,17 @@ final class ValidationFixTest extends ArchitectureTestCase
 				$form = $event->getForm();
 				if ($change === 'remove')
 				{
-					$form->removeField('__jcb_conditional_required');
+					$form->removeField('__conditional_required');
 				}
 				else
 				{
-					$node = dom_import_simplexml($form->getFieldXml('__jcb_conditional_required'));
+					$node = dom_import_simplexml($form->getFieldXml('__conditional_required'));
 					$node->parentNode->appendChild($node);
 				}
 			});
 			$validate = $this->validator([self::group()], [], true, $dispatcher);
 			$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', 'details' => 'present']));
-			$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+			$this->assertFalse($form->getFieldXml('__conditional_required'));
 			$validate = $this->validator([self::group()], []);
 			$this->assertSame(['name' => 'Record', 'mode' => 'plain'], $validate($form, ['name' => 'Record', 'mode' => 'plain']));
 		}
@@ -646,7 +646,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		{
 			$this->assertSame('plugin failure', $error->getMessage());
 		}
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		$validate = $this->validator([self::group()], []);
 		$this->assertSame(['name' => 'Record', 'mode' => 'plain'], $validate($form, ['name' => 'Record', 'mode' => 'plain']));
 	}
@@ -662,11 +662,11 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$validate = $this->validator([self::group()], []);
 		$form = $this->form();
 		unset($form->getFieldXml('details')['required']);
-		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', '__jcb_conditional_required' => 'forged']));
+		$this->assertFalse($validate($form, ['name' => 'Record', 'mode' => 'expert', '__conditional_required' => 'forged']));
 		$this->assertNull($form->getFieldAttribute('details', 'required', null));
 		$this->assertSame(
 			['name' => 'Record', 'mode' => 'plain'],
-			$validate($form, ['name' => 'Record', 'mode' => 'plain', '__jcb_conditional_required' => 'forged'])
+			$validate($form, ['name' => 'Record', 'mode' => 'plain', '__conditional_required' => 'forged'])
 		);
 		$this->assertNull($form->getFieldAttribute('details', 'required', null));
 	}
@@ -769,7 +769,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$this->assertSame('post-process failure', $error->getMessage());
 		}
 		$this->assertSame('false', $form->getFieldAttribute('details', 'required'));
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		$form->throw = false;
 		$this->assertIsArray($validate($form, ['name' => 'Record', 'details' => 'present']));
 	}
@@ -784,9 +784,9 @@ final class ValidationFixTest extends ArchitectureTestCase
 	{
 		$firstForm = $this->form();
 		$secondForm = $this->form();
-		$first = new JcbconditionalrequiredRule();
-		$second = new JcbconditionalrequiredRule();
-		$recursive = new JcbconditionalrequiredRule();
+		$first = new ConditionalrequiredRule();
+		$second = new ConditionalrequiredRule();
+		$recursive = new ConditionalrequiredRule();
 		$resolver = static fn (array $data, Form $form, ?string $group): array => ['stored' => [], 'patch' => false];
 
 		try
@@ -796,7 +796,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$this->assertFalse($recursive->prepare($firstForm, [self::group()], $resolver));
 			$this->assertStringContainsString('already active', $recursive->getError());
 			$recursive->release();
-			$this->assertNotFalse($firstForm->getFieldXml('__jcb_conditional_required'));
+			$this->assertNotFalse($firstForm->getFieldXml('__conditional_required'));
 
 			$data = $firstForm->filter(['name' => 'First', 'mode' => 'plain']);
 			$this->assertTrue($firstForm->validate($data));
@@ -805,7 +805,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$this->assertSame('true', $secondForm->getFieldAttribute('details', 'required'));
 			$first->release();
 
-			$this->assertNotFalse($secondForm->getFieldXml('__jcb_conditional_required'));
+			$this->assertNotFalse($secondForm->getFieldXml('__conditional_required'));
 			$data = $secondForm->filter(['name' => 'Second', 'mode' => 'expert']);
 			$this->assertFalse($secondForm->validate($data));
 			$this->assertFalse($second->complete(false));
@@ -819,8 +819,8 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$second->release();
 		}
 
-		$this->assertFalse($firstForm->getFieldXml('__jcb_conditional_required'));
-		$this->assertFalse($secondForm->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($firstForm->getFieldXml('__conditional_required'));
+		$this->assertFalse($secondForm->getFieldXml('__conditional_required'));
 		$this->assertSame('true', $firstForm->getFieldAttribute('details', 'required'));
 		$this->assertSame('true', $secondForm->getFieldAttribute('details', 'required'));
 	}
@@ -833,16 +833,16 @@ final class ValidationFixTest extends ArchitectureTestCase
 	 */
 	public function testPreparationFailuresPreserveReservedFieldsAndAllowReuse(): void
 	{
-		$rule = new JcbconditionalrequiredRule();
+		$rule = new ConditionalrequiredRule();
 		$resolver = static fn (array $data, Form $form, ?string $group): array => ['stored' => [], 'patch' => false];
 		$form = $this->form();
-		$form->load('<form><field name="__jcb_conditional_required" type="text" required="true" /></form>');
-		$definition = $form->getFieldXml('__jcb_conditional_required')->asXML();
+		$form->load('<form><field name="__conditional_required" type="text" required="true" /></form>');
+		$definition = $form->getFieldXml('__conditional_required')->asXML();
 
 		$this->assertFalse($rule->prepare($form, [self::group()], $resolver));
 		$this->assertStringContainsString('reserved', $rule->getError());
 		$rule->release();
-		$this->assertSame($definition, $form->getFieldXml('__jcb_conditional_required')->asXML());
+		$this->assertSame($definition, $form->getFieldXml('__conditional_required')->asXML());
 		$this->assertFalse($rule->prepare($this->form(), [self::group()], $resolver, 'missing'));
 		$this->assertStringContainsString('install', $rule->getError());
 		$rule->release();
@@ -862,7 +862,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$rule->release();
 		}
 
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 	}
 
 	/**
@@ -880,14 +880,14 @@ final class ValidationFixTest extends ArchitectureTestCase
 			. '</fields></fields></form>');
 		$group = self::group();
 		$group['matches'] = [self::rule(['options' => ['6'], 'array' => false])];
-		$rule = new JcbconditionalrequiredRule();
+		$rule = new ConditionalrequiredRule();
 		$seen = [];
 		$resolver = static function (array $data, Form $original, ?string $selected) use (&$seen): array
 		{
 			$seen[] = [$data, $original, $selected];
 			return ['stored' => [], 'patch' => false];
 		};
-		$data = ['settings' => ['advanced' => ['mode' => '6garbage', 'details' => 'present', '__jcb_conditional_required' => 'forged']]];
+		$data = ['settings' => ['advanced' => ['mode' => '6garbage', 'details' => 'present', '__conditional_required' => 'forged']]];
 
 		try
 		{
@@ -898,7 +898,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 			$this->assertSame([[$filtered, $form, 'settings.advanced']], $seen);
 			$this->assertSame(6, $filtered['settings']['advanced']['mode']);
 			$this->assertSame($filtered, $rule->complete($filtered));
-			$this->assertArrayNotHasKey('__jcb_conditional_required', $filtered['settings']['advanced']);
+			$this->assertArrayNotHasKey('__conditional_required', $filtered['settings']['advanced']);
 			$this->assertFalse($form->validate($filtered, 'settings.advanced'));
 			$this->assertCount(1, $seen);
 			$this->assertStringContainsString('more than once', $rule->getError());
@@ -909,7 +909,7 @@ final class ValidationFixTest extends ArchitectureTestCase
 		}
 
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required', null, 'settings.advanced'));
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required', 'settings.advanced'));
+		$this->assertFalse($form->getFieldXml('__conditional_required', 'settings.advanced'));
 	}
 
 	/**
@@ -937,8 +937,8 @@ final class ValidationFixTest extends ArchitectureTestCase
 		$this->assertStringNotContainsString('->filter(', $method);
 		$this->assertStringNotContainsString('function (', $method);
 		$this->assertStringNotContainsString('not_required', $method);
-		$this->assertStringContainsString('protected $jcbConditionalRequirements = [', $properties);
-		$this->assertSame((new ConditionalRule())->get(), $compiler->get('validation.rules.jcbconditionalrequired'));
+		$this->assertStringContainsString('protected $conditionalRequirements = [', $properties);
+		$this->assertSame((new ConditionalRule())->get(), $compiler->get('validation.rules.conditionalrequired'));
 		$app = $this->createStub(CMSApplication::class);
 		$app->method('isClient')->willReturnCallback(static fn (string $client): bool => $patch && $client === 'api');
 		$input = new Input([]);

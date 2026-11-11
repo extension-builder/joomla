@@ -159,32 +159,32 @@ $tmpl    = $tmpl ? '&tmpl=' . $tmpl : '';
 <script type="text/javascript">
 
 // Generated field conditions (compiler preview).
-jQuery('#jform_datalenght').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_datalenght', jcbUpdateFieldConditions);
+jQuery('#jform_datalenght').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_datalenght', updateFieldConditions);
 
-jQuery('#jform_datadefault').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_datadefault', jcbUpdateFieldConditions);
+jQuery('#jform_datadefault').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_datadefault', updateFieldConditions);
 
-jQuery('#jform_datatype').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_datatype', jcbUpdateFieldConditions);
+jQuery('#jform_datatype').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_datatype', updateFieldConditions);
 
-jQuery('#jform_store').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_store', jcbUpdateFieldConditions);
+jQuery('#jform_store').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_store', updateFieldConditions);
 
-jQuery('#jform_add_css_view').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_add_css_view', jcbUpdateFieldConditions);
+jQuery('#jform_add_css_view').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_add_css_view', updateFieldConditions);
 
-jQuery('#jform_add_css_views').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_add_css_views', jcbUpdateFieldConditions);
+jQuery('#jform_add_css_views').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_add_css_views', updateFieldConditions);
 
-jQuery('#jform_add_javascript_view_footer').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_add_javascript_view_footer', jcbUpdateFieldConditions);
+jQuery('#jform_add_javascript_view_footer').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_add_javascript_view_footer', updateFieldConditions);
 
-jQuery('#jform_add_javascript_views_footer').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_add_javascript_views_footer', jcbUpdateFieldConditions);
+jQuery('#jform_add_javascript_views_footer').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_add_javascript_views_footer', updateFieldConditions);
 
-jQuery('#jform_fieldtype').on('keyup', jcbUpdateFieldConditions);
-jQuery('#adminForm').on('change', '#jform_fieldtype', jcbUpdateFieldConditions);
+jQuery('#jform_fieldtype').on('keyup', updateFieldConditions);
+jQuery('#adminForm').on('change', '#jform_fieldtype', updateFieldConditions);
 
 /**
  * Initialize form listeners and code block click handlers.

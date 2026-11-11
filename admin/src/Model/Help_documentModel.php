@@ -124,7 +124,7 @@ class Help_documentModel extends AdminModel
 	 * @var    array
 	 * @since  6.2.1
 	 */
-	protected $jcbConditionalRequirements = [
+	protected $conditionalRequirements = [
 		[
 			'matches' => [
 				[
@@ -690,7 +690,7 @@ class Help_documentModel extends AdminModel
 	 */
 	public function validate($form, $data, $group = null)
 	{
-		$rule = FormHelper::loadRuleType('jcbconditionalrequired');
+		$rule = FormHelper::loadRuleType('conditionalrequired');
 		if (!$rule)
 		{
 			$this->setError('The conditional validation rule could not be loaded.');
@@ -701,8 +701,8 @@ class Help_documentModel extends AdminModel
 		{
 			$prepared = $rule->prepare(
 				$form,
-				$this->jcbConditionalRequirements,
-				\Closure::fromCallable([$this, 'resolveJcbConditionalData']),
+				$this->conditionalRequirements,
+				\Closure::fromCallable([$this, 'resolveConditionalData']),
 				$group
 			);
 			if (!$prepared)
@@ -741,7 +741,7 @@ class Help_documentModel extends AdminModel
 	 *
 	 * @since   6.2.1
 	 */
-	protected function resolveJcbConditionalData(array $data, $form, $group = null)
+	protected function resolveConditionalData(array $data, $form, $group = null)
 	{
 		$application = Factory::getApplication();
 		$context = [

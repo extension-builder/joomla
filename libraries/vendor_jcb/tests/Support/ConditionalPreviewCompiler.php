@@ -98,9 +98,9 @@ final class ConditionalPreviewCompiler
 			throw new RuntimeException('The preview model needs validate() and typeAlias declarations.');
 		}
 		[$start, $end] = $members['validate'];
-		if (isset($members['resolveJcbConditionalData']))
+		if (isset($members['resolveConditionalData']))
 		{
-			[$resolverStart, $resolverEnd] = $members['resolveJcbConditionalData'];
+			[$resolverStart, $resolverEnd] = $members['resolveConditionalData'];
 			if ($resolverStart < $end || trim(substr($source, $end, $resolverStart - $end)) !== '')
 			{
 				throw new RuntimeException('Generated validation and resolver methods must remain adjacent.');
@@ -110,9 +110,9 @@ final class ConditionalPreviewCompiler
 		$source = substr($source, 0, $start) . ltrim($fragments['methods'], "\r\n") . substr($source, $end);
 		$members = $this->members($source, $class);
 
-		if (isset($members['$jcbConditionalRequirements']))
+		if (isset($members['$conditionalRequirements']))
 		{
-			[$start, $end] = $members['$jcbConditionalRequirements'];
+			[$start, $end] = $members['$conditionalRequirements'];
 			return substr($source, 0, $start) . ltrim($fragments['properties'], "\r\n") . substr($source, $end);
 		}
 

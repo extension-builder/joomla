@@ -111,8 +111,8 @@ final class ConditionalPreviewTest extends ArchitectureTestCase
 		$class = ucfirst($view) . 'Model';
 		$source = file_get_contents(JCB_PROJECT_ROOT . '/admin/src/Model/' . $class . '.php');
 		$this->assertSame($source, $compiler->model($source, $class, $fragments));
-		$rule = file_get_contents(JCB_PROJECT_ROOT . '/admin/src/Rule/JcbconditionalrequiredRule.php');
-		$this->assertSame($rule, $compiler->rule($rule, 'JcbconditionalrequiredRule', $fragments['rule']));
+		$rule = file_get_contents(JCB_PROJECT_ROOT . '/admin/src/Rule/ConditionalrequiredRule.php');
+		$this->assertSame($rule, $compiler->rule($rule, 'ConditionalrequiredRule', $fragments['rule']));
 		$this->assertStringNotContainsString('conditionCallback', $source);
 		$this->assertStringNotContainsString('::attach(', $source);
 		$model = $this->model($fragments);
@@ -121,7 +121,7 @@ final class ConditionalPreviewTest extends ArchitectureTestCase
 		$this->assertIsArray($model->validate($form, $valid + ['ordinary' => 'Required value']));
 		$this->assertFalse($model->validate($form, $invalid + ['ordinary' => 'Required value']));
 		$this->assertFalse($model->validate($form, $valid + ['ordinary' => '']));
-		$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+		$this->assertFalse($form->getFieldXml('__conditional_required'));
 		foreach ($fixture['groups'] as $group)
 		{
 			foreach ($group['targets'] as $target)
@@ -177,10 +177,10 @@ final class ConditionalPreviewTest extends ArchitectureTestCase
 				{
 					$this->assertSame('true', $form->getFieldAttribute($target, 'required'), $target . ' restored');
 				}
-				$this->assertFalse($form->getFieldXml('__jcb_conditional_required'));
+				$this->assertFalse($form->getFieldXml('__conditional_required'));
 				if (is_array($result))
 				{
-					$this->assertArrayNotHasKey('__jcb_conditional_required', $result);
+					$this->assertArrayNotHasKey('__conditional_required', $result);
 					$this->assertSame($data['datatype'], $result['datatype']);
 					$this->assertSame($data['datalenght'], $result['datalenght']);
 				}

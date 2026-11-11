@@ -22,7 +22,7 @@ preserves its first five groups and adds the declarative condition below.
 | `server` | `ServerModel.php` | 5 |
 
 All nine models must use the same runtime interface as their shared
-`JcbconditionalrequiredRule`. Updating only Field and that rule would leave the
+`ConditionalrequiredRule`. Updating only Field and that rule would leave the
 other models calling the obsolete callback interface.
 
 ## Field condition to transfer into the maintenance source

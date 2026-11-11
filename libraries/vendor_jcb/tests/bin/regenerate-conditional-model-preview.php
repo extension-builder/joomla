@@ -39,10 +39,10 @@ foreach (glob($tests . '/Fixtures/Compiler/ConditionalValidation/*-input.json') 
 	$fragments = $compiler->fragments($fixture['groups'], $fixture['view'], 'Componentbuilder');
 	$outputs[$path] = $compiler->model(file_get_contents($root . '/' . $path), $class, $fragments);
 }
-$rulePath = 'admin/src/Rule/JcbconditionalrequiredRule.php';
+$rulePath = 'admin/src/Rule/ConditionalrequiredRule.php';
 $outputs[$rulePath] = $compiler->rule(
 	file_get_contents($root . '/' . $rulePath),
-	'JcbconditionalrequiredRule',
+	'ConditionalrequiredRule',
 	$fragments['rule']
 );
 $stale = [];

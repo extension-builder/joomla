@@ -201,7 +201,7 @@ final class ConditionalBrowserCompiler
 		try
 		{
 			if (!$rule->prepare($form, $groups, Closure::fromCallable([$this, 'context']))
-				|| !$rule->test($form->getFieldXml('__jcb_conditional_required'), null, null, new Registry($values), $form))
+				|| !$rule->test($form->getFieldXml('__conditional_required'), null, null, new Registry($values), $form))
 			{
 				throw new \RuntimeException($rule->getError() ?? 'Generated condition evaluation failed.');
 			}

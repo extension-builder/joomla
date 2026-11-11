@@ -9,7 +9,7 @@
  */
 
 // Original display state is captured once per element before conditions run.
-var jcbUpdateFieldConditionsBaseline = null;
+var updateFieldConditionsBaseline = null;
 
 /**
  * Recompute this view's conditions in definition order from the original baseline.
@@ -17,11 +17,11 @@ var jcbUpdateFieldConditionsBaseline = null;
  * @return {void}
  * @since 6.2.1
  */
-function jcbUpdateFieldConditions()
+function updateFieldConditions()
 {
-	if (jcbUpdateFieldConditionsBaseline === null)
+	if (updateFieldConditionsBaseline === null)
 	{
-		jcbUpdateFieldConditionsBaseline = [];
+		updateFieldConditionsBaseline = [];
 		var selectors = ["#jform_datalenght_other","#jform_datadefault_other","#jform_indexes","#jform_datadefault","#jform_datalenght","#jform_on_get_model_field","#jform_on_save_model_field","#jform_initiator_on_get_model","#jform_initiator_on_save_model",".note_expert_field_save_mode","#jform_css_view-lbl","#jform_css_views-lbl","#jform_javascript_view_footer-lbl","#jform_javascript_views_footer-lbl","#jform_datatype","#jform_null_switch","#jform_store"];
 		var elements = [];
 		for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -33,15 +33,15 @@ function jcbUpdateFieldConditions()
 				if (element && element.style && elements.indexOf(element) === -1)
 				{
 					elements.push(element);
-					jcbUpdateFieldConditionsBaseline.push({element: element, display: element.style.display});
+					updateFieldConditionsBaseline.push({element: element, display: element.style.display});
 				}
 			}
 		}
 	}
 
-	for (var index = 0; index < jcbUpdateFieldConditionsBaseline.length; index++)
+	for (var index = 0; index < updateFieldConditionsBaseline.length; index++)
 	{
-		var baseline = jcbUpdateFieldConditionsBaseline[index];
+		var baseline = updateFieldConditionsBaseline[index];
 		baseline.element.style.display = baseline.display;
 	}
 	var required = ["datalenght_other","datadefault_other","indexes","datalenght","on_get_model_field","on_save_model_field","datatype","null_switch","store"];
@@ -82,7 +82,7 @@ function jcbUpdateFieldConditions()
 	vvvvvwe(fieldtype_vvvvvwe);
 }
 
-document.addEventListener('DOMContentLoaded', jcbUpdateFieldConditions);
+document.addEventListener('DOMContentLoaded', updateFieldConditions);
 
 // the vvvvvvv function
 function vvvvvvv(datalenght_vvvvvvv)
@@ -852,7 +852,7 @@ function getFieldTypeProperties(fieldtype, db) {
 				// unselectChoicesFieldValue('#jform_store');
 			}
 			// Defaults can change selectors without emitting a change event.
-			jcbUpdateFieldConditions();
+			updateFieldConditions();
 		})
 		.catch(error => {
 			console.error('[getFieldTypeProperties] Error:', error);
@@ -1111,7 +1111,7 @@ function getFieldPropertyDesc_server(fieldtype, property) {
  * @since  6.2.1 Reconcile authored resets with server-owned conditions.
  */
 function dbChecker(type) {
-	jcbUpdateFieldConditions();
+	updateFieldConditions();
 	const noDatabase = type === 'note' || type === 'spacer';
 	if (noDatabase) {
 		unselectChoicesFieldValue('#jform_datatype');
@@ -1129,7 +1129,7 @@ function dbChecker(type) {
 		const group = el.closest('.control-group');
 		if (group) group.style.display = noDatabase ? 'none' : '';
 	});
-	jcbUpdateFieldConditions();
+	updateFieldConditions();
 }
 
 /**

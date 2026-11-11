@@ -39,7 +39,7 @@ final class ConditionalRule
 	 * @var    string
 	 * @since  6.2.1
 	 */
-	private const FIELD = '__jcb_conditional_required';
+	private const FIELD = '__conditional_required';
 
 	/**
 	 * Active validations, isolated by the exact original Form instance.
@@ -318,7 +318,7 @@ final class ConditionalRule
 	 */
 	private function installField(): bool
 	{
-		$element = new \SimpleXMLElement('<field name="__jcb_conditional_required" type="hidden" filter="unset" validate="jcbconditionalrequired" />');
+		$element = new \SimpleXMLElement('<field name="__conditional_required" type="hidden" filter="unset" validate="conditionalrequired" />');
 
 		if (!$this->form->setField($element, $this->group))
 		{

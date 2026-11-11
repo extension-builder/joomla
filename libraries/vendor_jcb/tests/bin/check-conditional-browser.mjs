@@ -111,7 +111,7 @@ function browser(fixture) {
       if (initial) {
         for (const callback of ready) callback();
       } else if (step.event === 'refresh') {
-        context.jcbUpdateParityConditions();
+        context.updateParityConditions();
       } else {
         const name = step.event ?? fixture.conditions[0].match_name;
         const callback = listeners.get(`change:#jform_${name}`)
@@ -141,7 +141,7 @@ for (const fixture of cases) {
   }
 
   const page = browser(fixture);
-  assert.equal(typeof page.context.jcbUpdateParityConditions, 'function', fixture.name);
+  assert.equal(typeof page.context.updateParityConditions, 'function', fixture.name);
   assert.ok(!fixture.script.includes('not_required'), fixture.name);
   assert.ok(!fixture.script.includes('updateFieldRequired'), fixture.name);
   for (const [index, step] of fixture.steps.entries()) {
@@ -150,7 +150,7 @@ for (const fixture of cases) {
     assert.equal(step.phpRequired.details ?? false, step.required, `${label}: PHP required`);
     assert.equal(page.fields.get('details').required, step.required, `${label}: browser required`);
     assert.equal(page.visible('details'), step.visible ?? step.required, `${label}: browser visibility`);
-    assert.equal(page.context.jcbUpdateParityConditionsBaseline.length, fixture.baselineCount ?? 1, `${label}: baseline`);
+    assert.equal(page.context.updateParityConditionsBaseline.length, fixture.baselineCount ?? 1, `${label}: baseline`);
     transitions++;
   }
 }
