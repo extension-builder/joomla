@@ -852,4 +852,3 @@ final class EditView
 		}
 	}
 }
-
