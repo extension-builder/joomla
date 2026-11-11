@@ -34,6 +34,8 @@ use VDM\Joomla\Componentbuilder\Compiler\Field\Groups as FieldGroups;
 use VDM\Joomla\Componentbuilder\Compiler\Library\IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Createdate;
 use VDM\Joomla\Componentbuilder\Compiler\Model\Modifieddate;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Unique;
 
@@ -438,18 +440,20 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * A required target gets its global flag, its switching and the validation override.
+	 * A required target keeps browser switching and publishes server-owned conditions.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testARequiredTargetGetsItsFlagAndValidationOverride(): void
+	public function testARequiredTargetSwitchesWithoutPostingValidationPolicy(): void
 	{
 		$this->subject()->get(self::view([self::condition([
 			'target_field' => [['name' => 'colour', 'type' => 'text', 'required' => 'yes']],
 		])]));
 
 		$this->assertSame(self::EXPECTED_REQUIRED_FILE, $this->scripts->get('look.fileScript'));
+		$this->assertStringNotContainsString('not_required', $this->scripts->get('look.fileScript'));
+		$this->assertStringNotContainsString('updateFieldRequired', $this->scripts->get('look.fileScript'));
 		$this->assertSame(['colour'], $this->fixes->get('look'));
 		$this->assertSame([
 			[
@@ -515,6 +519,121 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		$this->assertSame(['colour'], $groups[0]['targets']);
 		$this->assertTrue($groups[0]['toggle']);
 		$this->assertSame([true, true], array_column($groups[0]['matches'], 'array'));
+	}
+
+	/**
+	 * Each scalar relation is one complete predicate in the shared AND group.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testScalarRelationOptionsCannotEscapeTheAndGroup(): void
+	{
+		$targets = [['name' => 'colour', 'type' => 'text', 'required' => 'yes']];
+		$this->subject()->get(self::view([
+			self::condition([
+				'match_type' => 'radio', 'target_relation' => 1,
+				'target_field' => $targets,
+			]),
+			self::condition([
+				'match_field' => 'f-b', 'match_name' => 'level', 'match_type' => 'radio',
+				'match_options' => "yes\nno", 'target_relation' => 1,
+				'target_field' => $targets,
+			]),
+		]));
+
+		$groups = $this->fixes->getConditions('look');
+		$this->assertCount(1, $groups);
+		$this->assertSame([false, false], array_column($groups[0]['matches'], 'array'));
+		$this->assertStringContainsString(
+			"if ((kind_vvvvvvv == 'one' || kind_vvvvvvv == 'two')"
+			. " && (level_vvvvvvv == 'yes' || level_vvvvvvv == 'no'))",
+			$this->scripts->get('look.fileScript')
+		);
+	}
+
+	/**
+	 * A related custom checkbox group uses its own extended input shape.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testRelatedCustomFieldUsesItsOwnExtendedType(): void
+	{
+		$targets = [['name' => 'colour', 'type' => 'text', 'required' => 'yes']];
+		$this->subject()->get(self::view([
+			self::condition([
+				'match_type' => 'radio', 'target_relation' => 1,
+				'target_field' => $targets,
+			]),
+			self::condition([
+				'match_field' => 'f-b', 'match_name' => 'level', 'match_type' => 'custom_choices',
+				'match_extends' => 'checkboxes', 'match_options' => 'yes',
+				'target_relation' => 1, 'target_field' => $targets,
+			]),
+		]));
+
+		$this->assertStringContainsString(
+			"jQuery('#jform_level input[type=checkbox]').each(function()",
+			$this->scripts->get('look.fileScript')
+		);
+		$this->assertSame([true, true], array_column(
+			$this->fixes->getConditions('look')[0]['matches'], 'array'
+		));
+	}
+
+	/**
+	 * Invalid source conditions fail at compile time with an actionable location.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testUnsupportedOperatorTypePairStopsInvalidJavascriptGeneration(): void
+	{
+		$subject = $this->subject();
+		$this->expectException(\UnexpectedValueException::class);
+		$this->expectExceptionMessage('view "look": field "kind", operator 1, type "text"');
+		$subject->get(self::view([self::condition(['match_type' => 'text'])]));
+	}
+
+	/**
+	 * Old custom calls remain callable without creating server rules or transport.
+	 *
+	 * @param   bool  $footer  Whether the caller is in the PHP-capable footer.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('legacyCustomLocations')]
+	public function testLegacyCustomCallsReceiveOnlyAnInertCompatibilityFunction(bool $footer): void
+	{
+		if ($footer)
+		{
+			$this->footercode = ['look' => "<?php echo ''; ?>updateFieldRequired('colour', 1);"];
+		}
+		else
+		{
+			$this->customcode = ['view_file' => "updateFieldRequired('colour', 1);"];
+		}
+		$this->subject()->get(self::view());
+
+		$file = $this->scripts->get('look.fileScript');
+		$this->assertStringContainsString("function updateFieldRequired(name, status)\n{\n}", $file);
+		$this->assertStringContainsString('@deprecated 6.2.1', $file);
+		$this->assertStringNotContainsString('not_required', $file);
+		$this->assertStringNotContainsString('updateLookConditions', $file);
+		$this->assertSame([], $this->fixes->getConditions('look'));
+	}
+
+	/**
+	 * Both authored edit-script locations may still reference the legacy helper.
+	 *
+	 * @return  array<string, array{bool}>
+	 * @since   6.2.1
+	 */
+	public static function legacyCustomLocations(): array
+	{
+		return ['file' => [false], 'PHP footer' => [true]];
 	}
 
 	/**
@@ -695,18 +814,149 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Every target keeps configured indentation and traceable generated comments.
+	 *
+	 * @param   string  $target  The target namespace segment.
+	 * @param   string  $indent  One configured indentation level.
+	 * @param   bool    $debug   Whether compiler source references are enabled.
+	 *
+	 * @return  void
+	 *
+	 * @since   6.2.1
+	 */
+	#[DataProvider('conditionFormats')]
+	public function testConditionReconciliationUsesConfiguredFormatting(string $target, string $indent, bool $debug): void
+	{
+		(new ReflectionProperty(Indent::class, 'indent'))->setValue(null, $indent);
+		(new ReflectionProperty(Indent::class, 'bucket'))->setValue(null, []);
+		(new ReflectionProperty(Line::class, 'add'))->setValue(null, $debug);
+		$subject = $this->subject('VDM\\Joomla\\Componentbuilder\\Compiler\\Architecture\\'
+			. $target . '\\AdminView\\ViewScript');
+		$subject->get(self::view([self::condition([
+			'target_field' => [['name' => 'colour', 'type' => 'text', 'required' => 'yes']],
+		])]));
+		$script = $subject->script('look', 'fileScript');
+
+		$this->assertStringContainsString(PHP_EOL . $indent . 'if (updateLookConditionsBaseline === null)', $script);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 5) . 'elements.push(element);', $script);
+		$this->assertStringContainsString(PHP_EOL . str_repeat($indent, 2) . "jQuery('#jform_colour').removeAttr('required');", $script);
+		$this->assertStringNotContainsString('not_required', $script);
+		if ($indent === '    ')
+		{
+			$this->assertStringNotContainsString("\t", $script);
+		}
+		if ($debug)
+		{
+			$this->assertMatchesRegularExpression('/^\/\/ \[' . preg_quote(ViewScript::class, '/') . ' [0-9]+\] Original display/', $script);
+			$this->assertMatchesRegularExpression('/\/\/ \[' . preg_quote(TargetControlsScript::class, '/') . ' [0-9]+\] Remove required attributes/', $script);
+		}
+		else
+		{
+			$this->assertStringStartsWith('// Original display and required state', $script);
+			$this->assertStringNotContainsString(ViewScript::class, $script);
+			$this->assertStringNotContainsString(TargetControlsScript::class, $script);
+		}
+	}
+
+	/**
+	 * Cover all target identities with both supported formatting and debug states.
+	 *
+	 * @return  array<string, array{string,string,bool}>
+	 *
+	 * @since   6.2.1
+	 */
+	public static function conditionFormats(): array
+	{
+		return [
+			'Joomla 3 tabs without source lines' => ['JoomlaThree', "\t", false],
+			'Joomla 4 spaces with source lines' => ['JoomlaFour', '    ', true],
+			'Joomla 5 tabs with source lines' => ['JoomlaFive', "\t", true],
+			'Joomla 6 spaces without source lines' => ['JoomlaSix', '    ', false],
+		];
+	}
+
+	/**
 	 * The generated javascript this contract protects, captured from the compiler.
 	 *
 	 * @var    string
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_SIMPLE_FILE = <<<'JS'
-		// Initial Script
-		document.addEventListener('DOMContentLoaded', function()
+		// Original display and required state are captured before conditions run.
+		var updateLookConditionsBaseline = null;
+
+		/**
+		 * Recompute this view's conditions in definition order from the original baseline.
+		 * Call after authored code assigns watched values, including AJAX defaults.
+		 * @return {void}
+		 * @since 6.2.1
+		 */
+		function updateLookConditions()
 		{
+			if (updateLookConditionsBaseline === null)
+			{
+				updateLookConditionsBaseline = {containers: [], required: []};
+				var selectors = ["#jform_colour"];
+				var elements = [];
+				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
+				{
+					var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
+					for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
+					{
+						var element = containers[containerIndex];
+						if (element && element.style && elements.indexOf(element) === -1)
+						{
+							elements.push(element);
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
+						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
+					}
+				}
+			}
+
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
+			{
+				var baseline = updateLookConditionsBaseline.containers[index];
+				baseline.element.style.display = baseline.display;
+			}
+			var required = updateLookConditionsBaseline.required;
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
+			}
+
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
-		});
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -767,20 +1017,8 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		<script type="text/javascript">
 
-		// #jform_kind listeners for kind_vvvvvvv function
-		jQuery('#jform_kind').on('keyup',function()
-		{
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			vvvvvvv(kind_vvvvvvv);
-
-		});
-		jQuery('#adminForm').on('change', '#jform_kind',function (e)
-		{
-			e.preventDefault();
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			vvvvvvv(kind_vvvvvvv);
-
-		});
+		jQuery('#jform_kind').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_kind', updateLookConditions);
 
 		</script>
 		JS;
@@ -792,12 +1030,81 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_NO_TOGGLE_FILE = <<<'JS'
-		// Initial Script
-		document.addEventListener('DOMContentLoaded', function()
+		// Original display and required state are captured before conditions run.
+		var updateLookConditionsBaseline = null;
+
+		/**
+		 * Recompute this view's conditions in definition order from the original baseline.
+		 * Call after authored code assigns watched values, including AJAX defaults.
+		 * @return {void}
+		 * @since 6.2.1
+		 */
+		function updateLookConditions()
 		{
+			if (updateLookConditionsBaseline === null)
+			{
+				updateLookConditionsBaseline = {containers: [], required: []};
+				var selectors = ["#jform_colour"];
+				var elements = [];
+				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
+				{
+					var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
+					for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
+					{
+						var element = containers[containerIndex];
+						if (element && element.style && elements.indexOf(element) === -1)
+						{
+							elements.push(element);
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
+						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
+					}
+				}
+			}
+
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
+			{
+				var baseline = updateLookConditionsBaseline.containers[index];
+				baseline.element.style.display = baseline.display;
+			}
+			var required = updateLookConditionsBaseline.required;
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
+			}
+
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
-		});
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -850,12 +1157,81 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_TEXT_FILE = <<<'JS'
-		// Initial Script
-		document.addEventListener('DOMContentLoaded', function()
+		// Original display and required state are captured before conditions run.
+		var updateLookConditionsBaseline = null;
+
+		/**
+		 * Recompute this view's conditions in definition order from the original baseline.
+		 * Call after authored code assigns watched values, including AJAX defaults.
+		 * @return {void}
+		 * @since 6.2.1
+		 */
+		function updateLookConditions()
 		{
+			if (updateLookConditionsBaseline === null)
+			{
+				updateLookConditionsBaseline = {containers: [], required: []};
+				var selectors = ["#jform_colour"];
+				var elements = [];
+				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
+				{
+					var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
+					for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
+					{
+						var element = containers[containerIndex];
+						if (element && element.style && elements.indexOf(element) === -1)
+						{
+							elements.push(element);
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
+						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
+					}
+				}
+			}
+
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
+			{
+				var baseline = updateLookConditionsBaseline.containers[index];
+				baseline.element.style.display = baseline.display;
+			}
+			var required = updateLookConditionsBaseline.required;
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
+			}
+
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
-		});
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -888,15 +1264,81 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_REQUIRED_FILE = <<<'JS'
-		// Some Global Values
-		jform_vvvvvvvvvv_required = false;
+		// Original display and required state are captured before conditions run.
+		var updateLookConditionsBaseline = null;
 
-		// Initial Script
-		document.addEventListener('DOMContentLoaded', function()
+		/**
+		 * Recompute this view's conditions in definition order from the original baseline.
+		 * Call after authored code assigns watched values, including AJAX defaults.
+		 * @return {void}
+		 * @since 6.2.1
+		 */
+		function updateLookConditions()
 		{
+			if (updateLookConditionsBaseline === null)
+			{
+				updateLookConditionsBaseline = {containers: [], required: []};
+				var selectors = ["#jform_colour"];
+				var elements = [];
+				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
+				{
+					var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
+					for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
+					{
+						var element = containers[containerIndex];
+						if (element && element.style && elements.indexOf(element) === -1)
+						{
+							elements.push(element);
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
+						}
+					}
+				}
+				var requiredNames = ["colour"];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
+					}
+				}
+			}
+
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
+			{
+				var baseline = updateLookConditionsBaseline.containers[index];
+				baseline.element.style.display = baseline.display;
+			}
+			var required = updateLookConditionsBaseline.required;
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
+			}
+
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			vvvvvvv(kind_vvvvvvv);
-		});
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -918,28 +1360,18 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			if (kind)
 			{
 				jQuery('#jform_colour').closest('.control-group').show();
-				// add required attribute to colour field
-				if (jform_vvvvvvvvvv_required)
-				{
-					updateFieldRequired('colour',0);
-					jQuery('#jform_colour').prop('required','required');
-					jQuery('#jform_colour').attr('aria-required',true);
-					jQuery('#jform_colour').addClass('required');
-					jform_vvvvvvvvvv_required = false;
-				}
+				// Add required attributes to colour.
+				jQuery('#jform_colour').prop('required', true);
+				jQuery('#jform_colour').attr('aria-required', true);
+				jQuery('#jform_colour').addClass('required');
 			}
 			else
 			{
 				jQuery('#jform_colour').closest('.control-group').hide();
-				// remove required attribute from colour field
-				if (!jform_vvvvvvvvvv_required)
-				{
-					updateFieldRequired('colour',1);
-					jQuery('#jform_colour').removeAttr('required');
-					jQuery('#jform_colour').removeAttr('aria-required');
-					jQuery('#jform_colour').removeClass('required');
-					jform_vvvvvvvvvv_required = true;
-				}
+				// Remove required attributes from colour.
+				jQuery('#jform_colour').removeAttr('required');
+				jQuery('#jform_colour').removeAttr('aria-required');
+				jQuery('#jform_colour').removeClass('required');
 			}
 		}
 
@@ -952,87 +1384,6 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 				return true;
 			}
 			return false;
-		}
-
-		/**
-		 * Update the "not required" field list by adding or removing a field name.
-		 *
-		 * Mirrors the original jQuery logic exactly but uses pure JavaScript.
-		 *
-		 * @param  {string}  name    The field name to add or remove.
-		 * @param  {number}  status  1 to add as not required, 0 to remove.
-		 *
-		 * @return {void}
-		 * @since  3.1.3
-		 */
-		function updateFieldRequired(name, status) {
-			// Check if #jform_not_required exists
-			const notRequiredField = document.getElementById('jform_not_required');
-			if (!notRequiredField) {
-				return;
-			}
-
-			// Split the comma-separated list into an array
-			let not_required = notRequiredField.value ? notRequiredField.value.split(',') : [];
-
-			// Add or remove the field name from the list
-			if (status == 1) {
-				not_required.push(name);
-			} else {
-				not_required = removeFieldFromNotRequired(not_required, name);
-			}
-
-			// Clean and deduplicate the list
-			const fixedList = fixNotRequiredArray(not_required);
-
-			// Write back the updated comma-separated list
-			notRequiredField.value = fixedList.toString();
-		}
-
-		/**
-		 * Remove a specific field name from the "not required" array.
-		 *
-		 * @param  {Array<string>} array  The list of not-required field names.
-		 * @param  {string}        what   The field name to remove.
-		 *
-		 * @return {Array<string>}        The updated array.
-		 * @since  3.1.3
-		 */
-		function removeFieldFromNotRequired(array, what) {
-			return array.filter(function (element) {
-				return element !== what;
-			});
-		}
-
-		/**
-		 * Deduplicate and clean a "not required" array.
-		 *
-		 * @param  {Array<string>} array  The array to fix.
-		 *
-		 * @return {Array<string>}        A cleaned, unique array.
-		 * @since  3.1.3
-		 */
-		function fixNotRequiredArray(array) {
-			const seen = {};
-			return removeEmptyFromNotRequiredArray(array).filter(function (item) {
-				return seen.hasOwnProperty(item) ? false : (seen[item] = true);
-			});
-		}
-
-		/**
-		 * Remove empty or invalid entries from a "not required" array.
-		 *
-		 * Also removes the literal '一_一' token (legacy quirk preserved for compatibility).
-		 *
-		 * @param  {Array<string>} array  The array to process.
-		 *
-		 * @return {Array<string>}        The cleaned array.
-		 * @since  3.1.3
-		 */
-		function removeEmptyFromNotRequiredArray(array) {
-			return array.filter(function (el) {
-				return el && el.length > 0 && el !== '一_一';
-			});
 		}
 
 		// the isSet function
@@ -1052,13 +1403,82 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 * @since  6.1.7
 	 */
 	private const EXPECTED_CHAINED_FILE = <<<'JS'
-		// Initial Script
-		document.addEventListener('DOMContentLoaded', function()
+		// Original display and required state are captured before conditions run.
+		var updateLookConditionsBaseline = null;
+
+		/**
+		 * Recompute this view's conditions in definition order from the original baseline.
+		 * Call after authored code assigns watched values, including AJAX defaults.
+		 * @return {void}
+		 * @since 6.2.1
+		 */
+		function updateLookConditions()
 		{
+			if (updateLookConditionsBaseline === null)
+			{
+				updateLookConditionsBaseline = {containers: [], required: []};
+				var selectors = ["#jform_colour"];
+				var elements = [];
+				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
+				{
+					var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
+					for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
+					{
+						var element = containers[containerIndex];
+						if (element && element.style && elements.indexOf(element) === -1)
+						{
+							elements.push(element);
+							updateLookConditionsBaseline.containers.push({element: element, display: element.style.display});
+						}
+					}
+				}
+				var requiredNames = [];
+				for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)
+				{
+					var controls = jQuery('#jform_' + requiredNames[requiredIndex]).get();
+					for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)
+					{
+						var element = controls[controlIndex];
+						var control = jQuery(element);
+						updateLookConditionsBaseline.required.push({
+							element: element,
+							required: !control.is(':disabled')
+								&& (Boolean(element.required) || element.hasAttribute('required') || control.hasClass('required'))
+						});
+					}
+				}
+			}
+
+			for (var index = 0; index < updateLookConditionsBaseline.containers.length; index++)
+			{
+				var baseline = updateLookConditionsBaseline.containers[index];
+				baseline.element.style.display = baseline.display;
+			}
+			var required = updateLookConditionsBaseline.required;
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).prop('required', true)
+						.attr('aria-required', true).addClass('required');
+				}
+			}
+
 			var kind_vvvvvvv = jQuery("#jform_kind").val();
 			var level_vvvvvvv = jQuery("#jform_level").val();
 			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
-		});
+
+			for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
+			{
+				if (!required[requiredIndex].required)
+				{
+					jQuery(required[requiredIndex].element).removeAttr('required')
+						.removeAttr('aria-required').removeClass('required');
+				}
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv,level_vvvvvvv)
@@ -1142,39 +1562,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		<script type="text/javascript">
 
-		// #jform_kind listeners for kind_vvvvvvv function
-		jQuery('#jform_kind').on('keyup',function()
-		{
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			var level_vvvvvvv = jQuery("#jform_level").val();
-			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
+		jQuery('#jform_kind').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_kind', updateLookConditions);
 
-		});
-		jQuery('#adminForm').on('change', '#jform_kind',function (e)
-		{
-			e.preventDefault();
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			var level_vvvvvvv = jQuery("#jform_level").val();
-			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
-
-		});
-
-		// #jform_level listeners for level_vvvvvvv function
-		jQuery('#jform_level').on('keyup',function()
-		{
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			var level_vvvvvvv = jQuery("#jform_level").val();
-			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
-
-		});
-		jQuery('#adminForm').on('change', '#jform_level',function (e)
-		{
-			e.preventDefault();
-			var kind_vvvvvvv = jQuery("#jform_kind").val();
-			var level_vvvvvvv = jQuery("#jform_level").val();
-			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
-
-		});
+		jQuery('#jform_level').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_level', updateLookConditions);
 
 		</script>
 		JS;
