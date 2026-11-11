@@ -1,0 +1,10 @@
+{
+  "baseline_commit": "2dab8eb3249185d18b11a55694adb559c349addc",
+  "baseline_tree": "fc171f5c28f7315a3ed013e41d88d486392c5985",
+  "candidate_commit": "286675eeff046b925f2b94ee13bbe29f937edda1",
+  "candidate_tree": "573e69ecfe14fd7cb76ad0e8842ddad7443f570d",
+  "component": "3745af8f-f96b-4e17-831e-eb4062cd4389",
+  "definition_snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+  "remote_candidate_commit": "23f01da023e5f5dc79f3ff3af20eb6be9473c8e2",
+  "source": "Candidate complete git archive; original recovery baseline archives verified against their recorded complete manifests"
+}

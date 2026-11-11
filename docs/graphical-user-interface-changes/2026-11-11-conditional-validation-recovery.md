@@ -354,7 +354,13 @@ this later follow-up has already run in that job.
 The complete local recovery suite after both the selector-shape guard and
 rendered-form baseline cap passes **4,880 tests / 59,320 assertions**, with zero
 errors, failures or warnings. Exact generated model/rule and browser preview
-checks pass. Hosted checks are rerun on the final published head.
+checks pass. The same implementation is green in hosted PHP 8.3/8.4 unit jobs, all 40 GUI
+tests, API integration and the Joomla 3/4/5/6 compiler checks. The final native
+conditional compile separately verifies 5,407 deployed source hashes and all
+four complete packages; 1,355 PHP and 70 JavaScript files pass syntax checks.
+The [updated development record](../development/conditional-validation-recovery.md)
+links exact workflow runs and the separate final compilation evidence. Earlier
+counts in this record remain historical verification of the earlier revisions.
 
 ## Risks, limitations, and rollback
 

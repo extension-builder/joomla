@@ -1,0 +1,98 @@
+{
+  "3": {
+    "added": [
+      "admin/models/rules/conditionalrequired.php"
+    ],
+    "baseline_files": 1366,
+    "baseline_package_sha256": "80f5468db9d228fe8c13f8c2ed26aed5705b6c0b254002e63fecc45a7e8d36df",
+    "candidate_files": 1366,
+    "candidate_package_sha256": "331b7412a30d2bb3a66ecac849a1013a902e1544d3cde1784f458f25f313030d",
+    "full_power_evidence_equal": true,
+    "modified": [
+      "README.md",
+      "admin/README.txt",
+      "admin/models/greeting.php",
+      "admin/views/greeting/tmpl/edit.php",
+      "media/js/greeting.js",
+      "site/models/forms/greeting.js",
+      "site/models/greeting.php",
+      "site/views/greeting/tmpl/edit.php"
+    ],
+    "removed": [
+      "admin/models/rules/jcbconditionalrequired.php"
+    ],
+    "unchanged_files": 1357
+  },
+  "4": {
+    "added": [
+      "admin/src/Rule/ConditionalrequiredRule.php"
+    ],
+    "baseline_files": 288,
+    "baseline_package_sha256": "46ddc0f7b39661d3886c20ba9743033adf936614e6a443954dd30f1ea5e3d0f0",
+    "candidate_files": 288,
+    "candidate_package_sha256": "f65466ac6d4efe56f3aa1f67805c83ee10a2db4722bdec917f96f57c0a963ac5",
+    "full_power_evidence_equal": true,
+    "modified": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "removed": [
+      "admin/src/Rule/JcbconditionalrequiredRule.php"
+    ],
+    "unchanged_files": 279
+  },
+  "5": {
+    "added": [
+      "admin/src/Rule/ConditionalrequiredRule.php"
+    ],
+    "baseline_files": 293,
+    "baseline_package_sha256": "9aa2a32b32ed26f3df06d0a1df9f5a7ac1590b89fe21f8f00e38589cb8802d44",
+    "candidate_files": 293,
+    "candidate_package_sha256": "be6d40f06fe6f8849c1c83bd8d8b8e2d84f777458e4f97a96f34ce1ab14bfe61",
+    "full_power_evidence_equal": true,
+    "modified": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "removed": [
+      "admin/src/Rule/JcbconditionalrequiredRule.php"
+    ],
+    "unchanged_files": 284
+  },
+  "6": {
+    "added": [
+      "admin/src/Rule/ConditionalrequiredRule.php"
+    ],
+    "baseline_files": 249,
+    "baseline_package_sha256": "08b12398079e70abcef424779726295a4639e390249d921cfce078480a93626a",
+    "candidate_files": 249,
+    "candidate_package_sha256": "02ec6a2984c1d5309b3dd8e36b5a2bdda5d3cb0d5d48a087d21f0644c4075182",
+    "full_power_evidence_equal": true,
+    "modified": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "removed": [
+      "admin/src/Rule/JcbconditionalrequiredRule.php"
+    ],
+    "unchanged_files": 240
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "3": {
+    "baseline": [
+      "Warning: Undefined array key \"mainAccordionName\" in libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Dashboard/View.php on line 278"
+    ],
+    "candidate": [
+      "Warning: Undefined array key \"mainAccordionName\" in libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaThree/Dashboard/View.php on line 278"
+    ],
+    "identical": true
+  },
+  "4": {
+    "baseline": [],
+    "candidate": [],
+    "identical": true
+  },
+  "5": {
+    "baseline": [],
+    "candidate": [],
+    "identical": true
+  },
+  "6": {
+    "baseline": [],
+    "candidate": [],
+    "identical": true
+  }
+}

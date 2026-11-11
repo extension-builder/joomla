@@ -1,0 +1,18 @@
+{
+  "3": {
+    "matched_manifest_files": 1366,
+    "package_sha256": "80f5468db9d228fe8c13f8c2ed26aed5705b6c0b254002e63fecc45a7e8d36df"
+  },
+  "4": {
+    "matched_manifest_files": 288,
+    "package_sha256": "46ddc0f7b39661d3886c20ba9743033adf936614e6a443954dd30f1ea5e3d0f0"
+  },
+  "5": {
+    "matched_manifest_files": 293,
+    "package_sha256": "9aa2a32b32ed26f3df06d0a1df9f5a7ac1590b89fe21f8f00e38589cb8802d44"
+  },
+  "6": {
+    "matched_manifest_files": 249,
+    "package_sha256": "08b12398079e70abcef424779726295a4639e390249d921cfce078480a93626a"
+  }
+}
