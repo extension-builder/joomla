@@ -1,0 +1,27 @@
+{
+    "view": "admin_view",
+    "baseline": "2dab8eb3249185d18b11a55694adb559c349addc",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/Admin_viewModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "add_sql",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "source"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

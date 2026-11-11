@@ -133,6 +133,13 @@ jobs:
         working-directory: libraries/vendor_jcb/tests
         run: node bin/check-conditional-browser.mjs
 
+      - name: Verify installed conditional previews
+        if: matrix.php == '8.3'
+        working-directory: libraries/vendor_jcb/tests
+        run: |
+          php bin/regenerate-conditional-model-preview.php
+          php bin/regenerate-conditional-browser-preview.php
+
       - name: Audit locked test dependencies
         run: composer --working-dir=libraries/vendor_jcb/tests audit --locked
 

@@ -1,0 +1,59 @@
+{
+    "view": "library",
+    "baseline": "2dab8eb3249185d18b11a55694adb559c349addc",
+    "provenance": "Exact normalized condition groups extracted from baseline admin/src/Model/LibraryModel.php; no condition changes and not an authoritative maintenance-package export.",
+    "groups": [
+        {
+            "matches": [
+                {
+                    "name": "how",
+                    "behavior": 1,
+                    "options": [
+                        "3"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                },
+                {
+                    "name": "target",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": true,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "php_setdocument"
+            ],
+            "show": true,
+            "toggle": true
+        },
+        {
+            "matches": [
+                {
+                    "name": "target",
+                    "behavior": 1,
+                    "options": [
+                        "1"
+                    ],
+                    "user": false,
+                    "checkbox": false,
+                    "array": false,
+                    "supported": true
+                }
+            ],
+            "targets": [
+                "how",
+                "type"
+            ],
+            "show": true,
+            "toggle": true
+        }
+    ]
+}

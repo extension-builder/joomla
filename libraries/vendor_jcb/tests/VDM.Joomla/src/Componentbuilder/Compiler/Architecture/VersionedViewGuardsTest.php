@@ -107,34 +107,6 @@ GEN;
 GEN;
 
 	/**
-	 * The validation method this contract protects, captured from the compiler.
-	 *
-	 * @var    string
-	 * @since  6.1.7
-	 */
-	private const EXPECTED_VALIDATION = <<<'GEN'
-
-
-	/**
-	 * Method to validate the form data.
-	 *
-	 * @param   Form   $form   The form to validate against.
-	 * @param   array   $data   The data to validate.
-	 * @param   string  $group  The name of the field group to validate.
-	 *
-	 * @return  mixed  Array of filtered data if valid, false otherwise.
-	 *
-	 * @see     JFormRule
-	 * @see     JFilterInput
-	 * @since   12.2
-	 */
-	public function validate($form, $data, $group = null)
-	{
-		return parent::validate($form, $data, $group);
-	}
-GEN;
-
-	/**
 	 * The unique fields method this contract protects, captured from the compiler.
 	 *
 	 * @var    string
@@ -393,19 +365,21 @@ GEN;
 	}
 
 	/**
-	 * A view the compiler found fixes for is given the method that applies them.
+	 * Browser-only names without structured requirements add no unused validation.
 	 *
 	 * @return  void
 	 * @since   6.1.7
+	 * @since   6.2.1  Only structured condition groups enable model declarations.
 	 */
-	public function testAViewWithFixesIsGivenTheValidationMethod(): void
+	public function testBrowserOnlyFixesDoNotGenerateUnusedValidation(): void
 	{
 		$fixes = new ValidationFixRegistry();
 		$fixes->set('demo', ['conditional_name']);
 
 		$subject = $this->renderer(ValidationFix::class, ['validationfix' => $fixes]);
 
-		$this->assertSame(self::EXPECTED_VALIDATION, $subject->get('demo', 'Demo'));
+		$this->assertSame('', $subject->get('demo', 'Demo'));
+		$this->assertSame('', $subject->getProperties('demo'));
 	}
 
 	/**
