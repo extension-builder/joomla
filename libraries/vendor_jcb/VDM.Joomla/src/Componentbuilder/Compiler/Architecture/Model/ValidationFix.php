@@ -16,29 +16,29 @@ use VDM\Joomla\Componentbuilder\Compiler\Builder\ValidationFix as ValidationFixR
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
-use VDM\Joomla\Utilities\ArrayHelper;
 
 
 /**
- * Model Validation Fix Class.
- * 
- * Builds server-side conditional requirements from the same normalized
- * definitions used by the administrator form script.
- * 
- * @since 6.1.7
+ * Generate model declarations for native conditional form validation.
+ *
+ * The model owns its definitions and stored-record access. The shared generated
+ * rule owns evaluation and temporary form state at Joomla's validation boundary.
+ *
+ * @since  6.1.7
+ * @since  6.2.1  Separate model declarations from the reusable rule implementation.
  */
 final class ValidationFix
 {
 	/**
-	 * The Validation Fix Builder Class.
+	 * Normalized conditional requirements, shared with the browser generator.
 	 *
-	 * @var   ValidationFixRegistry
-	 * @since 6.1.7
+	 * @var    ValidationFixRegistry
+	 * @since  6.1.7
 	 */
 	protected ValidationFixRegistry $validationfix;
 
 	/**
-	 * The compiler registry for generated validation rule files.
+	 * The registry of generated validation rules.
 	 *
 	 * @var    CompilerRegistry
 	 * @since  6.2.0
@@ -46,7 +46,7 @@ final class ValidationFix
 	protected CompilerRegistry $registry;
 
 	/**
-	 * The native conditional rule emitter.
+	 * The shared native conditional rule emitter.
 	 *
 	 * @var    ConditionalRule
 	 * @since  6.2.0
@@ -54,14 +54,19 @@ final class ValidationFix
 	protected ConditionalRule $conditionalrule;
 
 	/**
-	 * Constructor.
+	 * Construct the model emitter from its shared compilation state.
 	 *
-	 * @param   ValidationFixRegistry  $validationfix   Normalized condition definitions.
-	 * @param   CompilerRegistry       $registry        Generated rule registry.
-	 * @param   ConditionalRule        $conditionalrule Native rule emitter.
+	 * @param   ValidationFixRegistry  $validationfix    Normalized condition definitions.
+	 * @param   CompilerRegistry       $registry         Generated rule registry.
+	 * @param   ConditionalRule        $conditionalrule  Native rule emitter.
+	 *
 	 * @since   6.2.0
 	 */
-	public function __construct(ValidationFixRegistry $validationfix, CompilerRegistry $registry, ConditionalRule $conditionalrule)
+	public function __construct(
+		ValidationFixRegistry $validationfix,
+		CompilerRegistry $registry,
+		ConditionalRule $conditionalrule
+	)
 	{
 		$this->validationfix = $validationfix;
 		$this->registry = $registry;
@@ -69,385 +74,206 @@ final class ValidationFix
 	}
 
 	/**
-	 * Build the validation fix statements of a view.
+	 * Build the view's condition property in the model's property section.
 	 *
-	 * Only a view that was found to need one gets it.
+	 * Export definition values independently of static template substitutions so
+	 * that multiline strings and values resembling placeholders remain exact.
+	 *
+	 * @param   string  $view  The single view name.
+	 *
+	 * @return  string  The declaration, or an empty string for an unaffected view.
+	 *
+	 * @since   6.2.1
+	 */
+	public function getProperties(string $view): string
+	{
+		$groups = $this->validationfix->getConditions($view);
+		if ($groups === [])
+		{
+			return '';
+		}
+
+		return PHP_EOL . PHP_EOL . Indent::_(1) . '/**'
+			. PHP_EOL . Indent::_(1) . ' * Conditional requirements generated from this view\'s field conditions.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * Matches within a group are combined with AND. Groups retain their'
+			. PHP_EOL . Indent::_(1) . ' * authored order; the shared rule evaluates filtered values before'
+			. PHP_EOL . Indent::_(1) . ' * Joomla checks required fields. Browser exemption lists are ignored.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @var    array'
+			. PHP_EOL . Indent::_(1) . ' * @since  6.2.1'
+			. PHP_EOL . Indent::_(1) . ' */'
+			. PHP_EOL . Indent::_(1) . 'protected $conditionalRequirements = '
+			. $this->export($groups, 1) . ';';
+	}
+
+	/**
+	 * Build the native validation wrapper and named model data resolver.
+	 *
+	 * Only normalized server conditions enable the generated rule. A historical
+	 * browser-only field list cannot create an unused override or waive a field.
 	 *
 	 * @param   string  $view       The single view name.
-	 * @param   string  $Component  The component name.
+	 * @param   string  $Component  The component name retained for caller compatibility.
 	 *
-	 * @return  string  The statements, or nothing when the view needs none.
+	 * @return  string  The methods, or an empty string for an unaffected view.
 	 *
 	 * @since   6.1.7
+	 * @since   6.2.1  Emit named model methods and register the shared evaluator.
 	 */
 	public function get($view, $Component): string
 	{
-		$fix = '';
-		if (ArrayHelper::check(
-				$this->validationfix->get($view)
-			))
+		if ($this->validationfix->getConditions($view) === [])
 		{
-			$fix .= PHP_EOL . PHP_EOL . Indent::_(1) . "/**";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * Method to validate the form data.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   Form   \$form   The form to validate against.";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   array   \$data   The data to validate.";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @param   string  \$group  The name of the field group to validate.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1)
-				. " * @return  mixed  Array of filtered data if valid, false otherwise.";
-			$fix .= PHP_EOL . Indent::_(1) . " *";
-			$fix .= PHP_EOL . Indent::_(1) . " * @see     JFormRule";
-			$fix .= PHP_EOL . Indent::_(1) . " * @see     JFilterInput";
-			$fix .= PHP_EOL . Indent::_(1) . " * @since   12.2";
-			$fix .= PHP_EOL . Indent::_(1) . " */";
-			$fix .= PHP_EOL . Indent::_(1)
-				. "public function validate(\$form, \$data, \$group = null)";
-			$fix .= PHP_EOL . Indent::_(1) . "{";
-			$fix .= $this->lifecycle($view);
-			$fix .= PHP_EOL . Indent::_(1) . "}";
+			return '';
 		}
 
-		return $fix;
+		$this->registry->set(
+			'validation.rules.conditionalrequired',
+			$this->conditionalrule->get()
+		);
+
+		return PHP_EOL . PHP_EOL . $this->modelMethods();
 	}
 
 	/**
-	 * Keep native model events, filtering, validation and post-processing intact.
+	 * Render the model's orchestration and deferred stored-record access.
 	 *
-	 * @param   string  $view  The single view name.
+	 * Model plugins and filters run inside the one parent validation call. The
+	 * named resolver is invoked by the native rule only after that filtering.
 	 *
-	 * @return  string
-	 * @since   6.2.0
+	 * @return  string  Static generated PHP, without definition values.
+	 *
+	 * @since   6.2.1
 	 */
-	protected function lifecycle(string $view): string
+	private function modelMethods(): string
 	{
-		$this->registry->set('validation.rules.jcbconditionalrequired', $this->conditionalrule->get());
-		$code = PHP_EOL . Indent::_(2) . '$conditionRule = Joomla__' . '_571422c4_0340_49f8_b846_5729c7af6ed7___Power::loadRuleType(\'jcbconditionalrequired\');'
-			. PHP_EOL . Indent::_(2) . '$conditionField = \'__jcb_conditional_required\';'
-			. PHP_EOL . Indent::_(2) . 'if (!$conditionRule || $form->getFieldXml($conditionField, $group) !== false)'
+		return Indent::_(1) . '/**'
+			. PHP_EOL . Indent::_(1) . ' * Validate conditional requirements through Joomla\'s native form lifecycle.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @param   Form    $form   The original form to validate.'
+			. PHP_EOL . Indent::_(1) . ' * @param   array   $data   Submitted data, before native filtering.'
+			. PHP_EOL . Indent::_(1) . ' * @param   string  $group  The optional field group to validate.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @return  array|false  Filtered valid data, or false when validation fails.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @since   6.2.1'
+			. PHP_EOL . Indent::_(1) . ' */'
+			. PHP_EOL . Indent::_(1) . 'public function validate($form, $data, $group = null)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__) . ' Keep conditional requirements inside the native model validation lifecycle.'
+			. PHP_EOL . Indent::_(2) . '$rule = Joomla__' . '_571422c4_0340_49f8_b846_5729c7af6ed7___Power::loadRuleType(\'conditionalrequired\');'
+			. PHP_EOL . Indent::_(2) . 'if (!$rule)'
 			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . '$this->setError(\'The conditional validation rule could not be loaded.\');'
 			. PHP_EOL . Indent::_(3) . 'return false;'
 			. PHP_EOL . Indent::_(2) . '}'
-			. PHP_EOL . Indent::_(2) . '$conditionRan = false;'
-			. PHP_EOL . Indent::_(2) . '$conditionAttributes = [];'
-			. PHP_EOL . Indent::_(2) . '$conditionCallback = function (array $data) use ($form, $group, &$conditionRan, &$conditionAttributes): bool'
-			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . 'if ($conditionRan)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'return false;'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$conditionRan = true;';
-		$code .= $this->conditions($view);
-		$code .= PHP_EOL . Indent::_(3) . 'return true;'
-			. PHP_EOL . Indent::_(2) . '};'
-			. PHP_EOL . Indent::_(2) . 'if (!$conditionRule::attach($form, $conditionCallback, $group, $conditionField))'
-			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . 'return false;'
-			. PHP_EOL . Indent::_(2) . '}'
-			. PHP_EOL . Indent::_(2) . '$conditionNode = null;'
+			. PHP_EOL
 			. PHP_EOL . Indent::_(2) . 'try'
 			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . '$element = new \\SimpleXMLElement(\'<field name="__jcb_conditional_required" type="hidden" filter="unset" validate="jcbconditionalrequired" />\');'
-			. PHP_EOL . Indent::_(3) . 'if (!$form->setField($element, $group))'
+			. PHP_EOL . Indent::_(3) . '$prepared = $rule->prepare('
+			. PHP_EOL . Indent::_(4) . '$form,'
+			. PHP_EOL . Indent::_(4) . '$this->conditionalRequirements,'
+			. PHP_EOL . Indent::_(4) . '\\Closure::fromCallable([$this, \'resolveConditionalData\']),'
+			. PHP_EOL . Indent::_(4) . '$group'
+			. PHP_EOL . Indent::_(3) . ');'
+			. PHP_EOL . Indent::_(3) . 'if (!$prepared)'
 			. PHP_EOL . Indent::_(3) . '{'
+			. PHP_EOL . Indent::_(4) . '$this->setError($rule->getError());'
 			. PHP_EOL . Indent::_(4) . 'return false;'
 			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$element = $form->getFieldXml($conditionField, $group);'
-			. PHP_EOL . Indent::_(3) . 'if ($element === false)'
+			. PHP_EOL
+			. PHP_EOL . Indent::_(3) . '$result = $rule->complete('
+			. PHP_EOL . Indent::_(4) . 'parent::validate($form, $rule->filterInternalInput($data), $group)'
+			. PHP_EOL . Indent::_(3) . ');'
+			. PHP_EOL . Indent::_(3) . 'if ($rule->getError() !== null)'
 			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'return false;'
+			. PHP_EOL . Indent::_(4) . '$this->setError($rule->getError());'
 			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$conditionNode = dom_import_simplexml($element);'
-			. PHP_EOL . Indent::_(3) . '$container = $conditionNode->parentNode;'
-			. PHP_EOL . Indent::_(3) . 'while ($container->nodeName !== \'form\' && $container->nodeName !== \'fields\')'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$container = $container->parentNode;'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$container->insertBefore($conditionNode, $container->firstChild);'
-			. PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' The internal rule needs no submitted value and must never reach persistence.'
-			. PHP_EOL . Indent::_(3) . '$conditionPath = $group ? $group . \'.\' . $conditionField : $conditionField;'
-			. PHP_EOL . Indent::_(3) . '$conditionInput = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($data);'
-			. PHP_EOL . Indent::_(3) . '$conditionInput->remove($conditionPath);'
-			. PHP_EOL . Indent::_(3) . '$result = parent::validate($form, $conditionInput->toArray(), $group);'
-			. PHP_EOL . Indent::_(3) . 'if (!$conditionRan || $result === false)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'return false;'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$conditionOutput = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($result);'
-			. PHP_EOL . Indent::_(3) . '$conditionOutput->remove($conditionPath);'
-			. PHP_EOL . Indent::_(3) . 'return $conditionOutput->toArray();'
+			. PHP_EOL
+			. PHP_EOL . Indent::_(3) . 'return $result;'
 			. PHP_EOL . Indent::_(2) . '}'
 			. PHP_EOL . Indent::_(2) . 'finally'
 			. PHP_EOL . Indent::_(2) . '{'
-			. PHP_EOL . Indent::_(3) . 'if ($conditionNode !== null && $conditionNode->parentNode !== null)'
+			. PHP_EOL . Indent::_(3) . '$rule->release();'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL
+			. PHP_EOL . Indent::_(1) . '/**'
+			. PHP_EOL . Indent::_(1) . ' * Load permitted stored selector values after native input filtering.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * PATCH omission and protected selectors can require the stored record.'
+			. PHP_EOL . Indent::_(1) . ' * Keeping this lookup here preserves model-specific getItem() behavior.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @param   array   $data   Filtered input received by the native rule.'
+			. PHP_EOL . Indent::_(1) . ' * @param   Form    $form   The form after native validation plugins have run.'
+			. PHP_EOL . Indent::_(1) . ' * @param   string  $group  The optional field group being validated.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @return  array|false  Stored values and PATCH mode, or false for a missing record.'
+			. PHP_EOL . Indent::_(1) . ' *'
+			. PHP_EOL . Indent::_(1) . ' * @since   6.2.1'
+			. PHP_EOL . Indent::_(1) . ' */'
+			. PHP_EOL . Indent::_(1) . 'protected function resolveConditionalData(array $data, $form, $group = null)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . '//' . Line::_(__LINE__, __CLASS__) . ' Resolve stored selectors only after native validation plugins and filtering.'
+			. PHP_EOL . Indent::_(2) . '$application = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
+			. PHP_EOL . Indent::_(2) . '$context = ['
+			. PHP_EOL . Indent::_(3) . '\'stored\' => [],'
+			. PHP_EOL . Indent::_(3) . '\'patch\' => $application->isClient(\'api\')'
+			. PHP_EOL . Indent::_(4) . '&& $application->getInput()->getMethod() === \'PATCH\','
+			. PHP_EOL . Indent::_(2) . '];'
+			. PHP_EOL . Indent::_(2) . '$recordId = (int) ($data[\'id\'] ?? $this->getState($this->getName() . \'.id\', 0));'
+			. PHP_EOL . Indent::_(2) . 'if ($recordId > 0)'
+			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . '$stored = $this->getItem($recordId);'
+			. PHP_EOL . Indent::_(3) . 'if ($stored === false || $stored === null)'
 			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$conditionNode->parentNode->removeChild($conditionNode);'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . 'foreach ($conditionAttributes as [$conditionElement, $conditionRequired])'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'if ($conditionRequired === null)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'unset($conditionElement[\'required\']);'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . 'else'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$conditionElement[\'required\'] = $conditionRequired;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$form->removeField($conditionField, $group);'
-			. PHP_EOL . Indent::_(3) . '$conditionRule::detach($form);'
-			. PHP_EOL . Indent::_(2) . '}';
-		return $code;
-	}
-
-	/**
-	 * Render structured conditions and legacy runtime requirement overrides.
-	 *
-	 * @param   string  $view  The single view name.
-	 *
-	 * @return  string
-	 * @since   6.2.0
-	 */
-	protected function conditions(string $view): string
-	{
-		$groups = $this->validationfix->getConditions($view);
-
-		$code = PHP_EOL . Indent::_(3) . '$conditionGroups = ' . $this->export($groups) . ';';
-		$code .= PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' Evaluate structured conditions before applying the runtime not_required list.'
-			. PHP_EOL . Indent::_(3) . '$conditionInput = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($data);'
-			. PHP_EOL . Indent::_(3) . '$conditionData = $group ? (array) $conditionInput->get($group, []) : $data;'
-			. PHP_EOL . Indent::_(3) . '$conditionStored = [];'
-			. PHP_EOL . Indent::_(3) . '$conditionApp = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication();'
-			. PHP_EOL . Indent::_(3) . '$conditionPatch = $conditionApp->isClient(\'api\') && $conditionApp->getInput()->getMethod() === \'PATCH\';'
-			. PHP_EOL . Indent::_(3) . '$recordId = (int) ($data[\'id\'] ?? $this->getState($this->getName() . \'.id\', 0));'
-			. PHP_EOL . Indent::_(3) . 'if ($conditionGroups !== [] && $recordId > 0)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$stored = $this->getItem($recordId);'
-			. PHP_EOL . Indent::_(4) . 'if ($stored === false || $stored === null)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'return false;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . '$conditionStored = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($stored);'
-			. PHP_EOL . Indent::_(4) . '$conditionStored = $group ? (array) $conditionStored->get($group, []) : $conditionStored->toArray();'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '$conditionPresent = static function ($value): bool'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'return $value !== null && $value !== \'\' && $value !== [];'
-			. PHP_EOL . Indent::_(3) . '};'
-			. PHP_EOL . Indent::_(3) . '$conditionEquals = static function ($value, $option): bool'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '//' . Line::_(__LINE__, __CLASS__) . ' Selection values arrive as DOM strings; numeric/boolean options use JS equality.'
-			. PHP_EOL . Indent::_(4) . 'if (is_numeric($option) || $option === \'true\' || $option === \'false\')'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'if ($value === null)'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'return false;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . '$number = $option === \'true\' ? 1 : ($option === \'false\' ? 0 : (float) $option);'
-			. PHP_EOL . Indent::_(5) . 'if (is_bool($value) || (is_string($value) && trim($value) === \'\'))'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'return (float) $value === (float) $number;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'return is_numeric($value) && (float) $value === (float) $number;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . 'return is_scalar($value) && (string) $value === (string) $option;'
-			. PHP_EOL . Indent::_(3) . '};'
-			. PHP_EOL . Indent::_(3) . '$conditionMatch = static function ($value, array $rule) use ($conditionPresent, $conditionEquals): bool'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$behavior = $rule[\'behavior\'];'
-			. PHP_EOL . Indent::_(4) . '$options = $rule[\'options\'];'
-			. PHP_EOL . Indent::_(4) . 'if ($behavior >= 1 && $behavior <= 3)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'if ($options !== [])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'foreach ($options as $option)'
-			. PHP_EOL . Indent::_(6) . '{'
-			. PHP_EOL . Indent::_(7) . '$equal = $conditionEquals($value, $option);'
-			. PHP_EOL . Indent::_(7) . '//' . Line::_(__LINE__, __CLASS__) . ' Preserve the browser\'s OR across options, including Is Not.'
-			. PHP_EOL . Indent::_(7) . 'if ($behavior === 2 ? !$equal : $equal)'
-			. PHP_EOL . Indent::_(7) . '{'
-			. PHP_EOL . Indent::_(8) . 'return true;'
-			. PHP_EOL . Indent::_(7) . '}'
-			. PHP_EOL . Indent::_(6) . '}'
-			. PHP_EOL . Indent::_(6) . 'return false;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . '$present = $conditionPresent($value);'
-			. PHP_EOL . Indent::_(5) . 'if ($behavior === 2)'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'return !$present;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'return $present && !($behavior === 3 && $rule[\'user\'] && $conditionEquals($value, \'0\'));'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . 'if ($behavior === 4 || $behavior === 5)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'return $behavior === 4 ? $conditionPresent($value) : !$conditionPresent($value);'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . 'if (!is_scalar($value) && $value !== null)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'return false;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . '$value = (string) $value;'
-			. PHP_EOL . Indent::_(4) . 'if ($behavior >= 6 && $behavior <= 9)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$keywords = $options[\'keywords\'] ?? [];'
-			. PHP_EOL . Indent::_(5) . 'if ($keywords === [])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'return $value === \'error\';'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . '$all = $behavior === 6 || $behavior === 8;'
-			. PHP_EOL . Indent::_(5) . 'if ($behavior === 8 || $behavior === 9)'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$value = StringHelper::strtolower($value);'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'foreach ($keywords as $keyword)'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$found = strpos($value, $keyword) !== false;'
-			. PHP_EOL . Indent::_(6) . 'if ($all ? !$found : $found)'
-			. PHP_EOL . Indent::_(6) . '{'
-			. PHP_EOL . Indent::_(7) . 'return !$all;'
-			. PHP_EOL . Indent::_(6) . '}'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'return $all;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . '//' . Line::_(__LINE__, __CLASS__) . ' JavaScript length counts UTF-16 code units, including surrogate pairs.'
-			. PHP_EOL . Indent::_(4) . '$length = StringHelper::strlen($value) + preg_match_all(\'/[\\x{10000}-\\x{10FFFF}]/u\', $value);'
-			. PHP_EOL . Indent::_(4) . '$expected = (int) (($options[\'length\'] ?? 0) ?: 5);'
-			. PHP_EOL . Indent::_(4) . 'switch ($behavior)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . 'case 10:'
-			. PHP_EOL . Indent::_(6) . 'return $length >= $expected;'
-			. PHP_EOL . Indent::_(5) . 'case 11:'
-			. PHP_EOL . Indent::_(6) . 'return $length <= $expected;'
-			. PHP_EOL . Indent::_(5) . 'case 12:'
-			. PHP_EOL . Indent::_(6) . 'return $length == $expected;'
-			. PHP_EOL . Indent::_(4) . '}'
 			. PHP_EOL . Indent::_(4) . 'return false;'
-			. PHP_EOL . Indent::_(3) . '};'
-			. PHP_EOL . Indent::_(3) . '$conditionalRequired = [];'
-			. PHP_EOL . Indent::_(3) . 'foreach ($conditionGroups as $conditionGroup)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'foreach ($conditionGroup[\'targets\'] as $target)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$conditionalRequired[$target] = true;'
-			. PHP_EOL . Indent::_(4) . '}'
 			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . 'foreach ($conditionGroups as $conditionGroup)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$matched = true;'
-			. PHP_EOL . Indent::_(4) . 'foreach ($conditionGroup[\'matches\'] as $rule)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '//' . Line::_(__LINE__, __CLASS__) . ' Unsupported definitions cannot relax a required field.'
-			. PHP_EOL . Indent::_(5) . 'if (!$rule[\'supported\'])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . 'continue 2;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . '//' . Line::_(__LINE__, __CLASS__) . ' ACL-denied selectors cannot change applicability through discarded input.'
-			. PHP_EOL . Indent::_(5) . '$disabled = strtolower((string) $form->getFieldAttribute($rule[\'name\'], \'disabled\', \'\', $group));'
-			. PHP_EOL . Indent::_(5) . '$filter = strtolower((string) $form->getFieldAttribute($rule[\'name\'], \'filter\', \'\', $group));'
-			. PHP_EOL . Indent::_(5) . '$available = $form->getFieldAttribute($rule[\'name\'], \'name\', null, $group) !== null;'
-			. PHP_EOL . Indent::_(5) . '$protected = !$available || in_array($disabled, [\'true\', \'1\', \'disabled\'], true) || $filter === \'unset\';'
-			. PHP_EOL . Indent::_(5) . '$values = $protected ? $conditionStored : $conditionData;'
-			. PHP_EOL . Indent::_(5) . 'if (array_key_exists($rule[\'name\'], $values))'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$value = $values[$rule[\'name\']];'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'elseif (!$protected && $conditionPatch && array_key_exists($rule[\'name\'], $conditionStored))'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$value = $conditionStored[$rule[\'name\']];'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'elseif (!$protected && $rule[\'checkbox\'])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '//' . Line::_(__LINE__, __CLASS__) . ' Native unchecked checkboxes omit their key on ordinary form submissions.'
-			. PHP_EOL . Indent::_(6) . '$value = false;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'else'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$value = $form->getFieldAttribute($rule[\'name\'], \'default\', null, $group);'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'if ($rule[\'checkbox\'])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$value = (bool) $value;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'if ($rule[\'array\'])'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$values = $conditionPresent($value) ? (array) $value : [];'
-			. PHP_EOL . Indent::_(6) . '$oneMatches = false;'
-			. PHP_EOL . Indent::_(6) . 'foreach ($values as $entry)'
-			. PHP_EOL . Indent::_(6) . '{'
-			. PHP_EOL . Indent::_(7) . 'if ($conditionMatch($entry, $rule))'
-			. PHP_EOL . Indent::_(7) . '{'
-			. PHP_EOL . Indent::_(8) . '$oneMatches = true;'
-			. PHP_EOL . Indent::_(8) . 'break;'
-			. PHP_EOL . Indent::_(7) . '}'
-			. PHP_EOL . Indent::_(6) . '}'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . 'else'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$oneMatches = $conditionMatch($value, $rule);'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(5) . '$matched = $matched && $oneMatches;'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(4) . 'if ($matched || $conditionGroup[\'toggle\'])'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$required = $matched ? $conditionGroup[\'show\'] : !$conditionGroup[\'show\'];'
-			. PHP_EOL . Indent::_(5) . 'foreach ($conditionGroup[\'targets\'] as $target)'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$conditionalRequired[$target] = $required;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' Preserve the legacy runtime contract without discarding submitted values.'
-			. PHP_EOL . Indent::_(3) . 'if (isset($conditionData[\'not_required\']) && is_string($conditionData[\'not_required\']))'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . 'foreach (explode(\',\', $conditionData[\'not_required\']) as $field)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '$field = trim($field);'
-			. PHP_EOL . Indent::_(5) . 'if ($field !== \'\')'
-			. PHP_EOL . Indent::_(5) . '{'
-			. PHP_EOL . Indent::_(6) . '$conditionalRequired[$field] = false;'
-			. PHP_EOL . Indent::_(5) . '}'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . 'foreach ($conditionalRequired as $field => $required)'
-			. PHP_EOL . Indent::_(3) . '{'
-			. PHP_EOL . Indent::_(4) . '$conditionElement = $form->getFieldXml($field, $group);'
-			. PHP_EOL . Indent::_(4) . 'if ($conditionElement !== false)'
-			. PHP_EOL . Indent::_(4) . '{'
-			. PHP_EOL . Indent::_(5) . '//' . Line::_(__LINE__, __CLASS__) . ' Snapshot after native validation plugins have finished changing the form.'
-			. PHP_EOL . Indent::_(5) . '$conditionAttributes[] = [$conditionElement, isset($conditionElement[\'required\']) ? (string) $conditionElement[\'required\'] : null];'
-			. PHP_EOL . Indent::_(5) . '$form->setFieldAttribute($field, \'required\', $required ? \'true\' : \'false\', $group);'
-			. PHP_EOL . Indent::_(4) . '}'
-			. PHP_EOL . Indent::_(3) . '}'
-			. PHP_EOL . Indent::_(3) . '//' . Line::_(__LINE__, __CLASS__) . ' Inactive fields keep their values; ordinary filtering and validation still apply.';
-
-		return $code;
+			. PHP_EOL
+			. PHP_EOL . Indent::_(3) . '$stored = new Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power($stored);'
+			. PHP_EOL . Indent::_(3) . '$context[\'stored\'] = $group ? (array) $stored->get($group, []) : $stored->toArray();'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL
+			. PHP_EOL . Indent::_(2) . 'return $context;'
+			. PHP_EOL . Indent::_(1) . '}';
 	}
 
 	/**
-	 * Export normalized condition data as a compact PHP array literal.
+	 * Export a multiline PHP array while preserving every scalar value exactly.
 	 *
-	 * @param   mixed  $value  A scalar or array from the compiler definition.
+	 * Indentation is added only around array syntax. Reindenting a completed
+	 * literal would change strings containing actual line breaks and tabs.
 	 *
-	 * @return  string
+	 * @param   mixed  $value  A normalized scalar or array.
+	 * @param   int    $level  Indentation of the containing declaration.
+	 *
+	 * @return  string  An executable PHP literal.
+	 *
 	 * @since   6.2.0
+	 * @since   6.2.1  Format arrays structurally without rewriting scalar literals.
 	 */
-	protected function export($value): string
+	protected function export($value, int $level = 0): string
 	{
 		if (!is_array($value))
 		{
 			return var_export($value, true);
 		}
+		if ($value === [])
+		{
+			return '[]';
+		}
 
+		$list = array_is_list($value);
 		$items = [];
 		foreach ($value as $key => $item)
 		{
-			$items[] = var_export($key, true) . ' => ' . $this->export($item);
+			$items[] = Indent::_($level + 1)
+				. ($list ? '' : var_export($key, true) . ' => ')
+				. $this->export($item, $level + 1) . ',';
 		}
 
-		return '[' . implode(', ', $items) . ']';
+		return '[' . PHP_EOL . implode(PHP_EOL, $items)
+			. PHP_EOL . Indent::_($level) . ']';
 	}
 }

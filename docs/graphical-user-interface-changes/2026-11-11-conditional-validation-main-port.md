@@ -4,8 +4,8 @@
 
 - **Date first changed:** 2026-11-11
 - **Author/implementer:** ChatGPT, at the maintainer's request
-- **Task/issue/PR:** Port recovery [PR #68](https://github.com/extension-builder/joomla/pull/68) to main `86b1900a`; second PR link follows creation.
-- **Change record status:** Draft; external maintenance-source transfer remains required
+- **Task/issue/PR:** Port recovery [PR #68](https://github.com/extension-builder/joomla/pull/68) to main `86b1900a`; [PR #69](https://github.com/extension-builder/joomla/pull/69).
+- **Change record status:** Implementation in progress; external maintenance-source transfer remains required
 
 ## Explicit permission
 
@@ -200,7 +200,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 - **Change type:** Created, replacing `admin/src/Rule/JcbconditionalrequiredRule.php`.
 - **Stable locations:** Class body, lifecycle methods and named matchers.
 - **What changed:** Replaced the callback dispatcher with exact production ConditionalRule output: prepare, evaluate, complete and release, plus focused match methods. The class, file and form-rule identifier use the generic `ConditionalrequiredRule` / `conditionalrequired` names.
-- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together. The live Form's optional/disabled/unset targets cap conditional requirements; the rule performs no additional ACL lookup.
+- **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together. The live Form's optional/disabled/unset targets cap conditional requirements; the rule performs no additional ACL lookup. Selector value shapes are checked against native field multiplicity before any condition can waive a requirement.
 - **Related source:** `Architecture/Model/ConditionalRule.php`; `regenerate-conditional-model-preview.php`.
 
 ### `admin/tmpl/field/default.php`
@@ -239,6 +239,15 @@ Token-based regeneration preserves unrelated model members byte for byte.
   values and source order rather than previous event history.
 - **Generated-output impact:** Multiline model properties and a smaller
   validation wrapper; views without conditions retain no extra validation code.
+
+## Commit sequence
+
+1. Document the main baseline and authorized preview paths.
+2. Port the shared model/rule generation, native form-state handling and six
+   model-template property slots, preserving main's output-format contracts.
+3. Port ordered browser refresh through main's existing target hooks.
+4. Regenerate the installed previews and retain main's integration tests.
+5. Record verification of the complete main candidate.
 
 ## Verification
 
@@ -280,8 +289,8 @@ specs in the same change. Final exact paths/results will be recorded before revi
 | --- | --- | --- | --- | --- |
 | `admin/compiler/joomla_3/AdminModel.php` | J3 administrator model template, populated by `EditView::build()` / `ValidationFix::getProperties()` | Yes | Source identified | Eight target/location tests cover producer placement; maintainer must reconcile any external template source. |
 | `admin/compiler/joomla_3/AdminModel_site.php` | J3 site-edit model template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
-| `admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php` | Shared J4/J5/J6 administrator template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
-| `admin/compiler/joomla_4/SITE_ADMIN_VIEW_MODEL.php` | Shared J4/J5/J6 site-edit template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
+| `admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php` | Shared J4/J5 administrator template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
+| `admin/compiler/joomla_4/SITE_ADMIN_VIEW_MODEL.php` | Shared J4/J5 site-edit template, same producer | Yes | Source identified | Same generation tests; external template-source transfer remains for the maintainer. |
 | `admin/compiler/joomla_6/ADMIN_VIEW_MODEL.php` | Dedicated main Joomla 6 template / EditView producer | Yes | Source identified | Reconcile maintained template source and regenerate this target. |
 | `admin/compiler/joomla_6/SITE_ADMIN_VIEW_MODEL.php` | Dedicated main Joomla 6 template / EditView producer | Yes | Source identified | Reconcile maintained template source and regenerate this target. |
 | `admin/src/Model/Admin_viewModel.php` | Admin View definition; normalized baseline `admin_view-input.json` | Yes | Source identified | Exact production-emitter parity; maintainer should regenerate from the maintained definition. |
