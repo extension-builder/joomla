@@ -1,0 +1,81 @@
+{
+    "component": "3745af8f-f96b-4e17-831e-eb4062cd4389",
+    "source_repository": "562624ab-48bf-4979-9a14-6b10cf3635de",
+    "view": "65116558-be67-4931-95be-727fbfb16db7",
+    "purpose": "Disposable authored DSL overlay: related selectors, legacy Is Not OR, ordered shared targets, final positive HideOnly applicability.",
+    "fields": {
+        "storage_kind": {
+            "guid": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0201",
+            "type": "list",
+            "label": "Storage Kind",
+            "options": "row|Database,note|Note,spacer|Spacer",
+            "default": "row",
+            "id": 3606
+        },
+        "length_mode": {
+            "guid": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0202",
+            "type": "list",
+            "label": "Length Mode",
+            "options": "none|None,fixed|Fixed,custom|Custom",
+            "default": "fixed",
+            "id": 3607
+        },
+        "database_type": {
+            "guid": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0203",
+            "type": "text",
+            "label": "Database Type",
+            "default": "",
+            "id": 3608
+        },
+        "database_length": {
+            "guid": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0204",
+            "type": "text",
+            "label": "Database Length",
+            "default": "",
+            "id": 3609
+        }
+    },
+    "conditions": [
+        {
+            "target_field": [
+                "64ea45de-6a6f-4f5e-84b6-fd8ce03c0204"
+            ],
+            "target_behavior": 1,
+            "target_relation": 1,
+            "match_field": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0202",
+            "match_behavior": 1,
+            "match_options": "fixed\ncustom"
+        },
+        {
+            "target_field": [
+                "64ea45de-6a6f-4f5e-84b6-fd8ce03c0204"
+            ],
+            "target_behavior": 1,
+            "target_relation": 1,
+            "match_field": "75e830a6-a3a5-4327-9161-3f774a6f1591",
+            "match_behavior": 4,
+            "match_options": ""
+        },
+        {
+            "target_field": [
+                "64ea45de-6a6f-4f5e-84b6-fd8ce03c0203"
+            ],
+            "target_behavior": 1,
+            "target_relation": 0,
+            "match_field": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0201",
+            "match_behavior": 2,
+            "match_options": "note\nspacer"
+        },
+        {
+            "target_field": [
+                "64ea45de-6a6f-4f5e-84b6-fd8ce03c0203",
+                "64ea45de-6a6f-4f5e-84b6-fd8ce03c0204"
+            ],
+            "target_behavior": 4,
+            "target_relation": 0,
+            "match_field": "64ea45de-6a6f-4f5e-84b6-fd8ce03c0201",
+            "match_behavior": 1,
+            "match_options": "note\nspacer"
+        }
+    ]
+}

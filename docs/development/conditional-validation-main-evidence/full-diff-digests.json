@@ -1,0 +1,18 @@
+{
+  "3": {
+    "bytes": 84960,
+    "sha256": "236f2721e8a3d1a0383ed5f08b4bc2cc2baa847264485d6afadf5203eca80f5f"
+  },
+  "4": {
+    "bytes": 85204,
+    "sha256": "51b515d694c6a4622146a4353cbbfb982426a55c5a1b146c5dec61711841ee85"
+  },
+  "5": {
+    "bytes": 84856,
+    "sha256": "00e3b1d0f8fb169927adc18419a17b53f7fe100e8b1743bc08ee3088207df2f3"
+  },
+  "6": {
+    "bytes": 86210,
+    "sha256": "ffa22d0ee5b3d2decab8f8be27262be0cf6dfb58821b5c1fa2384f0202a3efc3"
+  }
+}
