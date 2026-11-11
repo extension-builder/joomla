@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "tests": 4777,
+    "assertions": 60018,
+    "errors": 40,
+    "failures": 33,
+    "skipped": 0
+  },
+  "candidate": {
+    "tests": 4852,
+    "assertions": 61338,
+    "errors": 3,
+    "failures": 33,
+    "skipped": 0
+  },
+  "new_errors_or_failures": 0,
+  "resolved_errors_or_failures": 37,
+  "baseline_commit": "2dab8eb3249185d18b11a55694adb559c349addc",
+  "candidate_remote_commit": "2adeebb4c50907fe5d0509e12ed882e6b2e585dc",
+  "runtime": {
+    "php": "8.3.6",
+    "phpunit": "12.5.33",
+    "joomla": "6.1.2"
+  },
+  "command": "php -d memory_limit=1G vendor/bin/phpunit --configuration phpunit.xml.dist --exclude-group known-defect --no-coverage --log-junit build/comparison-junit.xml",
+  "ci_unit_workflow": "Dependency audit failed before PHPUnit; local comparison is separate evidence."
+}

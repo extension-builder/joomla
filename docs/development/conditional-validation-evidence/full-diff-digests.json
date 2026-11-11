@@ -1,0 +1,30 @@
+[
+  {
+    "target": 3,
+    "file": "comparison-j3/full.diff",
+    "bytes": 78595,
+    "sha256": "64380f4bad5009218d6d6ba20986e1c761f7aa406fa3cf4bb790210a919ac664",
+    "normalization": null
+  },
+  {
+    "target": 4,
+    "file": "comparison-j4/full.diff",
+    "bytes": 77810,
+    "sha256": "62d1f883a895f4819d45f8846f3a3101c64194899612e4a4283b8a2afb64a7ae",
+    "normalization": null
+  },
+  {
+    "target": 5,
+    "file": "comparison-j5/full.diff",
+    "bytes": 78158,
+    "sha256": "3892733deb85b595c0b095bb2b1585fdb4a895e6889e9f37ac8f4ea57f8d549f",
+    "normalization": null
+  },
+  {
+    "target": 6,
+    "file": "comparison-j6/full.diff",
+    "bytes": 78158,
+    "sha256": "64aa5635646350853d4d6de1dac46d038713e9da26ee8bf2e5dcff78c2d2589b",
+    "normalization": null
+  }
+]

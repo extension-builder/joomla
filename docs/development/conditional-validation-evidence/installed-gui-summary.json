@@ -1,0 +1,31 @@
+{
+  "workflow_run_id": 43081242615,
+  "job_id": 130734041445,
+  "head_sha": "2adeebb4c50907fe5d0509e12ed882e6b2e585dc",
+  "tested_merge_sha": "a11569627ac9d94e3824fdc133a4208498aa3cd1",
+  "statistics": {
+    "startTime": "2026-11-11T18:49:40.389Z",
+    "duration": 65954.253,
+    "expected": 40,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "artifact_id": 13884766979,
+  "artifact_sha256": "4f15f0fd5c7f880d73a417ad0eb3031e2d873f9f83839721ede6c7d9d8377a1e",
+  "installed_file_checks": 4951,
+  "verified_conditional_paths": {
+    "admin/src/Model/Admin_viewModel.php": "82150f007ab63f7eb5e372e888d24a665b73fb63755d0120a5254691760c512d",
+    "admin/src/Model/Custom_codeModel.php": "9dcc91aaeea9a6e6dfc22aaf7cf6a8cfdc8857a3c64aff2e790265b341c8513a",
+    "admin/src/Model/Dynamic_getModel.php": "bc2219302d206009ba2d5860c171e1536da473bcff0aaec074ffb77c779a997d",
+    "admin/src/Model/FieldModel.php": "21421b485a9949cd640e11f5c89b351148393e4f7291571a4c4d38fc85c630ca",
+    "admin/src/Model/FieldtypeModel.php": "a017d74c8e6bb43cc03501dbdb255fd068782ec37c8fbe4779eb4a6f8dbfe9ba",
+    "admin/src/Model/Help_documentModel.php": "44515c18c60a43425dfa166b221decedb7bd46b7076005f373620386c87ca94c",
+    "admin/src/Model/Joomla_componentModel.php": "f4b1efcddee5d8ebb2a5b8922d047bab4e3e14e8f810ff962721ce3e2779744a",
+    "admin/src/Model/LibraryModel.php": "28d95669b75dcc8290acc506cf85f6fff12e5a33731bd8b0539be78eb9484ae9",
+    "admin/src/Model/ServerModel.php": "0aa2bd26b77634b9c3592be99c49bf39bb372e0cbcac57c58bbdc196d7c5bd2b",
+    "admin/src/Rule/JcbconditionalrequiredRule.php": "a2fba13fb052bc5e23b1f92bdb0874d9ebab3157e488eadfd0507b378da6d8ea",
+    "admin/tmpl/field/default.php": "6012deed88127fd126113b567ed4aebd8cc065d978f39db27b970ea99b297131",
+    "media/js/field.js": "cf48fd102c3073b76236ca62be14bdf4911ade1985042d1cb5f7ac6d6ad4706b"
+  }
+}

@@ -6,7 +6,7 @@
 - **Author/implementer:** ChatGPT, at the maintainer's request
 - **Task/issue/PR:** [PR #68](https://github.com/extension-builder/joomla/pull/68),
   conditional validation recovery from `2dab8eb3`
-- **Change record status:** Draft
+- **Change record status:** Ready for review; external maintenance-source transfer remains required
 
 ## Explicit permission
 
@@ -228,10 +228,16 @@ Token-based regeneration preserves unrelated model members byte for byte.
 | Both `bin/regenerate-conditional-*-preview.php` commands, without `--write` | Production emitters and normalized fixtures | Pass: exact generated-member parity |
 | PHP lint for nine installed models, the rule and Field template; `node --check media/js/field.js` | PHP 8.3.6 and Node | Pass |
 | Complete normal PHPUnit suite with JUnit identity comparison | Same locked runtime; pristine recovery versus candidate | 4,852 tests / 61,338 assertions; zero new failures. Three errors and 33 failures also occur on the pristine baseline. |
+| Full native conditional-fixture compilation and complete output comparison | Same restored snapshot; recovery baseline versus implementation tree `0eec4b16`; Joomla 3, 4, 5 and 6 | Pass: nine explained changed files per target, no added/removed files; Power completion identical |
+| All PHP and JavaScript in those four generated candidate packages | PHP 8.3.6 and Node | Pass: 1,355 PHP files and 70 JavaScript files |
+| [Installed GUI workflow](https://github.com/extension-builder/joomla/actions/runs/43081242615) | Native JCB installation; merge `a1156962` incorporating implementation head `2adeebb4` | Pass: 40 tests, zero failed/skipped/flaky; all 4,951 installed-file checks pass |
+| [API workflow](https://github.com/extension-builder/joomla/actions/runs/43081242638) and [standard compiler golden workflow](https://github.com/extension-builder/joomla/actions/runs/43081242690) | Same implementation head; golden targets Joomla 3, 4, 5 and 6 | Pass |
+| PHP style, declaration ownership, container keys, moved-conditions and golden-harness self-tests | Recovery base; locked test runtime | Pass: 18 style-checked files, 1,487 declarations owned, 945 keys, 40 self-tests |
 | `git diff --check` | Recovery worktree | Pass |
 
-The native tests execute emitted rules through native form validation and
-cover all four target majors, both model locations and empty substitution.
+The native tests execute emitted rules through Joomla 6.1.2 form validation.
+Separate generation/placement checks cover all four target majors, both model
+locations and empty substitution; full compilation also covers Joomla 3–6.
 Field tests use actual XML field definitions, with database-backed catalogue
 options supplied at the fixture boundary. They show the original five groups
 fail Note/Spacer and the proposed six groups pass them, while Text datatype,
@@ -239,7 +245,8 @@ Other values and ordinary required fields remain enforced.
 
 ### Manual scenarios
 
-No manual browser claims. Installed automated GUI execution is in progress.
+No manual browser claims. Installed automated GUI execution passes as recorded
+above. The native and browser checks do not persist test records.
 
 ### GUI test coverage
 
@@ -259,18 +266,27 @@ The following view-specific specs are added or updated under
 The eight unchanged-definition views check conditional transitions without
 saving. Field covers expert storage, Note/Spacer to Text and back, Other/Expert
 children, valid zero defaults and delayed real AJAX responses. The shared
-helper is `libraries/vendor_jcb/tests/gui/helpers/conditions.js`. Targeted
-discovery passes (12 tests plus login setup); installed execution remains in
-progress in the supported GitHub workflow. Local execution cannot launch
-Chromium: browser download archives are truncated, and installed Chromium
-fails before opening a page because Unix socket creation is denied. Sandbox
-controls were not altered. Native tests provide the server-validation proof
-without persisting test records.
+helper is `libraries/vendor_jcb/tests/gui/helpers/conditions.js`. All twelve
+new/updated scenarios pass as part of the 40-test installed GUI run. Its HTTP
+installed-site proof succeeds, and the artifact's hashes match all nine
+conditional models, the shared rule, Field template and Field JavaScript
+exactly. Local Chromium execution is unavailable because Unix socket creation
+is denied; the supported GitHub runner supplies the actual browser evidence.
+
+The [development record](../development/conditional-validation-recovery.md)
+and its linked compilation evidence give complete source identities, fixture
+inputs and output comparisons. Native tests provide server-validation proof;
+the full compiler comparisons verify administrator and site-edit output for
+all four targets.
 
 ### Checks not performed
 
 - Full JCB self-compilation: the complete maintenance definition is unavailable
   in the checkout or public fixture packages.
+- CI PHPUnit execution: the unchanged locked dependency audit stops the unit
+  workflow before PHPUnit. Eight advisories affect four existing dependencies.
+  The local full-suite comparison above was completed separately; no audit
+  gate, test or assertion was disabled to obtain a passing result.
 
 ## Risks, limitations, and rollback
 
@@ -312,6 +328,7 @@ these templates also need the new placeholder in their property section.
 
 The inventory covers all sixteen protected paths in the patch. Every source
 mapping remains transfer-required; no external maintenance reconciliation is
-claimed. The complete-suite comparison is recorded above; final installed GUI
-and conditional full-build evidence must be recorded before marking this
-change ready for review.
+claimed. Complete-suite comparison, installed GUI behavior and conditional
+full-build evidence are recorded above. The PR is ready for maintainer review
+and testing against the recovery branch; the outstanding source-transfer and
+dependency-audit findings are explicit and are not presented as completed.
