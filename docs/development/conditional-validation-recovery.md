@@ -163,7 +163,18 @@ normal unit suite, separately from conditional validation:
 
 The existing focused tests reproduced 29 failures before these repairs and
 pass afterward: 61 tests and 3,620 assertions. No assertions were weakened.
-Dependency-audit and fixture updates are delivered in a separate commit.
+Dependency-audit and fixture updates are delivered in a separate commit. The
+test lock updates only `enshrined/svg-sanitize` (1.1.1), `symfony/http-client`
+(7.4.23), `symfony/validator` (6.4.50) and `symfony/yaml` (6.4.50). Composer
+strict validation, platform requirements and the locked audit pass. Native
+Joomla MediaHelper checks retain valid SVG handling and reject executable or
+malformed SVG input.
+
+The AllowView fixture now resolves its deferred NotAllowed Power to the native
+class before executing generated code. Its existing 20 behavior tests pass
+with 131 assertions; no production authorization behavior or assertion changes.
+The existing known-defect recovery audit also passes with no clean quarantined
+tests left behind. None of the workflow gates was disabled.
 
 ## Initial verification status
 
