@@ -192,6 +192,15 @@ with 131 assertions; no production authorization behavior or assertion changes.
 The existing known-defect recovery audit also passes with no clean quarantined
 tests left behind. None of the workflow gates was disabled.
 
+After the generic renames, live-form correction and suite repairs, the normal
+local suite passes **4,871 tests and 59,241 assertions**, with zero errors,
+failures or skips. The PHPUnit coverage declaration for the preview fixture
+helper was removed because test helpers are outside the production coverage
+filter; both production emitters remain declared coverage subjects and every
+preview assertion remains executable. This resolves the PHP 8.4 coverage-only
+warning found after its behavior tests had passed. Hosted workflow results are
+tracked on PR #68; the initial results below describe the earlier implementation.
+
 ## Initial verification status
 
 Native validation tests use PHP 8.3.6, PHPUnit 12.5.33 and pinned Joomla 6.1.2.

@@ -41,7 +41,6 @@ use VDM\Tests\Support\ConditionalPreviewCompiler;
  */
 #[CoversClass(ValidationFix::class)]
 #[CoversClass(ConditionalRule::class)]
-#[CoversClass(ConditionalPreviewCompiler::class)]
 final class ConditionalPreviewTest extends ArchitectureTestCase
 {
 	/**
