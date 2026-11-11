@@ -1,0 +1,146 @@
+[
+  {
+    "target": 3,
+    "baseline_files": 1366,
+    "candidate_files": 1366,
+    "unchanged_files": 1357,
+    "modified_files": [
+      "README.md",
+      "admin/README.txt",
+      "admin/models/greeting.php",
+      "admin/models/rules/jcbconditionalrequired.php",
+      "admin/views/greeting/tmpl/edit.php",
+      "media/js/greeting.js",
+      "site/models/forms/greeting.js",
+      "site/models/greeting.php",
+      "site/views/greeting/tmpl/edit.php"
+    ],
+    "added_files": [],
+    "removed_files": [],
+    "normalization": null,
+    "power_completion_evidence_identical": true,
+    "snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+    "archives": {
+      "baseline": {
+        "file": "baseline-j3/com_helloworld_v5_0_0__J3.zip",
+        "sha256": "80f5468db9d228fe8c13f8c2ed26aed5705b6c0b254002e63fecc45a7e8d36df"
+      },
+      "candidate": {
+        "file": "candidate-j3/com_helloworld_v5_0_0__J3.zip",
+        "sha256": "4ef94ffea3ee8960ea1a36681753d14f4b351343c6435d4c5bea07883ee3f78e"
+      }
+    },
+    "file_manifest_sha256": {
+      "baseline": "e3c6949391f27c5754119aa8abd405fb958483827ffb84887fb66d6c994a2ecb",
+      "candidate": "2b53b2f12a720d09f82482036ac66f0a32ff146126146e4126594957cf5caa78"
+    }
+  },
+  {
+    "target": 4,
+    "baseline_files": 288,
+    "candidate_files": 288,
+    "unchanged_files": 279,
+    "modified_files": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/src/Rule/JcbconditionalrequiredRule.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "added_files": [],
+    "removed_files": [],
+    "normalization": null,
+    "power_completion_evidence_identical": true,
+    "snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+    "archives": {
+      "baseline": {
+        "file": "baseline-j4/com_helloworld_v5_0_0__J4.zip",
+        "sha256": "46ddc0f7b39661d3886c20ba9743033adf936614e6a443954dd30f1ea5e3d0f0"
+      },
+      "candidate": {
+        "file": "candidate-j4/com_helloworld_v5_0_0__J4.zip",
+        "sha256": "93900e4cdeb6fc2cb0aedf5df4987c0d3f18c7e69953fc1ad96bf17ebef42165"
+      }
+    },
+    "file_manifest_sha256": {
+      "baseline": "460bd0a4679fe872ff93bfcfe0a704a7538600c11033b9f85cf4ce39531b6ba4",
+      "candidate": "1e9c6697b461537da9d80813f4b3cd7dadb6b9e9fcb32efc03d918827e9849c1"
+    }
+  },
+  {
+    "target": 5,
+    "baseline_files": 293,
+    "candidate_files": 293,
+    "unchanged_files": 284,
+    "modified_files": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/src/Rule/JcbconditionalrequiredRule.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "added_files": [],
+    "removed_files": [],
+    "normalization": null,
+    "power_completion_evidence_identical": true,
+    "snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+    "archives": {
+      "baseline": {
+        "file": "baseline-j5/com_helloworld_v5_0_0__J5.zip",
+        "sha256": "9aa2a32b32ed26f3df06d0a1df9f5a7ac1590b89fe21f8f00e38589cb8802d44"
+      },
+      "candidate": {
+        "file": "candidate-j5/com_helloworld_v5_0_0__J5.zip",
+        "sha256": "6ac96a3477d15c26f2c6c499c89a64ece1b6e0d9dbad86715d6507eeca1e837a"
+      }
+    },
+    "file_manifest_sha256": {
+      "baseline": "eb531077e4a54b0b4978717e8e281eb4bb327515bf05d9e8a461e05fcd9b2454",
+      "candidate": "b2a96d2eee8221da81021ae5f0c5ff27704e5bd8d4bbbcbcb262074e5834a832"
+    }
+  },
+  {
+    "target": 6,
+    "baseline_files": 249,
+    "candidate_files": 249,
+    "unchanged_files": 240,
+    "modified_files": [
+      "README.md",
+      "admin/README.txt",
+      "admin/src/Model/GreetingModel.php",
+      "admin/src/Rule/JcbconditionalrequiredRule.php",
+      "admin/tmpl/greeting/default.php",
+      "media/js/greeting.js",
+      "site/forms/greeting.js",
+      "site/src/Model/GreetingModel.php",
+      "site/tmpl/greeting/edit.php"
+    ],
+    "added_files": [],
+    "removed_files": [],
+    "normalization": null,
+    "power_completion_evidence_identical": true,
+    "snapshot_sha256": "e4954f24abdb1382991a3f03d90912f8877f088389acffb2cb94e1ccdf3476bc",
+    "archives": {
+      "baseline": {
+        "file": "baseline-j6/com_helloworld_v5_0_0__J6.zip",
+        "sha256": "08b12398079e70abcef424779726295a4639e390249d921cfce078480a93626a"
+      },
+      "candidate": {
+        "file": "candidate-j6/com_helloworld_v5_0_0__J6.zip",
+        "sha256": "1603a181f1e30b0c91dff754a66c5bd93d19fa8110aa885aa511288d2ecb73d4"
+      }
+    },
+    "file_manifest_sha256": {
+      "baseline": "b1136bad754a1904322adb25e4406e51d859b4e8c403dd062072d33b60f3803c",
+      "candidate": "e8b3afeb129e0e8786446c734135613818751ba81f0b5d0259ea0fbec47e0846"
+    }
+  }
+]

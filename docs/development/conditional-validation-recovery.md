@@ -7,10 +7,11 @@ This patch starts at `2dab8eb3249185d18b11a55694adb559c349addc` on
 for generated components. Components without conditional requirements must not
 receive an unused validator, model property, or validation override.
 
-The implementation is being developed in separate commits for generated
-runtime structure, model/template integration, condition behavior, and verified
-generated output. This document records the source boundary and verification;
-it does not claim that unrun checks have passed.
+The implementation is delivered in separate commits for generated runtime
+structure, model/template integration, condition behavior, generated previews
+and verification. [PR #68](https://github.com/extension-builder/joomla/pull/68)
+targets the recovery branch. This document records the source boundary and
+actual verification; no JCB self-compilation is claimed.
 
 ## Generated architecture
 
@@ -68,7 +69,7 @@ Numeric option values use `Number('...')` instead of bare JavaScript literals.
 This fixes octal interpretation of `010` and invalid leading-zero decimals such
 as `01.2`. The server's named numeric matcher follows the scalar conversion
 rules for decimal exponents, non-decimal prefixes, Infinity and surrounding
-whitespace, while rejecting trailing junk, signed prefixes and separators.
+whitespace, while rejecting trailing junk, signed non-decimal prefixes and separators.
 This preserves numeric comparisons without accepting PHP's different string
 coercion rules. The reference is ECMAScript's
 [StringToNumber](https://tc39.es/ecma262/multipage/abstract-operations.html#sec-stringtonumber)
@@ -87,7 +88,7 @@ definitions are compiler inputs. Their generated browser and server behavior
 must be verified together. Changes to an operator's meaning require explicit
 regressions and documentation, separate from mechanical extraction.
 
-JCB's checked-in Field model currently contains five structured groups. The
+The recovery baseline's checked-in Field model contains five structured groups. The
 Note/Spacer decision that makes database settings inapplicable exists in its
 custom `dbChecker()` JavaScript, not in those groups. Generic compilation cannot
 derive that absent rule without an authored definition or trusted server-side
@@ -101,7 +102,7 @@ The Field policy must be represented in the maintained definition before a
 future JCB self-build can reproduce it. Any preview must identify its exact
 input and the remaining source transfer.
 
-The proposed Field migration uses the existing conditions editor: add a final,
+The Field preview demonstrates a migration using the existing conditions editor: add a final,
 isolated **Hide Only** group, watch **Field Type**, choose **Is**, and select
 the actual Note and Spacer type identifiers. Target every database control,
 including the custom length/default controls and expert storage handlers.
@@ -172,20 +173,83 @@ Its small DOM boundary isolates condition behavior; installed GUI tests remain
 responsible for real Joomla widgets and AJAX. PHPUnit itself needs no Node
 dependency. CI runs this check separately after PHP dependencies are installed.
 
-On remote runtime/template commit `26985b1c`, the public Hello World golden
-comparison passed for Joomla 3, 4, 5 and 6; the J6 artifact confirms identical
-baseline/candidate trees against `2dab8eb3`. This public fixture does not prove
-the new conditional path. The existing API and GUI workflows also passed.
-The unit workflow stopped at `composer audit --locked` before PHPUnit, reporting
-eight advisories affecting four unchanged locked test dependencies. Those
-dependency findings are separate from the local baseline test failures above.
-
 All nine installed conditional models and the shared rule now reproduce the
 reviewed normalized input through the real emitters. The Field browser prefix
 and listeners also reproduce exactly. Both preview commands are CI checks.
-The twelve new/updated GUI scenarios plus login setup are discoverable, but
-this executor cannot launch Chromium because Unix socket creation is denied;
-the supported GitHub GUI workflow must supply installed browser evidence.
 
-The conditional native compilation comparison and installed GUI execution
-remain in progress. No JCB self-compilation is claimed.
+### Installed application and CI
+
+The following runs tested remote implementation head
+`2adeebb4c50907fe5d0509e12ed882e6b2e585dc` through merge commit
+`a11569627ac9d94e3824fdc133a4208498aa3cd1`, with recovery `2dab8eb3` as the base:
+
+| Workflow | Result |
+| --- | --- |
+| [GUI tests](https://github.com/extension-builder/joomla/actions/runs/43081242615) | Pass: 40 tests, zero failures, skips or flaky results |
+| [API tests](https://github.com/extension-builder/joomla/actions/runs/43081242638) | Pass: native installation, compilation and compiled demo JSON:API checks |
+| [Compiler golden master](https://github.com/extension-builder/joomla/actions/runs/43081242690) | Pass for Joomla 3, 4, 5 and 6 |
+| [Vendor JCB unit tests](https://github.com/extension-builder/joomla/actions/runs/43081242648) | Dependency audit fails before PHPUnit on PHP 8.3 and 8.4; see below |
+
+The GUI run covers all nine conditional administrator views. Field includes
+expert storage, Note/Spacer transitions back to Text, Other/Expert child
+requirements, numeric-zero defaults and a delayed real AJAX response. The
+installed-site HTTP proof and all 4,951 installed-file checksum checks pass.
+All nine models, the rule, the Field template and Field JavaScript match the
+reviewed implementation exactly. No manual browser execution is claimed.
+
+The unit workflow's new browser/server comparison and both preview checks pass
+on PHP 8.3 before the existing `composer audit --locked` step. That step reports
+eight advisories affecting four unchanged locked test dependencies:
+`enshrined/svg-sanitize`, `symfony/http-client`, `symfony/validator` and
+`symfony/yaml`. PHPUnit is skipped in that workflow. No audit gate was disabled
+and no dependency versions were changed. These dependency findings are separate
+from the local baseline test failures recorded above.
+
+The changed-file PHP style guard passes for 18 files. Declaration ownership
+passes with 1,487 declarations owned and zero debt. Container-key checks pass
+with 945 keys and five existing recorded exceptions. The moved-conditions
+check, 40 golden-harness self-tests and `git diff --check` also pass.
+
+### Full conditional component compilation
+
+A disposable copy of the public Hello World definition was extended through
+ordinary field-condition inputs. Its Greeting view includes two selectors,
+two required targets, an AND relation, historical multi-option Is Not behavior,
+and a final positive Note/Spacer Hide Only group. This exercises the conditional
+path through the complete compiler, beyond the standard public fixture above.
+
+Baseline and candidate compiled the same restored database snapshot separately
+for Joomla 3, 4, 5 and 6. The candidate was installed through Joomla's native
+installer from its complete committed package; all 5,407 checked deployed
+library, model, template, form, API and JavaScript files matched that package.
+The measured compilations used existing offline repository configuration and
+disabled outbound PHP transports. No external compilation request or mocked
+Power records were used.
+
+| Target | Complete output files | Byte-identical files | Changed files | Added / removed |
+| --- | ---: | ---: | ---: | ---: |
+| Joomla 3 | 1,366 | 1,357 | 9 | 0 / 0 |
+| Joomla 4 | 288 | 279 | 9 | 0 / 0 |
+| Joomla 5 | 293 | 284 | 9 | 0 / 0 |
+| Joomla 6 | 249 | 240 | 9 | 0 / 0 |
+
+No output normalization was applied. The nine changed files in each target
+are the administrator and site-edit models, shared conditional rule, two edit
+templates, two condition JavaScript files and two README files. The README
+changes are generated line-count/build-effort statistics. The model/rule and
+browser/template differences correspond to the documented architecture and
+ordered-condition changes. Power completion records are identical in every
+pair: 65 final Powers, including one late dependency.
+
+All generated PHP and JavaScript files in the four candidate packages pass
+syntax checks: 1,355 PHP files and 70 JavaScript files in total. A pre-existing
+Joomla 3 Dashboard/View.php `mainAccordionName` warning also occurs on the
+baseline; it is not introduced by this patch.
+
+The compact [compilation evidence](conditional-validation-evidence/README.md)
+records source identities, fixture inputs, snapshot digest, complete changed
+paths, output-manifest digests, syntax counts and reproduction instructions. The
+database snapshot and site configuration are deliberately not published.
+This proves same-input full component compilation; it does not substitute for
+transferring the Field definition into JCB's unavailable maintenance package
+and performing a JCB self-build.

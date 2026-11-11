@@ -1,0 +1,26 @@
+[
+  {
+    "target": 3,
+    "php_files": 976,
+    "javascript_files": 24,
+    "failures": []
+  },
+  {
+    "target": 4,
+    "php_files": 123,
+    "javascript_files": 21,
+    "failures": []
+  },
+  {
+    "target": 5,
+    "php_files": 128,
+    "javascript_files": 21,
+    "failures": []
+  },
+  {
+    "target": 6,
+    "php_files": 128,
+    "javascript_files": 4,
+    "failures": []
+  }
+]

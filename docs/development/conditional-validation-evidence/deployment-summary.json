@@ -1,0 +1,16 @@
+[
+  {
+    "source": "baseline",
+    "checked_files": 1665,
+    "mismatches": 0,
+    "manifest_sha256": "605e317f0563e862438380ba20e66f6a14b54421ac1f6239512d9ad92f202c9b",
+    "scope": "first-party vendor_jcb source files"
+  },
+  {
+    "source": "candidate",
+    "checked_files": 5407,
+    "mismatches": 0,
+    "manifest_sha256": "8e06e8db1dd726726c7723867186109dfdd472265735b0cb6dde18ac250be474",
+    "scope": "all library files, admin source/templates/forms/compiler files, API source files and media JavaScript"
+  }
+]

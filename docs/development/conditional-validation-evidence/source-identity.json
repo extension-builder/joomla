@@ -1,0 +1,10 @@
+{
+  "baseline_commit": "2dab8eb3249185d18b11a55694adb559c349addc",
+  "candidate_head": "689daff5b7ee2860d6887da9e533a3e4dc707fde",
+  "candidate_tree": "0eec4b1626e7f452a67bca4319912e6d43e4b02b",
+  "remote_pr_head": "2adeebb4c50907fe5d0509e12ed882e6b2e585dc",
+  "production_manifest_sha256": "b794b3cee2b26a859853887f547f452b43a34cebc66ba693aed77c7e86b22c15",
+  "tracked_files": 6509,
+  "includes_uncommitted_previews": false,
+  "offline_policy": "offline-policy.json"
+}
