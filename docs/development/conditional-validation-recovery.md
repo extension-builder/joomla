@@ -64,6 +64,17 @@ chaining now groups OR predicates before AND, related fields use their own
 Unsupported operator/type pairs fail compilation with the view, field,
 operator and type instead of emitting invalid JavaScript.
 
+Numeric option values use `Number('...')` instead of bare JavaScript literals.
+This fixes octal interpretation of `010` and invalid leading-zero decimals such
+as `01.2`. The server's named numeric matcher follows the scalar conversion
+rules for decimal exponents, non-decimal prefixes, Infinity and surrounding
+whitespace, while rejecting trailing junk, signed prefixes and separators.
+This preserves numeric comparisons without accepting PHP's different string
+coercion rules. The reference is ECMAScript's
+[StringToNumber](https://tc39.es/ecma262/multipage/abstract-operations.html#sec-stringtonumber)
+and [White Space](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space)
+definitions.
+
 Generated condition actions no longer send a `not_required` exemption list.
 Only custom scripts that reference `updateFieldRequired` receive a deprecated,
 inert compatibility function. It carries no server validation authority.
@@ -136,9 +147,12 @@ The baseline failures are in ValidationFix (37 errors), AllowView (3 errors,
 did not resolve deferred Joomla Power references before executing emitted PHP;
 the refactored test fixture now does so without changing condition literals.
 
+The core, template and browser-emitter checks together pass 194 PHPUnit tests
+with 1,113 assertions after the numeric conversion corrections.
+
 The separate `node bin/check-conditional-browser.mjs` check executes freshly
-emitted JavaScript and PHP against explicit expected results. It passes 37
-fixtures and 111 transitions, covering all twelve operators, all four actions,
+emitted JavaScript and PHP against explicit expected results. It passes 46
+fixtures and 142 transitions, covering all twelve operators, all four actions,
 shared targets, repeated changes, chained predicates, escaping and empty views.
 Its small DOM boundary isolates condition behavior; installed GUI tests remain
 responsible for real Joomla widgets and AJAX. PHPUnit itself needs no Node

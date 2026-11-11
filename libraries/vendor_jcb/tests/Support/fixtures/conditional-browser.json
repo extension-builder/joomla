@@ -1150,6 +1150,282 @@
     "baselineCount": 1
   },
   {
+    "name": "leading-zero numeric options use decimal conversion",
+    "conditions": [
+      {
+        "match_options": "010"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "010"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "10"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "8"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "leading-zero decimal remains valid JavaScript",
+    "conditions": [
+      {
+        "match_options": "01.2"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "01.2"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "1.2"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "12"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "numeric exponent retains loose numeric equality",
+    "conditions": [
+      {
+        "match_options": "1e3"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "1000"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "1e3"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "100"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "overflow exponent compares as Infinity",
+    "conditions": [
+      {
+        "match_options": "1e309"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "1e309"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "9e999"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "1.7976931348623157e308"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "floating boundary retains double precision",
+    "conditions": [
+      {
+        "match_options": "9007199254740993"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "9007199254740992"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "9007199254740993"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "9007199254740994"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "numeric candidates use JavaScript radix syntax",
+    "conditions": [
+      {
+        "match_options": "16"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "0x10"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "0b10000"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "0o20"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "+0x10"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "-0x10"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "0b2"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "numeric candidates accept Infinity spelling",
+    "conditions": [
+      {
+        "match_options": "1e309"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "Infinity"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "+Infinity"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "-Infinity"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "infinity"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "numeric candidates trim ECMAScript Unicode whitespace",
+    "conditions": [
+      {
+        "match_options": "2"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "﻿2 "
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": " 2 "
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "​2"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "boolean options retain empty numeric coercion",
+    "conditions": [
+      {
+        "match_options": "false"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "﻿ "
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "0x0"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "NaN"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
     "name": "no conditions produces no runtime",
     "conditions": [],
     "steps": []
