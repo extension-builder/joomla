@@ -128,6 +128,11 @@ jobs:
       - name: Verify runtime platform requirements
         run: composer --working-dir=libraries/vendor_jcb/tests check-platform-reqs
 
+      - name: Compare generated browser and server conditions
+        if: matrix.php == '8.3'
+        working-directory: libraries/vendor_jcb/tests
+        run: node bin/check-conditional-browser.mjs
+
       - name: Audit locked test dependencies
         run: composer --working-dir=libraries/vendor_jcb/tests audit --locked
 
