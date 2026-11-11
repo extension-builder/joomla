@@ -148,7 +148,24 @@ Verification must cover:
 - PHP style, declaration ownership, the complete unit suite, generated output
   for supported Joomla targets and installed behavior where fixtures permit.
 
-## Current verification status
+## Recovery suite repairs
+
+The stability follow-up repairs three existing library defects exposed by the
+normal unit suite, separately from conditional validation:
+
+- Markdown conversion handles images before links and keeps generated tags
+  intact, so linked images and bracketed alternative text are not corrupted.
+- Search bundles use ascending IDs, matching their continuation cursor; this
+  prevents duplicate or skipped rows and nonterminating pagination. Unlimited
+  queries retain their existing title ordering.
+- The `Crypt.FOF` provider constructs the constructorless adapter directly,
+  without resolving unused constructor dependencies.
+
+The existing focused tests reproduced 29 failures before these repairs and
+pass afterward: 61 tests and 3,620 assertions. No assertions were weakened.
+Dependency-audit and fixture updates are delivered in a separate commit.
+
+## Initial verification status
 
 Native validation tests use PHP 8.3.6, PHPUnit 12.5.33 and pinned Joomla 6.1.2.
 They execute emitted PHP against Joomla's form lifecycle and verify property
