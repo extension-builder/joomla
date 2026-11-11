@@ -833,11 +833,12 @@ final class ViewScript
 	}
 
 	/**
-	 * Reconcile every condition from the original display and XML-required baseline.
+	 * Reconcile every condition without exceeding the rendered form's required state.
 	 *
 	 * The public browser function is named update<ViewCode>Conditions. Authored
-	 * AJAX handlers can call it after assigning watched values. One-way actions
-	 * leave the current pass unchanged when unmatched; no event history is used.
+	 * AJAX handlers can call it after assigning watched values. Original optional
+	 * or disabled controls remain optional. One-way actions leave the current pass
+	 * unchanged when unmatched; no event history is used.
 	 *
 	 * @param   string  $function  The view-specific refresh function name.
 	 * @param   array   $targets   Target selectors and authored required flags.
@@ -860,60 +861,78 @@ final class ViewScript
 			}
 		}
 
-		$script = <<<'JS'
-// Original display state is captured once per element before conditions run.
-var ###FUNCTION###Baseline = null;
-
-/**
- * Recompute this view's conditions in definition order from the original baseline.
- * Call after authored code assigns watched values, including AJAX defaults.
- * @return {void}
- * @since 6.2.1
- */
-function ###FUNCTION###()
-{
-	if (###FUNCTION###Baseline === null)
-	{
-		###FUNCTION###Baseline = [];
-		var selectors = ###SELECTORS###;
-		var elements = [];
-		for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
-		{
-			var containers = jQuery(selectors[selectorIndex]).closest('.control-group').get();
-			for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)
-			{
-				var element = containers[containerIndex];
-				if (element && element.style && elements.indexOf(element) === -1)
-				{
-					elements.push(element);
-					###FUNCTION###Baseline.push({element: element, display: element.style.display});
-				}
-			}
-		}
-	}
-
-	for (var index = 0; index < ###FUNCTION###Baseline.length; index++)
-	{
-		var baseline = ###FUNCTION###Baseline[index];
-		baseline.element.style.display = baseline.display;
-	}
-	var required = ###REQUIRED###;
-	for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)
-	{
-		jQuery('#jform_' + required[requiredIndex]).prop('required', true)
-			.attr('aria-required', true).addClass('required');
-	}
-###CALLS###}
-
-document.addEventListener('DOMContentLoaded', ###FUNCTION###);
-JS;
-
-		return strtr($script, [
-			'###FUNCTION###' => $function,
-			'###SELECTORS###' => json_encode(array_values($selectors)),
-			'###REQUIRED###' => json_encode($required),
-			'###CALLS###' => $calls,
-		]) . PHP_EOL;
+		return '//' . Line::_(__LINE__, __CLASS__) . ' Original display and required state are captured before conditions run.'
+			. PHP_EOL . 'var ' . $function . 'Baseline = null;'
+			. PHP_EOL
+			. PHP_EOL . '/**'
+			. PHP_EOL . ' * Recompute this view\'s conditions in definition order from the original baseline.'
+			. PHP_EOL . ' * Call after authored code assigns watched values, including AJAX defaults.'
+			. PHP_EOL . ' * @return {void}'
+			. PHP_EOL . ' * @since 6.2.1'
+			. PHP_EOL . ' */'
+			. PHP_EOL . 'function ' . $function . '()'
+			. PHP_EOL . '{'
+			. PHP_EOL . Indent::_(1) . 'if (' . $function . 'Baseline === null)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . $function . 'Baseline = {containers: [], required: []};'
+			. PHP_EOL . Indent::_(2) . 'var selectors = ' . json_encode(array_values($selectors)) . ';'
+			. PHP_EOL . Indent::_(2) . 'var elements = [];'
+			. PHP_EOL . Indent::_(2) . 'for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)'
+			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . 'var containers = jQuery(selectors[selectorIndex]).closest(\'.control-group\').get();'
+			. PHP_EOL . Indent::_(3) . 'for (var containerIndex = 0; containerIndex < containers.length; containerIndex++)'
+			. PHP_EOL . Indent::_(3) . '{'
+			. PHP_EOL . Indent::_(4) . 'var element = containers[containerIndex];'
+			. PHP_EOL . Indent::_(4) . 'if (element && element.style && elements.indexOf(element) === -1)'
+			. PHP_EOL . Indent::_(4) . '{'
+			. PHP_EOL . Indent::_(5) . 'elements.push(element);'
+			. PHP_EOL . Indent::_(5) . $function . 'Baseline.containers.push({element: element, display: element.style.display});'
+			. PHP_EOL . Indent::_(4) . '}'
+			. PHP_EOL . Indent::_(3) . '}'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL . Indent::_(2) . 'var requiredNames = ' . json_encode($required) . ';'
+			. PHP_EOL . Indent::_(2) . 'for (var requiredIndex = 0; requiredIndex < requiredNames.length; requiredIndex++)'
+			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . 'var controls = jQuery(\'#jform_\' + requiredNames[requiredIndex]).get();'
+			. PHP_EOL . Indent::_(3) . 'for (var controlIndex = 0; controlIndex < controls.length; controlIndex++)'
+			. PHP_EOL . Indent::_(3) . '{'
+			. PHP_EOL . Indent::_(4) . 'var element = controls[controlIndex];'
+			. PHP_EOL . Indent::_(4) . 'var control = jQuery(element);'
+			. PHP_EOL . Indent::_(4) . $function . 'Baseline.required.push({'
+			. PHP_EOL . Indent::_(5) . 'element: element,'
+			. PHP_EOL . Indent::_(5) . 'required: !control.is(\':disabled\')'
+			. PHP_EOL . Indent::_(6) . '&& (Boolean(element.required) || element.hasAttribute(\'required\') || control.hasClass(\'required\'))'
+			. PHP_EOL . Indent::_(4) . '});'
+			. PHP_EOL . Indent::_(3) . '}'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL
+			. PHP_EOL . Indent::_(1) . 'for (var index = 0; index < ' . $function . 'Baseline.containers.length; index++)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'var baseline = ' . $function . 'Baseline.containers[index];'
+			. PHP_EOL . Indent::_(2) . 'baseline.element.style.display = baseline.display;'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . Indent::_(1) . 'var required = ' . $function . 'Baseline.required;'
+			. PHP_EOL . Indent::_(1) . 'for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'if (required[requiredIndex].required)'
+			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . 'jQuery(required[requiredIndex].element).prop(\'required\', true)'
+			. PHP_EOL . Indent::_(4) . '.attr(\'aria-required\', true).addClass(\'required\');'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . $calls
+			. PHP_EOL . Indent::_(1) . 'for (var requiredIndex = 0; requiredIndex < required.length; requiredIndex++)'
+			. PHP_EOL . Indent::_(1) . '{'
+			. PHP_EOL . Indent::_(2) . 'if (!required[requiredIndex].required)'
+			. PHP_EOL . Indent::_(2) . '{'
+			. PHP_EOL . Indent::_(3) . 'jQuery(required[requiredIndex].element).removeAttr(\'required\')'
+			. PHP_EOL . Indent::_(4) . '.removeAttr(\'aria-required\').removeClass(\'required\');'
+			. PHP_EOL . Indent::_(2) . '}'
+			. PHP_EOL . Indent::_(1) . '}'
+			. PHP_EOL . '}'
+			. PHP_EOL
+			. PHP_EOL . 'document.addEventListener(\'DOMContentLoaded\', ' . $function . ');' . PHP_EOL;
 	}
 
 	/**

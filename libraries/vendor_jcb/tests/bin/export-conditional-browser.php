@@ -24,6 +24,7 @@ $cases = json_decode(
 
 foreach ($cases as &$case)
 {
+	$case['target'] = 3;
 	foreach ($case['conditions'] as &$condition)
 	{
 		$condition += [
@@ -45,7 +46,9 @@ foreach ($cases as &$case)
 		$case += $compiler->render($case['conditions']);
 		foreach ($case['steps'] ?? [] as $index => $step)
 		{
-			$case['steps'][$index]['phpRequired'] = $compiler->requirements($case['groups'], $step['values']);
+			$case['steps'][$index]['phpRequired'] = $compiler->requirements(
+				$case['groups'], $step['values'], $case['form'] ?? []
+			);
 		}
 	}
 	catch (UnexpectedValueException $error)
