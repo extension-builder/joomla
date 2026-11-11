@@ -39,9 +39,9 @@ final class FieldIfValueScriptTest extends ArchitectureTestCase
 	public static function selections(): array
 	{
 		return [
-			'is' => [1, 'list', "value == 'one' || value == 2 || value == true"],
-			'is not' => [2, 'list', "value != 'one' || value != 2 || value != true"],
-			'any selection' => [3, 'list', "value == 'one' || value == 2 || value == true"],
+			'is' => [1, 'list', "value == 'one' || value == Number('2') || value == true"],
+			'is not' => [2, 'list', "value != 'one' || value != Number('2') || value != true"],
+			'any selection' => [3, 'list', "value == 'one' || value == Number('2') || value == true"],
 			// a list behaviour over a text field tests nothing
 			'is, over text' => [1, 'text', '0'],
 			'is not, over text' => [2, 'text', '0'],
@@ -68,15 +68,15 @@ final class FieldIfValueScriptTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Only an option that is neither numeric nor a boolean word is quoted.
+	 * Numeric options use decimal Number conversion and boolean words stay literals.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testOnlyAnOptionThatNeedsQuotingGetsIt(): void
+	public function testNumericOptionsAvoidJavascriptLiteralParsing(): void
 	{
 		$this->assertSame(
-			"value == 'red' || value == 7 || value == 1.5"
+			"value == 'red' || value == Number('7') || value == Number('1.5')"
 			. " || value == true || value == false",
 			$this->build(1, 'list', ['red', '7', '1.5', 'true', 'false'])
 		);

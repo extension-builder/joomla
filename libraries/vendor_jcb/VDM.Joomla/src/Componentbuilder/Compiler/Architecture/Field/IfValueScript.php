@@ -71,6 +71,7 @@ final class IfValueScript
 	 * @return  string|int  The test, or the integer 0 when the condition tests nothing.
 	 *
 	 * @since   6.1.7
+	 * @since   6.2.1  Escape text and parse numeric options without legacy octal syntax.
 	 */
 	public function get(string $value, $behavior, $type, $options): string|int
 	{
@@ -94,6 +95,11 @@ final class IfValueScript
 								{
 									$option = "'" . $this->escapeString($option, "'") . "'";
 								}
+							}
+							else
+							{
+								// Avoid legacy octal parsing and invalid leading-zero decimals.
+								$option = "Number('" . $this->escapeString((string) $option, "'") . "')";
 							}
 							if (StringHelper::check($string))
 							{
@@ -128,6 +134,11 @@ final class IfValueScript
 									$option = "'" . $this->escapeString($option, "'") . "'";
 								}
 							}
+							else
+							{
+								// Avoid legacy octal parsing and invalid leading-zero decimals.
+								$option = "Number('" . $this->escapeString((string) $option, "'") . "')";
+							}
 							if (StringHelper::check($string))
 							{
 								$string .= ' || ' . $value . ' != ' . $option;
@@ -160,6 +171,11 @@ final class IfValueScript
 								{
 									$option = "'" . $this->escapeString($option, "'") . "'";
 								}
+							}
+							else
+							{
+								// Avoid legacy octal parsing and invalid leading-zero decimals.
+								$option = "Number('" . $this->escapeString((string) $option, "'") . "')";
 							}
 							if (StringHelper::check($string))
 							{

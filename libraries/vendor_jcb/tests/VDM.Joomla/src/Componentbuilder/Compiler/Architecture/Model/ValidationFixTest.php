@@ -368,7 +368,13 @@ final class ValidationFixTest extends ArchitectureTestCase
 		}
 		else
 		{
-			$this->assertSame($data, $result);
+			// Joomla's post-processing omits a null selector from the accepted data.
+			$expected = $data;
+			if ($value === null)
+			{
+				unset($expected['mode']);
+			}
+			$this->assertSame($expected, $result);
 		}
 		$this->assertSame('true', $form->getFieldAttribute('details', 'required'));
 	}
@@ -388,6 +394,25 @@ final class ValidationFixTest extends ArchitectureTestCase
 			'numeric radio integer' => [['options' => ['6'], 'array' => false], 6, true],
 			'numeric option rejects text' => [['options' => ['6'], 'array' => false], '6garbage', false],
 			'numeric zero matches empty DOM value' => [['options' => ['0'], 'array' => false], '', true],
+			'leading zero option is decimal' => [['options' => ['010'], 'array' => false], '10', true],
+			'leading zero decimal option' => [['options' => ['01.2'], 'array' => false], '1.2', true],
+			'exponential option' => [['options' => ['1e3'], 'array' => false], '1000', true],
+			'hexadecimal numeric selection' => [['options' => ['16'], 'array' => false], '0x10', true],
+			'binary numeric selection' => [['options' => ['16'], 'array' => false], '0b10000', true],
+			'octal numeric selection' => [['options' => ['16'], 'array' => false], '0o20', true],
+			'signed prefix is invalid' => [['options' => ['16'], 'array' => false], '+0x10', false],
+			'empty prefix is invalid' => [['options' => ['0'], 'array' => false], '0x', false],
+			'numeric separators are invalid' => [['options' => ['1000'], 'array' => false], '1_000', false],
+			'bigint suffix is invalid' => [['options' => ['16'], 'array' => false], '16n', false],
+			'overflow exponent is infinity' => [['options' => ['1e309'], 'array' => false], 'Infinity', true],
+			'positive infinity sign' => [['options' => ['1e309'], 'array' => false], '+Infinity', true],
+			'negative infinity sign' => [['options' => ['-1e309'], 'array' => false], '-Infinity', true],
+			'infinity remains case sensitive' => [['options' => ['1e309'], 'array' => false], 'infinity', false],
+			'javascript surrounding whitespace' => [['options' => ['16'], 'array' => false], "\u{FEFF}\u{00A0}16\u{2028}", true],
+			'javascript whitespace only is zero' => [['options' => ['0'], 'array' => false], "\u{2003}\u{2029}", true],
+			'NEL is not javascript whitespace' => [['options' => ['16'], 'array' => false], "\u{0085}16", false],
+			'null is not numeric zero' => [['options' => ['0'], 'array' => false], null, false],
+			'floating point selection rounding' => [['options' => ['9007199254740993'], 'array' => false], '9007199254740992', true],
 			'zero is present' => [['behavior' => 3, 'options' => []], '0', true],
 			'empty selection' => [['behavior' => 3, 'options' => []], [], false],
 			'empty scalar selection' => [['behavior' => 3, 'options' => [], 'array' => false], '', false],

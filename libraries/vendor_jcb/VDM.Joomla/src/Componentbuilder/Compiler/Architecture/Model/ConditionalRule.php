@@ -706,22 +706,66 @@ final class ConditionalRule
 	{
 		if (is_numeric($option) || $option === 'true' || $option === 'false')
 		{
-			if ($value === null)
-			{
-				return false;
-			}
-
 			$number = $option === 'true' ? 1 : ($option === 'false' ? 0 : (float) $option);
-
-			if (is_bool($value) || (is_string($value) && trim($value) === ''))
-			{
-				return (float) $value === (float) $number;
-			}
-
-			return is_numeric($value) && (float) $value === (float) $number;
+			$candidate = $this->numericValue($value);
+			return $candidate !== null && $candidate === (float) $number;
 		}
 
 		return is_scalar($value) && (string) $value === (string) $option;
+	}
+
+	/**
+	 * Convert a scalar selection as JavaScript does for a numeric comparison.
+	 *
+	 * Preserve decimal leading zeros, non-decimal prefixes and Infinity without
+	 * accepting trailing junk, signed prefixes or numeric separators. The trim
+	 * set follows ECMAScript WhiteSpace and LineTerminator, not PHP's trim().
+	 * Null is kept nonmatching: JavaScript null is not loosely equal to a number.
+	 *
+	 * @param   mixed  $value  A filtered scalar selection value.
+	 *
+	 * @return  float|null  Its numeric value, or null for a nonnumeric selection.
+	 * @since   6.2.1
+	 */
+	private function numericValue($value): ?float
+	{
+		if (is_bool($value) || is_int($value) || is_float($value))
+		{
+			return (float) $value;
+		}
+		if (!is_string($value))
+		{
+			return null;
+		}
+
+		$space = '[\p{Zs}\x{FEFF}\x09-\x0D\x{2028}\x{2029}]';
+		$value = preg_replace('/\A' . $space . '+|' . $space . '+\z/u', '', $value);
+		if ($value === '' || is_numeric($value))
+		{
+			return (float) $value;
+		}
+		if ($value === 'Infinity' || $value === '+Infinity' || $value === '-Infinity')
+		{
+			return $value === '-Infinity' ? -INF : INF;
+		}
+		if ($value === null)
+		{
+			return null;
+		}
+		if (preg_match('/\A0[xX]([0-9a-fA-F]+)\z/', $value, $match))
+		{
+			return (float) hexdec($match[1]);
+		}
+		if (preg_match('/\A0[bB]([01]+)\z/', $value, $match))
+		{
+			return (float) bindec($match[1]);
+		}
+		if (preg_match('/\A0[oO]([0-7]+)\z/', $value, $match))
+		{
+			return (float) octdec($match[1]);
+		}
+
+		return null;
 	}
 
 	/**
