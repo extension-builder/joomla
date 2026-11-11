@@ -18,7 +18,7 @@ actual verification; no JCB self-compilation is claimed.
 - `Architecture.Model.ValidationFix` emits a documented multiline model
   property, a short native validation wrapper, and a named stored-data resolver.
 - `Architecture.Model.ConditionalRule` emits the shared runtime implementation
-  into `JcbconditionalrequiredRule`, with named lifecycle and matching methods.
+  into `ConditionalrequiredRule`, with named lifecycle and matching methods.
 - `Compiler.Builder.Validation.Fix` remains the shared normalized definition
   store. The browser's submitted `not_required` field is never an authority.
 - Native model plugins, filtering, required checks, validation and
@@ -35,7 +35,7 @@ installation and removal belong inside the rule implementation.
 Both sides evaluate the same normalized definitions in source order. Every
 browser refresh starts with the original display state and the authored
 required flags, then evaluates all groups. The last applicable action on a
-shared target wins. The generated `jcbUpdate<ViewCode>Conditions()` function is
+shared target wins. The generated `update<ViewCode>Conditions()` function is
 also available to authored AJAX handlers after they assign selector values.
 
 This deliberately replaces event-history-dependent one-way behavior. An
@@ -80,6 +80,21 @@ Generated condition actions no longer send a `not_required` exemption list.
 Only custom scripts that reference `updateFieldRequired` receive a deprecated,
 inert compatibility function. It carries no server validation authority.
 Optional supplied values still undergo Joomla's normal type and format checks.
+
+## Generated names
+
+Generated runtime symbols use generic names: `conditionalRequirements`,
+`resolveConditionalData()`, `ConditionalrequiredRule`, and the
+`conditionalrequired` form-rule identifier. The internal field is named
+`__conditional_required`. Browser refresh functions use the view name, such as
+`updateFieldConditions()` and `updateFieldConditionsBaseline`. The existing
+`Unique::get(7)` sequence still names the individual condition functions and
+their variables; this rename introduces no alternative naming mechanism.
+
+The initial compilation and GUI evidence below records the implementation
+before this naming follow-up. Its source identities and hashes remain the
+historical evidence for those exact runs. Follow-up verification is recorded
+separately after the renamed output is checked.
 
 ## Conditions and source ownership
 

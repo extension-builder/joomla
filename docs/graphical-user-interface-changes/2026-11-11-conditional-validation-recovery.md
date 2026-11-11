@@ -20,6 +20,9 @@
   retained condition features, and reviewable generated output.
 - **Permission summary:** Improve compiler generation and demonstrate the
   resulting administrator behavior; unrelated administrator changes are excluded.
+  The naming follow-up explicitly requests generic model, rule and browser
+  symbols throughout the compiler and its previews. It authorizes renaming the
+  generated rule file together with its callers.
 
 ## Purpose and rationale
 
@@ -35,7 +38,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 
 ### Created
 
-- None
+- `admin/src/Rule/ConditionalrequiredRule.php`
 
 ### Modified
 
@@ -52,17 +55,17 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 - `admin/src/Model/Joomla_componentModel.php`
 - `admin/src/Model/LibraryModel.php`
 - `admin/src/Model/ServerModel.php`
-- `admin/src/Rule/JcbconditionalrequiredRule.php`
 - `admin/tmpl/field/default.php`
 - `media/js/field.js`
 
 ### Moved or renamed
 
-- None
+- The shared rule becomes `ConditionalrequiredRule`; its file replacement is
+  represented by the created and deleted paths in this inventory.
 
 ### Deleted
 
-- None
+- `admin/src/Rule/JcbconditionalrequiredRule.php`
 
 ## Implementation details
 
@@ -102,7 +105,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/Admin_viewModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated readable property and named validation methods from its one existing group.
 - **Why:** Keep this caller compatible with the shared rule, preserving its SQL condition.
 - **Related source:** `admin_view-input.json` and the production ValidationFix emitter.
@@ -110,7 +113,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/Custom_codeModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its two unchanged groups.
 - **Why:** Preserve custom-code requirements with the new shared runtime interface.
 - **Related source:** `custom_code-input.json` and the production ValidationFix emitter.
@@ -118,7 +121,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/Dynamic_getModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its nine unchanged groups.
 - **Why:** Preserve source, getter and related code requirements with the shared runtime.
 - **Related source:** `dynamic_get-input.json` and the production ValidationFix emitter.
@@ -126,7 +129,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/FieldModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from the original five groups plus a final positive Note/Spacer Hide Only group.
 - **Why:** A display-only field needs no database settings, including stale Other/Expert selections. Its ordinary required fields remain enforced.
 - **Related source:** `field-input.json`; production ValidationFix and ConditionalRule emitters; the authored Field conditions still require maintenance-source transfer.
@@ -134,7 +137,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/FieldtypeModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its seven unchanged groups.
 - **Why:** Preserve field-type default and custom-type requirements with the shared runtime.
 - **Related source:** `fieldtype-input.json` and the production ValidationFix emitter.
@@ -142,7 +145,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/Help_documentModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its five unchanged groups.
 - **Why:** Preserve help-document location, content and target requirements with the shared runtime.
 - **Related source:** `help_document-input.json` and the production ValidationFix emitter.
@@ -150,7 +153,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/Joomla_componentModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its three unchanged groups.
 - **Why:** Preserve update/changelog/distribution requirements with the shared runtime.
 - **Related source:** `joomla_component-input.json` and the production ValidationFix emitter.
@@ -158,7 +161,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/LibraryModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its two unchanged groups.
 - **Why:** Preserve library-target and loading requirements with the shared runtime.
 - **Related source:** `library-input.json` and the production ValidationFix emitter.
@@ -166,16 +169,16 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 ### `admin/src/Model/ServerModel.php`
 
 - **Change type:** Modified
-- **Stable locations:** After `typeAlias`; `validate()` and `resolveJcbConditionalData()`.
+- **Stable locations:** After `typeAlias`; `validate()` and `resolveConditionalData()`.
 - **What changed:** Regenerated the same members from its five unchanged groups.
 - **Why:** Preserve protocol/authentication requirements with the shared runtime.
 - **Related source:** `server-input.json` and the production ValidationFix emitter.
 
-### `admin/src/Rule/JcbconditionalrequiredRule.php`
+### `admin/src/Rule/ConditionalrequiredRule.php`
 
-- **Change type:** Modified
+- **Change type:** Created, replacing `admin/src/Rule/JcbconditionalrequiredRule.php`.
 - **Stable locations:** Class body, lifecycle methods and named matchers.
-- **What changed:** Replaced the callback dispatcher with exact production ConditionalRule output: prepare, evaluate, complete and release, plus focused match methods.
+- **What changed:** Replaced the callback dispatcher with exact production ConditionalRule output: prepare, evaluate, complete and release, plus focused match methods. The class, file and form-rule identifier use the generic `ConditionalrequiredRule` / `conditionalrequired` names.
 - **Why:** Encapsulate reusable validation and temporary state outside every generated model. All nine callers are updated together.
 - **Related source:** `Architecture/Model/ConditionalRule.php`; `regenerate-conditional-model-preview.php`.
 
@@ -183,7 +186,7 @@ condition, and its authored AJAX/default handling must refresh those conditions.
 
 - **Change type:** Modified
 - **Stable location:** Generated field-condition listener block before the authored form-listener initialization.
-- **What changed:** Replaced per-condition listeners with aggregate `jcbUpdateFieldConditions` watchers, including Field Type.
+- **What changed:** Replaced per-condition listeners with aggregate `updateFieldConditions` watchers, including Field Type.
 - **Why:** Every change must recompute all ordered conditions consistently.
 - **Related source:** `Architecture/AdminView/ViewScript.php`; `regenerate-conditional-browser-preview.php`.
 
@@ -316,7 +319,8 @@ all four targets.
 | `admin/src/Model/Joomla_componentModel.php` | Joomla Component definition; `joomla_component-input.json` | Yes | Source identified | Exact parity and native contract checks; regenerate maintained source. |
 | `admin/src/Model/LibraryModel.php` | Library definition; `library-input.json` | Yes | Source identified | Exact parity and native contract checks; regenerate maintained source. |
 | `admin/src/Model/ServerModel.php` | Server definition; `server-input.json` | Yes | Source identified | Exact parity and native contract checks; regenerate maintained source. |
-| `admin/src/Rule/JcbconditionalrequiredRule.php` | Production `Architecture/Model/ConditionalRule.php` emitter | Yes | Source identified | Exact emitted body verified; rebuild together with all model callers in the maintained source. |
+| `admin/src/Rule/ConditionalrequiredRule.php` | Production `Architecture/Model/ConditionalRule.php` emitter | Yes | Source identified | Exact emitted body verified; rebuild together with all model callers in the maintained source. |
+| `admin/src/Rule/JcbconditionalrequiredRule.php` (deleted) | Former generated shared rule | Yes | Source identified | Replace with `ConditionalrequiredRule.php` and regenerate all callers together; no legacy rule alias is emitted. |
 | `admin/tmpl/field/default.php` | Field condition listeners produced by ViewScript | Yes | Source identified | Browser preview reproducer verifies listeners; regenerate after transferring the additional Field group. |
 | `media/js/field.js` | Field conditions plus authored `dbChecker()` and `getFieldTypeProperties()` custom code | Yes | Source identified | Transfer the final condition and custom reset/default refresh hooks, stale-response guard and zero-default checks into Field's maintained JavaScript, then regenerate. |
 
@@ -326,7 +330,8 @@ these templates also need the new placeholder in their property section.
 
 ## Final consistency check
 
-The inventory covers all sixteen protected paths in the patch. Every source
+The inventory covers all seventeen protected paths in the patch, including
+both paths of the shared-rule replacement. Every source
 mapping remains transfer-required; no external maintenance reconciliation is
 claimed. Complete-suite comparison, installed GUI behavior and conditional
 full-build evidence are recorded above. The PR is ready for maintainer review

@@ -23,11 +23,11 @@ use VDM\Component\Componentbuilder\Administrator\Helper\ComponentbuilderHelper;
 \defined('_JEXEC') or die;
 
 /**
- * Form Rule (Jcbconditionalrequired) class for the Joomla Platform.
+ * Form Rule (Conditionalrequired) class for the Joomla Platform.
  *
  * @since  3.5
  */
-class JcbconditionalrequiredRule extends FormRule
+class ConditionalrequiredRule extends FormRule
 {
 	// Evaluate trusted conditions inside the native form validation lifecycle.
 
@@ -37,7 +37,7 @@ class JcbconditionalrequiredRule extends FormRule
 	 * @var    string
 	 * @since  6.2.1
 	 */
-	private const FIELD = '__jcb_conditional_required';
+	private const FIELD = '__conditional_required';
 
 	/**
 	 * Active validations, isolated by the exact original Form instance.
@@ -316,7 +316,7 @@ class JcbconditionalrequiredRule extends FormRule
 	 */
 	private function installField(): bool
 	{
-		$element = new \SimpleXMLElement('<field name="__jcb_conditional_required" type="hidden" filter="unset" validate="jcbconditionalrequired" />');
+		$element = new \SimpleXMLElement('<field name="__conditional_required" type="hidden" filter="unset" validate="conditionalrequired" />');
 
 		if (!$this->form->setField($element, $this->group))
 		{

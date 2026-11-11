@@ -619,7 +619,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		$this->assertStringContainsString("function updateFieldRequired(name, status)\n{\n}", $file);
 		$this->assertStringContainsString('@deprecated 6.2.1', $file);
 		$this->assertStringNotContainsString('not_required', $file);
-		$this->assertStringNotContainsString('jcbUpdateLookConditions', $file);
+		$this->assertStringNotContainsString('updateLookConditions', $file);
 		$this->assertSame([], $this->fixes->getConditions('look'));
 	}
 
@@ -799,7 +799,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_SIMPLE_FILE = <<<'JS'
 		// Original display state is captured once per element before conditions run.
-		var jcbUpdateLookConditionsBaseline = null;
+		var updateLookConditionsBaseline = null;
 
 		/**
 		 * Recompute this view's conditions in definition order from the original baseline.
@@ -807,11 +807,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		 * @return {void}
 		 * @since 6.2.1
 		 */
-		function jcbUpdateLookConditions()
+		function updateLookConditions()
 		{
-			if (jcbUpdateLookConditionsBaseline === null)
+			if (updateLookConditionsBaseline === null)
 			{
-				jcbUpdateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = [];
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -823,15 +823,15 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							jcbUpdateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.push({element: element, display: element.style.display});
 						}
 					}
 				}
 			}
 
-			for (var index = 0; index < jcbUpdateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
 			{
-				var baseline = jcbUpdateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline[index];
 				baseline.element.style.display = baseline.display;
 			}
 			var required = [];
@@ -845,7 +845,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			vvvvvvv(kind_vvvvvvv);
 		}
 
-		document.addEventListener('DOMContentLoaded', jcbUpdateLookConditions);
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -906,8 +906,8 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		<script type="text/javascript">
 
-		jQuery('#jform_kind').on('keyup', jcbUpdateLookConditions);
-		jQuery('#adminForm').on('change', '#jform_kind', jcbUpdateLookConditions);
+		jQuery('#jform_kind').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_kind', updateLookConditions);
 
 		</script>
 		JS;
@@ -920,7 +920,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_NO_TOGGLE_FILE = <<<'JS'
 		// Original display state is captured once per element before conditions run.
-		var jcbUpdateLookConditionsBaseline = null;
+		var updateLookConditionsBaseline = null;
 
 		/**
 		 * Recompute this view's conditions in definition order from the original baseline.
@@ -928,11 +928,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		 * @return {void}
 		 * @since 6.2.1
 		 */
-		function jcbUpdateLookConditions()
+		function updateLookConditions()
 		{
-			if (jcbUpdateLookConditionsBaseline === null)
+			if (updateLookConditionsBaseline === null)
 			{
-				jcbUpdateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = [];
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -944,15 +944,15 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							jcbUpdateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.push({element: element, display: element.style.display});
 						}
 					}
 				}
 			}
 
-			for (var index = 0; index < jcbUpdateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
 			{
-				var baseline = jcbUpdateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline[index];
 				baseline.element.style.display = baseline.display;
 			}
 			var required = [];
@@ -966,7 +966,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			vvvvvvv(kind_vvvvvvv);
 		}
 
-		document.addEventListener('DOMContentLoaded', jcbUpdateLookConditions);
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -1020,7 +1020,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_TEXT_FILE = <<<'JS'
 		// Original display state is captured once per element before conditions run.
-		var jcbUpdateLookConditionsBaseline = null;
+		var updateLookConditionsBaseline = null;
 
 		/**
 		 * Recompute this view's conditions in definition order from the original baseline.
@@ -1028,11 +1028,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		 * @return {void}
 		 * @since 6.2.1
 		 */
-		function jcbUpdateLookConditions()
+		function updateLookConditions()
 		{
-			if (jcbUpdateLookConditionsBaseline === null)
+			if (updateLookConditionsBaseline === null)
 			{
-				jcbUpdateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = [];
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1044,15 +1044,15 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							jcbUpdateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.push({element: element, display: element.style.display});
 						}
 					}
 				}
 			}
 
-			for (var index = 0; index < jcbUpdateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
 			{
-				var baseline = jcbUpdateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline[index];
 				baseline.element.style.display = baseline.display;
 			}
 			var required = [];
@@ -1066,7 +1066,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			vvvvvvv(kind_vvvvvvv);
 		}
 
-		document.addEventListener('DOMContentLoaded', jcbUpdateLookConditions);
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -1100,7 +1100,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_REQUIRED_FILE = <<<'JS'
 		// Original display state is captured once per element before conditions run.
-		var jcbUpdateLookConditionsBaseline = null;
+		var updateLookConditionsBaseline = null;
 
 		/**
 		 * Recompute this view's conditions in definition order from the original baseline.
@@ -1108,11 +1108,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		 * @return {void}
 		 * @since 6.2.1
 		 */
-		function jcbUpdateLookConditions()
+		function updateLookConditions()
 		{
-			if (jcbUpdateLookConditionsBaseline === null)
+			if (updateLookConditionsBaseline === null)
 			{
-				jcbUpdateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = [];
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1124,15 +1124,15 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							jcbUpdateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.push({element: element, display: element.style.display});
 						}
 					}
 				}
 			}
 
-			for (var index = 0; index < jcbUpdateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
 			{
-				var baseline = jcbUpdateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline[index];
 				baseline.element.style.display = baseline.display;
 			}
 			var required = ["colour"];
@@ -1146,7 +1146,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			vvvvvvv(kind_vvvvvvv);
 		}
 
-		document.addEventListener('DOMContentLoaded', jcbUpdateLookConditions);
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv)
@@ -1212,7 +1212,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 	 */
 	private const EXPECTED_CHAINED_FILE = <<<'JS'
 		// Original display state is captured once per element before conditions run.
-		var jcbUpdateLookConditionsBaseline = null;
+		var updateLookConditionsBaseline = null;
 
 		/**
 		 * Recompute this view's conditions in definition order from the original baseline.
@@ -1220,11 +1220,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 		 * @return {void}
 		 * @since 6.2.1
 		 */
-		function jcbUpdateLookConditions()
+		function updateLookConditions()
 		{
-			if (jcbUpdateLookConditionsBaseline === null)
+			if (updateLookConditionsBaseline === null)
 			{
-				jcbUpdateLookConditionsBaseline = [];
+				updateLookConditionsBaseline = [];
 				var selectors = ["#jform_colour"];
 				var elements = [];
 				for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++)
@@ -1236,15 +1236,15 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 						if (element && element.style && elements.indexOf(element) === -1)
 						{
 							elements.push(element);
-							jcbUpdateLookConditionsBaseline.push({element: element, display: element.style.display});
+							updateLookConditionsBaseline.push({element: element, display: element.style.display});
 						}
 					}
 				}
 			}
 
-			for (var index = 0; index < jcbUpdateLookConditionsBaseline.length; index++)
+			for (var index = 0; index < updateLookConditionsBaseline.length; index++)
 			{
-				var baseline = jcbUpdateLookConditionsBaseline[index];
+				var baseline = updateLookConditionsBaseline[index];
 				baseline.element.style.display = baseline.display;
 			}
 			var required = [];
@@ -1259,7 +1259,7 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 			vvvvvvv(kind_vvvvvvv,level_vvvvvvv);
 		}
 
-		document.addEventListener('DOMContentLoaded', jcbUpdateLookConditions);
+		document.addEventListener('DOMContentLoaded', updateLookConditions);
 
 		// the vvvvvvv function
 		function vvvvvvv(kind_vvvvvvv,level_vvvvvvv)
@@ -1343,11 +1343,11 @@ final class AdminViewScriptTest extends ArchitectureTestCase
 
 		<script type="text/javascript">
 
-		jQuery('#jform_kind').on('keyup', jcbUpdateLookConditions);
-		jQuery('#adminForm').on('change', '#jform_kind', jcbUpdateLookConditions);
+		jQuery('#jform_kind').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_kind', updateLookConditions);
 
-		jQuery('#jform_level').on('keyup', jcbUpdateLookConditions);
-		jQuery('#adminForm').on('change', '#jform_level', jcbUpdateLookConditions);
+		jQuery('#jform_level').on('keyup', updateLookConditions);
+		jQuery('#adminForm').on('change', '#jform_level', updateLookConditions);
 
 		</script>
 		JS;

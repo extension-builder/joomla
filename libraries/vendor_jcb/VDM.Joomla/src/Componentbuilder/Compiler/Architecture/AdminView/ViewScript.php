@@ -442,7 +442,7 @@ final class ViewScript
 			$listener   = '';
 			if (ArrayHelper::check($functions))
 			{
-				$refreshName = 'jcbUpdate' . str_replace(
+				$refreshName = 'update' . str_replace(
 					' ', '', ucwords(str_replace('_', ' ', $nameSingleCode))
 				) . 'Conditions';
 				$calls = '';
@@ -835,7 +835,7 @@ final class ViewScript
 	/**
 	 * Reconcile every condition from the original display and XML-required baseline.
 	 *
-	 * The public browser function is named jcbUpdate<ViewCode>Conditions. Authored
+	 * The public browser function is named update<ViewCode>Conditions. Authored
 	 * AJAX handlers can call it after assigning watched values. One-way actions
 	 * leave the current pass unchanged when unmatched; no event history is used.
 	 *

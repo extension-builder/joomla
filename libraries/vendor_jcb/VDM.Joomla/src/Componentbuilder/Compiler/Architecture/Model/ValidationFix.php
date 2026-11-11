@@ -107,7 +107,7 @@ final class ValidationFix
 
 		return PHP_EOL . PHP_EOL . Indent::_(1)
 			. implode(PHP_EOL . Indent::_(1), $lines)
-			. PHP_EOL . Indent::_(1) . 'protected $jcbConditionalRequirements = '
+			. PHP_EOL . Indent::_(1) . 'protected $conditionalRequirements = '
 			. $this->export($groups, 1) . ';';
 	}
 
@@ -133,7 +133,7 @@ final class ValidationFix
 		}
 
 		$this->registry->set(
-			'validation.rules.jcbconditionalrequired',
+			'validation.rules.conditionalrequired',
 			$this->conditionalrule->get()
 		);
 
@@ -167,7 +167,7 @@ final class ValidationFix
 	 */
 	public function validate($form, $data, $group = null)
 	{
-		$rule = __JCB_VALIDATION_FORM_HELPER__::loadRuleType('jcbconditionalrequired');
+		$rule = __VALIDATION_FORM_HELPER__::loadRuleType('conditionalrequired');
 		if (!$rule)
 		{
 			$this->setError('The conditional validation rule could not be loaded.');
@@ -178,8 +178,8 @@ final class ValidationFix
 		{
 			$prepared = $rule->prepare(
 				$form,
-				$this->jcbConditionalRequirements,
-				\Closure::fromCallable([$this, 'resolveJcbConditionalData']),
+				$this->conditionalRequirements,
+				\Closure::fromCallable([$this, 'resolveConditionalData']),
 				$group
 			);
 			if (!$prepared)
@@ -218,9 +218,9 @@ final class ValidationFix
 	 *
 	 * @since   6.2.1
 	 */
-	protected function resolveJcbConditionalData(array $data, $form, $group = null)
+	protected function resolveConditionalData(array $data, $form, $group = null)
 	{
-		$application = __JCB_VALIDATION_FACTORY__::getApplication();
+		$application = __VALIDATION_FACTORY__::getApplication();
 		$context = [
 			'stored' => [],
 			'patch' => $application->isClient('api')
@@ -235,7 +235,7 @@ final class ValidationFix
 				return false;
 			}
 
-			$stored = new __JCB_VALIDATION_REGISTRY__($stored);
+			$stored = new __VALIDATION_REGISTRY__($stored);
 			$context['stored'] = $group ? (array) $stored->get($group, []) : $stored->toArray();
 		}
 
@@ -259,9 +259,9 @@ PHP;
 	protected function joomlaPowers(string $code): string
 	{
 		return strtr($code, [
-			'__JCB_VALIDATION_FORM_HELPER__' => 'Joomla__' . '_571422c4_0340_49f8_b846_5729c7af6ed7___Power',
-			'__JCB_VALIDATION_REGISTRY__' => 'Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power',
-			'__JCB_VALIDATION_FACTORY__' => 'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
+			'__VALIDATION_FORM_HELPER__' => 'Joomla__' . '_571422c4_0340_49f8_b846_5729c7af6ed7___Power',
+			'__VALIDATION_REGISTRY__' => 'Joomla__' . '_a87c432d_b5b4_428e_b7ff_14b51664c624___Power',
+			'__VALIDATION_FACTORY__' => 'Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power',
 		]);
 	}
 
