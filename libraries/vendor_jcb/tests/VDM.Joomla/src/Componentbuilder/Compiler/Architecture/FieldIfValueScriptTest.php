@@ -83,6 +83,35 @@ final class FieldIfValueScriptTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * Literal delimiters, backslashes and line separators remain option data.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testAuthoredSelectionLiteralsAreEscapedWithoutChangingTheirValue(): void
+	{
+		$this->assertSame(
+			"value == 'O\\'Reilly' || value == 'C:\\\\draft' || value == 'first\\nsecond'"
+			. " || value == 'left\\u2028right'",
+			$this->build(1, 'list', ["O'Reilly", 'C:\\draft', "first\nsecond", "left\u{2028}right"])
+		);
+	}
+
+	/**
+	 * Keyword literals preserve data that otherwise changes JavaScript syntax.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testAuthoredKeywordsEscapeDoubleQuotesAndBackslashes(): void
+	{
+		$this->assertSame(
+			'value.indexOf("say \\"yes\\"") >= 0 && value.indexOf("C:\\\\draft") >= 0',
+			$this->build(6, 'text', ['keywords' => ['say "yes"', 'C:\\draft']])
+		);
+	}
+
+	/**
 	 * What each behaviour builds over a field that offers no options.
 	 *
 	 * @return  array<string, array{int,string,string}>

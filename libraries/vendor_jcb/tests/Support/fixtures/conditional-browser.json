@@ -1,0 +1,1176 @@
+[
+  {
+    "name": "is and multi selection",
+    "conditions": [
+      {
+        "match_options": "one\ntwo"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "three"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": [
+            "three",
+            "two"
+          ]
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": []
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "is not preserves any unequal option",
+    "conditions": [
+      {
+        "match_behavior": 2,
+        "match_options": "one\ntwo"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "two"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "three"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": []
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "is not one option and any selected value",
+    "conditions": [
+      {
+        "match_behavior": 2,
+        "match_options": "one"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "two"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": [
+            "one",
+            "two"
+          ]
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": []
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "any selection with dynamic options",
+    "conditions": [
+      {
+        "match_behavior": 3,
+        "match_options": "dynamic_list"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "0"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "value"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": []
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "any selection among configured options",
+    "conditions": [
+      {
+        "match_behavior": 3,
+        "match_options": "one\ntwo"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "three"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": [
+            "three",
+            "two"
+          ]
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "active text",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 4,
+        "match_options": ""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "0"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "text"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "inactive text",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 5,
+        "match_options": ""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "0"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "text"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "all sensitive keywords",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 6,
+        "match_options": "keywords=\"Red, Blue\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "Red Blue"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "red blue"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "Red"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "any sensitive keyword",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 7,
+        "match_options": "keywords=\"Red, Blue\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "Red"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "Blue"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "red"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "all insensitive keywords",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 8,
+        "match_options": "keywords=\"Red, BLUE\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "rED blue"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "red"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "any insensitive keyword",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 9,
+        "match_options": "keywords=\"Red, BLUE\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "RED"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "Blue"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "neither"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "minimum UTF16 length",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 10,
+        "match_options": "length=\"3\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "ab"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "abc"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "😀a"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "maximum UTF16 length",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 11,
+        "match_options": "length=\"3\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "abc"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "😀a"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "😀ab"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "exact UTF16 length",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 12,
+        "match_options": "length=\"3\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "ab"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "abc"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "😀a"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "zero length retains fallback five minimum",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 10,
+        "match_options": "length=\"0\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "abcd"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "abcde"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "abcdef"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "zero length retains fallback five maximum",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 11,
+        "match_options": "length=\"0\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "abcd"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "abcde"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "abcdef"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "zero length retains fallback five exact",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 12,
+        "match_options": "length=\"0\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "abcd"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "abcde"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "abcdef"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "missing keywords retains error fallback",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 6,
+        "match_options": ""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "error"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "other"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "numeric and boolean options retain coercion",
+    "conditions": [
+      {
+        "match_options": "2\n1.5\nfalse"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "2"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "1.5"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "0"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "3"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "checkbox uses checked state",
+    "conditions": [
+      {
+        "match_type": "checkbox",
+        "match_options": "true"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": false
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": true
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": false
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "user zero means no selection",
+    "conditions": [
+      {
+        "match_type": "user",
+        "match_behavior": 3,
+        "match_options": "dynamic_list"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "0"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "7"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": ""
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "escaped selection literals",
+    "conditions": [
+      {
+        "match_options": "O'Reilly\nC:\\draft"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "O'Reilly"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "C:\\draft"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "C:draft"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "escaped keyword backslashes and newlines",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 6,
+        "match_options": "keywords=\"C:\\draft, first\nsecond\""
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "C:\\draft first\nsecond"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "C:draft first\nsecond"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "scalar relation AND groups whole option predicates",
+    "conditions": [
+      {
+        "match_type": "radio",
+        "match_options": "one\ntwo",
+        "target_relation": 1
+      },
+      {
+        "match_name": "level",
+        "match_type": "radio",
+        "match_options": "yes\nno",
+        "target_relation": 1
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one",
+          "level": "wrong"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "wrong",
+          "level": "yes"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "two",
+          "level": "no"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "relation uses custom checkbox extension",
+    "conditions": [
+      {
+        "match_type": "radio",
+        "match_options": "one",
+        "target_relation": 1
+      },
+      {
+        "match_name": "level",
+        "match_type": "custom_choices",
+        "match_extends": "checkboxes",
+        "match_options": "yes",
+        "target_relation": 1
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one",
+          "level": [
+            "yes"
+          ]
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "one",
+          "level": [
+            "no"
+          ]
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "one",
+          "level": []
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "mixed list and text retains shared array semantics",
+    "conditions": [
+      {
+        "match_options": "one",
+        "target_relation": 1
+      },
+      {
+        "match_name": "level",
+        "match_type": "text",
+        "match_behavior": 5,
+        "match_options": "",
+        "target_relation": 1
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "one",
+          "level": ""
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "one",
+          "level": "set"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "show toggle resets from baseline on every pass",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_behavior": 1
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "hide toggle resets from baseline on every pass",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_behavior": 2
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "show only resets from baseline on every pass",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_behavior": 3
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "hide only resets from baseline on every pass",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_behavior": 4
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "independent shared target uses final authored rule",
+    "conditions": [
+      {
+        "match_options": "yes"
+      },
+      {
+        "match_name": "level",
+        "match_options": "yes"
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "no",
+          "level": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "yes",
+          "level": "no"
+        },
+        "required": false,
+        "event": "mode"
+      },
+      {
+        "values": {
+          "mode": "no",
+          "level": "yes"
+        },
+        "required": true,
+        "event": "level"
+      },
+      {
+        "values": {
+          "mode": "yes",
+          "level": "no"
+        },
+        "required": false,
+        "event": "refresh"
+      }
+    ]
+  },
+  {
+    "name": "final hide only leaves earlier decision when unmatched",
+    "conditions": [
+      {
+        "match_options": "yes"
+      },
+      {
+        "match_name": "level",
+        "match_options": "disabled",
+        "target_behavior": 4
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes",
+          "level": "disabled"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "yes",
+          "level": "enabled"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no",
+          "level": "enabled"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "yes",
+          "level": "enabled"
+        },
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "optional target restores original hidden display",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_behavior": 3,
+        "target_field": [
+          {
+            "name": "details",
+            "type": "text",
+            "required": "no"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false,
+        "visible": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": false,
+        "visible": true
+      }
+    ],
+    "initialDisplay": {
+      "details": "none"
+    }
+  },
+  {
+    "name": "shared and absent containers are safe",
+    "conditions": [
+      {
+        "match_options": "yes",
+        "target_field": [
+          {
+            "name": "details",
+            "type": "text",
+            "required": "yes"
+          },
+          {
+            "name": "caption",
+            "type": "text",
+            "required": "no"
+          },
+          {
+            "name": "missing",
+            "type": "text",
+            "required": "no"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      },
+      {
+        "values": {
+          "mode": "no"
+        },
+        "required": false
+      },
+      {
+        "values": {
+          "mode": "yes"
+        },
+        "required": true
+      }
+    ],
+    "containerBindings": {
+      "details": "shared",
+      "caption": "shared"
+    },
+    "absent": [
+      "missing"
+    ],
+    "baselineCount": 1
+  },
+  {
+    "name": "no conditions produces no runtime",
+    "conditions": [],
+    "steps": []
+  },
+  {
+    "name": "unsupported operator fails at compile time",
+    "conditions": [
+      {
+        "match_behavior": 99
+      }
+    ],
+    "error": "operator 99"
+  },
+  {
+    "name": "unsupported type pair fails at compile time",
+    "conditions": [
+      {
+        "match_type": "text",
+        "match_behavior": 1
+      }
+    ],
+    "error": "operator 1, type \"text\""
+  }
+]
