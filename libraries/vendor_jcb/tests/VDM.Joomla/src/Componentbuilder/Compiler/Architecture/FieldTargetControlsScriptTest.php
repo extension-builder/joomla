@@ -104,27 +104,25 @@ final class FieldTargetControlsScriptTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * A required target declares its own flag and drops the attribute on hide.
+	 * A required target reports its baseline and drops the attribute on hide.
 	 *
 	 * @return  void
 	 * @since   6.1.7
 	 */
-	public function testARequiredTargetDeclaresItsFlagAndDropsTheAttribute(): void
+	public function testARequiredTargetReportsItsBaselineAndDropsTheAttribute(): void
 	{
 		$bucket = $this->build([
 			['name' => 'needed', 'type' => 'text', 'required' => 'yes']
 		]);
-		$flag = $this->flag($bucket['needed']['requiredVar']);
 
-		$this->assertSame(
-			'jform_' . $flag . '_required = false;' . PHP_EOL,
-			$bucket['needed']['requiredVar']
-		);
-		$this->assertStringContainsString("updateFieldRequired('needed',1);", $bucket['needed']['hide']);
+		$this->assertSame('', $bucket['needed']['requiredVar']);
+		$this->assertTrue($bucket['needed']['required']);
+		$this->assertSame('#jform_needed', $bucket['needed']['selector']);
+		$this->assertStringNotContainsString("updateFieldRequired('needed',1);", $bucket['needed']['hide']);
 		$this->assertStringContainsString("jQuery('#jform_needed').removeAttr('required');", $bucket['needed']['hide']);
 		$this->assertStringContainsString("jQuery('#jform_needed').removeAttr('aria-required');", $bucket['needed']['hide']);
 		$this->assertStringContainsString("jQuery('#jform_needed').removeClass('required');", $bucket['needed']['hide']);
-		$this->assertStringContainsString('jform_' . $flag . '_required = true;', $bucket['needed']['hide']);
+		$this->assertStringNotContainsString('if (', $bucket['needed']['hide']);
 	}
 
 	/**
@@ -138,35 +136,31 @@ final class FieldTargetControlsScriptTest extends ArchitectureTestCase
 		$bucket = $this->build([
 			['name' => 'needed', 'type' => 'text', 'required' => 'yes']
 		]);
-		$flag = $this->flag($bucket['needed']['requiredVar']);
 
-		$this->assertStringContainsString("updateFieldRequired('needed',0);", $bucket['needed']['show']);
-		$this->assertStringContainsString("jQuery('#jform_needed').prop('required','required');", $bucket['needed']['show']);
-		$this->assertStringContainsString("jQuery('#jform_needed').attr('aria-required',true);", $bucket['needed']['show']);
+		$this->assertStringNotContainsString("updateFieldRequired('needed',0);", $bucket['needed']['show']);
+		$this->assertStringContainsString("jQuery('#jform_needed').prop('required', true);", $bucket['needed']['show']);
+		$this->assertStringContainsString("jQuery('#jform_needed').attr('aria-required', true);", $bucket['needed']['show']);
 		$this->assertStringContainsString("jQuery('#jform_needed').addClass('required');", $bucket['needed']['show']);
-		$this->assertStringContainsString('jform_' . $flag . '_required = false;', $bucket['needed']['show']);
+		$this->assertStringNotContainsString('if (', $bucket['needed']['show']);
 	}
 
 	/**
-	 * A toggling condition guards the required handling on the flag.
+	 * Required operations are idempotent for both toggle and one-way actions.
 	 *
 	 * @return  void
-	 * @since   6.1.7
+	 * @since   6.2.1
 	 */
-	public function testATogglingConditionGuardsOnTheFlag(): void
+	public function testEveryActionSetsRequiredStateWithoutPerConditionFlags(): void
 	{
 		$targets = [['name' => 'needed', 'type' => 'text', 'required' => 'yes']];
 		$toggled = $this->build($targets, true);
-		$flag = $this->flag($toggled['needed']['requiredVar']);
+		$oneWay = $this->build($targets, false);
 
-		$this->assertStringContainsString('if (!jform_' . $flag . '_required)', $toggled['needed']['hide']);
-		$this->assertStringContainsString('if (jform_' . $flag . '_required)', $toggled['needed']['show']);
-
-		$plain = $this->build($targets, false);
-		$plainFlag = $this->flag($plain['needed']['requiredVar']);
-
-		$this->assertStringNotContainsString('if (!jform_' . $plainFlag . '_required)', $plain['needed']['hide']);
-		$this->assertStringNotContainsString('if (jform_' . $plainFlag . '_required)', $plain['needed']['show']);
+		$this->assertSame($toggled['needed']['hide'], $oneWay['needed']['hide']);
+		$this->assertSame($toggled['needed']['show'], $oneWay['needed']['show']);
+		$this->assertStringNotContainsString('if (', $toggled['needed']['hide']);
+		$this->assertStringNotContainsString('if (', $toggled['needed']['show']);
+		$this->assertStringNotContainsString('updateFieldRequired', implode('', $toggled['needed']));
 	}
 
 	/**
@@ -216,21 +210,6 @@ final class FieldTargetControlsScriptTest extends ArchitectureTestCase
 		$this->assertSame([], $subject->get(true, [], 'show', 'hide', 'bbb', 'article'));
 		$this->assertSame([], $subject->get(true, ['not an array'], 'show', 'hide', 'ccc', 'article'));
 		$this->assertSame([], $this->fix->allActive());
-	}
-
-	/**
-	 * Read the unique flag out of the generated declaration.
-	 *
-	 * @param   string  $requiredVar  The generated flag declaration.
-	 *
-	 * @return  string
-	 * @since   6.1.7
-	 */
-	private function flag(string $requiredVar): string
-	{
-		$this->assertSame(1, preg_match('~^jform_(\w+)_required~', $requiredVar, $match));
-
-		return $match[1];
 	}
 
 	/**
