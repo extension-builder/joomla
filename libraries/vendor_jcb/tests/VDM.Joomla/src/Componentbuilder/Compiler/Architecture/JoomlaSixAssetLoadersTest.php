@@ -173,7 +173,9 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$loader = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Module\Library::class, $dependencies);
 		$legacy = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader::class, $dependencies);
 
-		foreach ([$loader->get($module), '$document = $this->app->getDocument();' . $legacy->get($module)] as $code)
+		$legacyModule = new \ArrayObject((array) $module, \ArrayObject::ARRAY_AS_PROPS);
+
+		foreach ([$loader->get($module), '$document = $this->app->getDocument();' . $legacy->get($legacyModule)] as $code)
 		{
 			$assets = new WebAssetManager($global->getRegistry());
 			$document = $this->createStub(HtmlDocument::class);
