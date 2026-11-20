@@ -24,7 +24,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 final class IncludeHelper extends SharedIncludeHelper
 {
 	/**
-	 * Register and activate a library asset while retaining declaration order.
+	 * Register and activate a library asset on the receiving scope's $wa.
 	 *
 	 * @param   string      $path      The library URI or local PHP path.
 	 * @param   array|null  $pathInfo  Optional path metadata.
@@ -55,13 +55,26 @@ final class IncludeHelper extends SharedIncludeHelper
 			$uriCode = 'Joomla__' . '_eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . ' . $uriCode;
 		}
 
-		return '$jcbAssetManager = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();'
-			. PHP_EOL . Indent::_(0) . "if (!\$jcbAssetManager->assetExists('{$type}', {$nameCode}))"
+		return "if (!\$wa->assetExists('{$type}', {$nameCode}))"
 			. PHP_EOL . Indent::_(0) . '{'
-			. PHP_EOL . Indent::_(1) . "\$jcbAssetManager->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);"
+			. PHP_EOL . Indent::_(1) . "\$wa->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);"
 			. PHP_EOL . Indent::_(0) . '}'
-			. PHP_EOL . Indent::_(0) . "\$jcbAssetManager->use{$method}({$nameCode});"
+			. PHP_EOL . Indent::_(0) . "\$wa->use{$method}({$nameCode});"
 			. PHP_EOL . Indent::_(0) . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
+	}
+
+	/**
+	 * Does this fragment contain a compiler-generated Joomla 6 asset operation?
+	 *
+	 * @param   string  $code  Generated or authored Library document code.
+	 *
+	 * @return  bool
+	 * @since   6.2.0
+	 */
+	public static function usesManager(string $code): bool
+	{
+		return str_contains($code, "if (!\$wa->assetExists('script', 'jcb.script.")
+			|| str_contains($code, "if (!\$wa->assetExists('style', 'jcb.style.");
 	}
 }
 
