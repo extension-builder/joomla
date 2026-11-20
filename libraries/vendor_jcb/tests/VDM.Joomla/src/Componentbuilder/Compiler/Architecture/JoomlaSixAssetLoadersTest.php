@@ -79,7 +79,7 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		else
 		{
 			$this->assertStringContainsString("useScript('jquery')", $jquery->get($view));
-			$this->assertStringContainsString('$wa->registerScript', $include->get('/media/com_demo/a.js'));
+			$this->assertStringContainsString('$documentWebAssets->registerScript', $include->get('/media/com_demo/a.js'));
 			$this->assertStringNotContainsString('getApplication()', $include->get('/media/com_demo/a.js'));
 		}
 
@@ -123,9 +123,9 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$code = implode(PHP_EOL, array_map($include->get(...), $uris));
 		$code .= PHP_EOL . $include->get('/media/com_demo/css/first.css?theme=dark');
 		$code .= PHP_EOL . $include->get('https://example.test/second.css');
-		$this->assertStringContainsString(PHP_EOL . $indent . '$wa->registerScript', $code);
+		$this->assertStringContainsString(PHP_EOL . $indent . '$documentWebAssets->registerScript', $code);
 		$this->assertStringNotContainsString('getWebAssetManager()', $code);
-		$run = $this->compileClosure('$wa = $this->getDocument()->getWebAssetManager();' . PHP_EOL . $code);
+		$run = $this->compileClosure('$documentWebAssets = $this->getDocument()->getWebAssetManager();' . PHP_EOL . $code);
 		$run->call($view);
 		$scripts = $assets->getAssets('script', true);
 		$this->assertSame([

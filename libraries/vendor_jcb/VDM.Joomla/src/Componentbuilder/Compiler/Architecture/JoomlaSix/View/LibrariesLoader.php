@@ -38,7 +38,7 @@ final class LibrariesLoader extends SharedLibrariesLoader
 
 		if (isset($view->code_name) && IncludeHelper::usesManager($code))
 		{
-			return PHP_EOL . Indent::_(2) . '$wa = $document->getWebAssetManager();' . $code;
+			return PHP_EOL . Indent::_(2) . '$documentWebAssets = $document->getWebAssetManager();' . $code;
 		}
 
 		return $code;

@@ -144,7 +144,7 @@ final class Library implements LibraryInterface
 
 		if (IncludeHelper::usesManager($code))
 		{
-			$setup .= PHP_EOL . '$wa = $document->getWebAssetManager();';
+			$setup .= PHP_EOL . '$documentWebAssets = $document->getWebAssetManager();';
 		}
 
 		// Normalize and inject placeholders
