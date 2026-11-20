@@ -14,7 +14,6 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Module;
 
 use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Library\Document;
-use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper;
 use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Placeholder;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentOne;
@@ -110,9 +109,8 @@ final class Library implements LibraryInterface
 			return '';
 		}
 
-		$setup = '// ' . Line::_(__LINE__, __CLASS__) . ' get the document object' . PHP_EOL;
-		$setup .= '$document = $this->app->getDocument();';
-		$code = '';
+		$code = '// ' . Line::_(__LINE__, __CLASS__) . ' get the document object' . PHP_EOL;
+		$code .= '$document = $this->app->getDocument();';
 
 		$found = false;
 
@@ -142,13 +140,8 @@ final class Library implements LibraryInterface
 			return '';
 		}
 
-		if (IncludeHelper::usesManager($code))
-		{
-			$setup .= PHP_EOL . '$documentWebAssets = $document->getWebAssetManager();';
-		}
-
 		// Normalize and inject placeholders
-		$lines = explode(PHP_EOL, $setup . $code);
+		$lines = explode(PHP_EOL, $code);
 		$trimmed = array_map('trim', $lines);
 		$normalized = str_replace('$this->document->', '$document->', implode(PHP_EOL . Indent::_(2), $trimmed));
 
@@ -158,3 +151,4 @@ final class Library implements LibraryInterface
 		);
 	}
 }
+

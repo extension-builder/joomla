@@ -11,6 +11,8 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Library;
 
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+
 
 /**
  * Library Include Helper
@@ -43,5 +45,18 @@ class IncludeHelper
 			default => '',
 		};
 	}
-}
 
+	/**
+	 * Emit a view script at the surrounding method's indentation.
+	 *
+	 * @param   string  $path       The script path.
+	 * @param   int     $indent     The surrounding indentation level.
+	 * @param   bool    $reuseWa    Whether the template has already assigned $wa.
+	 *
+	 * @return  string
+	 */
+	public function getViewScript(string $path, int $indent, bool $reuseWa = false): string
+	{
+		return Indent::_($indent) . $this->get($path);
+	}
+}

@@ -754,8 +754,8 @@ class ViewScript
 			// load the file to the list view
 			$this->contentmulti->set($nameListCode . '|ADMIN_ADD_JAVASCRIPT_FILE', PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
 					__LINE__,__CLASS__
-				) . " Add List View JavaScript File" . PHP_EOL . Indent::_(2)
-				. $this->includehelper->get($_path)
+				) . " Add List View JavaScript File" . PHP_EOL
+				. $this->includehelper->getViewScript($_path, 2, true)
 			);
 		}
 		else

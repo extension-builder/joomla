@@ -150,9 +150,8 @@ class HtmlView extends BaseHtmlView
 	 * @since   1.6
 	 */
 	protected function _prepareDocument(): void
-	{
-		$documentWebAssets = $this->getDocument()->getWebAssetManager();###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
-		$wa = $documentWebAssets;
+	{###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
+		$wa = $this->getDocument()->getWebAssetManager();
 		// add styles
 		$jcbStyleDependencies = $jcbStyleDependencies ?? [];
 		foreach ($this->styles as $style)

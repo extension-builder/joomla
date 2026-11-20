@@ -24,7 +24,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 final class IncludeHelper extends SharedIncludeHelper
 {
 	/**
-	 * Register and activate a library asset on the receiving scope's $documentWebAssets.
+	 * Register and activate a library asset while retaining declaration order.
 	 *
 	 * @param   string      $path      The library URI or local PHP path.
 	 * @param   array|null  $pathInfo  Optional path metadata.
@@ -42,6 +42,36 @@ final class IncludeHelper extends SharedIncludeHelper
 			return parent::get($path, $pathInfo);
 		}
 
+		return $this->render($path, $extension, '$jcbAssetManager', 0, false);
+	}
+
+	/**
+	 * Emit a view script with the application or asset manager already in scope.
+	 *
+	 * @param   string  $path       The script path.
+	 * @param   int     $indent     The surrounding indentation level.
+	 * @param   bool    $reuseWa    Whether the template has already assigned $wa.
+	 *
+	 * @return  string
+	 */
+	public function getViewScript(string $path, int $indent, bool $reuseWa = false): string
+	{
+		return $this->render($path, 'js', $reuseWa ? '$wa' : '$jcbAssetManager', $indent, true);
+	}
+
+	/**
+	 * Build the native registration, activation and dependency chain.
+	 *
+	 * @param   string  $path       The script or style URI.
+	 * @param   string  $extension  The file extension.
+	 * @param   string  $manager    The generated manager variable.
+	 * @param   int     $indent     The surrounding indentation level.
+	 * @param   bool    $view       Whether this is a view's own script.
+	 *
+	 * @return  string
+	 */
+	private function render(string $path, string $extension, string $manager, int $indent, bool $view): string
+	{
 		$type = $extension === 'js' ? 'script' : 'style';
 		$uri = str_starts_with($path, '//') ? $path : ltrim($path, '/');
 		$name = 'jcb.' . $type . '.' . hash('sha256', $uri);
@@ -55,25 +85,50 @@ final class IncludeHelper extends SharedIncludeHelper
 			$uriCode = 'Joomla__' . '_eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . ' . $uriCode;
 		}
 
-		return "if (!\$documentWebAssets->assetExists('{$type}', {$nameCode}))"
-			. PHP_EOL . Indent::_(0) . '{'
-			. PHP_EOL . Indent::_(1) . "\$documentWebAssets->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);"
-			. PHP_EOL . Indent::_(0) . '}'
-			. PHP_EOL . Indent::_(0) . "\$documentWebAssets->use{$method}({$nameCode});"
-			. PHP_EOL . Indent::_(0) . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
-	}
+		$outer = Indent::_($indent);
+		$inner = Indent::_($indent + 1);
+		$code = '';
 
-	/**
-	 * Does this fragment contain a compiler-generated Joomla 6 asset operation?
-	 *
-	 * @param   string  $code  Generated or authored Library document code.
-	 *
-	 * @return  bool
-	 * @since   6.2.0
-	 */
-	public static function usesManager(string $code): bool
-	{
-		return str_contains($code, "if (!\$documentWebAssets->assetExists('script', 'jcb.script.")
-			|| str_contains($code, "if (!\$documentWebAssets->assetExists('style', 'jcb.style.");
+		if (!$view)
+		{
+			$code = $manager . ' = Joomla__' . '_39403062_84fb_46e0_bac4_0023f766e827___Power::getApplication()->getDocument()->getWebAssetManager();' . PHP_EOL;
+		}
+		elseif ($manager !== '$wa')
+		{
+			$code = $outer . $manager . ' = $this->app->getDocument()->getWebAssetManager();' . PHP_EOL . PHP_EOL;
+		}
+
+		$code .= $outer . "if (!{$manager}->assetExists('{$type}', {$nameCode}))"
+			. PHP_EOL . $outer . '{';
+
+		if ($view)
+		{
+			$args = Indent::_($indent + 2);
+			$code .= PHP_EOL . $inner . "{$manager}->register{$method}("
+				. PHP_EOL . $args . "{$nameCode},"
+				. PHP_EOL . $args . "{$uriCode},"
+				. PHP_EOL . $args . "['version' => 'auto'],"
+				. PHP_EOL . $args . '[],'
+				. PHP_EOL . $args . "{$dependencies} ?? []"
+				. PHP_EOL . $inner . ');';
+		}
+		else
+		{
+			$code .= PHP_EOL . $inner . "{$manager}->register{$method}({$nameCode}, {$uriCode}, ['version' => 'auto'], [], {$dependencies} ?? []);";
+		}
+
+		$code .= PHP_EOL . $outer . '}'
+			. ($view ? PHP_EOL : '')
+			. PHP_EOL . $outer . "{$manager}->use{$method}({$nameCode});";
+
+		if ($view)
+		{
+			return $code . PHP_EOL . $outer . "{$dependencies} = array_values(array_unique(array_merge("
+				. PHP_EOL . $inner . "{$dependencies} ?? [],"
+				. PHP_EOL . $inner . "[{$nameCode}]"
+				. PHP_EOL . $outer . ')));';
+		}
+
+		return $code . PHP_EOL . $outer . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
 	}
 }
