@@ -93,7 +93,7 @@ The Joomla 6 include renderer went back to the global application for every asse
 - Static inspection of the four template edits confirms the existing placeholder sequence is unchanged and the binding precedes it.
 - `AssetsTemplateTest` checks template scope and executes the generated method body with a custom hook that assigns and unsets `$wa`; `JoomlaSixAssetLoadersTest` exercises distinct manager instances over a shared registry, registration and activation order, and both module entry paths.
 - **GUI spec:** None added. These files are compiler inputs, not installed JCB screens. The installed-JCB browser suite does not cover the generated component views; the compiler regression tests target those outputs.
-- PHP tests, full golden comparison, and generated extension install/browser smoke were not run before PR creation. The draft should not be merged without checking CI and reviewing the Joomla 6 generated changes.
+- [PHP 8.3, 8.4 and 8.5 unit jobs](https://github.com/extension-builder/joomla/actions/runs/44702869719) passed at `9a6aa1d`, including the new regressions. The [golden comparison](https://github.com/extension-builder/joomla/actions/runs/44702869805) passed Joomla 3–5 with byte-identical output. Joomla 6 built both packages and produced only the five reviewed output differences recorded under `.github/golden-master/expected/`; Power evidence was identical. Exact-head CI and a real generated component browser smoke remain separate from this evidence.
 
 ## Risks, limitations, and rollback
 
