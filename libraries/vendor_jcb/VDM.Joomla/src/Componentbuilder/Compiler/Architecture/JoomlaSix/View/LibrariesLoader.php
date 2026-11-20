@@ -55,4 +55,3 @@ final class LibrariesLoader extends SharedLibrariesLoader
 		return "\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
 	}
 }
-
