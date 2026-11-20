@@ -33,6 +33,8 @@ source "${HERE}/lib.sh"
 # site's tmp folder and STUB_LOG for what the container has said so far.
 STUB_TMP="${WORK}/container-tmp"
 STUB_LOG="${WORK}/container.log"
+STUB_MANIFEST=0
+STUB_COMPONENT=0
 mkdir -p "${STUB_TMP}"
 : > "${STUB_LOG}"
 
@@ -42,6 +44,20 @@ compose() {
 			cat "${STUB_LOG}"
 			;;
 		'exec -T')
+			if [[ "$4" == 'test' && "$5" == '-s' && "$6" == "${WEBROOT}/administrator/components/com_componentbuilder/componentbuilder.xml" ]]
+			then
+				[[ "${STUB_MANIFEST}" == 1 ]]
+				return $?
+			fi
+			if [[ "$4" == 'php' && "$5" == "${WEBROOT}/cli/joomla.php" && "$6" == 'extension:list' && "$7" == '--type=component' ]]
+			then
+				printf '| COM_CONTENT | 22 | 6.2.0 | component | Yes |\n'
+				if [[ "${STUB_COMPONENT}" == 1 ]]
+				then
+					printf '| COM_COMPONENTBUILDER | 150 | 6.1.6 | component | Yes |\n'
+				fi
+				return 0
+			fi
 			# take_packages runs shell commands against the generated archives.
 			[[ "$4" == 'sh' ]] || return 1
 			local command="${!#}"
@@ -89,10 +105,27 @@ expect_exit() {
 }
 
 echo "wait_for_log"
-printf '[INFO] Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip --no-interaction\n' >> "${STUB_LOG}"
-expect_exit "returns once the marker is in the log" 0 \
-	wait_for_log 'Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip' 'the released JCB is installed'
+LEGACY_MARKER='Joomla CLI command succeeded: extension:install --path /usr/src/joomengine/jcb.zip'
+printf '[INFO] %s --no-interaction\n' "${LEGACY_MARKER}" > "${STUB_LOG}"
+STUB_MANIFEST=1
+STUB_COMPONENT=1
+expect_exit "accepts the legacy marker after verifying the component" 0 \
+	wait_for_log "${LEGACY_MARKER}" 'the released JCB is installed'
 
+printf 'This server is now configured to run Joomla!\n' > "${STUB_LOG}"
+expect_exit "accepts the current banner after verifying the component" 0 \
+	wait_for_log "${LEGACY_MARKER}" 'the released JCB is installed'
+
+STUB_COMPONENT=0
+INSTALL_TIMEOUT=-1 expect_exit "rejects the banner when Joomla does not list JCB" 1 \
+	wait_for_log "${LEGACY_MARKER}" 'the released JCB is installed'
+
+STUB_COMPONENT=1
+STUB_MANIFEST=0
+INSTALL_TIMEOUT=-1 expect_exit "rejects the banner without a JCB manifest" 1 \
+	wait_for_log "${LEGACY_MARKER}" 'the released JCB is installed'
+
+: > "${STUB_LOG}"
 printf '[ERROR] Joomla CLI command failed: componentbuilder:compile:component\n' >> "${STUB_LOG}"
 expect_exit "stops when the container reports a failed command" 1 \
 	wait_for_log 'a marker that will never appear' 'something that never happens'
