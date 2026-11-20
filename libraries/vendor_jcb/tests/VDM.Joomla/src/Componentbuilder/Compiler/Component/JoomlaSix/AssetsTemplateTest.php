@@ -19,6 +19,7 @@ use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestWith;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Structuresingle;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
@@ -88,7 +89,7 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * The view's manager is available before generated Library or view script code.
+	 * Generated consumers receive the document's manager before they use it.
 	 *
 	 * @param   string  $template  The HTML view template filename.
 	 *
@@ -99,17 +100,100 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	public function testDocumentManagerPrecedesGeneratedConsumers(string $template): void
 	{
 		$source = $this->template($template);
+		$this->assertSame(1, substr_count($source, '$this->getDocument()->getWebAssetManager();'), $template);
 		$binding = '$wa = $this->getDocument()->getWebAssetManager();';
-		$this->assertSame(1, substr_count($source, $binding), $template);
+		$consumer = '$wa->assetExists(';
 
-		foreach (['###SITE_LIBRARIES_LOADER###', '###CUSTOM_ADMIN_LIBRARIES_LOADER###', '###ADMIN_ADD_JAVASCRIPT_FILE###', '$wa->assetExists('] as $consumer)
+		foreach (['SITE', 'CUSTOM_ADMIN'] as $client)
 		{
-			$position = strpos($source, $consumer);
-			if ($position !== false)
+			$library = strpos($source, '###' . $client . '_LIBRARIES_LOADER###');
+			if ($library !== false)
 			{
-				$this->assertLessThan($position, strpos($source, $binding), $template);
+				$this->assertLessThan($library, strpos($source, '$documentWebAssets = $this->getDocument()'), $template);
+				$binding = '$wa = $documentWebAssets;';
 			}
 		}
+
+		$this->assertLessThan(strpos($source, $consumer), strpos($source, $binding), $template);
+
+		if ($template === 'ADMIN_VIEWS_HTML.php')
+		{
+			$this->assertStringContainsString('$documentWebAssets = $wa;###ADMIN_ADD_JAVASCRIPT_FILE###', $source);
+		}
+	}
+
+	/**
+	 * Custom document PHP still runs before the ordinary $wa binding.
+	 *
+	 * @param   string  $template  The HTML view template filename.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[TestWith(['SITE_VIEW_HTML.php'])]
+	#[TestWith(['SITE_VIEWS_HTML.php'])]
+	#[TestWith(['CUSTOM_ADMIN_VIEW_HTML.php'])]
+	#[TestWith(['CUSTOM_ADMIN_VIEWS_HTML.php'])]
+	public function testAuthoredDocumentCodeCannotClobberTheGeneratedManager(string $template): void
+	{
+		$source = $this->template($template);
+		$this->assertSame(1, preg_match('~protected function _prepareDocument\(\): void\R\t\{(?<code>.*?)\R\t\}~s', $source, $match));
+
+		$this->assertSame(1, preg_match('/###(SITE|CUSTOM_ADMIN)_LIBRARIES_LOADER###/', $match['code'], $slot));
+
+		$include = new \VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper();
+		$code = strtr($match['code'], [
+			$slot[0] => PHP_EOL . $include->get('https://example.test/library.js'),
+			'###' . $slot[1] . '_DOCUMENT_CUSTOM_PHP###' => PHP_EOL . '$hookSawWa = isset($wa); $wa = null; unset($wa);',
+		]);
+		$code = preg_replace('/###[A-Z_]+###/', '', $code);
+		$assets = new WebAssetManager(new WebAssetRegistry());
+		$document = $this->createMock(HtmlDocument::class);
+		$document->expects($this->once())->method('getWebAssetManager')->willReturn($assets);
+		$scope = new class
+		{
+			/**
+			 * The view document.
+			 *
+			 * @var    HtmlDocument
+			 * @since  6.2.0
+			 */
+			public HtmlDocument $document;
+
+			/**
+			 * Model styles.
+			 *
+			 * @var    array
+			 * @since  6.2.0
+			 */
+			public array $styles = [];
+
+			/**
+			 * Model scripts.
+			 *
+			 * @var    array
+			 * @since  6.2.0
+			 */
+			public array $scripts = ['https://example.test/model.js'];
+
+			/**
+			 * Return the document assigned to this view.
+			 *
+			 * @return  HtmlDocument
+			 * @since   6.2.0
+			 */
+			public function getDocument(): HtmlDocument
+			{
+				return $this->document;
+			}
+		};
+		$scope->document = $document;
+		$run = eval('return function () {' . $code . PHP_EOL . 'return $hookSawWa; };');
+		$this->assertFalse($run->call($scope));
+		$this->assertSame(
+			['https://example.test/library.js', 'https://example.test/model.js'],
+			array_values(array_map(static fn($asset): string => $asset->getUri(), $assets->getAssets('script', true)))
+		);
 	}
 
 	/**

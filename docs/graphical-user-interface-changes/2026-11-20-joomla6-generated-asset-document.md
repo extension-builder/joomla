@@ -10,12 +10,12 @@
 ## Explicit permission
 
 - **Permission reference:** Active maintainer request to implement the suggested targeted compiler fix in `extension-builder/joomla` on a branch from `main`. The approved proposal identifies the Joomla 6 site and custom-admin single/list template scopes.
-- **Authorized paths:** The four Joomla 6 HTML compiler templates listed below. No installed JCB views, media, or other targets.
+- **Authorized paths:** The five Joomla 6 HTML compiler templates listed below. No installed JCB views, media, or other targets.
 - **Authorized outcome:** Bind the native view document manager before generated Library code uses it, without changing the asset contract.
 
 ## Purpose and rationale
 
-The Joomla 6 include renderer went back to the global application for every asset. Using the existing `$wa` requires adjusting template timing: in these four templates the Library placeholder precedes the previous initialization. The regular admin list already initializes `$wa` before it uses the generated view JavaScript.
+The Joomla 6 include renderer went back to the global application for every asset. The four early Library slots need the view document manager before authored code runs. Keep `$wa` at its original point after authored PHP and bind it to the same Joomla manager already used by generated fragments. The regular admin list hands the existing `$wa` reference to its generated JavaScript slot.
 
 ## Affected paths
 
@@ -25,6 +25,7 @@ The Joomla 6 include renderer went back to the global application for every asse
 
 ### Modified
 
+- `admin/compiler/joomla_6/ADMIN_VIEWS_HTML.php`
 - `admin/compiler/joomla_6/SITE_VIEW_HTML.php`
 - `admin/compiler/joomla_6/SITE_VIEWS_HTML.php`
 - `admin/compiler/joomla_6/CUSTOM_ADMIN_VIEW_HTML.php`
@@ -40,11 +41,19 @@ The Joomla 6 include renderer went back to the global application for every asse
 
 ## Implementation details
 
+### `admin/compiler/joomla_6/ADMIN_VIEWS_HTML.php`
+
+- **Change type:** Modified
+- **Stable location:** `_prepareDocument()`, immediately before the generated view JavaScript placeholder.
+- **What changed:** Bind `$documentWebAssets` to the existing `$wa`.
+- **Why:** The shared include fragment can reuse the manager without another document lookup.
+- **Related symbol:** `Compiler\Library\JoomlaSix\IncludeHelper::get()`.
+
 ### `admin/compiler/joomla_6/SITE_VIEW_HTML.php`
 
 - **Change type:** Modified
 - **Stable location:** `_prepareDocument()`, immediately before the Library loader placeholder.
-- **What changed:** Moved the existing `$wa` assignment ahead of its first generated consumer.
+- **What changed:** Acquire the Joomla manager into `$documentWebAssets` ahead of the first generated consumer. At the original `$wa` binding point after authored PHP, reuse the same reference.
 - **Why:** The early Library fragments must use the same native manager as the existing model asset loop.
 - **Related symbol:** `Compiler\Library\JoomlaSix\IncludeHelper::get()`.
 
@@ -52,7 +61,7 @@ The Joomla 6 include renderer went back to the global application for every asse
 
 - **Change type:** Modified
 - **Stable location:** `_prepareDocument()`, immediately before the Library loader placeholder.
-- **What changed:** Moved the existing `$wa` assignment ahead of its first generated consumer.
+- **What changed:** Acquire the Joomla manager into `$documentWebAssets` ahead of the first generated consumer. At the original `$wa` binding point after authored PHP, reuse the same reference.
 - **Why:** The early Library fragments must use the same native manager as the existing model asset loop.
 - **Related symbol:** `Compiler\Library\JoomlaSix\IncludeHelper::get()`.
 
@@ -60,7 +69,7 @@ The Joomla 6 include renderer went back to the global application for every asse
 
 - **Change type:** Modified
 - **Stable location:** `_prepareDocument()`, immediately before the Library loader placeholder.
-- **What changed:** Moved the existing `$wa` assignment ahead of its first generated consumer.
+- **What changed:** Acquire the Joomla manager into `$documentWebAssets` ahead of the first generated consumer. At the original `$wa` binding point after authored PHP, reuse the same reference.
 - **Why:** The early Library fragments must use the same native manager as the existing model asset loop.
 - **Related symbol:** `Compiler\Library\JoomlaSix\IncludeHelper::get()`.
 
@@ -68,7 +77,7 @@ The Joomla 6 include renderer went back to the global application for every asse
 
 - **Change type:** Modified
 - **Stable location:** `_prepareDocument()`, immediately before the Library loader placeholder.
-- **What changed:** Moved the existing `$wa` assignment ahead of its first generated consumer.
+- **What changed:** Acquire the Joomla manager into `$documentWebAssets` ahead of the first generated consumer. At the original `$wa` binding point after authored PHP, reuse the same reference.
 - **Why:** The early Library fragments must use the same native manager as the existing model asset loop.
 - **Related symbol:** `Compiler\Library\JoomlaSix\IncludeHelper::get()`.
 
@@ -82,13 +91,13 @@ The Joomla 6 include renderer went back to the global application for every asse
 ## Verification
 
 - Static inspection of the four template edits confirms the existing placeholder sequence is unchanged and the binding precedes it.
-- `AssetsTemplateTest` checks template scope; `JoomlaSixAssetLoadersTest` exercises distinct manager instances over a shared registry, registration and activation order, and both module entry paths.
+- `AssetsTemplateTest` checks template scope and executes the generated method body with a custom hook that assigns and unsets `$wa`; `JoomlaSixAssetLoadersTest` exercises distinct manager instances over a shared registry, registration and activation order, and both module entry paths.
 - **GUI spec:** None added. These files are compiler inputs, not installed JCB screens. The installed-JCB browser suite does not cover the generated component views; the compiler regression tests target those outputs.
 - PHP tests, full golden comparison, and generated extension install/browser smoke were not run before PR creation. The draft should not be merged without checking CI and reviewing the Joomla 6 generated changes.
 
 ## Risks, limitations, and rollback
 
-- Verify a real generated view with combined Library and view assets and authored document code before release.
+- Verify a real generated view with combined Library and view assets and authored document code before release. As in Joomla's normal lifecycle the view document is expected to remain the same during document preparation.
 - **Rollback:** Revert the compiler patch and this record together; regenerate affected Joomla 6 extensions if already built from it.
 
 ## Authoritative JCB source reconciliation
@@ -99,3 +108,4 @@ The Joomla 6 include renderer went back to the global application for every asse
 | `admin/compiler/joomla_6/SITE_VIEWS_HTML.php` | Same maintained compiler template | No | Not applicable — owner confirmed | [Existing source ownership record](2026-10-23-joomla6-assets-native.md) identifies this same file as authoritative. |
 | `admin/compiler/joomla_6/CUSTOM_ADMIN_VIEW_HTML.php` | Same maintained compiler template | No | Not applicable — owner confirmed | [Existing source ownership record](2026-10-23-joomla6-assets-native.md) identifies this same file as authoritative. |
 | `admin/compiler/joomla_6/CUSTOM_ADMIN_VIEWS_HTML.php` | Same maintained compiler template | No | Not applicable — owner confirmed | [Existing source ownership record](2026-10-23-joomla6-assets-native.md) identifies this same file as authoritative. |
+| `admin/compiler/joomla_6/ADMIN_VIEWS_HTML.php` | Same maintained compiler template | No | Not applicable — owner confirmed | [Existing source ownership record](2026-10-23-joomla6-assets-native.md) identifies this same file as authoritative. |
