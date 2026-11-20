@@ -247,8 +247,7 @@ class HtmlView extends BaseHtmlView
 			}
 			$wa->useScript($assetName);
 			$jcbScriptDependencies = array_values(array_unique([...$jcbScriptDependencies, $assetName]));
-		}
-		$documentWebAssets = $wa;###ADMIN_ADD_JAVASCRIPT_FILE###
+		}###ADMIN_ADD_JAVASCRIPT_FILE###
 	}
 
 

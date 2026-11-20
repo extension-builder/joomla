@@ -23,11 +23,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
 use ReflectionProperty;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\GoogleChart;
-use VDM\Joomla\Componentbuilder\Compiler\Builder\LibraryManager;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
-use VDM\Joomla\Componentbuilder\Compiler\Registry;
 use VDM\Joomla\Componentbuilder\Compiler\Service\ArchitectureView;
 use VDM\Joomla\Componentbuilder\Compiler\Service\Library;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
@@ -79,8 +77,7 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		else
 		{
 			$this->assertStringContainsString("useScript('jquery')", $jquery->get($view));
-			$this->assertStringContainsString('$documentWebAssets->registerScript', $include->get('/media/com_demo/a.js'));
-			$this->assertStringNotContainsString('getApplication()', $include->get('/media/com_demo/a.js'));
+			$this->assertStringContainsString('getWebAssetManager()', $include->get('/media/com_demo/a.js'));
 		}
 
 		// These constructors retain the original dependency graph; only emission differs.
@@ -115,18 +112,15 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	public function testLibraryAssetsResolvePowerImportsAndMaintainOrder(string $indent): void
 	{
 		$this->configureIndentation($indent);
-		$global = $this->assets();
-		$assets = new WebAssetManager($global->getRegistry());
-		$view = $this->view($assets);
+		$assets = $this->assets();
 		$include = new \VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper();
 		$uris = ['/media/com_demo/js/first.js?rev=2#code', 'https://example.test/second.js?v=1', '/media/com_demo/js/first.js?rev=2#code', '//example.test/third.js'];
 		$code = implode(PHP_EOL, array_map($include->get(...), $uris));
 		$code .= PHP_EOL . $include->get('/media/com_demo/css/first.css?theme=dark');
 		$code .= PHP_EOL . $include->get('https://example.test/second.css');
-		$this->assertStringContainsString(PHP_EOL . $indent . '$documentWebAssets->registerScript', $code);
-		$this->assertStringNotContainsString('getWebAssetManager()', $code);
-		$run = $this->compileClosure('$documentWebAssets = $this->getDocument()->getWebAssetManager();' . PHP_EOL . $code);
-		$run->call($view);
+		$this->assertStringContainsString(PHP_EOL . $indent . '$jcbAssetManager->registerScript', $code);
+		$run = $this->compileClosure($code);
+		$run();
 		$scripts = $assets->getAssets('script', true);
 		$this->assertSame([
 			Uri::root() . 'media/com_demo/js/first.js?rev=2#code',
@@ -143,62 +137,67 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 			$seen[] = $name;
 		}
 
-		$run->call($view);
+		$run();
 		$this->assertSame($scripts, $assets->getAssets('script', true));
 		$this->assertCount(2, $assets->getAssets('style', true));
-		$this->assertSame([], $global->getAssets('script', true));
-		$this->assertSame([], $global->getAssets('style', true));
 		$this->assertSame('', $include->get('https://example.test/library.php'));
 		$this->assertSame('require_once("/srv/library.php");', $include->get('/srv/library.php'));
 	}
 
 	/**
-	 * A cached Library fragment uses the document supplied by either module loader.
+	 * Generated view scripts reuse the application or the existing manager.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
 	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testModuleLibraryUsesItsOwnDocument(): void
+	#[DataProvider('indentations')]
+	public function testViewScriptReusesItsContextAndIndentsEveryLine(string $indent): void
 	{
+		$this->configureIndentation($indent);
 		$global = $this->assets();
-		$manager = new LibraryManager();
-		$manager->set('module.demo', [42 => true]);
-		$include = new \VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper();
-		$fragment = $include->get('https://example.test/module.js');
-		$registry = new Registry();
-		$registry->set('builder.libraries.42', (object) ['document' => $fragment]);
-		$module = (object) ['key' => 'module', 'code_name' => 'demo'];
-		$this->config()->set('build_target', 'module');
-		$dependencies = ['librarymanager' => $manager, 'registry' => $registry];
-		$loader = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\Module\Library::class, $dependencies);
-		$legacy = $this->renderer(\VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader::class, $dependencies);
-
-		$legacyModule = new \ArrayObject((array) $module, \ArrayObject::ARRAY_AS_PROPS);
-
-		foreach ([$loader->get($module), '$document = $this->app->getDocument();' . $legacy->get($legacyModule)] as $code)
+		$assets = new WebAssetManager(new WebAssetRegistry());
+		$document = $this->createStub(HtmlDocument::class);
+		$document->method('getWebAssetManager')->willReturn($assets);
+		$app = $this->createStub(CMSApplication::class);
+		$app->method('getDocument')->willReturn($document);
+		$view = new class($app)
 		{
-			$assets = new WebAssetManager($global->getRegistry());
-			$document = $this->createStub(HtmlDocument::class);
-			$document->method('getWebAssetManager')->willReturn($assets);
-			$application = $this->createStub(CMSApplication::class);
-			$application->method('getDocument')->willReturn($document);
-			$scope = new class
+			public function __construct(public CMSApplication $app)
 			{
-				/**
-				 * The application supplied to the module.
-				 *
-				 * @var    CMSApplication
-				 * @since  6.2.0
-				 */
-				public CMSApplication $app;
-			};
-			$scope->app = $application;
-			$this->assertSame(1, substr_count($code, '$document->getWebAssetManager()'));
-			$this->assertStringNotContainsString('getApplication()', $code);
-			$this->compileClosure($code)->call($scope);
-			$this->assertCount(1, $assets->getAssets('script', true));
-			$this->assertSame([], $global->getAssets('script', true));
-		}
+			}
+		};
+		$include = new \VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper();
+		$first = $include->getViewScript('/media/com_demo/js/first.js', 2);
+		$second = $include->getViewScript('/media/com_demo/js/second.js', 2, true);
+		$outer = str_repeat($indent, 2);
+		$inner = str_repeat($indent, 3);
+		$args = str_repeat($indent, 4);
+		$name = 'jcb.script.' . hash('sha256', 'media/com_demo/js/first.js');
+
+		$this->assertStringStartsWith($outer . '$jcbAssetManager = $this->app->getDocument()->getWebAssetManager();', $first);
+		$this->assertStringNotContainsString('getApplication()', $first);
+		$this->assertStringContainsString(PHP_EOL . $outer . 'if (!$jcbAssetManager->assetExists', $first);
+		$this->assertStringContainsString(PHP_EOL . $outer . '{' . PHP_EOL . $inner . '$jcbAssetManager->registerScript(', $first);
+		$this->assertStringContainsString(PHP_EOL . $args . "'" . $name . "',", $first);
+		$this->assertStringContainsString(PHP_EOL . $inner . ');' . PHP_EOL . $outer . '}', $first);
+		$this->assertStringContainsString(PHP_EOL . $outer . '$jcbAssetManager->useScript', $first);
+		$this->assertStringStartsWith($outer . 'if (!$wa->assetExists', $second);
+		$this->assertStringNotContainsString('getWebAssetManager()', $second);
+		$this->assertStringNotContainsString('$jcbAssetManager', $second);
+
+		$run = $this->compileClosure(
+			PHP_EOL . $first . PHP_EOL . '$wa = $this->app->getDocument()->getWebAssetManager();' . PHP_EOL . $second
+		);
+		$run->call($view);
+		$registered = $assets->getAssets('script', true);
+		$this->assertSame([
+			$name,
+			'jcb.script.' . hash('sha256', 'media/com_demo/js/second.js'),
+		], array_keys($registered));
+		$this->assertSame([$name], array_values($registered)[1]->getDependencies());
+		$this->assertSame([], $global->getAssets('script', true));
 	}
 
 	/**

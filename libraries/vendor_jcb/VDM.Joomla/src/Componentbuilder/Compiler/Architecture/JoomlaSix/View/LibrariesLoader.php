@@ -13,8 +13,6 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as SharedLibrariesLoader;
-use VDM\Joomla\Componentbuilder\Compiler\Library\JoomlaSix\IncludeHelper;
-use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
 /**
@@ -24,26 +22,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
  */
 final class LibrariesLoader extends SharedLibrariesLoader
 {
-	/**
-	 * Supply the document manager for legacy module callers of the view loader.
-	 *
-	 * @param   mixed  $view  The view being built, or the module asking for them.
-	 *
-	 * @return  string
-	 * @since   6.2.0
-	 */
-	public function get($view): string
-	{
-		$code = parent::get($view);
-
-		if (isset($view->code_name) && IncludeHelper::usesManager($code))
-		{
-			return PHP_EOL . Indent::_(2) . '$documentWebAssets = $document->getWebAssetManager();' . $code;
-		}
-
-		return $code;
-	}
-
 	/**
 	 * Activate Joomla's registered jQuery assets.
 	 *
@@ -55,3 +33,4 @@ final class LibrariesLoader extends SharedLibrariesLoader
 		return "\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
 	}
 }
+

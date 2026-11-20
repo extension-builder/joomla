@@ -158,8 +158,8 @@ class JavaScriptFile
 			// add script to view
 			return PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
 					__LINE__,__CLASS__
-				) . " Add View JavaScript File" . PHP_EOL . Indent::_(2)
-				. $this->includehelper->get($path);
+				) . " Add View JavaScript File" . PHP_EOL
+				. $this->includehelper->getViewScript($path, 2);
 		}
 
 		return '';
