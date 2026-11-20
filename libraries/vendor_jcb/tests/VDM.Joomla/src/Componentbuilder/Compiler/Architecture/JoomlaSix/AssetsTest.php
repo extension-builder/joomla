@@ -68,7 +68,7 @@ final class AssetsTest extends ArchitectureTestCase
 		$structure = $this->createMock(Structure::class);
 		$structure->expects($this->once())->method('build')->with([$target => 'article'], 'javascript_file', '', $this->isArray())->willReturn(true);
 		$include = $this->createMock(IncludeHelper::class);
-		$include->expects($this->once())->method('get')->with('/media/com_demo/js/' . $client . '/article.js')->willReturn('registered-script;');
+		$include->expects($this->once())->method('getViewScript')->with('/media/com_demo/js/' . $client . '/article.js', 2)->willReturn('registered-script;');
 		$created = $this->createStub(Createdate::class);
 		$created->method('get')->willReturn('created');
 		$modified = $this->createStub(Modifieddate::class);
