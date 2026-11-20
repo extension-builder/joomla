@@ -14,6 +14,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${HERE}/../.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
 
@@ -44,19 +45,10 @@ compose() {
 			cat "${STUB_LOG}"
 			;;
 		'exec -T')
-			if [[ "$4" == 'test' && "$5" == '-s' && "$6" == "${WEBROOT}/administrator/components/com_componentbuilder/componentbuilder.xml" ]]
+			if [[ "$4" == 'php' && "$5" == '/dev/stdin' && "$6" == "${WEBROOT}" ]]
 			then
-				[[ "${STUB_MANIFEST}" == 1 ]]
+				[[ "${STUB_MANIFEST}" == 1 && "${STUB_COMPONENT}" == 1 ]]
 				return $?
-			fi
-			if [[ "$4" == 'php' && "$5" == "${WEBROOT}/cli/joomla.php" && "$6" == 'extension:list' && "$7" == '--type=component' ]]
-			then
-				printf '| COM_CONTENT | 22 | 6.2.0 | component | Yes |\n'
-				if [[ "${STUB_COMPONENT}" == 1 ]]
-				then
-					printf '| COM_COMPONENTBUILDER | 150 | 6.1.6 | component | Yes |\n'
-				fi
-				return 0
 			fi
 			# take_packages runs shell commands against the generated archives.
 			[[ "$4" == 'sh' ]] || return 1
