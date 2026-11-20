@@ -88,6 +88,31 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	}
 
 	/**
+	 * The view's manager is available before generated Library or view script code.
+	 *
+	 * @param   string  $template  The HTML view template filename.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('htmlTemplates')]
+	public function testDocumentManagerPrecedesGeneratedConsumers(string $template): void
+	{
+		$source = $this->template($template);
+		$binding = '$wa = $this->getDocument()->getWebAssetManager();';
+		$this->assertSame(1, substr_count($source, $binding), $template);
+
+		foreach (['###SITE_LIBRARIES_LOADER###', '###CUSTOM_ADMIN_LIBRARIES_LOADER###', '###ADMIN_ADD_JAVASCRIPT_FILE###', '$wa->assetExists('] as $consumer)
+		{
+			$position = strpos($source, $consumer);
+			if ($position !== false)
+			{
+				$this->assertLessThan($position, strpos($source, $binding), $template);
+			}
+		}
+	}
+
+	/**
 	 * Empty model arrays leave all assets inactive.
 	 *
 	 * @param   string  $template  The HTML view template filename.
