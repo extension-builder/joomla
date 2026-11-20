@@ -164,6 +164,13 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$app->method('getDocument')->willReturn($document);
 		$view = new class($app)
 		{
+			/**
+			 * Provide the application already initialized by the view.
+			 *
+			 * @param   CMSApplication  $app  The view application.
+			 *
+			 * @since   6.2.0
+			 */
 			public function __construct(public CMSApplication $app)
 			{
 			}
