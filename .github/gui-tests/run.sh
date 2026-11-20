@@ -101,17 +101,24 @@ cleanup() {
 wait_for_log() {
 	local marker="$1" what="$2"
 	local deadline=$(( SECONDS + INSTALL_TIMEOUT ))
+	local logs extensions
 
 	say "Waiting for the container to report ${what}"
 
 	while true
 	do
-		if compose logs joomla 2>/dev/null | grep -qF "${marker}"
+		logs="$(compose logs joomla 2>/dev/null)" || logs=''
+		# The newer entrypoint no longer repeats individual CLI arguments.
+		if [[ "${logs}" == *"${marker}"* || "${logs}" == *'This server is now configured to run Joomla!'* ]] \
+			&& compose exec -T joomla test -s "${WEBROOT}/administrator/components/com_componentbuilder/componentbuilder.xml" \
+			&& extensions="$(compose exec -T joomla php "${WEBROOT}/cli/joomla.php" \
+				extension:list --type=component --no-interaction 2>/dev/null)" \
+			&& grep -Eiq '\|[[:space:]]*com_componentbuilder[[:space:]]*\|' <<< "${extensions}"
 		then
 			return 0
 		fi
 
-		if compose logs joomla 2>/dev/null | grep -qF 'Joomla CLI command failed:'
+		if [[ "${logs}" == *'Joomla CLI command failed'* ]]
 		then
 			say "The container reported a failed CLI command. Its log:"
 			compose logs joomla | tail -60
