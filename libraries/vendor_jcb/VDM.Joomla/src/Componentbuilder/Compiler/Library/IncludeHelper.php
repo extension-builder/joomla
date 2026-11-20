@@ -54,6 +54,7 @@ class IncludeHelper
 	 * @param   bool    $reuseWa    Whether the template has already assigned $wa.
 	 *
 	 * @return  string
+	 * @since   6.2.0
 	 */
 	public function getViewScript(string $path, int $indent, bool $reuseWa = false): string
 	{

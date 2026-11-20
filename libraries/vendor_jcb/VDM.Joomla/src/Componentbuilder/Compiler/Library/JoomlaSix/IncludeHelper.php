@@ -53,6 +53,7 @@ final class IncludeHelper extends SharedIncludeHelper
 	 * @param   bool    $reuseWa    Whether the template has already assigned $wa.
 	 *
 	 * @return  string
+	 * @since   6.2.0
 	 */
 	public function getViewScript(string $path, int $indent, bool $reuseWa = false): string
 	{
@@ -69,6 +70,7 @@ final class IncludeHelper extends SharedIncludeHelper
 	 * @param   bool    $view       Whether this is a view's own script.
 	 *
 	 * @return  string
+	 * @since   6.2.0
 	 */
 	private function render(string $path, string $extension, string $manager, int $indent, bool $view): string
 	{
