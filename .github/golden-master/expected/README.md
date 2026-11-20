@@ -382,3 +382,31 @@ unmodified 14,470-byte hosted diff, preserving CRLF and diff-context whitespace;
 applying it to the pinned baseline reproduces the complete candidate tree
 exactly. The Joomla 6 installed discovery probe remains required on the rerun
 after this exact reviewed expectation is accepted.
+
+## Joomla 6 document asset manager scope
+
+Source baseline: `72a81601915da630ce99053e10e81f1bbac639ac`.
+Reviewed candidate: `9a6aa1dec6340a0e6b239e60a57db98229cba946`, compiled by PR
+merge commit `63372ae5160f0f2b29e6eb3b42bdd5ec07de6ff5`.
+Evidence: [workflow run 44702869805](https://github.com/extension-builder/joomla/actions/runs/44702869805),
+Joomla 6 artifact [14612969184](https://github.com/extension-builder/joomla/actions/runs/44702869805/artifacts/14612969184)
+(`golden-master-j6`).
+
+The complete diff changes five files, with seven added and four removed lines.
+The administrator Greetings view exposes its existing native manager to the
+generated list-script slot. Site Greet and Greetings select the view document's
+manager before generated Library code and bind the ordinary `$wa` after authored
+document PHP. The two generated README files reflect three additional lines
+(30,967 to 30,970); the other metrics are unchanged. The blueprint does not
+exercise a generated Library include in these views; the asset-loader and
+template tests cover these calls and authored-hook scope separately. There are
+no generated asset files, manifest, mode, or Power identity changes.
+
+The original 3,838 byte patch, SHA-256
+`d2de93d4c0118198fee664d76971470ae79eafb43854aef5f6a6f7338bdd0dbb`,
+is retained without normalization. The artifact confirms baseline tree
+`c07758620196313baf2c802c37a1e8dccea2b8df` and candidate tree
+`25d3e080a52603d3946aec7e16ce40b40ac619b2`; the changed-file blob identities
+were verified from both archived packages, and `powers.diff` is empty.
+The Joomla 3, 4 and 5 jobs passed strict output equality. The Joomla 6
+installed scale probe remains required after the exact comparison succeeds.
