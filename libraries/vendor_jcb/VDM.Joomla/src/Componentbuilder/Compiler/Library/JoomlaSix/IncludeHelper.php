@@ -77,4 +77,3 @@ final class IncludeHelper extends SharedIncludeHelper
 			|| str_contains($code, "if (!\$wa->assetExists('style', 'jcb.style.");
 	}
 }
-
