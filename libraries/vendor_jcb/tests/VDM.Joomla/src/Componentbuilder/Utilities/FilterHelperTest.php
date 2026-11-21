@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Utilities;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseQuery;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use VDM\Joomla\Componentbuilder\Utilities\FilterHelper;
 use VDM\Joomla\Utilities\ArrayHelper;
@@ -67,7 +68,10 @@ final class FilterHelperTest extends JoomlaTestCase
 		$database->expects($this->once())->method('loadAssocList')->willReturn([
 			['id' => '4', 'components' => '["other-guid"]'],
 			['id' => '7', 'components' => '["extension-guid","other-guid"]'],
-			['id' => '9', 'components' => '["extension-guid"]']
+			['id' => '9', 'components' => '["extension-guid"]'],
+			['id' => '10', 'components' => 'invalid-json'],
+			['id' => '11', 'components' => 'null'],
+			['id' => '12', 'components' => '[0]']
 		]);
 		$this->setJoomlaFactoryProperty('database', $database);
 
@@ -177,18 +181,103 @@ final class FilterHelperTest extends JoomlaTestCase
 	}
 
 	/**
-	 * De-duplicate matching translation identifiers without changing their order.
+	 * Classify real subform values without confusing language names and prose.
+	 *
+	 * @param   string      $language    Language selection.
+	 * @param   bool        $translated  Requested translation state.
+	 * @param   array|null  $expected    Matching fixture identifiers.
 	 *
 	 * @return  void
-	 * @since   6.1.6
+	 * @since   6.2.1
 	 */
-	public function testTranslationsReturnsUniqueMatchingIdentifiers(): void
+	#[DataProvider('translationSelections')]
+	public function testTranslationsMatchSubformEntries(string $language, bool $translated, ?array $expected): void
 	{
-		[$database] = $this->database(3);
-		$database->expects($this->once())->method('loadColumn')->willReturn([4, 4, 9]);
+		$query = $this->createStub(DatabaseQuery::class);
+		foreach (['select', 'from', 'where', 'order'] as $method)
+		{
+			$query->method($method)->willReturnSelf();
+		}
+		$database = $this->createMock(DatabaseDriver::class);
+		$database->method('getQuery')->willReturn($query);
+		$database->method('quoteName')->willReturnArgument(0);
+		$database->method('setQuery')->willReturnSelf();
+		$database->method('execute')->willReturn(true);
+		$database->method('getNumRows')->willReturn(2);
+		$database->method('loadAssocList')->willReturn(['en-GB' => 'English', 'af-ZA' => 'Afrikaans']);
+		$values = [
+			1 => null,
+			2 => '',
+			3 => '[]',
+			4 => '{}',
+			5 => 'invalid-json',
+			6 => '{"translation0":{"language":"af-ZA","translation":""}}',
+			7 => '[{"language":"af-ZA","translation":"  \\n "}]',
+			8 => '[{"language":"en-GB","translation":"Instructions for af-ZA"}]',
+			9 => '[{"language":"af-ZA","translation":"Vertaling"}]',
+			10 => '[{"language":"af-ZA","translation":"0"}]',
+			11 => '[{"language":"en-GB","translation":"English"},{"language":"af-ZA","translation":"Afrikaans"}]',
+			12 => '[{"language":"af-ZA-extra","translation":"Other"}]',
+			13 => '[{"language":"af-ZA","translation":null},{"language":[],"translation":"text"},{"language":"  ","translation":"text"},"bad"]',
+			14 => '[{"language":"af-ZA","translation":"Valid"},{"language":"af-ZA","translation":""}]',
+			15 => '"scalar"',
+			16 => '[{"language":"fr-FR","translation":"Unpublished"}]',
+		];
+		$rows = [];
+		foreach ($values as $id => $value)
+		{
+			$rows[] = (object) ['id' => $id, 'translation' => $value];
+		}
+		$database->expects($this->once())->method('getIterator')->willReturn(new \ArrayIterator($rows));
 		$this->setJoomlaFactoryProperty('database', $database);
 
-		$this->assertSame([4, 9], array_values(FilterHelper::translations('af-ZA')));
+		$this->assertSame($expected, FilterHelper::translations($language, $translated));
+	}
+
+	/**
+	 * Supply exact sets for individual, combined, missing and empty translations.
+	 *
+	 * @return  array<string, array{string, bool, array|null}>
+	 * @since   6.2.1
+	 */
+	public static function translationSelections(): array
+	{
+		return [
+			'translated exact tag' => ['af-ZA', true, [9, 10, 11, 14]],
+			'untranslated exact tag' => ['af-ZA', false, [1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 15, 16]],
+			'English with incidental language tag' => ['en-GB', true, [8, 11]],
+			'all published languages' => ['all', true, [11]],
+			'no usable translations in any language' => ['none', false, [1, 2, 3, 4, 5, 6, 7, 13, 15]],
+			'no matching language' => ['de-DE', true, null],
+		];
+	}
+
+	/**
+	 * A stale all-language selection cannot turn into an unfiltered result.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testAllLanguagesReturnsNoMatchesWithoutPublishedLanguages(): void
+	{
+		[$database] = $this->database(0);
+		$database->expects($this->never())->method('getIterator');
+		$this->setJoomlaFactoryProperty('database', $database);
+
+		$this->assertNull(FilterHelper::translations('all'));
+	}
+
+	/**
+	 * Reject incompatible sentinel selections before touching the database.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testInvalidTranslationSelectionsReturnNoMatches(): void
+	{
+		$this->assertNull(FilterHelper::translations(''));
+		$this->assertNull(FilterHelper::translations('none'));
+		$this->assertNull(FilterHelper::translations('all', false));
 	}
 
 	/**
