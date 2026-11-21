@@ -27,9 +27,10 @@ The implementation and tests are ported from `d06a3fb0` and `f12f87a5`.
 The regression suite exercises each distinct template against a controlled
 table, including Save as Copy and Batch Copy. The stable compiler's version
 catalogue selects the Joomla 4 template folder for Joomla 4, 5 and 6.
-The issue-specific diff passed `git diff --check`. See this branch's CI
-for execution results. Browser copy scenarios were not run as part of this
-issue-specific check. The change affects displayed model errors and generated
+On PHP 8.4.27 with Joomla CMS 6.1.2, the four focused PHPUnit suites
+passed 88 tests and 1,267 assertions. The issue-specific diff, PHP lint,
+PHP contribution style, and test ownership checks passed. Browser copy
+scenarios were not run as part of this issue-specific check. The change affects displayed model errors and generated
 PHP. It introduces no markup, controls or keyboard interaction.
 
 Recompile and reinstall affected extensions to deploy the new helpers.
