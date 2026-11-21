@@ -159,6 +159,28 @@ final class VersionedIntegrationTest extends CompilerDomainTestCase
 	}
 
 	/**
+	 * The emitted item and list controllers must import Joomla's access exception.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testDynamicApiControllersImportTheNativeAccessException(): void
+	{
+		foreach ([JoomlaFourHeader::class, JoomlaFiveHeader::class, JoomlaSixHeader::class] as $class)
+		{
+			$header = (new ReflectionClass($class))->newInstanceWithoutConstructor();
+			$method = new ReflectionMethod($class, 'getHeaders');
+
+			foreach (['api.dynamic.view.controller', 'api.dynamic.views.controller'] as $context)
+			{
+				$imports = $method->invoke($header, $context);
+				$this->assertContains('use Joomla\CMS\Access\Exception\NotAllowed;', $imports, $class . ' ' . $context);
+				$this->assertNotContains('use Joomla\CMS\MVC\Controller\Exception\NotAllowed;', $imports, $class . ' ' . $context);
+			}
+		}
+	}
+
+	/**
 	 * History adapters use their host table and store one component lock exactly once.
 	 *
 	 * @param   class-string  $class  History implementation.
