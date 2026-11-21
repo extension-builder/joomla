@@ -63,6 +63,15 @@ cleanup() {
 			status=1
 		fi
 	fi
+	if [[ "${LANGUAGE_FIXTURES_STARTED:-0}" == "1" ]]
+	then
+		if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php \
+			/tmp/language-translation-fixtures.php --cleanup > "${OUT_DIR}/language-translation-cleanup.log" 2>&1
+		then
+			cat "${OUT_DIR}/language-translation-cleanup.log" >&2
+			status=1
+		fi
+	fi
 	# Preserve setup/integration failures too, before their container is removed.
 	# Failure of evidence collection must never hide the original failing step.
 	if [[ -d "${OUT_DIR}" ]]
@@ -257,6 +266,17 @@ then
 	exit 1
 fi
 
+say "Seeding disposable language translation filter cases"
+compose cp "${REPO_ROOT}/.github/gui-tests/language-translation-fixtures.php" "joomla:/tmp/language-translation-fixtures.php"
+LANGUAGE_FIXTURES_STARTED=1
+if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php /tmp/language-translation-fixtures.php \
+	--seed > "${OUT_DIR}/language-translation-seed.log" 2>&1
+then
+	cat "${OUT_DIR}/language-translation-seed.log" >&2
+	exit 1
+fi
+compose cp "joomla:/tmp/jcb-language-translation-fixtures.json" "${OUT_DIR}/language-translation-fixtures.json"
+
 say "Running the GUI suite"
 (
 	cd "${SUITE_DIR}"
@@ -269,6 +289,7 @@ set +e
 (
 	cd "${SUITE_DIR}"
 	JCB_EXTRUSION_FIXTURES="${OUT_DIR}/extrusion-fixtures.json" \
+	JCB_LANGUAGE_TRANSLATION_FIXTURES="${OUT_DIR}/language-translation-fixtures.json" \
 	JCB_BASE_URL="${JCB_BASE_URL}" \
 	JCB_PROVENANCE_PATH="/${PROOF_NAME}" \
 	JCB_PROVENANCE_VALUE="${PROOF_VALUE}" \

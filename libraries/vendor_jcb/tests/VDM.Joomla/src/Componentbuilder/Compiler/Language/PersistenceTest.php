@@ -15,6 +15,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Language;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionClass;
 use ReflectionMethod;
@@ -42,22 +43,25 @@ use VDM\Tests\Support\TestCase;
 final class PersistenceTest extends TestCase
 {
 	/**
-	 * Quote seven columns, execute a complete insert batch, and clear it afterwards.
+	 * Preserve the seven-value queue and store a canonical empty translation before any manual save.
+	 *
+	 * @param   string  $target  The extension column receiving the new string.
 	 *
 	 * @return  void
 	 * @since   6.1.6
 	 */
-	public function testInsertBuildsCompleteBatchAndClearsExecutedTarget(): void
+	#[DataProvider('insertTargets')]
+	public function testInsertBuildsCompleteBatchAndClearsExecutedTarget(string $target): void
 	{
 		$query = $this->createMock(QueryInterface::class);
 		$query->expects($this->once())->method('insert')
 			->with('[#__componentbuilder_language_translation]')->willReturnSelf();
 		$query->expects($this->once())->method('columns')->with([
-			'[components]', '[source]', '[published]', '[created]',
-			'[created_by]', '[version]', '[access]'
+			'[' . $target . ']', '[source]', '[published]', '[created]',
+			'[created_by]', '[version]', '[access]', '[translation]'
 		])->willReturnSelf();
 		$query->expects($this->once())->method('values')
-			->with("'[guid]','Source','1','2026-08-14','7','1','1'")->willReturnSelf();
+			->with("'[guid]','Source','1','2026-08-14','7','1','1',''")->willReturnSelf();
 		$db = $this->database();
 		$db->expects($this->once())->method('getQuery')->with(true)->willReturn($query);
 		$db->expects($this->once())->method('setQuery')->with($query);
@@ -66,13 +70,30 @@ final class PersistenceTest extends TestCase
 
 		foreach (['[guid]', 'Source', '1', '2026-08-14', '7', '1', '1'] as $value)
 		{
-			$subject->set('components', 0, $value);
+			$subject->set($target, 0, $value);
 		}
 
-		$subject->execute('components');
-		$subject->execute('components');
+		$subject->execute($target, 2);
+		$this->assertCount(7, $this->property($subject, 'items')[$target][0]);
+		$subject->execute($target);
+		$subject->execute($target);
 
-		$this->assertSame([], $this->property($subject, 'items')['components']);
+		$this->assertSame([], $this->property($subject, 'items')[$target]);
+	}
+
+	/**
+	 * Every compiler extension type uses the same new-string storage contract.
+	 *
+	 * @return  array<string, array{string}>
+	 * @since   6.2.1
+	 */
+	public static function insertTargets(): array
+	{
+		return [
+			'component' => ['components'],
+			'module' => ['modules'],
+			'plugin' => ['plugins']
+		];
 	}
 
 	/**
