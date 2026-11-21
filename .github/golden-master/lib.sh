@@ -85,18 +85,23 @@ cleanup() {
 wait_for_log() {
 	local marker="$1" what="$2"
 	local deadline=$(( SECONDS + INSTALL_TIMEOUT ))
+	local logs readiness=''
 
 	say "Waiting for the container to report ${what}"
 
 	while true
 	do
-		if compose logs joomla 2>/dev/null | grep -qF "${marker}"
+		logs="$(compose logs joomla 2>/dev/null)" || logs=''
+		# The newer entrypoint no longer repeats individual CLI arguments.
+		if [[ "${logs}" == *"${marker}"* || "${logs}" == *'This server is now configured to run Joomla!'* ]] \
+			&& readiness="$(compose exec -T joomla php /dev/stdin "${WEBROOT}" \
+				< "${REPO_ROOT}/.github/golden-master/jcb-ready.php" 2>&1)"
 		then
 			return 0
 		fi
 
 		# The entrypoint says so plainly when a CLI command of its own fails.
-		if compose logs joomla 2>/dev/null | grep -qF 'Joomla CLI command failed:'
+		if [[ "${logs}" == *'Joomla CLI command failed'* ]]
 		then
 			say "The container reported a failed CLI command. Its log:"
 			compose logs joomla | tail -60
@@ -105,6 +110,10 @@ wait_for_log() {
 
 		if (( SECONDS > deadline ))
 		then
+			if [[ -n "${readiness}" ]]
+			then
+				printf 'Last JCB readiness probe: %s\n' "${readiness}"
+			fi
 			say "Gave up after ${INSTALL_TIMEOUT}s waiting for ${what}. Container log:"
 			compose logs joomla | tail -80
 			exit 1
