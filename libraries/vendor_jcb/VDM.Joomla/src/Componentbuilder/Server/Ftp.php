@@ -223,8 +223,7 @@ class Ftp implements Serverinterface
 
 		if (!$client->login($signature['username'], $signature['password']))
 		{
-			$client->quit();
-
+			// Joomla's client destructor closes the connection, including socket-based FTP.
 			return null;
 		}
 
