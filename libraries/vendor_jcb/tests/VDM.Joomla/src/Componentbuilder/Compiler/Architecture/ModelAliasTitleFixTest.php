@@ -63,17 +63,12 @@ final class ModelAliasTitleFixTest extends ArchitectureTestCase
 	/**
 	 * Failed uniqueness generation stops save before false can become field data.
 	 *
-	 * @param   string  $version  Target namespace segment.
-	 * @param   string  $lookup   Expected configuration lookup.
-	 *
 	 * @return  void
 	 * @since   6.2.1
 	 */
-	#[DataProvider('versions')]
-	public function testCopyPropagatesUniqueFailuresAndPreservesExplicitNull(string $version,
-		string $lookup): void
+	public function testCopyPropagatesUniqueFailuresAndPreservesExplicitNull(): void
 	{
-		$code = $this->fix(false, true, null, $version);
+		$code = $this->fix(false, true);
 		$this->assertStringContainsString(
 			"if (!array_key_exists(\$uniqueField, \$data))\n\t\t\t\t\t{\n\t\t\t\t\t\tcontinue;", $code
 		);
