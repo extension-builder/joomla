@@ -109,3 +109,43 @@ for every target. The full raw hosted diffs were encoded without modification;
 applying each decoded patch to its exact baseline reproduces the measured
 candidate tree, including every byte and executable mode. The hosted scale probes
 still run after the exact output gate accepts these reviewed changes.
+
+## Stable backport of issue 1328
+
+The Hello World comparison for PR #71 uses stable baseline
+`3dbd1ad531ce97645561229e83f887782f0c021f`. The candidate head
+`3d2815320a258b6a4a1bfaea14c55f543c65b1bc` was compiled as merge commit
+`493651d87783e295281b2cfb9fcb5b44a1f025ef`. All four jobs reached the expected
+output comparison and retained their complete baseline and candidate packages.
+[Hosted comparison and artifacts](https://github.com/extension-builder/joomla/actions/runs/44928927973)
+
+| Joomla target | Artifact ID | Artifact SHA-256 | Compared files | Generated line count |
+| --- | --- | --- | ---: | --- |
+| 3 | `14716868882` | `aa80db8860e38eb89435867a927639013da6b6dbab80b8b9b2ef82ed27d35c7b` | 1,369 | 29,378 → 29,602 |
+| 4 | `14716947164` | `26123b50d2f6b683ea8d85e5e478f9e5bd1779f11ea3ca370c863903c1f1a882` | 291 | 30,388 → 30,603 |
+| 5 | `14717262294` | `f3a4da4024f00a25def7e82b2cdb9d5667571e4d38d1a9d158da9f16a87681f6` | 296 | 30,648 → 30,863 |
+| 6 | `14717730392` | `c839b51891a8e29ab3b3a5f83b3fd960161d09123657b42f799d5409c329676e` | 252 | 30,620 → 30,835 |
+
+Six files change on every target. The administrator and site greeting models
+emit the unique column metadata, check copy failures before assigning values,
+preserve nullable fields and limit collision checks to 100. The Joomla 3
+models also check batch-copy assignments. Both English language files gain
+the four corresponding error messages. Every added and removed model and
+language line matches the reviewed upstream issue 1328 output in
+`887ed3d05334eb3d806672307249b5c6e0b4ac9e`. All eight changed models pass
+PHP 8.4 syntax checks. Both language files per target parse with
+`INI_SCANNER_RAW` and preserve one `%s` placeholder per new message.
+
+The two generated README files on each target record the new line count
+and resulting time estimates. Recomputing the estimates with the compiler's
+valuation formulas accounts for every change. Joomla 4 overhead drops from
+53 to 52 hours as the truncated base estimate rises from 80 to 81 hours and
+the total stays at 133. Joomla 6's office estimate rises from 12 to 13 hours.
+
+Reconstructing both Git trees from every archived package reproduces all
+eight measured tree IDs with executable modes intact. Each stored patch is
+the complete hosted `full.diff` and applies to its recorded baseline tree to
+produce the candidate tree. Final Power snapshots are identical. Each target
+verified 1,665 baseline and 1,666 candidate installed source files. All
+candidate checksums also match the reviewed checkout. The installed discovery
+probe runs after the reviewed comparison passes.

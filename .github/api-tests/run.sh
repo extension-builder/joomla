@@ -170,6 +170,9 @@ php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
 say "Adding optional encoded fields to the disposable Demo source definition"
 JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
 
+say "Restricting the native site list to its dynamic-list HTTP fixture"
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-dynamic-list.php" "${SITE}"
+
 say "Compiling the demo component for Joomla 6"
 rm -f "${SITE}"/tmp/*.zip
 if ! compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
@@ -245,6 +248,7 @@ else
 	php "${SUITE_DIR}/scenarios.php" "${BASE_URL}" "${TOKEN}" v1/demo/looks --hammer="${JCB_API_HAMMER}"
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/read-permissions.php" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" v1/demo/looks
 	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/partial-patch.php" "${SITE}" "${BASE_URL}" "${TOKEN}" v1/demo/looks
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/dynamic-list.php" "${SITE}" "${BASE_URL}" "${TOKEN}" "${READER_TOKEN}"
 
 	# Recompile source definitions with a plural word in the middle of the list
 	# name. Item tasks must select Library_configModel, while list tasks select

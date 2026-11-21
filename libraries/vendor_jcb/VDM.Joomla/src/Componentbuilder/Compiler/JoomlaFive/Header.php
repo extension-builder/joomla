@@ -646,7 +646,7 @@ final class Header implements HeaderInterface
 				$headers[] = 'use Joomla\CMS\Factory;';
 				$headers[] = 'use Joomla\CMS\Language\Text;';
 				$headers[] = 'use Joomla\CMS\MVC\Controller\ApiController;';
-				$headers[] = 'use Joomla\CMS\MVC\Controller\Exception\NotAllowed;';
+				$headers[] = 'use Joomla\CMS\Access\Exception\NotAllowed;';
 				break;
 
 			case 'api.dynamic.view.json':
@@ -689,4 +689,3 @@ final class Header implements HeaderInterface
 		return !in_array($context, $this->disallowedContexts, true);
 	}
 }
-

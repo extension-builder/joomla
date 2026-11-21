@@ -63,6 +63,15 @@ cleanup() {
 			status=1
 		fi
 	fi
+	if [[ "${LANGUAGE_FIXTURES_STARTED:-0}" == "1" ]]
+	then
+		if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php \
+			/tmp/language-translation-fixtures.php --cleanup > "${OUT_DIR}/language-translation-cleanup.log" 2>&1
+		then
+			cat "${OUT_DIR}/language-translation-cleanup.log" >&2
+			status=1
+		fi
+	fi
 	# Preserve setup/integration failures too, before their container is removed.
 	# Failure of evidence collection must never hide the original failing step.
 	if [[ -d "${OUT_DIR}" ]]
@@ -92,17 +101,22 @@ cleanup() {
 wait_for_log() {
 	local marker="$1" what="$2"
 	local deadline=$(( SECONDS + INSTALL_TIMEOUT ))
+	local logs readiness=''
 
 	say "Waiting for the container to report ${what}"
 
 	while true
 	do
-		if compose logs joomla 2>/dev/null | grep -qF "${marker}"
+		logs="$(compose logs joomla 2>/dev/null)" || logs=''
+		# The newer entrypoint no longer repeats individual CLI arguments.
+		if [[ "${logs}" == *"${marker}"* || "${logs}" == *'This server is now configured to run Joomla!'* ]] \
+			&& readiness="$(compose exec -T joomla php /dev/stdin "${WEBROOT}" \
+				< "${REPO_ROOT}/.github/golden-master/jcb-ready.php" 2>&1)"
 		then
 			return 0
 		fi
 
-		if compose logs joomla 2>/dev/null | grep -qF 'Joomla CLI command failed:'
+		if [[ "${logs}" == *'Joomla CLI command failed'* ]]
 		then
 			say "The container reported a failed CLI command. Its log:"
 			compose logs joomla | tail -60
@@ -111,6 +125,10 @@ wait_for_log() {
 
 		if (( SECONDS > deadline ))
 		then
+			if [[ -n "${readiness}" ]]
+			then
+				printf 'Last JCB readiness probe: %s\n' "${readiness}"
+			fi
 			say "Gave up after ${INSTALL_TIMEOUT}s waiting for ${what}. Container log:"
 			compose logs joomla | tail -80
 			exit 1
@@ -257,6 +275,17 @@ then
 	exit 1
 fi
 
+say "Seeding disposable language translation filter cases"
+compose cp "${REPO_ROOT}/.github/gui-tests/language-translation-fixtures.php" "joomla:/tmp/language-translation-fixtures.php"
+LANGUAGE_FIXTURES_STARTED=1
+if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 joomla php /tmp/language-translation-fixtures.php \
+	--seed > "${OUT_DIR}/language-translation-seed.log" 2>&1
+then
+	cat "${OUT_DIR}/language-translation-seed.log" >&2
+	exit 1
+fi
+compose cp "joomla:/tmp/jcb-language-translation-fixtures.json" "${OUT_DIR}/language-translation-fixtures.json"
+
 say "Running the GUI suite"
 (
 	cd "${SUITE_DIR}"
@@ -269,6 +298,7 @@ set +e
 (
 	cd "${SUITE_DIR}"
 	JCB_EXTRUSION_FIXTURES="${OUT_DIR}/extrusion-fixtures.json" \
+	JCB_LANGUAGE_TRANSLATION_FIXTURES="${OUT_DIR}/language-translation-fixtures.json" \
 	JCB_BASE_URL="${JCB_BASE_URL}" \
 	JCB_PROVENANCE_PATH="/${PROOF_NAME}" \
 	JCB_PROVENANCE_VALUE="${PROOF_VALUE}" \

@@ -187,6 +187,7 @@ final class SetAndTranslationTest extends CompilerDomainTestCase
 		$this->assertContains("[modified_by] = '13'", $updateFields);
 		$this->assertStringContainsString("'[\"new-guid\"]'", $insertValues);
 		$this->assertStringContainsString("'New'", $insertValues);
+		$this->assertStringEndsWith(",''", $insertValues);
 		$this->assertSame([], $this->property($update, 'items'));
 		$this->assertSame([], $this->property($insert, 'items')['components']);
 	}
