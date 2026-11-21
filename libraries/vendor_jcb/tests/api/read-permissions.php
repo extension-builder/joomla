@@ -120,6 +120,20 @@ try
 		throw new RuntimeException('Cannot exercise API read permissions without a created fixture record.');
 	}
 
+	// The first compilation includes the native read-only site item and list.
+	// The second renames the admin list, changing the site's collision prefix.
+	if ($resource === 'v1/demo/looks')
+	{
+		$siteApi = rtrim($base, '/') . '/api/index.php/v1/demo/';
+
+		foreach (['site_looks', 'looking/' . $id] as $siteResource)
+		{
+			$denied = $request('GET', $siteApi . $siteResource, $deniedToken);
+			$check('denied dynamic ' . $siteResource . ' returns JSON:API 403',
+				$denied['status'] === 403 && isset($denied['body']['errors'][0]), $denied['status']);
+		}
+	}
+
 	foreach ([$endpoint . '/' . $id, $endpoint . '/guid/' . $guid] as $url)
 	{
 		$read = $request('GET', $url, $readerToken);
