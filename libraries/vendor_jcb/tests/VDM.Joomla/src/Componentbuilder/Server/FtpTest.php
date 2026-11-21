@@ -70,7 +70,7 @@ final class FtpTest extends TestCase
 		$client = $this->createMock(FtpClient::class);
 		$client->expects($this->once())->method('connect')->with('ftp.example.test', 21)->willReturn($connects);
 		$client->expects($connects ? $this->once() : $this->never())->method('login')->willReturn(false);
-		$client->expects($connects ? $this->once() : $this->never())->method('quit');
+		$client->expects($this->never())->method('quit');
 		$client->expects($this->never())->method('store');
 		$clients = $this->createMock(ClientFactory::class);
 		$clients->expects($this->once())->method('ftp')->with([])->willReturn($client);
