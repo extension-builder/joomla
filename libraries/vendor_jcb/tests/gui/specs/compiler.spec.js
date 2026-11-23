@@ -45,6 +45,8 @@ test('Compiler loads component details and updates the preferred target without 
 	const component = page.locator('#adminForm #component_id');
 	const version = page.getByLabel('Joomla Version', { exact: true });
 	const details = page.locator('#component-details');
+	// The separate compilation-progress panel has its own noticeboard.
+	const noticeboard = page.locator('#form #noticeboard');
 	const selectNotice = details.getByText('Please select a component that you would like to compile.', { exact: true });
 	await expect(selectNotice).toBeVisible();
 	// The fixture inherits the schema's preferred target of Joomla 3. Starting
@@ -94,7 +96,8 @@ test('Compiler loads component details and updates the preferred target without 
 	expect(String(result.preferred_joomla_version), 'the seeded component retains its preferred target').toBe('3');
 	await expect(details.getByRole('heading', { name: 'Extrusion Fixture A (v1.0.0)', exact: true }),
 		'the returned details replace the selection notice').toBeVisible();
-	await expect(details.getByRole('link', { name: 'Edit Extrusion Fixture A', exact: true }))
+	// Joomla's decorative edit icon prefixes the accessible action name.
+	await expect(details.getByRole('link', { name: /Edit Extrusion Fixture A$/ }))
 		.toHaveAttribute('href', `index.php?option=com_componentbuilder&ref=compiler&view=joomla_components&task=joomla_component.edit&id=${componentId}`);
 	await expect(version, 'the preferred Joomla target is selected').toHaveValue('3');
 	await expect.poll(() => page.evaluate(() => /** @type {any} */ (window).compilerVersionEvents),
@@ -102,14 +105,14 @@ test('Compiler loads component details and updates the preferred target without 
 		{ type: 'liszt:updated', value: '3' },
 		{ type: 'change', value: '3' }
 	]);
-	await expect(page.locator('#noticeboard')).toBeHidden();
+	await expect(noticeboard).toBeHidden();
 	await expect(page.locator('#compiler')).toBeHidden();
 	await expect(page.locator('#compilerForm')).toBeVisible();
 
 	await component.selectOption('');
 	await expect(selectNotice, 'clearing the selection restores the original instruction').toBeVisible();
 	await expect(details.getByRole('heading', { name: 'Extrusion Fixture A (v1.0.0)', exact: true })).toHaveCount(0);
-	await expect(page.locator('#noticeboard'), 'clearing the selection restores the noticeboard').toBeVisible();
+	await expect(noticeboard, 'clearing the selection restores the noticeboard').toBeVisible();
 	await expect(version, 'clearing the component does not overwrite the selected target').toHaveValue('3');
 });
 
