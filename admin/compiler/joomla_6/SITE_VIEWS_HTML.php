@@ -150,37 +150,72 @@ class HtmlView extends BaseHtmlView
 	 * @since   1.6
 	 */
 	protected function _prepareDocument(): void
-	{###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
+	{
 		$wa = $this->getDocument()->getWebAssetManager();
-		// add styles
-		$jcbStyleDependencies = $jcbStyleDependencies ?? [];
+		$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
+
+		$jcbStyleDependencies = array_values(array_unique(
+			$jcbStyleDependencies ?? []
+		));
+		$jcbScriptDependencies = array_values(array_unique([
+			'core',###SITE_VIEW_SCRIPT_DEPENDENCIES###
+			...($jcbScriptDependencies ?? []),
+		]));
+
+		// Add styles
 		foreach ($this->styles as $style)
 		{
 			$style = str_starts_with($style, '//') ? $style : ltrim($style, '/');
 			$assetName = 'jcb.style.' . hash('sha256', $style);
+
 			if (!$wa->assetExists('style', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
-					? $style : Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . $style;
-				$wa->registerStyle($assetName, $assetUri, ['version' => 'auto'], [], $jcbStyleDependencies);
+					? $style : $root . $style;
+				$wa->registerStyle(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbStyleDependencies
+				);
 			}
+
 			$wa->useStyle($assetName);
-			$jcbStyleDependencies = array_values(array_unique([...$jcbStyleDependencies, $assetName]));
+			if (!in_array($assetName, $jcbStyleDependencies, true))
+			{
+				$jcbStyleDependencies[] = $assetName;
+			}
 		}###SITE_DOCUMENT_CUSTOM_CSS###
-		// add scripts
-		$jcbScriptDependencies = $jcbScriptDependencies ?? ['core'];
-		foreach ($this->scripts as $script)
+
+		$viewScripts = [###SITE_VIEW_SCRIPT_ENTRY######SITE_VIEW_SCRIPT_PATHS###
+			// Add scripts
+			...$this->scripts,
+		];
+
+		foreach ($viewScripts as $script)
 		{
 			$script = str_starts_with($script, '//') ? $script : ltrim($script, '/');
 			$assetName = 'jcb.script.' . hash('sha256', $script);
+
 			if (!$wa->assetExists('script', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
-					? $script : Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root() . $script;
-				$wa->registerScript($assetName, $assetUri, ['version' => 'auto'], [], $jcbScriptDependencies);
+					? $script : $root . $script;
+				$wa->registerScript(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbScriptDependencies
+				);
 			}
+
 			$wa->useScript($assetName);
-			$jcbScriptDependencies = array_values(array_unique([...$jcbScriptDependencies, $assetName]));
+			if (!in_array($assetName, $jcbScriptDependencies, true))
+			{
+				$jcbScriptDependencies[] = $assetName;
+			}
 		}###SITE_DOCUMENT_CUSTOM_JS######SITE_JAVASCRIPT_FOR_BUTTONS###
 	}
 

@@ -155,9 +155,9 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
-      - name: Execute compiled footer scripts in Chromium
+      - name: Execute compiled footer and view assets in Chromium
         if: matrix.php == '8.4'
-        run: node --test libraries/vendor_jcb/tests/javascript/footer-browser.cjs
+        run: node --test libraries/vendor_jcb/tests/javascript/footer-browser.cjs libraries/vendor_jcb/tests/javascript/view-assets-browser.cjs
 
       - name: Run documented known-contract failures
         id: known-defects

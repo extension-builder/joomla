@@ -13,6 +13,8 @@ namespace VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View;
 
 
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as SharedJavaScriptFile;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
+use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 
 /**
@@ -22,6 +24,21 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as Sha
  */
 final class JavaScriptFile extends SharedJavaScriptFile
 {
+	/**
+	 * Render one entry in the template-owned view script list.
+	 *
+	 * @param   string  $path  The installed asset path.
+	 *
+	 * @return  string  The escaped PHP array entry.
+	 * @since   6.2.0
+	 */
+	protected function render(string $path): string
+	{
+		return PHP_EOL . Indent::_(3) . "//" . Line::_(__LINE__, __CLASS__)
+			. " Add View JavaScript File" . PHP_EOL
+			. Indent::_(3) . var_export(ltrim($path, '/'), true) . ',';
+	}
+
 	/**
 	 * Resolve the public script path for this view.
 	 *
@@ -38,4 +55,3 @@ final class JavaScriptFile extends SharedJavaScriptFile
 			. '/js/' . $client . '/' . $name . '.js';
 	}
 }
-

@@ -64,11 +64,18 @@ final class AssetsTest extends ArchitectureTestCase
 	public function testViewScriptFileUsesMediaAndPreservesItsBody(string $target, string $client): void
 	{
 		$this->config()->set('build_target', $target);
+		$this->placeholder()->set_('script_value', 'preserved');
 		$content = new ContentMulti();
 		$structure = $this->createMock(Structure::class);
-		$structure->expects($this->once())->method('build')->with([$target => 'article'], 'javascript_file', '', $this->isArray())->willReturn(true);
+		$structure->expects($this->once())->method('build')->with(
+			[$target => 'article'],
+			'javascript_file',
+			'',
+			['###CREATIONDATE###' => 'created', '###BUILDDATE###' => 'modified', '###VERSION###' => '1.2.3']
+		)->willReturn(true);
 		$include = $this->createMock(IncludeHelper::class);
-		$include->expects($this->once())->method('getViewScript')->with('/media/com_demo/js/' . $client . '/article.js', 2)->willReturn('registered-script;');
+		$include->expects($this->never())->method('getViewScript');
+		$include->expects($this->never())->method('get');
 		$created = $this->createStub(Createdate::class);
 		$created->method('get')->willReturn('created');
 		$modified = $this->createStub(Modifieddate::class);
@@ -79,10 +86,79 @@ final class AssetsTest extends ArchitectureTestCase
 		]);
 		$view = ['settings' => (object) [
 			'code' => 'article', 'version' => '1.2.3', 'add_javascript_file' => 1,
-			'javascript_file' => 'window.article = true;',
+			'javascript_file' => "window.article = '[[[script_value]]]';\n",
 		]];
-		$this->assertStringEndsWith('registered-script;', $subject->get($view, strtoupper($target)));
-		$this->assertSame('window.article = true;', $content->get('article|' . strtoupper($target) . '_JAVASCRIPT_FILE'));
+		$this->assertSame(
+			"\n\t\t\t// Add View JavaScript File\n\t\t\t'media/com_demo/js/" . $client . "/article.js',",
+			$subject->get($view, strtoupper($target))
+		);
+		$this->assertSame("window.article = 'preserved';\n", $content->get('article|' . strtoupper($target) . '_JAVASCRIPT_FILE'));
+	}
+
+	/**
+	 * Empty or disabled authored files add neither an entry nor a file build.
+	 *
+	 * @param   array  $settings  Optional JavaScript definition switches and body.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('absentScriptFiles')]
+	public function testAbsentViewScriptProducesNoEntry(array $settings): void
+	{
+		$content = new ContentMulti();
+		$structure = $this->createMock(Structure::class);
+		$structure->expects($this->never())->method('build');
+		$include = $this->createMock(IncludeHelper::class);
+		$include->expects($this->never())->method('getViewScript');
+		$include->expects($this->never())->method('get');
+		$subject = $this->renderer(JavaScriptFile::class, [
+			'contentmulti' => $content,
+			'structure' => $structure,
+			'includehelper' => $include,
+		]);
+		$view = ['settings' => (object) ($settings + ['code' => 'article', 'version' => '1.2.3'])];
+		$this->assertSame('', $subject->get($view, 'ADMIN'));
+		$this->assertNull($content->get('article|ADMIN_JAVASCRIPT_FILE'));
+	}
+
+	/**
+	 * Escaped path entries remain executable array literals under every indentation.
+	 *
+	 * @param   string  $indent  The configured indentation unit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('indentationValues')]
+	public function testViewPathEntryEscapesItsLiteralAndKeepsDebugOrigin(string $indent): void
+	{
+		$this->configureEmission($indent);
+		$structure = $this->createStub(Structure::class);
+		$structure->method('build')->willReturn(true);
+		$include = $this->createMock(IncludeHelper::class);
+		$include->expects($this->never())->method('getViewScript');
+		$include->expects($this->never())->method('get');
+		$subject = $this->renderer(JavaScriptFile::class, ['structure' => $structure, 'includehelper' => $include]);
+		$view = ['settings' => (object) [
+			'code' => "article'\\preview", 'version' => '1.2.3',
+			'add_javascript_file' => 1, 'javascript_file' => 'window.article = true;',
+		]];
+		$entry = $subject->get($view, 'ADMIN');
+		$prefix = str_repeat($indent, 3);
+		$this->assertSame(
+			PHP_EOL . $prefix . '// Add View JavaScript File' . PHP_EOL
+				. $prefix . "'media/com_demo/js/admin/article\\'\\\\preview.js',",
+			$entry
+		);
+		$this->assertSame(["media/com_demo/js/admin/article'\\preview.js"], eval('return [' . $entry . '];'));
+		$this->configureEmission($indent, true);
+		$entry = $subject->get($view, 'ADMIN');
+		$this->assertMatchesRegularExpression(
+			'~^\n' . preg_quote($prefix, '~') . '// \[VDM\\\\Joomla\\\\Componentbuilder\\\\Compiler\\\\Architecture\\\\JoomlaSix\\\\View\\\\JavaScriptFile \d+\] Add View JavaScript File\n~',
+			$entry
+		);
+		$this->assertSame(["media/com_demo/js/admin/article'\\preview.js"], eval('return [' . $entry . '];'));
 	}
 
 	/**
@@ -241,6 +317,19 @@ final class AssetsTest extends ArchitectureTestCase
 		yield 'admin' => ['admin', 'admin'];
 		yield 'site' => ['site', 'site'];
 		yield 'custom admin' => ['custom_admin', 'admin'];
+	}
+
+	/**
+	 * Optional file configurations that must produce no asset entry.
+	 *
+	 * @return  iterable<string, array{array}>
+	 * @since   6.2.0
+	 */
+	public static function absentScriptFiles(): iterable
+	{
+		yield 'disabled empty body' => [['add_javascript_file' => 0, 'javascript_file' => '']];
+		yield 'disabled body' => [['add_javascript_file' => 0, 'javascript_file' => 'window.unused = true;']];
+		yield 'empty body' => [['add_javascript_file' => 1, 'javascript_file' => '']];
 	}
 
 	/**

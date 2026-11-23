@@ -29,7 +29,7 @@ use VDM\Joomla\Utilities\StringHelper;
  * View JavaScript File Class.
  * 
  * Writes the script file of a view into the component being built, and gives
- * back the statement the view runs to include it.
+ * back the target-specific fragment that includes it in the view.
  * 
  * @since  6.1.7
  */
@@ -122,12 +122,12 @@ class JavaScriptFile
 	}
 
 	/**
-	 * Write the script file of a view and give back the statement that includes it.
+	 * Write the script file and give back its target-specific document fragment.
 	 *
 	 * @param   array   $view    The view being built.
 	 * @param   string  $TARGET  The upper case build target of the view.
 	 *
-	 * @return  string  The statement, or nothing when the view has no script file.
+	 * @return  string  The fragment, or nothing when the view has no script file.
 	 *
 	 * @since   6.1.7
 	 */
@@ -156,13 +156,26 @@ class JavaScriptFile
 			));
 
 			// add script to view
-			return PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
-					__LINE__,__CLASS__
-				) . " Add View JavaScript File" . PHP_EOL
-				. $this->includehelper->getViewScript($path, 2);
+			return $this->render($path);
 		}
 
 		return '';
+	}
+
+	/**
+	 * Render the legacy include without changing file creation.
+	 *
+	 * @param   string  $path  The installed asset path.
+	 *
+	 * @return  string  The include statement.
+	 * @since   6.2.0
+	 */
+	protected function render(string $path): string
+	{
+		return PHP_EOL . PHP_EOL . Indent::_(2) . "//" . Line::_(
+				__LINE__, __CLASS__
+			) . " Add View JavaScript File" . PHP_EOL
+			. $this->includehelper->getViewScript($path, 2);
 	}
 
 	/**
