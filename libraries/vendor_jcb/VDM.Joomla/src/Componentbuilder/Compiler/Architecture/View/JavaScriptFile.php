@@ -200,4 +200,20 @@ class JavaScriptFile
 				. $name . '.js';
 		}
 	}
+
+	/**
+	 * Build the optional file and retain the legacy include position.
+	 *
+	 * @param   array   $view    The current view definition.
+	 * @param   string  $TARGET  The upper-case build target.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function set(array &$view, string $TARGET): void
+	{
+		$this->contentmulti->add($view['settings']->code . '|' . $TARGET . '_LIBRARIES_LOADER',
+			$this->get($view, $TARGET), false
+		);
+	}
 }

@@ -341,12 +341,6 @@ final class VersionSelectionTest extends TestCase
 			5 => 'Architecture.View.Shared.JavaScriptFile',
 			6 => 'Architecture.View.J6.JavaScriptFile',
 		]];
-		yield 'view document scripts' => [ArchitectureView::class, 'getViewDocumentScripts', [
-			3 => 'Architecture.View.Shared.DocumentScripts',
-			4 => 'Architecture.View.Shared.DocumentScripts',
-			5 => 'Architecture.View.Shared.DocumentScripts',
-			6 => 'Architecture.View.J6.DocumentScripts',
-		]];
 		yield 'admin views list assembly' => [ArchitectureView::class, 'getAdminViewsListView', [
 			3 => 'Architecture.AdminViews.Shared.ListView',
 			4 => 'Architecture.AdminViews.Shared.ListView',

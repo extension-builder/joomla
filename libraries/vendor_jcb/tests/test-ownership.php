@@ -144,10 +144,6 @@ return [
 		'mode' => 'integration',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedModelItemSaveTest.php'
 	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/DocumentScripts.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentScriptsTest.php'
-	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSix/View/GoogleChartLoader.php' => [
 		'mode' => 'integration',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/JoomlaSixAssetLoadersTest.php'
@@ -1351,10 +1347,6 @@ return [
 	'VDM.Joomla/src/Componentbuilder/Compiler/Interfaces/Architecture/Controller/AjaxCasesInterface.php' => [
 		'mode' => 'contract',
 		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/VersionedAjaxTest.php'
-	],
-	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/DocumentScripts.php' => [
-		'mode' => 'contract',
-		'owner' => 'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/ViewDocumentScriptsTest.php'
 	],
 	'VDM.Joomla/src/Componentbuilder/Compiler/Architecture/View/PrepareDocument.php' => [
 		'mode' => 'contract',

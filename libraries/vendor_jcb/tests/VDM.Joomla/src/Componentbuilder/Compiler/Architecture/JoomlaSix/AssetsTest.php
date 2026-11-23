@@ -14,6 +14,7 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\JoomlaSix;
 
 use DOMDocument;
 use DOMXPath;
+use InvalidArgumentException;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
@@ -65,7 +66,10 @@ final class AssetsTest extends ArchitectureTestCase
 	{
 		$this->config()->set('build_target', $target);
 		$this->placeholder()->set_('script_value', 'preserved');
+		$this->placeholder()->set('component', 'demo');
 		$content = new ContentMulti();
+		$prefix = 'article|' . strtoupper($target);
+		$content->set($prefix . '_LIBRARIES_LOADER', 'loadLibrary();');
 		$structure = $this->createMock(Structure::class);
 		$structure->expects($this->once())->method('build')->with(
 			[$target => 'article'],
@@ -87,39 +91,97 @@ final class AssetsTest extends ArchitectureTestCase
 		$view = ['settings' => (object) [
 			'code' => 'article', 'version' => '1.2.3', 'add_javascript_file' => 1,
 			'javascript_file' => "window.article = '[[[script_value]]]';\n",
+			'view_script_paths' => ["media/com_###component###/it's\\extra.js", '//cdn.example.test/library.js'],
+			'view_script_dependencies' => ['jquery', 'vendor.###component###'],
 		]];
+		$subject->set($view, strtoupper($target));
+
 		$this->assertSame(
 			"\n\t\t\t// Add View JavaScript File\n\t\t\t'media/com_demo/js/" . $client . "/article.js',",
-			$subject->get($view, strtoupper($target))
+			$content->get($prefix . '_VIEW_SCRIPT_ENTRY')
 		);
-		$this->assertSame("window.article = 'preserved';\n", $content->get('article|' . strtoupper($target) . '_JAVASCRIPT_FILE'));
+		$this->assertSame(["media/com_demo/it's\\extra.js", '//cdn.example.test/library.js'],
+			eval('return [' . $content->get($prefix . '_VIEW_SCRIPT_PATHS') . '];'));
+		$this->assertSame(['jquery', 'vendor.demo'],
+			eval('return [' . $content->get($prefix . '_VIEW_SCRIPT_DEPENDENCIES') . '];'));
+		$this->assertSame('loadLibrary();', $content->get($prefix . '_LIBRARIES_LOADER'));
+		$this->assertSame("window.article = 'preserved';\n", $content->get($prefix . '_JAVASCRIPT_FILE'));
 	}
 
 	/**
-	 * Empty or disabled authored files add neither an entry nor a file build.
-	 *
-	 * @param   array  $settings  Optional JavaScript definition switches and body.
+	 * Reusing the emitter clears empty slots without leaking another view's inputs.
 	 *
 	 * @return  void
-	 * @since   6.2.0
+	 * @since   6.2.1
 	 */
-	#[DataProvider('absentScriptFiles')]
-	public function testAbsentViewScriptProducesNoEntry(array $settings): void
+	public function testScriptSlotsRemainScopedAndClearAbsentInputs(): void
 	{
 		$content = new ContentMulti();
+		$content->set('first|ADMIN_VIEW_SCRIPT_ENTRY', 'stale entry');
 		$structure = $this->createMock(Structure::class);
 		$structure->expects($this->never())->method('build');
-		$include = $this->createMock(IncludeHelper::class);
-		$include->expects($this->never())->method('getViewScript');
-		$include->expects($this->never())->method('get');
 		$subject = $this->renderer(JavaScriptFile::class, [
-			'contentmulti' => $content,
-			'structure' => $structure,
-			'includehelper' => $include,
+			'contentmulti' => $content, 'structure' => $structure,
 		]);
-		$view = ['settings' => (object) ($settings + ['code' => 'article', 'version' => '1.2.3'])];
-		$this->assertSame('', $subject->get($view, 'ADMIN'));
-		$this->assertNull($content->get('article|ADMIN_JAVASCRIPT_FILE'));
+		$first = ['settings' => (object) [
+			'code' => 'first', 'add_javascript_file' => 0,
+			'view_script_paths' => ['first.js'], 'view_script_dependencies' => ['jquery'],
+		]];
+		$second = ['settings' => (object) [
+			'code' => 'second', 'add_javascript_file' => 0, 'view_script_paths' => ['second.js'],
+		]];
+		$subject->set($first, 'ADMIN');
+		$subject->set($second, 'SITE');
+		$this->assertSame(PHP_EOL . "\t\t\t'jquery',", $content->get('first|ADMIN_VIEW_SCRIPT_DEPENDENCIES'));
+		unset($first['settings']->view_script_paths, $first['settings']->view_script_dependencies);
+		$subject->set($first, 'ADMIN');
+
+		foreach (['ENTRY', 'PATHS', 'DEPENDENCIES'] as $slot)
+		{
+			$this->assertSame('', $content->get('first|ADMIN_VIEW_SCRIPT_' . $slot));
+		}
+		$this->assertSame(PHP_EOL . "\t\t\t'second.js',", $content->get('second|SITE_VIEW_SCRIPT_PATHS'));
+		$this->assertSame('', $content->get('second|SITE_VIEW_SCRIPT_DEPENDENCIES'));
+		$this->assertFalse($content->exists('first|SITE_VIEW_SCRIPT_ENTRY'));
+		$this->assertFalse($content->exists('second|ADMIN_VIEW_SCRIPT_ENTRY'));
+	}
+
+	/**
+	 * Invalid inputs fail before file generation or any script-slot mutation.
+	 *
+	 * @param   string  $property  The scoped script input.
+	 * @param   mixed   $value     An invalid list or list entry.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('invalidScriptInputs')]
+	public function testInvalidScriptInputsHaveNoSideEffects(string $property, mixed $value): void
+	{
+		$this->placeholder()->set('empty', '');
+		$content = new ContentMulti();
+		$content->set('article|ADMIN_VIEW_SCRIPT_ENTRY', 'existing entry');
+		$original = $content->toArray();
+		$structure = $this->createMock(Structure::class);
+		$structure->expects($this->never())->method('build');
+		$subject = $this->renderer(JavaScriptFile::class, [
+			'contentmulti' => $content, 'structure' => $structure,
+		]);
+		$view = ['settings' => (object) [
+			'code' => 'article', 'add_javascript_file' => 1, 'javascript_file' => 'run();',
+			'view_script_paths' => ['valid.js'], 'view_script_dependencies' => ['core'],
+		]];
+		$view['settings']->{$property} = $value;
+		$this->expectException(InvalidArgumentException::class);
+
+		try
+		{
+			$subject->set($view, 'ADMIN');
+		}
+		finally
+		{
+			$this->assertSame($original, $content->toArray());
+		}
 	}
 
 	/**
@@ -320,16 +382,20 @@ final class AssetsTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * Optional file configurations that must produce no asset entry.
+	 * Cover list shape, entry type, whitespace and placeholder-expansion validation.
 	 *
-	 * @return  iterable<string, array{array}>
-	 * @since   6.2.0
+	 * @return  iterable<string, array{string, mixed}>
+	 * @since   6.2.1
 	 */
-	public static function absentScriptFiles(): iterable
+	public static function invalidScriptInputs(): iterable
 	{
-		yield 'disabled empty body' => [['add_javascript_file' => 0, 'javascript_file' => '']];
-		yield 'disabled body' => [['add_javascript_file' => 0, 'javascript_file' => 'window.unused = true;']];
-		yield 'empty body' => [['add_javascript_file' => 1, 'javascript_file' => '']];
+		foreach (['view_script_paths', 'view_script_dependencies'] as $property)
+		{
+			foreach (['["script.js"]', ['named' => 'script.js'], ['valid.js', 42], [" \t\n"], ['###empty###']] as $case => $value)
+			{
+				yield $property . ':' . $case => [$property, $value];
+			}
+		}
 	}
 
 	/**

@@ -138,8 +138,6 @@ use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\LibrariesLoader as Sh
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaThree\View\LibrariesLoader as J3ViewLibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\JavaScriptFile as ViewJavaScriptFile;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\JavaScriptFile as J6ViewJavaScriptFile;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentScripts as ViewDocumentScripts;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\DocumentScripts as J6ViewDocumentScripts;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\GetModules as ViewGetModules;
 use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument as ViewPrepareDocument;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Architecture\View\AjaxTokenInterface as ViewAjaxTokenInterface;
@@ -728,14 +726,6 @@ class ArchitectureView implements ServiceProviderInterface
 
 		$container->alias(J6ViewJavaScriptFile::class, 'Architecture.View.J6.JavaScriptFile')
 			->share('Architecture.View.J6.JavaScriptFile', [$this, 'getJ6ViewJavaScriptFile'], true);
-
-		$container->alias(ViewDocumentScripts::class, 'Architecture.View.DocumentScripts')
-			->share('Architecture.View.DocumentScripts', [$this, 'getViewDocumentScripts'], true);
-
-		$container->share('Architecture.View.Shared.DocumentScripts', [$this, 'getSharedViewDocumentScripts'], true);
-
-		$container->alias(J6ViewDocumentScripts::class, 'Architecture.View.J6.DocumentScripts')
-			->share('Architecture.View.J6.DocumentScripts', [$this, 'getJ6ViewDocumentScripts'], true);
 
 		$container->alias(ViewGetModules::class, 'Architecture.View.GetModules')
 			->share('Architecture.View.GetModules', [$this, 'getViewGetModules'], true);
@@ -3795,59 +3785,6 @@ class ArchitectureView implements ServiceProviderInterface
 	}
 
 	/**
-	 * Select document script placement using the compiler target.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  ViewDocumentScripts
-	 * @since   6.2.0
-	 */
-	public function getViewDocumentScripts(Container $container): ViewDocumentScripts
-	{
-		if (empty($this->targetVersion))
-		{
-			$this->targetVersion = $container->get('Config')->joomla_version;
-		}
-
-		$target = (int) $this->targetVersion === 6 ? 'J6' : 'Shared';
-
-		return $container->get('Architecture.View.' . $target . '.DocumentScripts');
-	}
-
-	/**
-	 * Get the Joomla 3 through Joomla 5 document script placement.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  ViewDocumentScripts
-	 * @since   6.2.0
-	 */
-	public function getSharedViewDocumentScripts(Container $container): ViewDocumentScripts
-	{
-		return new ViewDocumentScripts(
-			$container->get('Architecture.View.JavaScriptFile'),
-			$container->get('Compiler.Builder.Content.Multi')
-		);
-	}
-
-	/**
-	 * Get the Joomla 6 template script-list placement.
-	 *
-	 * @param   Container  $container  The DI container.
-	 *
-	 * @return  J6ViewDocumentScripts
-	 * @since   6.2.0
-	 */
-	public function getJ6ViewDocumentScripts(Container $container): J6ViewDocumentScripts
-	{
-		return new J6ViewDocumentScripts(
-			$container->get('Architecture.View.JavaScriptFile'),
-			$container->get('Compiler.Builder.Content.Multi'),
-			$container->get('Placeholder')
-		);
-	}
-
-	/**
 	 * Get The View GetModules Class.
 	 *
 	 * @param   Container  $container  The DI container.
@@ -3903,7 +3840,7 @@ class ArchitectureView implements ServiceProviderInterface
 			$container->get('Architecture.View.CustomCSS'),
 			$container->get('Architecture.CustomButtons'),
 			$container->get('Architecture.View.GetModules'),
-			$container->get('Architecture.View.DocumentScripts')
+			$container->get('Architecture.View.JavaScriptFile')
 		);
 	}
 
@@ -4703,3 +4640,4 @@ class ArchitectureView implements ServiceProviderInterface
 		return new J6AdminViewFadeInEffect($container->get('Config'));
 	}
 }
+
