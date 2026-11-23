@@ -134,12 +134,12 @@ final class PrepareDocument
 	protected GetModules $modules;
 
 	/**
-	 * The JavaScript File Class.
+	 * The Document Scripts Class.
 	 *
-	 * @var   JavaScriptFile
+	 * @var   DocumentScripts
 	 * @since 6.1.7
 	 */
-	protected JavaScriptFile $javascript;
+	protected DocumentScripts $scripts;
 
 	/**
 	 * Constructor.
@@ -156,7 +156,7 @@ final class PrepareDocument
 	 * @param CustomCSS                      $customcss     The Custom CSS Class.
 	 * @param CustomButtons                  $buttons       The Custom Buttons Class.
 	 * @param GetModules                     $modules       The Get Modules Class.
-	 * @param JavaScriptFile                 $javascript    The JavaScript File Class.
+	 * @param DocumentScripts                $scripts       The Document Scripts Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -172,7 +172,7 @@ final class PrepareDocument
 		CustomCSS $customcss,
 		CustomButtons $buttons,
 		GetModules $modules,
-		JavaScriptFile $javascript)
+		DocumentScripts $scripts)
 	{
 		$this->config = $config;
 		$this->contentmulti = $contentmulti;
@@ -186,7 +186,7 @@ final class PrepareDocument
 		$this->customcss = $customcss;
 		$this->buttons = $buttons;
 		$this->modules = $modules;
-		$this->javascript = $javascript;
+		$this->scripts = $scripts;
 	}
 
 	/**
@@ -273,11 +273,13 @@ final class PrepareDocument
 		);
 
 		// set a JavaScript file if needed
-		$this->contentmulti->add($view['settings']->code . '|' . $TARGET . '_LIBRARIES_LOADER',
-			$this->javascript->get($view, $TARGET), false
-		);
-		// fix just incase we missed it somewhere
-		$this->config->lang_target = $tmp;
+		try
+		{
+			$this->scripts->set($view, $TARGET);
+		}
+		finally
+		{
+			$this->config->lang_target = $tmp;
+		}
 	}
 }
-

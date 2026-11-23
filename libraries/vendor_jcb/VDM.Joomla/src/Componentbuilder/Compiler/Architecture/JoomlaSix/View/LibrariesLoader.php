@@ -30,7 +30,6 @@ final class LibrariesLoader extends SharedLibrariesLoader
 	 */
 	protected function jquery(): string
 	{
-		return "\$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');";
+		return "\$wa->useScript('jquery')->useScript('jquery-noconflict');";
 	}
 }
-

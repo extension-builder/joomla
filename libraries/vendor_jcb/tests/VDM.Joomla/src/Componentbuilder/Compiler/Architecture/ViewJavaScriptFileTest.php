@@ -174,6 +174,7 @@ final class ViewJavaScriptFileTest extends ArchitectureTestCase
 
 		$this->assertSame('', $subject->get($view, 'ADMIN'));
 		$this->assertSame([], $this->built);
+		$this->assertNull($this->content->get('demo|ADMIN_JAVASCRIPT_FILE'));
 	}
 
 	/**
@@ -189,6 +190,7 @@ final class ViewJavaScriptFileTest extends ArchitectureTestCase
 
 		$this->assertSame('', $subject->get($view, 'ADMIN'));
 		$this->assertSame([], $this->built);
+		$this->assertNull($this->content->get('demo|ADMIN_JAVASCRIPT_FILE'));
 	}
 
 	/**
@@ -244,8 +246,9 @@ final class ViewJavaScriptFileTest extends ArchitectureTestCase
 		$subject = $this->subject();
 		$view = $this->view(1, 'alert(1);');
 
-		$this->assertStringContainsString(
-			"'administrator/components/com_demo/assets/js/demo.js'",
+		$this->assertSame(
+			PHP_EOL . PHP_EOL . "\t\t// Add View JavaScript File" . PHP_EOL
+				. "\t\tJoomla__" . "_34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('script', 'administrator/components/com_demo/assets/js/demo.js', ['version' => 'auto']);",
 			$subject->get($view, 'ADMIN')
 		);
 	}
@@ -262,9 +265,32 @@ final class ViewJavaScriptFileTest extends ArchitectureTestCase
 		$subject = $this->subject();
 		$view = $this->view(1, 'alert(1);');
 
-		$this->assertStringContainsString(
-			"'components/com_demo/assets/js/demo.js'",
+		$this->assertSame(
+			PHP_EOL . PHP_EOL . "\t\t// Add View JavaScript File" . PHP_EOL
+				. "\t\tJoomla__" . "_34690c75_1090_47eb_8c06_7228dc7eedd6___Power::_('script', 'components/com_demo/assets/js/demo.js', ['version' => 'auto']);",
 			$subject->get($view, 'SITE')
 		);
+	}
+
+	/**
+	 * Reusing a file builder preserves the source and include path of each view.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	public function testIndependentViewsKeepTheirOwnFileBodies(): void
+	{
+		$subject = $this->subject();
+		$first = $this->view(1, 'window.first = true;');
+		$second = $this->view(1, 'window.second = true;');
+		$second['settings']->code = 'other';
+		$firstInclude = $subject->get($first, 'ADMIN');
+		$secondInclude = $subject->get($second, 'ADMIN');
+		$this->assertSame('window.first = true;', $this->content->get('demo|ADMIN_JAVASCRIPT_FILE'));
+		$this->assertSame('window.second = true;', $this->content->get('other|ADMIN_JAVASCRIPT_FILE'));
+		$this->assertStringContainsString('assets/js/demo.js', $firstInclude);
+		$this->assertStringNotContainsString('assets/js/demo.js', $secondInclude);
+		$this->assertStringContainsString('assets/js/other.js', $secondInclude);
+		$this->assertSame([['admin' => 'demo'], ['admin' => 'other']], array_column($this->built, 0));
 	}
 }

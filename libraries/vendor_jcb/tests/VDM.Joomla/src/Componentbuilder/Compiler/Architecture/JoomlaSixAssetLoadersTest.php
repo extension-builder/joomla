@@ -18,10 +18,12 @@ use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
 use Joomla\Database\DatabaseInterface;
 use Joomla\DI\Container;
+use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
 use ReflectionProperty;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader;
 use VDM\Joomla\Componentbuilder\Compiler\Builder\GoogleChart;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
 use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
@@ -98,6 +100,55 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 	public static function targets(): array
 	{
 		return [[3, 'JoomlaThree'], [4, 'JoomlaFour'], [5, 'JoomlaFive'], [6, 'JoomlaSix']];
+	}
+
+	/**
+	 * Conditional jQuery activation consumes the template's manager and keeps opt-out.
+	 *
+	 * @param   string  $indent  Configured indentation unit.
+	 *
+	 * @return  void
+	 * @since   6.2.0
+	 */
+	#[DataProvider('indentations')]
+	public function testViewLibraryLoaderUsesExistingManagerConditionally(string $indent): void
+	{
+		$this->configureIndentation($indent);
+		$loader = $this->renderer(LibrariesLoader::class);
+		$code = $loader->get(['settings' => (object) ['code' => 'demo']]);
+		$this->assertStringContainsString("if (\$this->params->get('add_jquery_framework', 1) == 1)", $code);
+		$this->assertStringContainsString(
+			PHP_EOL . str_repeat($indent, 3) . "\$wa->useScript('jquery')->useScript('jquery-noconflict');",
+			$code
+		);
+		$this->assertStringNotContainsString('getWebAssetManager()', $code);
+		$this->assertStringNotContainsString('getApplication()', $code);
+		$code = str_replace('new HeaderCheck()', 'new \\stdClass()', $code);
+		$run = eval('return function ($wa) {' . $code . '};');
+		foreach ([0, 1] as $enabled)
+		{
+			$assets = new WebAssetManager(new WebAssetRegistry());
+			$assets->registerScript('jquery', 'https://example.invalid/jquery.js');
+			$assets->registerScript('jquery-noconflict', 'https://example.invalid/jquery-noconflict.js', [], [], ['jquery']);
+			$view = new class
+			{
+				/**
+				 * Existing view configuration, with no document lookup surface.
+				 *
+				 * @var    JoomlaRegistry
+				 * @since  6.2.0
+				 */
+				public JoomlaRegistry $params;
+			};
+			$view->params = new JoomlaRegistry(['add_jquery_framework' => $enabled]);
+			$run->call($view, $assets);
+			$this->assertSame(
+				$enabled === 1 ? ['jquery', 'jquery-noconflict'] : [],
+				array_keys($assets->getAssets('script', true))
+			);
+		}
+
+		$this->assertSame('', $loader->get(new \ArrayObject(['code_name' => 'module'], \ArrayObject::ARRAY_AS_PROPS)));
 	}
 
 	/**
