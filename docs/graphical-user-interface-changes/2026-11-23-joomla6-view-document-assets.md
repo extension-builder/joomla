@@ -111,7 +111,9 @@ keep inline CSS between the style and script phases.
 | Command/check | Environment | Result |
 | --- | --- | --- |
 | Focused generation and real WAM contracts | PHP 8.4.28 / real Joomla WAM | Passed: template, emitter, placement and target-selection tests |
-| Unit/style/ownership gates | Hosted PHP matrix | Pending |
+| Full unit suite | Local PHP 8.4.28 | Passed: 5,590 tests and 69,742 assertions |
+| Style / ownership / container keys | Local PHP 8.4.28 | Passed |
+| Hosted PHP matrix | PHP 8.3 / 8.4 | Running |
 | Joomla 3–6 compiler golden comparisons | Hosted installed Joomla | Pending |
 | Installed GUI/API workflows | Hosted disposable site | Pending |
 
@@ -120,9 +122,11 @@ keep inline CSS between the style and script phases.
 - `libraries/vendor_jcb/tests/javascript/view-assets-browser.cjs` executes all
   four generated templates, automatic and explicit jQuery dependencies,
   optional assets, duplicate URLs, subdirectory paths, styles and inline code.
-- `libraries/vendor_jcb/tests/gui/specs/compiler.spec.js` remains the installed
-  Compiler interface owner. Its component-details flow is verified separately
-  from the generated-template contract.
+- `libraries/vendor_jcb/tests/gui/specs/compiler.spec.js` verifies the real
+  component-details GET request, token and query parameters, returned details,
+  target selection, original Chosen events, and cleared selection. A separate
+  check invokes the bundled Marked parser without claiming that the details
+  flow consumes it. The tests reuse the harness fixture and save no data.
 
 ### Verification scope
 
