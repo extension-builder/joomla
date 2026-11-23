@@ -5,7 +5,7 @@
 - **Date first changed:** 2026-11-23
 - **Author/implementer:** Codex, at the maintainer's request
 - **Task/issue/PR:** https://github.com/extension-builder/joomla/pull/72
-- **Change record status:** Draft
+- **Change record status:** Implementation recorded; current verification in PR checks
 
 ## Explicit permission
 
@@ -113,9 +113,18 @@ keep inline CSS between the style and script phases.
 | Focused generation and real WAM contracts | PHP 8.4.28 / real Joomla WAM | Passed: template, emitter, placement and target-selection tests |
 | Full unit suite | Local PHP 8.4.28 | Passed: 5,590 tests and 69,742 assertions |
 | Style / ownership / container keys | Local PHP 8.4.28 | Passed |
-| Hosted PHP matrix | PHP 8.3 / 8.4 | Running |
-| Joomla 3–6 compiler golden comparisons | Hosted installed Joomla | Pending |
-| Installed GUI/API workflows | Hosted disposable site | Pending |
+| Hosted PHP matrix and generated Chromium contracts | PHP 8.3 / 8.4 / 8.5 | Passed on `d2f794d`: [run 45247663735](https://github.com/extension-builder/joomla/actions/runs/45247663735) |
+| Installed API workflow | Disposable Joomla site | Passed on `d2f794d`: [run 45247663723](https://github.com/extension-builder/joomla/actions/runs/45247663723) |
+| Joomla 3–5 compiler compatibility | Hosted full-tree comparison | Byte-identical generated trees |
+| Joomla 6 expected output | Exact measured 252-file tree | Reviewed four-file diff reproduces the candidate tree exactly |
+| Golden comparison guard selftest | Local shell harness | Passed: 43 checks |
+
+The [PR checks](https://github.com/extension-builder/joomla/pull/72/checks)
+provide the current-commit results for the PHP matrix, generated Chromium
+contracts, installed GUI/API tests, and all four full-tree golden comparisons.
+The exact Joomla 6 expectation is documented in
+`.github/golden-master/expected/README.md`; the comparison retains its strict
+checks for every file, byte, and executable mode.
 
 ### GUI test coverage
 
@@ -159,7 +168,7 @@ Neither is represented as a JCB self-build from a maintained definition export.
 - [x] The affected-path lists match the protected-path diff exactly.
 - [x] Every path has a stable location and exact what/why details.
 - [x] Behavioral and visual impact are explicit.
-- [ ] Verification records actual results and identifies skipped checks.
+- [x] Verification records actual results and identifies the current-commit gates.
 - [x] Every path has an authoritative-source mapping and reconciliation status.
 - [x] Transfer is required for every unresolved source mapping.
 - [x] Changed behavior has generated-browser coverage and a named GUI owner.

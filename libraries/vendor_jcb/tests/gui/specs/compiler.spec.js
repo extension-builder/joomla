@@ -42,7 +42,7 @@ test('Compiler loads component details and updates the preferred target without 
 	expect(componentId, 'the harness supplies an isolated component to read').toMatch(/^[1-9]\d*$/);
 
 	await openView(page, 'compiler');
-	const component = page.getByLabel(/^Components/);
+	const component = page.locator('#adminForm #component_id');
 	const version = page.getByLabel('Joomla Version', { exact: true });
 	const details = page.locator('#component-details');
 	const selectNotice = details.getByText('Please select a component that you would like to compile.', { exact: true });
