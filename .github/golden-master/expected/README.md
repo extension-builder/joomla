@@ -382,3 +382,46 @@ unmodified 14,470-byte hosted diff, preserving CRLF and diff-context whitespace;
 applying it to the pinned baseline reproduces the complete candidate tree
 exactly. The Joomla 6 installed discovery probe remains required on the rerun
 after this exact reviewed expectation is accepted.
+
+## Joomla 6 view document asset block
+
+Source baseline: `ceac1f8b7ca468e6d4dea4e57feb39988391606e`.
+Reviewed candidate: `d2f794daa02edbe4d0f77cc7a4612644aa50c475`, compiled by PR
+merge commit `6977ea73f6088c3e81f1c460a5403f00e9df6ac3`.
+Evidence: [workflow run 45247663674](https://github.com/extension-builder/joomla/actions/runs/45247663674),
+Joomla 6 artifact `14854652611` (`golden-master-j6`), SHA-256
+`8888cb17a1b5339b649e76212a73db444d482e221f3a1c9b168be7e135db1079`.
+
+The 252-file packages differ in exactly four paths, with 98 added and 28
+removed lines:
+
+- `site/src/View/Greet/HtmlView.php` and
+  `site/src/View/Greetings/HtmlView.php` bind the Web Asset Manager and root URL
+  before the loaders, reuse that manager for conditional jQuery, and merge
+  `core` with existing script dependencies. Guarded registration retains asset
+  names, URLs and version options, with multiline calls and unique cumulative
+  dependency appends. Model scripts enter the template-owned script list.
+- `README.md` and `admin/README.txt` record the resulting 70 additional lines:
+  30,967 becomes 31,037. All other generated metrics remain unchanged.
+
+There are no additional path, executable-mode, asset-file, language, manifest
+or Power changes. This blueprint supplies no optional view JavaScript file or
+extra script-path entries; focused generation and browser tests cover those
+branches separately.
+
+The same hosted run passes strict output equality and the installed Power
+discovery probes at 0, 100 and 1,000 records for Joomla 3, 4 and 5:
+
+| Target | Artifact | Compared files | Identical baseline and candidate tree |
+| --- | --- | ---: | --- |
+| 3 | `14853604082` | 1,369 | `6f66f32dd9d16d2f31dc7f9d00474fa3fece690d` |
+| 4 | `14854885777` | 291 | `504d56cefd75451380a68707ec12743f1e87886a` |
+| 5 | `14853898870` | 296 | `9866616fdddd4cc644f170d140784b6997baf1a8` |
+
+Every target verifies all 1,736 baseline and 1,738 candidate installed-source
+hashes, and final Power evidence is byte-identical. Both sides of the two
+changed PHP views pass syntax checks. The unmodified 7,945-byte diff preserves
+its original line endings and context; applying it to baseline tree
+`c07758620196313baf2c802c37a1e8dccea2b8df` reproduces candidate tree
+`ac45be5bd51b880446bec9132e34925d08a62908` exactly. The Joomla 6 installed
+discovery probe remains required after this reviewed output is accepted.
