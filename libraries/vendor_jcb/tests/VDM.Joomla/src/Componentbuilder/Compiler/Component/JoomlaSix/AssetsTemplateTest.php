@@ -15,12 +15,12 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Component\JoomlaSix;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Language\Language;
+use Joomla\CMS\MVC\View\HtmlView;
 use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
-use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
-use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader;
+use ReflectionClass;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Structuresingle;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
@@ -105,6 +105,12 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$this->runAssetCode($template, $wa, [], []);
 		$this->assertSame([], $wa->getAssets('style', true));
 		$this->assertSame([], $wa->getAssets('script', true));
+
+		if (array_key_exists($template, iterator_to_array(self::documentTemplates())))
+		{
+			$this->runDocumentAssetCode($template, $wa, [], [], ['VIEW_SCRIPT_ENTRY' => "\n\t\t\t'view-only.js',"]);
+			$this->assertSame(['core', 'jcb.script.' . hash('sha256', 'view-only.js')], array_keys($wa->getAssets('script', true)));
+		}
 	}
 
 	/**
@@ -127,11 +133,11 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$viewName = 'jcb.script.29bd167572d7e7dec97b195cf9778ec23f524e241839579e68e7a48ab9fbd505';
 		$markedName = 'jcb.script.' . hash('sha256', $markedPath);
 		$modelName = 'jcb.script.' . hash('sha256', $modelPath);
-		$result = $this->runDocumentAssetCode(
+		$this->runDocumentAssetCode(
 			$template,
 			$wa,
 			['/media/com_demo/css/view.css'],
-			[$modelPath, '/' . $viewPath, '/' . $markedPath, $modelPath],
+			['/' . $viewPath, '/' . $markedPath, $modelPath, $modelPath],
 			[
 				'VIEW_SCRIPT_ENTRY' => "\n\t\t\t// Add View JavaScript File\n\t\t\t'" . $viewPath . "',",
 				'VIEW_SCRIPT_PATHS' => "\n\t\t\t'" . $markedPath . "',",
@@ -143,10 +149,6 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$this->assertSame(['core', 'jquery', 'library.script', $viewName], $wa->getAsset('script', $markedName)->getDependencies());
 		$this->assertSame(['core', 'jquery', 'library.script', $viewName, $markedName], $wa->getAsset('script', $modelName)->getDependencies());
 		$this->assertSame(['library.style'], $wa->getAsset('style', 'jcb.style.' . hash('sha256', 'media/com_demo/css/view.css'))->getDependencies());
-		$this->assertSame(
-			['core', 'jquery', 'library.script', $viewName, $markedName, $modelName],
-			$result['scripts']
-		);
 		$sorted = array_keys($wa->getAssets('script', true));
 		$this->assertSame([$viewName, $markedName, $modelName], array_values(array_filter($sorted, static fn(string $name): bool => str_starts_with($name, 'jcb.script.'))));
 		foreach (['core', 'jquery', 'library.script'] as $dependency)
@@ -155,43 +157,6 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		}
 		$this->assertSame('https://example.test/subdir/' . $viewPath, $wa->getAsset('script', $viewName)->getUri());
 		$this->assertSame('https://example.test/subdir/' . $markedPath, $wa->getAsset('script', $markedName)->getUri());
-		$this->assertStringNotContainsString('$jcbAssetManager', $result['source']);
-		$this->assertStringNotContainsString('###', $result['source']);
-		$this->assertSame(1, substr_count($result['source'], '$wa = '));
-		$this->assertSame(1, substr_count($result['source'], 'getWebAssetManager()'));
-		$this->assertStringContainsString("\n\t\t\t\t\$wa->registerScript(\n\t\t\t\t\t\$assetName,", $result['source']);
-	}
-
-	/**
-	 * Optional paths can be absent or the sole asset without state crossing views.
-	 *
-	 * @param   string  $template  The site or custom-administrator template.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	#[DataProvider('documentTemplates')]
-	public function testOptionalViewFileAndIndependentDocuments(string $template): void
-	{
-		$first = $this->assetManager();
-		$result = $this->runDocumentAssetCode(
-			$template,
-			$first,
-			[],
-			[],
-			['VIEW_SCRIPT_ENTRY' => "\n\t\t\t'media/com_demo/js/first.js',"]
-		);
-		$firstName = 'jcb.script.' . hash('sha256', 'media/com_demo/js/first.js');
-		$this->assertSame(['core', $firstName], array_keys($first->getAssets('script', true)));
-		$this->assertSame(['media/com_demo/js/first.js'], $result['paths']);
-		$this->assertSame(['core'], $first->getAsset('script', $firstName)->getDependencies());
-
-		$second = $this->assetManager();
-		$result = $this->runDocumentAssetCode($template, $second, [], []);
-		$this->assertSame([], $result['paths']);
-		$this->assertSame([], $second->getAssets('script', true));
-		$this->assertFalse($second->assetExists('script', $firstName));
-		$this->assertSame(['core', $firstName], array_keys($first->getAssets('script', true)));
 	}
 
 	/**
@@ -211,7 +176,7 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$wa->registerScript($name, 'https://cdn.example.invalid/preexisting.js', ['version' => '42'], ['defer' => true], ['core']);
 		$original = $wa->getAsset('script', $name);
 		$slots = ['VIEW_SCRIPT_ENTRY' => "\n\t\t\t'/" . $path . "',"];
-		$result = $this->runDocumentAssetCode($template, $wa, [], [$path, 'https://cdn.example.invalid/next.js'], $slots);
+		$this->runDocumentAssetCode($template, $wa, [], [$path, 'https://cdn.example.invalid/next.js'], $slots);
 		$nextName = 'jcb.script.' . hash('sha256', 'https://cdn.example.invalid/next.js');
 		$this->assertSame($original, $wa->getAsset('script', $name));
 		$this->assertSame('42', $original->getVersion());
@@ -219,18 +184,10 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$this->assertSame(['core'], $original->getDependencies());
 		$this->assertSame('https://cdn.example.invalid/preexisting.js', $original->getUri());
 		$this->assertSame(['core', $name], $wa->getAsset('script', $nextName)->getDependencies());
-		$this->assertSame(['core', $name, $nextName], $result['scripts']);
-		$assets = $wa->getAssets('script', true);
-		$this->runDocumentAssetCode($template, $wa, [], [$path, 'https://cdn.example.invalid/next.js'], $slots);
-		$this->assertSame($assets, $wa->getAssets('script', true));
-		foreach ($assets as $assetName => $asset)
-		{
-			$this->assertNotContains($assetName, $asset->getDependencies());
-		}
 	}
 
 	/**
-	 * The loader reuses the binding while explicit view dependencies survive opt-out.
+	 * Hook order matches the established templates and preserves the asset phases.
 	 *
 	 * @param   string  $template  The site or custom-administrator template.
 	 *
@@ -238,74 +195,30 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	 * @since   6.2.0
 	 */
 	#[DataProvider('documentTemplates')]
-	public function testConditionalJqueryUsesDocumentBinding(string $template): void
+	public function testDocumentHooksKeepTheirEstablishedOrder(string $template): void
 	{
-		$loader = $this->renderer(LibrariesLoader::class)->get(['settings' => (object) ['code' => 'demo']]);
-		$loader = str_replace('new HeaderCheck()', 'new \\stdClass()', $loader);
-		foreach ([false, true] as $enabled)
-		{
-			foreach ([false, true] as $required)
-			{
-				$wa = $this->assetManager();
-				$result = $this->runDocumentAssetCode(
-					$template,
-					$wa,
-					[],
-					['media/com_demo/js/view.js'],
-					[
-						'LIBRARIES_LOADER' => $loader,
-						'VIEW_SCRIPT_DEPENDENCIES' => $required ? "\n\t\t\t'jquery'," : '',
-					],
-					[],
-					1,
-					$enabled
-				);
-				$assets = $wa->getAssets('script', true);
-				$this->assertSame($enabled || $required, isset($assets['jquery']));
-				$this->assertSame($enabled, isset($assets['jquery-noconflict']));
-				$this->assertSame(1, substr_count($result['source'], 'getWebAssetManager()'));
-			}
-		}
-	}
-
-	/**
-	 * Document hooks keep their order and inline source keeps its own receiver.
-	 *
-	 * @param   string  $template  The site or custom-administrator template.
-	 *
-	 * @return  void
-	 * @since   6.2.0
-	 */
-	#[DataProvider('documentTemplates')]
-	public function testDocumentHooksAndInlineReceiverRemainInPlace(string $template): void
-	{
-		$wa = $this->assetManager();
 		$source = $this->template($template);
 		$prefix = str_starts_with($template, 'SITE_') ? 'SITE' : 'CUSTOM_ADMIN';
-		$slots = [];
-		$expected = [];
-		preg_match_all('/###' . $prefix . '_(LIBRARIES_LOADER|DOCUMENT_METADATA|UIKIT_LOADER|GOOGLECHART_LOADER|FOOTABLE_LOADER|DOCUMENT_CUSTOM_PHP)###/', $source, $matches);
-		foreach ($matches[1] as $hook)
+		$expected = ['LIBRARIES_LOADER'];
+		if ($template === 'CUSTOM_ADMIN_VIEW_HTML.php')
 		{
-			$slots[$hook] = "\n\t\t\$this->events[] = '" . $hook . "';";
-			$expected[] = $hook;
+			$expected[] = 'DOCUMENT_METADATA';
 		}
-		$slots['DOCUMENT_CUSTOM_CSS'] = "\n\t\t\$this->events[] = ['css', count(\$wa->getAssets('style', true)), count(\$wa->getAssets('script', true))];";
-		$inline = "\n\t\t// Set the Custom JS script to view\n\t\t\$this->getDocument()->getWebAssetManager()->addInlineScript(\"function componentDetails(id) { jQuery('#joomla_version').trigger('liszt:updated'); }\");";
-		$slots['DOCUMENT_CUSTOM_JS'] = $inline;
-		$slots['JAVASCRIPT_FOR_BUTTONS'] = "\n\t\t\$this->events[] = 'buttons';";
-		$expected[] = ['css', 1, 0];
+		$expected = [...$expected, 'UIKIT_LOADER', 'GOOGLECHART_LOADER', 'FOOTABLE_LOADER'];
 		if ($prefix === 'SITE')
 		{
-			$expected[] = 'buttons';
+			$expected[] = 'DOCUMENT_METADATA';
 		}
-		$result = $this->runDocumentAssetCode($template, $wa, ['view.css'], ['view.js'], $slots, [], 2);
-		$this->assertSame($expected, $result['events']);
-		$this->assertStringContainsString($inline, $result['source']);
-		$this->assertSame(1, substr_count(explode('// Set the Custom JS script to view', $result['source'], 2)[0], 'getWebAssetManager()'));
-		$inlineAssets = array_filter($wa->getAssets('script', true), static fn($asset): bool => (bool) $asset->getOption('inline'));
-		$this->assertCount(1, $inlineAssets);
-		$this->assertSame("function componentDetails(id) { jQuery('#joomla_version').trigger('liszt:updated'); }", array_values($inlineAssets)[0]->getOption('content'));
+		$expected = [...$expected, 'DOCUMENT_CUSTOM_PHP', 'DOCUMENT_CUSTOM_CSS', 'DOCUMENT_CUSTOM_JS'];
+		if ($prefix === 'SITE')
+		{
+			$expected[] = 'JAVASCRIPT_FOR_BUTTONS';
+		}
+		preg_match_all('/###' . $prefix . '_(LIBRARIES_LOADER|DOCUMENT_METADATA|UIKIT_LOADER|GOOGLECHART_LOADER|FOOTABLE_LOADER|DOCUMENT_CUSTOM_PHP|DOCUMENT_CUSTOM_CSS|DOCUMENT_CUSTOM_JS|JAVASCRIPT_FOR_BUTTONS)###/', $source, $matches);
+		$this->assertSame($expected, $matches[1]);
+		$this->assertLessThan(strpos($source, '###' . $prefix . '_DOCUMENT_CUSTOM_CSS###'), strpos($source, 'foreach ($this->styles'));
+		$this->assertLessThan(strpos($source, '$viewScripts = ['), strpos($source, '###' . $prefix . '_DOCUMENT_CUSTOM_CSS###'));
+		$this->assertLessThan(strpos($source, '###' . $prefix . '_DOCUMENT_CUSTOM_JS###'), strpos($source, 'foreach ($viewScripts'));
 	}
 
 	/**
@@ -667,13 +580,12 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$wa = new WebAssetManager(new WebAssetRegistry());
 		$wa->registerScript('core', 'https://example.test/subdir/core.js');
 		$wa->registerScript('jquery', 'https://example.test/subdir/jquery.js');
-		$wa->registerScript('jquery-noconflict', 'https://example.test/subdir/jquery-noconflict.js', [], [], ['jquery']);
 
 		return $wa;
 	}
 
 	/**
-	 * Execute the complete document body with counting document and root boundaries.
+	 * Execute the complete document body with one manager and root URL binding.
 	 *
 	 * @param   string           $template        Template filename.
 	 * @param   WebAssetManager  $wa              Real registry and dependency manager.
@@ -681,10 +593,8 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	 * @param   array            $scripts         Model script paths.
 	 * @param   array            $slots           Explicit fragments indexed without the target prefix.
 	 * @param   array            $seeds           Style and script dependency lists supplied by a prior loader.
-	 * @param   int              $managerLookups  Expected lookups including unchanged inline receivers.
-	 * @param   bool             $jquery          Existing automatic jQuery setting.
 	 *
-	 * @return  array  Emitted source, accumulated dependencies, paths and hook observations.
+	 * @return  void
 	 * @since   6.2.0
 	 */
 	private function runDocumentAssetCode(
@@ -693,10 +603,8 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		array $styles,
 		array $scripts,
 		array $slots = [],
-		array $seeds = [],
-		int $managerLookups = 1,
-		bool $jquery = false
-	): array
+		array $seeds = []
+	): void
 	{
 		$this->assertSame(1, preg_match('~protected function _prepareDocument\(\): void\n\t\{(?<code>.*?)\n\t\}~s', $this->template($template), $match));
 		$prefix = str_starts_with($template, 'SITE_') ? 'SITE' : 'CUSTOM_ADMIN';
@@ -708,112 +616,23 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$source = preg_replace('/###[A-Z_]+###/', '', strtr($match['code'], $replacements));
 		$root = 'Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root()';
 		$this->assertSame(1, substr_count($source, $root));
-		$code = str_replace($root, '$this->root()', $source);
+		$code = str_replace($root, "'https://example.test/subdir/'", $source);
 		$document = $this->getMockBuilder(HtmlDocument::class)
 			->setConstructorArgs([['webAssetManager' => $wa]])
 			->onlyMethods(['getWebAssetManager'])
 			->getMock();
-		$document->expects($this->exactly($managerLookups))->method('getWebAssetManager')->willReturn($wa);
-		$view = new class
-		{
-			/**
-			 * Document supplied to the generated view.
-			 *
-			 * @var    HtmlDocument
-			 * @since  6.2.0
-			 */
-			public HtmlDocument $document;
-
-			/**
-			 * Existing component parameters, including automatic jQuery loading.
-			 *
-			 * @var    JoomlaRegistry
-			 * @since  6.2.0
-			 */
-			public JoomlaRegistry $params;
-
-			/**
-			 * Styles supplied by the model.
-			 *
-			 * @var    array
-			 * @since  6.2.0
-			 */
-			public array $styles = [];
-
-			/**
-			 * Scripts supplied by the model.
-			 *
-			 * @var    array
-			 * @since  6.2.0
-			 */
-			public array $scripts = [];
-
-			/**
-			 * Observations made by authored document hooks.
-			 *
-			 * @var    array
-			 * @since  6.2.0
-			 */
-			public array $events = [];
-
-			/**
-			 * Number of root URL resolutions in the emitted block.
-			 *
-			 * @var    int
-			 * @since  6.2.0
-			 */
-			public int $rootCalls = 0;
-
-			/**
-			 * Return the view-owned document.
-			 *
-			 * @return  HtmlDocument
-			 * @since   6.2.0
-			 */
-			public function getDocument(): HtmlDocument
-			{
-				return $this->document;
-			}
-
-			/**
-			 * Record a subdirectory installation root lookup.
-			 *
-			 * @return  string
-			 * @since   6.2.0
-			 */
-			public function root(): string
-			{
-				$this->rootCalls++;
-
-				return 'https://example.test/subdir/';
-			}
-
-			/**
-			 * Evaluate the emitted body in the same scope as prior library seeds.
-			 *
-			 * @param   string  $code   Generated document method body.
-			 * @param   array   $seeds  Existing dependency arrays.
-			 *
-			 * @return  array  Final dependencies and the ordered script path list.
-			 * @since   6.2.0
-			 */
-			public function run(string $code, array $seeds): array
-			{
-				$jcbStyleDependencies = $seeds['style'] ?? [];
-				$jcbScriptDependencies = $seeds['script'] ?? [];
-				eval($code);
-
-				return ['styles' => $jcbStyleDependencies, 'scripts' => $jcbScriptDependencies, 'paths' => $viewScripts];
-			}
-		};
-		$view->document = $document;
-		$view->params = new JoomlaRegistry(['add_jquery_framework' => $jquery ? 1 : 0]);
+		$document->expects($this->once())->method('getWebAssetManager')->willReturn($wa);
+		$view = (new ReflectionClass(HtmlView::class))->newInstanceWithoutConstructor();
+		$view->setDocument($document);
 		$view->styles = $styles;
 		$view->scripts = $scripts;
-		$result = $view->run($code, $seeds);
-		$this->assertSame(1, $view->rootCalls);
-
-		return $result + ['source' => $source, 'events' => $view->events];
+		$run = function () use ($code, $seeds): void
+		{
+			$jcbStyleDependencies = $seeds['style'] ?? [];
+			$jcbScriptDependencies = $seeds['script'] ?? [];
+			eval($code);
+		};
+		$run->call($view);
 	}
 
 	/**

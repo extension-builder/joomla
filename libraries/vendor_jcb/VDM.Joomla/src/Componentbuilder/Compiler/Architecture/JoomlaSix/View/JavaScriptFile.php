@@ -54,4 +54,71 @@ final class JavaScriptFile extends SharedJavaScriptFile
 		return '/media/com_' . $this->config->component_code_name
 			. '/js/' . $client . '/' . $name . '.js';
 	}
+
+	/**
+	 * Build and replace every optional script slot for the current view.
+	 *
+	 * Optional view_script_paths and view_script_dependencies are string lists.
+	 * Missing lists are empty; entries remain local to this view.
+	 *
+	 * @param   array   $view    The current view definition.
+	 * @param   string  $TARGET  The upper-case build target.
+	 *
+	 * @return  void
+	 * @throws  \InvalidArgumentException  When a supplied input is not a string list.
+	 * @since   6.2.1
+	 */
+	public function set(array &$view, string $TARGET): void
+	{
+		$paths = $this->entries($view, 'view_script_paths');
+		$dependencies = $this->entries($view, 'view_script_dependencies');
+		$prefix = $view['settings']->code . '|' . $TARGET;
+
+		$this->contentmulti->set($prefix . '_VIEW_SCRIPT_ENTRY',
+			$this->get($view, $TARGET)
+		);
+		$this->contentmulti->set($prefix . '_VIEW_SCRIPT_PATHS', $paths);
+		$this->contentmulti->set($prefix . '_VIEW_SCRIPT_DEPENDENCIES', $dependencies);
+	}
+
+	/**
+	 * Expand and escape an explicitly supplied ordered list.
+	 *
+	 * @param   array   $view      The current view definition.
+	 * @param   string  $property  The scoped settings property to read.
+	 *
+	 * @return  string  PHP array entries, or an empty string for absent input.
+	 * @throws  \InvalidArgumentException  When the input contains invalid values.
+	 * @since   6.2.1
+	 */
+	private function entries(array $view, string $property): string
+	{
+		$values = $view['settings']->{$property} ?? [];
+
+		if (!is_array($values) || !array_is_list($values))
+		{
+			throw new \InvalidArgumentException($property . ' must be an ordered list of strings.');
+		}
+
+		$entries = '';
+
+		foreach ($values as $value)
+		{
+			if (!is_string($value) || trim($value) === '')
+			{
+				throw new \InvalidArgumentException($property . ' must contain non-empty strings.');
+			}
+
+			$value = $this->placeholder->update_($value);
+
+			if (trim($value) === '')
+			{
+				throw new \InvalidArgumentException($property . ' expanded to an empty value.');
+			}
+
+			$entries .= PHP_EOL . Indent::_(3) . var_export($value, true) . ',';
+		}
+
+		return $entries;
+	}
 }

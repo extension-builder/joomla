@@ -134,12 +134,12 @@ final class PrepareDocument
 	protected GetModules $modules;
 
 	/**
-	 * The Document Scripts Class.
+	 * The JavaScript File Class.
 	 *
-	 * @var   DocumentScripts
+	 * @var   JavaScriptFile
 	 * @since 6.1.7
 	 */
-	protected DocumentScripts $scripts;
+	protected JavaScriptFile $javascript;
 
 	/**
 	 * Constructor.
@@ -156,7 +156,7 @@ final class PrepareDocument
 	 * @param CustomCSS                      $customcss     The Custom CSS Class.
 	 * @param CustomButtons                  $buttons       The Custom Buttons Class.
 	 * @param GetModules                     $modules       The Get Modules Class.
-	 * @param DocumentScripts                $scripts       The Document Scripts Class.
+	 * @param JavaScriptFile                 $javascript    The JavaScript File Class.
 	 *
 	 * @since 6.1.7
 	 */
@@ -172,7 +172,7 @@ final class PrepareDocument
 		CustomCSS $customcss,
 		CustomButtons $buttons,
 		GetModules $modules,
-		DocumentScripts $scripts)
+		JavaScriptFile $javascript)
 	{
 		$this->config = $config;
 		$this->contentmulti = $contentmulti;
@@ -186,7 +186,7 @@ final class PrepareDocument
 		$this->customcss = $customcss;
 		$this->buttons = $buttons;
 		$this->modules = $modules;
-		$this->scripts = $scripts;
+		$this->javascript = $javascript;
 	}
 
 	/**
@@ -275,7 +275,7 @@ final class PrepareDocument
 		// set a JavaScript file if needed
 		try
 		{
-			$this->scripts->set($view, $TARGET);
+			$this->javascript->set($view, $TARGET);
 		}
 		finally
 		{
