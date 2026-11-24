@@ -12,9 +12,12 @@
 namespace VDM\Joomla\Tests\Componentbuilder\Service;
 
 
+use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
+use VDM\Joomla\Componentbuilder\Crypt\FOF;
+use VDM\Joomla\Componentbuilder\Service\Crypt;
 use VDM\Tests\Support\ServiceProviderTestCase;
 
 
@@ -42,6 +45,17 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 	}
 
 	/**
+	 * Build the FOF adapter with no AES or random service registered.
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	public function testFofFactoryWorksWithAnEmptyContainer(): void
+	{
+		$this->assertInstanceOf(FOF::class, (new Crypt())->getFOF(new Container()));
+	}
+
+	/**
 	 * Provide the reviewed application service-provider catalogs.
 	 *
 	 * @return  iterable<string, array{class-string<ServiceProviderInterface>, array{aliases: int, services: int, hash: string}}>
@@ -59,7 +73,7 @@ final class ProviderCatalogTest extends ServiceProviderTestCase
 			'services' => 5,
 			'hash' => '39fad6301beb69ed1aeb5b0ccce8535a3814364db7909f9d738a41b1696a7ce6'
 		]];
-		yield 'crypt' => [\VDM\Joomla\Componentbuilder\Service\Crypt::class, [
+		yield 'crypt' => [Crypt::class, [
 			'aliases' => 8,
 			'services' => 8,
 			'hash' => 'ecd2651e55656510cb9f392c74e81e410edfa7b21be559742a8bbddb83939d5a'
