@@ -114,7 +114,7 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	}
 
 	/**
-	 * View-local paths follow model styles and retain library dependency seeds.
+	 * Prerequisite paths precede the view file and retain library dependencies.
 	 *
 	 * @param   string  $template  The site or custom-administrator template.
 	 *
@@ -139,21 +139,22 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 			['/media/com_demo/css/view.css'],
 			['/' . $viewPath, '/' . $markedPath, $modelPath, $modelPath],
 			[
+				'LIBRARIES_LOADER' => "\n\t\t\$jcbStyleDependencies[] = 'library.style';"
+					. "\n\t\t\$jcbScriptDependencies[] = 'library.script';",
 				'VIEW_SCRIPT_ENTRY' => "\n\t\t\t// Add View JavaScript File\n\t\t\t'" . $viewPath . "',",
 				'VIEW_SCRIPT_PATHS' => "\n\t\t\t'" . $markedPath . "',",
-				'VIEW_SCRIPT_DEPENDENCIES' => "\n\t\t\t'jquery',",
-			],
-			['style' => ['library.style', 'library.style'], 'script' => ['library.script', 'core', 'library.script']]
+				'VIEW_SCRIPT_DEPENDENCIES' => ", 'jquery'",
+			]
 		);
-		$this->assertSame(['core', 'jquery', 'library.script'], $wa->getAsset('script', $viewName)->getDependencies());
-		$this->assertSame(['core', 'jquery', 'library.script', $viewName], $wa->getAsset('script', $markedName)->getDependencies());
-		$this->assertSame(['core', 'jquery', 'library.script', $viewName, $markedName], $wa->getAsset('script', $modelName)->getDependencies());
+		$this->assertSame(['core', 'jquery', 'library.script'], $wa->getAsset('script', $markedName)->getDependencies());
+		$this->assertSame(['core', 'jquery', 'library.script', $markedName], $wa->getAsset('script', $viewName)->getDependencies());
+		$this->assertSame(['core', 'jquery', 'library.script', $markedName, $viewName], $wa->getAsset('script', $modelName)->getDependencies());
 		$this->assertSame(['library.style'], $wa->getAsset('style', 'jcb.style.' . hash('sha256', 'media/com_demo/css/view.css'))->getDependencies());
 		$sorted = array_keys($wa->getAssets('script', true));
-		$this->assertSame([$viewName, $markedName, $modelName], array_values(array_filter($sorted, static fn(string $name): bool => str_starts_with($name, 'jcb.script.'))));
+		$this->assertSame([$markedName, $viewName, $modelName], array_values(array_filter($sorted, static fn(string $name): bool => str_starts_with($name, 'jcb.script.'))));
 		foreach (['core', 'jquery', 'library.script'] as $dependency)
 		{
-			$this->assertLessThan(array_search($viewName, $sorted, true), array_search($dependency, $sorted, true));
+			$this->assertLessThan(array_search($markedName, $sorted, true), array_search($dependency, $sorted, true));
 		}
 		$this->assertSame('https://example.test/subdir/' . $viewPath, $wa->getAsset('script', $viewName)->getUri());
 		$this->assertSame('https://example.test/subdir/' . $markedPath, $wa->getAsset('script', $markedName)->getUri());
@@ -199,6 +200,20 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	{
 		$source = $this->template($template);
 		$prefix = str_starts_with($template, 'SITE_') ? 'SITE' : 'CUSTOM_ADMIN';
+		$this->assertSame(1, preg_match('~protected function _prepareDocument\(\): void\n\t\{(?<code>.*?)\n\t\}~s', $source, $body));
+		$code = preg_replace('/###[A-Z_]+###/', '', $body['code']);
+		$this->assertStringStartsWith(
+			"\n\t\t\$wa = \$this->getDocument()->getWebAssetManager();"
+			. "\n\t\t\$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();"
+			. "\n\n\t\t\$jcbStyleDependencies = [];\n\t\t\$jcbScriptDependencies = ['core'];",
+			$code
+		);
+		foreach (['array_values', 'array_unique', 'array_merge', '??'] as $normalizer)
+		{
+			$this->assertStringNotContainsString($normalizer, $code);
+		}
+		$this->assertSame(1, substr_count($code, '$jcbStyleDependencies = '));
+		$this->assertSame(1, substr_count($code, '$jcbScriptDependencies = '));
 		$expected = ['LIBRARIES_LOADER'];
 		if ($template === 'CUSTOM_ADMIN_VIEW_HTML.php')
 		{
@@ -592,7 +607,6 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 	 * @param   array            $styles          Model stylesheet paths.
 	 * @param   array            $scripts         Model script paths.
 	 * @param   array            $slots           Explicit fragments indexed without the target prefix.
-	 * @param   array            $seeds           Style and script dependency lists supplied by a prior loader.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -602,8 +616,7 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		WebAssetManager $wa,
 		array $styles,
 		array $scripts,
-		array $slots = [],
-		array $seeds = []
+		array $slots = []
 	): void
 	{
 		$this->assertSame(1, preg_match('~protected function _prepareDocument\(\): void\n\t\{(?<code>.*?)\n\t\}~s', $this->template($template), $match));
@@ -626,10 +639,8 @@ final class AssetsTemplateTest extends ArchitectureTestCase
 		$view->setDocument($document);
 		$view->styles = $styles;
 		$view->scripts = $scripts;
-		$run = function () use ($code, $seeds): void
+		$run = function () use ($code): void
 		{
-			$jcbStyleDependencies = $seeds['style'] ?? [];
-			$jcbScriptDependencies = $seeds['script'] ?? [];
 			eval($code);
 		};
 		$run->call($view);

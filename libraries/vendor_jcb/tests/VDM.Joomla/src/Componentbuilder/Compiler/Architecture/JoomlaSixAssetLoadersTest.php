@@ -118,13 +118,20 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 		$code = $loader->get(['settings' => (object) ['code' => 'demo']]);
 		$this->assertStringContainsString("if (\$this->params->get('add_jquery_framework', 1) == 1)", $code);
 		$this->assertStringContainsString(
-			PHP_EOL . str_repeat($indent, 3) . "\$wa->useScript('jquery')->useScript('jquery-noconflict');",
+			PHP_EOL . str_repeat($indent, 3) . "\$wa->useScript('jquery')->useScript('jquery-noconflict');"
+			. PHP_EOL . PHP_EOL . str_repeat($indent, 3) . "\$jcbScriptDependencies[] = 'jquery';"
+			. PHP_EOL . str_repeat($indent, 3) . "\$jcbScriptDependencies[] = 'jquery-noconflict';",
+			$code
+		);
+		$this->assertStringContainsString(
+			str_repeat($indent, 2) . '}' . PHP_EOL . PHP_EOL
+			. str_repeat($indent, 2) . '// Load the header checker class.',
 			$code
 		);
 		$this->assertStringNotContainsString('getWebAssetManager()', $code);
 		$this->assertStringNotContainsString('getApplication()', $code);
 		$code = str_replace('new HeaderCheck()', 'new \\stdClass()', $code);
-		$run = eval('return function ($wa) {' . $code . '};');
+		$run = eval('return function ($wa, $jcbScriptDependencies) {' . $code . ' return $jcbScriptDependencies; };');
 		foreach ([0, 1] as $enabled)
 		{
 			$assets = new WebAssetManager(new WebAssetRegistry());
@@ -141,7 +148,11 @@ final class JoomlaSixAssetLoadersTest extends ArchitectureTestCase
 				public JoomlaRegistry $params;
 			};
 			$view->params = new JoomlaRegistry(['add_jquery_framework' => $enabled]);
-			$run->call($view, $assets);
+			$dependencies = ['core', 'existing'];
+			$this->assertSame(
+				$enabled === 1 ? [...$dependencies, 'jquery', 'jquery-noconflict'] : $dependencies,
+				$run->call($view, $assets, $dependencies)
+			);
 			$this->assertSame(
 				$enabled === 1 ? ['jquery', 'jquery-noconflict'] : [],
 				array_keys($assets->getAssets('script', true))

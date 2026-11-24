@@ -147,15 +147,10 @@ class HtmlView extends BaseHtmlView
 	protected function _prepareDocument(): void
 	{
 		$wa = $this->getDocument()->getWebAssetManager();
-		$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
+		$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();
 
-		$jcbStyleDependencies = array_values(array_unique(
-			$jcbStyleDependencies ?? []
-		));
-		$jcbScriptDependencies = array_values(array_unique([
-			'core',###SITE_VIEW_SCRIPT_DEPENDENCIES###
-			...($jcbScriptDependencies ?? []),
-		]));
+		$jcbStyleDependencies = [];
+		$jcbScriptDependencies = ['core'###SITE_VIEW_SCRIPT_DEPENDENCIES###];###SITE_LIBRARIES_LOADER######SITE_UIKIT_LOADER######SITE_GOOGLECHART_LOADER######SITE_FOOTABLE_LOADER######SITE_DOCUMENT_METADATA######SITE_DOCUMENT_CUSTOM_PHP###
 
 		// Add styles
 		foreach ($this->styles as $style)
@@ -167,6 +162,7 @@ class HtmlView extends BaseHtmlView
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
 					? $style : $root . $style;
+
 				$wa->registerStyle(
 					$assetName,
 					$assetUri,
@@ -177,13 +173,15 @@ class HtmlView extends BaseHtmlView
 			}
 
 			$wa->useStyle($assetName);
+
 			if (!in_array($assetName, $jcbStyleDependencies, true))
 			{
 				$jcbStyleDependencies[] = $assetName;
 			}
 		}###SITE_DOCUMENT_CUSTOM_CSS###
 
-		$viewScripts = [###SITE_VIEW_SCRIPT_ENTRY######SITE_VIEW_SCRIPT_PATHS###
+		$viewScripts = [###SITE_VIEW_SCRIPT_PATHS######SITE_VIEW_SCRIPT_ENTRY###
+
 			// Add scripts
 			...$this->scripts,
 		];
@@ -197,6 +195,7 @@ class HtmlView extends BaseHtmlView
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
 					? $script : $root . $script;
+
 				$wa->registerScript(
 					$assetName,
 					$assetUri,
@@ -207,11 +206,13 @@ class HtmlView extends BaseHtmlView
 			}
 
 			$wa->useScript($assetName);
+
 			if (!in_array($assetName, $jcbScriptDependencies, true))
 			{
 				$jcbScriptDependencies[] = $assetName;
 			}
-		}###SITE_DOCUMENT_CUSTOM_JS######SITE_JAVASCRIPT_FOR_BUTTONS###
+		}
+###SITE_DOCUMENT_CUSTOM_JS######SITE_JAVASCRIPT_FOR_BUTTONS###
 	}
 
 
