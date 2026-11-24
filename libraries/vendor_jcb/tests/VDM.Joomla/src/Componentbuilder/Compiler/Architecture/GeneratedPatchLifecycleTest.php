@@ -13,13 +13,16 @@ namespace VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture;
 
 
 use Closure;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\Controller\ApiController;
+use Joomla\CMS\MVC\Controller\Exception\CheckinCheckout;
 use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\FormController;
+use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
 use Joomla\CMS\User\User;
@@ -170,6 +173,82 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		$this->assertSame('[]', $storage->row['options']);
 		$this->assertSame([], $storage->tags);
 		$this->assertSame([], $storage->beforeSaveData['tags']);
+	}
+
+	/**
+	 * A record-level permission override runs once, before any PATCH table read.
+	 *
+	 * @param   bool    $permitted  Whether the override permits this edit.
+	 * @param   array   $exists     Successive answers from table storage.
+	 * @param   string  $exception  Expected Joomla error type.
+	 * @param   array   $expected   Ordered permission, load and checkout calls.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	#[DataProvider('patchFailures')]
+	public function testPatchPermissionAndCheckoutFailures(bool $permitted, array $exists, string $exception, array $expected): void
+	{
+		$fixture = $this->controller($this->storage(), []);
+		$controller = $this->getMockBuilder(get_parent_class($fixture))->disableOriginalConstructor()
+			->onlyMethods(['allowEdit', 'getModel'])->getMock();
+		$input = new ReflectionProperty($fixture, 'input');
+		$input->setValue($controller, $input->getValue($fixture));
+		$calls = [];
+		$controller->expects($this->once())->method('allowEdit')->with(['article_id' => 42], 'article_id')
+			->willReturnCallback(static function () use (&$calls, $permitted): bool
+			{
+				$calls[] = 'permission';
+
+				return $permitted;
+			});
+		$table = $this->createStub(Table::class);
+		$table->method('getKeyName')->willReturn('article_id');
+		$table->method('hasField')->willReturn(true);
+		$table->method('load')->willReturnCallback(static function ($id) use (&$calls, &$exists): bool
+		{
+			$calls[] = 'load ' . $id;
+
+			return array_shift($exists);
+		});
+		$model = $this->createStub(AdminModel::class);
+		$controller->method('getModel')->willReturn($model);
+		$model->method('getTable')->willReturn($table);
+		$model->method('checkout')->willReturnCallback(static function ($id) use (&$calls): bool
+		{
+			$calls[] = 'checkout ' . $id;
+
+			return false;
+		});
+
+		try
+		{
+			$controller->edit();
+			$this->fail('PATCH must stop before saving.');
+		}
+		catch (RuntimeException $error)
+		{
+			$this->assertSame($exception, $error::class);
+		}
+
+		$this->assertSame($expected, $calls);
+	}
+
+	/**
+	 * Exercise denied edits, missing rows, concurrent deletion and lock refusal.
+	 *
+	 * @return  array<string, array{bool, array<bool>, class-string, array<string>}>
+	 * @since   6.3.0
+	 */
+	public static function patchFailures(): array
+	{
+		return [
+			'denied existing' => [false, [true], NotAllowed::class, ['permission']],
+			'denied missing' => [false, [false], NotAllowed::class, ['permission']],
+			'missing before checkout' => [true, [false], ResourceNotFound::class, ['permission', 'load 42']],
+			'deleted during checkout' => [true, [true, false], ResourceNotFound::class, ['permission', 'load 42', 'checkout 42', 'load 42']],
+			'existing and locked' => [true, [true, true], CheckinCheckout::class, ['permission', 'load 42', 'checkout 42', 'load 42']],
+		];
 	}
 
 	/**
@@ -632,7 +711,8 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 				'###View###' => 'Articles',
 				'###view###' => 'article',
 				'###views###' => 'articles',
-				'###API_VIEW_CONTROLLER_HEADER###' => 'use Joomla\\CMS\\MVC\\Controller\\ApiController; use Joomla\\CMS\\Language\\Text; use Joomla\\CMS\\MVC\\Controller\\Exception\\ResourceNotFound;',
+				'###API_VIEW_CONTROLLER_HEADER###' => 'use Joomla\\CMS\\MVC\\Controller\\ApiController; use Joomla\\CMS\\Language\\Text;'
+					. ' use Joomla\\CMS\\Access\\Exception\\NotAllowed; use Joomla\\CMS\\MVC\\Controller\\Exception\\ResourceNotFound;',
 				'###API_VIEW_CONTROLLER_GETMODEL###' => 'return ($this->modelFactory)();',
 				'###API_VIEW_CONTROLLER_RECORDID###' => $this->renderer(RecordId::class)->get('article'),
 				'###API_VIEW_CONTROLLER_ALLOWVIEW###' => 'return true;',
