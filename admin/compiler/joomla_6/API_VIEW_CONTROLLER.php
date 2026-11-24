@@ -98,32 +98,48 @@ class ###View###Controller extends ApiController
 		$id = $this->getRecordId();
 		$this->input->set('id', $id);
 
-		// Checkout reports a lock error when the target row no longer exists.
-		if ($id > 0 && $this->input->getMethod() === 'PATCH')
+		if ($id < 1 || $this->input->getMethod() !== 'PATCH')
 		{
-			$model = $this->getModel();
-
-			if (!$model)
-			{
-				throw new \RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
-			}
-
-			$table = $model->getTable();
-
-			if (!$table->load($id))
-			{
-				$key = $table->getKeyName();
-
-				if (!$this->allowEdit([$key => $id], $key))
-				{
-					throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
-				}
-
-				throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
-			}
+			return parent::edit();
 		}
 
-		return parent::edit();
+		$model = $this->getModel();
+
+		if (!$model)
+		{
+			throw new \RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
+		}
+
+		$table = $model->getTable();
+		$key = $table->getKeyName();
+
+		if (!$this->allowEdit([$key => $id], $key))
+		{
+			throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+		}
+
+		if (!$table->load($id))
+		{
+			throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
+		}
+
+		if ($table->hasField('checked_out') && !$model->checkout($id))
+		{
+			// A concurrent deletion can also cause checkout to return false.
+			if (!$table->load($id))
+			{
+				throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
+			}
+
+			throw new \Joomla\CMS\MVC\Controller\Exception\CheckinCheckout(
+				Text::sprintf('JLIB_APPLICATION_ERROR_CHECKOUT_FAILED', $model->getError())
+			);
+		}
+
+		$this->save($id);
+		$this->displayItem($id);
+
+		return $this;
 	}
 
 	/**

@@ -12,13 +12,13 @@ checkout and during PATCH preprocessing.
 Modified protected path: `admin/compiler/joomla_6/API_VIEW_CONTROLLER.php`.
 There are no created, moved or deleted protected paths.
 
-The generated `edit()` resolves numeric and unique keys and checks whether
-a PATCH target with a positive ID exists before Joomla attempts checkout.
-For a missing row it checks the existing record-level edit permission before
-reporting 404. Joomla's native edit method handles existing records. If the
-row disappears before
-`preprocessSaveData()` can load its normalized values, the controller also
-throws Joomla's `ResourceNotFound` exception.
+The generated `edit()` resolves numeric and unique keys and calls the
+existing record-level edit permission once for the resolved ID. It checks
+the row after authorization and before checkout. If checkout returns false,
+it checks again to distinguish a concurrent deletion from a lock refusal.
+Joomla's save and display methods handle successful edits.
+`preprocessSaveData()` also throws `ResourceNotFound` if the row disappears
+before the model loads its normalized values.
 
 ## Impact and verification
 
@@ -28,15 +28,20 @@ receive 403, and lock conflicts keep their Joomla checkout error. These HTTP
 responses have no graphical or accessibility surface. The installed API
 suite exercises updates by numeric ID and GUID, compares omitted fields to
 their stored bytes and sends a PATCH to a deleted record. The generated
-controller lifecycle suite exercises the failed normalized read.
+controller lifecycle suite exercises the permission override, table reads,
+lock refusal, concurrent deletion and failed normalized read.
 
-The local lifecycle suite passed 26 tests and 716 assertions on PHP 8.4.27.
+The local lifecycle suite passed 31 tests and 615 assertions on PHP 8.4.27.
 A separate HTTP probe ran the rendered controller and Joomla 6.2.0 core
-against an SQLite-backed fixture. The missing numeric ID changed from 400
-to 404, and disappearance during hydration changed from 500 to 404. Denied
-existing and missing targets both returned 403. An actual checkout refusal
-in the fixture still returned 400. A successful PATCH returned 200 and
-preserved omitted encoded bytes.
+against an SQLite-backed fixture. All 14 before-and-after checks passed.
+A missing numeric ID and a row deleted during checkout changed from 400 to
+404. Disappearance during hydration changed from 500 to 404. Refusing
+checkout of a surviving row returned 400.
+
+The compiled and installed Joomla 6.2 Demo passed all 51 partial-PATCH
+HTTP checks. A missing GUID returned 404. Denied existing and missing
+numeric IDs both returned 403 and dispatched zero target table-load events,
+as recorded by an installed `onTableBeforeLoad` observer.
 
 GUI specs: none. The changed entry point is an HTTP API.
 
