@@ -5,7 +5,9 @@
  * before the transaction commits, including when later harness steps fail.
  */
 
+use Joomla\CMS\Application\AdministratorApplication;
 use Joomla\CMS\Factory;
+use Joomla\CMS\User\UserFactoryInterface;
 use Joomla\Database\DatabaseInterface;
 use VDM\Joomla\Componentbuilder\Compiler\Language\Insert;
 
@@ -56,6 +58,61 @@ if ($mode === '--cleanup')
 		throw $error;
 	}
 	echo "PASS Removed owned language-filter fixtures.\n";
+	exit(0);
+}
+
+if ($mode === '--verify-cache')
+{
+	$state = json_decode(file_get_contents($manifest), true, 512, JSON_THROW_ON_ERROR);
+	$_SERVER['HTTP_HOST'] = 'joomla.invalid';
+	$_SERVER['REQUEST_URI'] = '/administrator/';
+	$container = Factory::getContainer();
+	$container->alias('session', 'session.web.administrator')
+		->alias(Joomla\CMS\Session\Session::class, 'session.web.administrator')
+		->alias(Joomla\Session\Session::class, 'session.web.administrator')
+		->alias(Joomla\Session\SessionInterface::class, 'session.web.administrator');
+	$app = $container->get(AdministratorApplication::class);
+	Factory::$application = $app;
+	$app->createExtensionNamespaceMap();
+	$user = $container->get(UserFactoryInterface::class)->loadUserByUsername(getenv('JCB_ADMIN_USER'));
+	$app->loadIdentity($user);
+	$model = $app->bootComponent('com_componentbuilder')->getMVCFactory()
+		->createModel('Language_translations', 'Administrator', ['ignore_request' => true]);
+	$model->setCurrentUser($user);
+	$model->setState('filter.search', $state['prefix']);
+	$model->setState('list.ordering', 'a.id');
+	$model->setState('list.direction', 'ASC');
+	$model->setState('list.limit', 2);
+	$model->setState('list.start', 4);
+
+	// Keep the same model and requested page. Each step changes just one custom filter.
+	$verify = static function (array $names, int $total, int $offset) use ($model, $state): void
+	{
+		$sources = array_map(static fn (string $name): string => $state['sources'][$name], $names);
+		$items = $model->getItems();
+		$page = $model->getPagination();
+		if (!is_array($items) || array_column($items, 'source') !== $sources || $model->getTotal() !== $total
+			|| $page->total !== $total || $page->limitstart !== $offset || $page->pagesTotal !== (int) ceil($total / 2))
+		{
+			throw new RuntimeException('Unexpected cached rows, total or page. Expected ' . json_encode([$names, $total, $offset]));
+		}
+	};
+	$verify(['zero', 'translated'], 9, 4);
+	$model->setState('filter.translated', $state['language_a']);
+	$verify(['complete', 'other_extension'], 4, 2);
+	$model->setState('filter.extension', $state['extension_a']);
+	$verify(['complete'], 3, 2);
+	$model->setState('filter.not_translated', $state['language_b']);
+	$verify(['zero', 'translated'], 2, 0);
+	$model->setState('filter.not_translated', $state['language_a']);
+	$verify([], 0, 0);
+	$model->setState('filter.not_translated', '');
+	$verify(['complete'], 3, 2);
+	$model->setState('filter.extension', '');
+	$verify(['complete', 'other_extension'], 4, 2);
+	$model->setState('filter.translated', '');
+	$verify(['zero', 'translated'], 9, 4);
+	echo "PASS Reused one Language Translations model across eight filter states, checking rows, totals and pagination.\n";
 	exit(0);
 }
 

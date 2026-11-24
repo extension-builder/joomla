@@ -284,6 +284,12 @@ then
 	cat "${OUT_DIR}/language-translation-seed.log" >&2
 	exit 1
 fi
+if ! compose exec -T -e JCB_DISPOSABLE_TEST=1 -e JCB_ADMIN_USER="${JCB_ADMIN_USER}" \
+	joomla php /tmp/language-translation-fixtures.php --verify-cache > "${OUT_DIR}/language-translation-cache.log" 2>&1
+then
+	cat "${OUT_DIR}/language-translation-cache.log" >&2
+	exit 1
+fi
 compose cp "joomla:/tmp/jcb-language-translation-fixtures.json" "${OUT_DIR}/language-translation-fixtures.json"
 
 say "Running the GUI suite"
