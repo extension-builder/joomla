@@ -128,7 +128,10 @@ try
 	$reader = $group('JCB API Readonly');
 	$denied = $group('JCB API Denied');
 	$rules('root.1', ['core.login.api' => [$reader => 1, $denied => 1]]);
-	$grants = [];
+	$grants = [
+		'site.looks.access' => [$reader => 1, $denied => 0],
+		'site.looking.access' => [$denied => 0],
+	];
 
 	foreach (['look', 'library_config'] as $view)
 	{

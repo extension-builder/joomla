@@ -15,17 +15,19 @@
  * The native dynamic get is seeded before compilation. Record creation and
  * cleanup use the installed admin API; every list read uses its separate,
  * generated read-only site resource and Joomla's real JSON:API rendering.
+ * The reader holds site.looks.access. The Demo's authored model builds frontend
+ * edit links for editors using the site router, a separate UI behavior.
  *
- * Usage: php dynamic-list.php <disposable site root> <loopback URL> <token>
+ * Usage: php dynamic-list.php <disposable site root> <loopback URL> <admin token> <reader token>
  *
  * @since  6.2.1
  */
 
-[$site, $base, $token] = array_pad(array_slice($argv, 1), 3, '');
+[$site, $base, $adminToken, $readerToken] = array_pad(array_slice($argv, 1), 4, '');
 $url = parse_url($base);
 
 if (PHP_SAPI !== 'cli' || getenv('JCB_DISPOSABLE_TEST') !== '1'
-	|| in_array('', [$site, $base, $token], true)
+	|| in_array('', [$site, $base, $adminToken, $readerToken], true)
 	|| !is_file($site . '/configuration.php') || !is_file($site . '/.jcb-api-test-site')
 	|| trim((string) file_get_contents($site . '/.jcb-api-test-site')) !== realpath($site)
 	|| !is_array($url) || ($url['scheme'] ?? '') !== 'http'
@@ -33,7 +35,7 @@ if (PHP_SAPI !== 'cli' || getenv('JCB_DISPOSABLE_TEST') !== '1'
 	|| isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])
 	|| !in_array($url['path'] ?? '', ['', '/'], true))
 {
-	fwrite(STDERR, "usage: php dynamic-list.php <disposable site root> <loopback URL> <token>\n");
+	fwrite(STDERR, "usage: php dynamic-list.php <disposable site root> <loopback URL> <admin token> <reader token>\n");
 	exit(2);
 }
 
@@ -56,13 +58,14 @@ $id = 0;
  *
  * @param   string      $method  The HTTP method.
  * @param   string      $url     The endpoint.
+ * @param   string      $token   Token for the role exercising the endpoint.
  * @param   array|null  $body    Submitted fields, when present.
  *
  * @return  array{status:int,body:array|null,dataIsArray:bool}  The HTTP response.
  * @throws  RuntimeException  If the transport fails.
  * @since   6.2.1
  */
-$request = static function (string $method, string $url, ?array $body = null) use ($token): array
+$request = static function (string $method, string $url, string $token, ?array $body = null): array
 {
 	$curl = curl_init($url);
 	$headers = ['Accept: application/vnd.api+json', 'X-Joomla-Token: ' . $token];
@@ -123,9 +126,9 @@ $check = static function (string $label, bool $ok) use (&$passes, &$failures): v
  * @return  void
  * @since   6.2.1
  */
-$emptyList = static function (string $phase) use ($request, $check, $listEndpoint): void
+$emptyList = static function (string $phase) use ($request, $check, $listEndpoint, $readerToken): void
 {
-	$response = $request('GET', $listEndpoint);
+	$response = $request('GET', $listEndpoint, $readerToken);
 	$check($phase . ': read-only list returns HTTP 200', $response['status'] === 200);
 	$check($phase . ': data is an empty JSON array', $response['dataIsArray']
 		&& ($response['body']['data'] ?? null) === []);
@@ -139,7 +142,7 @@ try
 	$emptyList('Before any matching row');
 	$name = 'JCB API dynamic list #1330.fixture';
 	$description = 'Dynamic-list attributes must survive the empty-result fallback.';
-	$created = $request('POST', $adminEndpoint, [
+	$created = $request('POST', $adminEndpoint, $adminToken, [
 		'name' => $name,
 		'description' => $description,
 		'published' => 1,
@@ -152,14 +155,14 @@ try
 		throw new RuntimeException('The admin API did not create the dynamic-list fixture.');
 	}
 
-	$populated = $request('GET', $listEndpoint);
+	$populated = $request('GET', $listEndpoint, $readerToken);
 	$rows = $populated['body']['data'] ?? [];
 	$check('read-only list returns the matching row with HTTP 200', $populated['status'] === 200
 		&& count($rows) === 1 && (int) ($rows[0]['id'] ?? 0) === $id);
 	$check('populated lists retain their selected fields', ($rows[0]['attributes']['name'] ?? null) === $name
 		&& ($rows[0]['attributes']['description'] ?? null) === $description);
 
-	$trashed = $request('PATCH', $adminEndpoint . '/' . $id, ['published' => -2]);
+	$trashed = $request('PATCH', $adminEndpoint . '/' . $id, $adminToken, ['published' => -2]);
 	$check('admin API removes the row from the dynamic-get selection', $trashed['status'] === 200);
 	$emptyList('After filtering out the matching row');
 }
@@ -173,9 +176,9 @@ finally
 	{
 		try
 		{
-			$trashed = $request('PATCH', $adminEndpoint . '/' . $id, ['published' => -2]);
-			$deleted = $request('DELETE', $adminEndpoint . '/' . $id);
-			$gone = $request('GET', $adminEndpoint . '/' . $id);
+			$trashed = $request('PATCH', $adminEndpoint . '/' . $id, $adminToken, ['published' => -2]);
+			$deleted = $request('DELETE', $adminEndpoint . '/' . $id, $adminToken);
+			$gone = $request('GET', $adminEndpoint . '/' . $id, $adminToken);
 			$check('temporary row is trashed and deleted through the API', $trashed['status'] === 200
 				&& $deleted['status'] === 204 && $gone['status'] === 404);
 		}
