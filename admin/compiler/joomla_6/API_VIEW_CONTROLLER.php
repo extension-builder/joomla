@@ -95,7 +95,33 @@ class ###View###Controller extends ApiController
 	public function edit()
 	{
 		// resolve the record by its id or by any unique key of the table
-		$this->input->set('id', $this->getRecordId());
+		$id = $this->getRecordId();
+		$this->input->set('id', $id);
+
+		// Checkout reports a lock error when the target row no longer exists.
+		if ($id > 0 && $this->input->getMethod() === 'PATCH')
+		{
+			$model = $this->getModel();
+
+			if (!$model)
+			{
+				throw new \RuntimeException(Text::_('JLIB_APPLICATION_ERROR_MODEL_CREATE'));
+			}
+
+			$table = $model->getTable();
+
+			if (!$table->load($id))
+			{
+				$key = $table->getKeyName();
+
+				if (!$this->allowEdit([$key => $id], $key))
+				{
+					throw new NotAllowed('JLIB_APPLICATION_ERROR_CREATE_RECORD_NOT_PERMITTED', 403);
+				}
+
+				throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
+			}
+		}
 
 		return parent::edit();
 	}
@@ -106,7 +132,7 @@ class ###View###Controller extends ApiController
 	 * @param   array  $data  Submitted values plus Joomla's raw stored-column merge.
 	 *
 	 * @return  array
-	 * @throws  \RuntimeException  When the existing record cannot be loaded.
+	 * @throws  ResourceNotFound  When the existing record cannot be loaded.
 	 * @since   6.2.0
 	 */
 	protected function preprocessSaveData(array $data): array
@@ -135,7 +161,7 @@ class ###View###Controller extends ApiController
 
 		if (!is_object($item))
 		{
-			throw new \RuntimeException(Text::_('JLIB_APPLICATION_ERROR_RECORD_LOAD'), 500);
+			throw new ResourceNotFound(Text::_('JLIB_APPLICATION_ERROR_RECORD'), 404);
 		}
 
 		// getItem owns the inverse of each generated or expert storage transformation.

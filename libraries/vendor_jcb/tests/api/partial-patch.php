@@ -275,6 +275,8 @@ finally
 			$deleted = $request('DELETE', $endpoint . '/' . $id);
 			$gone = $request('GET', $endpoint . '/' . $id);
 			$check('temporary fixture is trashed and deleted through the API', $trashed['status'] === 200 && $deleted['status'] === 204 && $gone['status'] === 404);
+			$missing = $request('PATCH', $endpoint . '/' . $id, ['name' => 'Deleted record']);
+			$check('PATCH on the deleted numeric ID returns JSON:API 404', $missing['status'] === 404 && isset($missing['body']['errors'][0]));
 		}
 		catch (Throwable $error)
 		{
