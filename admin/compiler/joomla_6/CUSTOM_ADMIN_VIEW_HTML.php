@@ -142,15 +142,10 @@ class HtmlView extends BaseHtmlView
 	protected function _prepareDocument(): void
 	{
 		$wa = $this->getDocument()->getWebAssetManager();
-		$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();###CUSTOM_ADMIN_LIBRARIES_LOADER######CUSTOM_ADMIN_DOCUMENT_METADATA######CUSTOM_ADMIN_UIKIT_LOADER######CUSTOM_ADMIN_GOOGLECHART_LOADER######CUSTOM_ADMIN_FOOTABLE_LOADER######CUSTOM_ADMIN_DOCUMENT_CUSTOM_PHP###
+		$root = Joomla___eecc143e_b5cf_4c33_ba4d_97da1df61422___Power::root();
 
-		$jcbStyleDependencies = array_values(array_unique(
-			$jcbStyleDependencies ?? []
-		));
-		$jcbScriptDependencies = array_values(array_unique([
-			'core',###CUSTOM_ADMIN_VIEW_SCRIPT_DEPENDENCIES###
-			...($jcbScriptDependencies ?? []),
-		]));
+		$jcbStyleDependencies = [];
+		$jcbScriptDependencies = ['core'###CUSTOM_ADMIN_VIEW_SCRIPT_DEPENDENCIES###];###CUSTOM_ADMIN_LIBRARIES_LOADER######CUSTOM_ADMIN_DOCUMENT_METADATA######CUSTOM_ADMIN_UIKIT_LOADER######CUSTOM_ADMIN_GOOGLECHART_LOADER######CUSTOM_ADMIN_FOOTABLE_LOADER######CUSTOM_ADMIN_DOCUMENT_CUSTOM_PHP###
 
 		// Add styles
 		foreach ($this->styles as $style)
@@ -162,6 +157,7 @@ class HtmlView extends BaseHtmlView
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
 					? $style : $root . $style;
+
 				$wa->registerStyle(
 					$assetName,
 					$assetUri,
@@ -172,13 +168,15 @@ class HtmlView extends BaseHtmlView
 			}
 
 			$wa->useStyle($assetName);
+
 			if (!in_array($assetName, $jcbStyleDependencies, true))
 			{
 				$jcbStyleDependencies[] = $assetName;
 			}
 		}###CUSTOM_ADMIN_DOCUMENT_CUSTOM_CSS###
 
-		$viewScripts = [###CUSTOM_ADMIN_VIEW_SCRIPT_ENTRY######CUSTOM_ADMIN_VIEW_SCRIPT_PATHS###
+		$viewScripts = [###CUSTOM_ADMIN_VIEW_SCRIPT_PATHS######CUSTOM_ADMIN_VIEW_SCRIPT_ENTRY###
+
 			// Add scripts
 			...$this->scripts,
 		];
@@ -192,6 +190,7 @@ class HtmlView extends BaseHtmlView
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
 					? $script : $root . $script;
+
 				$wa->registerScript(
 					$assetName,
 					$assetUri,
@@ -202,11 +201,13 @@ class HtmlView extends BaseHtmlView
 			}
 
 			$wa->useScript($assetName);
+
 			if (!in_array($assetName, $jcbScriptDependencies, true))
 			{
 				$jcbScriptDependencies[] = $assetName;
 			}
-		}###CUSTOM_ADMIN_DOCUMENT_CUSTOM_JS###
+		}
+###CUSTOM_ADMIN_DOCUMENT_CUSTOM_JS###
 	}
 
 

@@ -70,6 +70,9 @@ final class AssetsTest extends ArchitectureTestCase
 		$content = new ContentMulti();
 		$prefix = 'article|' . strtoupper($target);
 		$content->set($prefix . '_LIBRARIES_LOADER', 'loadLibrary();');
+		$content->set($prefix . '_DOCUMENT_CUSTOM_PHP',
+			"\n\t\t// add marked library\n\t\tHtml::_('script', 'custom/marked.js', ['version' => 'auto']);"
+		);
 		$structure = $this->createMock(Structure::class);
 		$structure->expects($this->once())->method('build')->with(
 			[$target => 'article'],
@@ -100,10 +103,14 @@ final class AssetsTest extends ArchitectureTestCase
 			"\n\t\t\t// Add View JavaScript File\n\t\t\t'media/com_demo/js/" . $client . "/article.js',",
 			$content->get($prefix . '_VIEW_SCRIPT_ENTRY')
 		);
-		$this->assertSame(["media/com_demo/it's\\extra.js", '//cdn.example.test/library.js'],
+		$this->assertSame(['custom/marked.js', "media/com_demo/it's\\extra.js", '//cdn.example.test/library.js'],
 			eval('return [' . $content->get($prefix . '_VIEW_SCRIPT_PATHS') . '];'));
-		$this->assertSame(['jquery', 'vendor.demo'],
-			eval('return [' . $content->get($prefix . '_VIEW_SCRIPT_DEPENDENCIES') . '];'));
+		$this->assertStringStartsWith("\n\t\t\t// Add marked library\n\t\t\t'custom/marked.js',",
+			$content->get($prefix . '_VIEW_SCRIPT_PATHS'));
+		$this->assertStringEndsWith(PHP_EOL, $content->get($prefix . '_VIEW_SCRIPT_PATHS'));
+		$this->assertSame('', $content->get($prefix . '_DOCUMENT_CUSTOM_PHP'));
+		$this->assertSame(['core', 'jquery', 'vendor.demo'],
+			eval("return ['core'" . $content->get($prefix . '_VIEW_SCRIPT_DEPENDENCIES') . '];'));
 		$this->assertSame('loadLibrary();', $content->get($prefix . '_LIBRARIES_LOADER'));
 		$this->assertSame("window.article = 'preserved';\n", $content->get($prefix . '_JAVASCRIPT_FILE'));
 	}
@@ -132,7 +139,7 @@ final class AssetsTest extends ArchitectureTestCase
 		]];
 		$subject->set($first, 'ADMIN');
 		$subject->set($second, 'SITE');
-		$this->assertSame(PHP_EOL . "\t\t\t'jquery',", $content->get('first|ADMIN_VIEW_SCRIPT_DEPENDENCIES'));
+		$this->assertSame(", 'jquery'", $content->get('first|ADMIN_VIEW_SCRIPT_DEPENDENCIES'));
 		unset($first['settings']->view_script_paths, $first['settings']->view_script_dependencies);
 		$subject->set($first, 'ADMIN');
 
@@ -140,7 +147,7 @@ final class AssetsTest extends ArchitectureTestCase
 		{
 			$this->assertSame('', $content->get('first|ADMIN_VIEW_SCRIPT_' . $slot));
 		}
-		$this->assertSame(PHP_EOL . "\t\t\t'second.js',", $content->get('second|SITE_VIEW_SCRIPT_PATHS'));
+		$this->assertSame(PHP_EOL . "\t\t\t'second.js'," . PHP_EOL, $content->get('second|SITE_VIEW_SCRIPT_PATHS'));
 		$this->assertSame('', $content->get('second|SITE_VIEW_SCRIPT_DEPENDENCIES'));
 		$this->assertFalse($content->exists('first|SITE_VIEW_SCRIPT_ENTRY'));
 		$this->assertFalse($content->exists('second|ADMIN_VIEW_SCRIPT_ENTRY'));
@@ -161,6 +168,9 @@ final class AssetsTest extends ArchitectureTestCase
 		$this->placeholder()->set('empty', '');
 		$content = new ContentMulti();
 		$content->set('article|ADMIN_VIEW_SCRIPT_ENTRY', 'existing entry');
+		$content->set('article|ADMIN_DOCUMENT_CUSTOM_PHP',
+			"Html::_('script', 'marked.js', ['version' => 'auto']);"
+		);
 		$original = $content->toArray();
 		$structure = $this->createMock(Structure::class);
 		$structure->expects($this->never())->method('build');
@@ -182,6 +192,83 @@ final class AssetsTest extends ArchitectureTestCase
 		{
 			$this->assertSame($original, $content->toArray());
 		}
+	}
+
+	/**
+	 * Literal Power includes migrate in source order even without a view file.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testLiteralPowerIncludesKeepCommentsEscapingAndSourceOrder(): void
+	{
+		$content = new ContentMulti();
+		$power = 'Joomla__' . '_34690c75_1090_47eb_8c06_7228dc7eedd6___Power';
+		$path = "'media/it\\'s\\\\escaped.js'";
+		$content->set('manual|CUSTOM_ADMIN_DOCUMENT_CUSTOM_PHP',
+			'/* Keep the prerequisite comment. */' . PHP_EOL
+				. $power . "::_('script', " . $path . ", ['version' => 'auto']);" . PHP_EOL
+				. 'Html::_("script", "second.js", ["version" => "auto"]);'
+		);
+		$structure = $this->createMock(Structure::class);
+		$structure->expects($this->never())->method('build');
+		$subject = $this->renderer(JavaScriptFile::class, ['contentmulti' => $content, 'structure' => $structure]);
+		$view = ['settings' => (object) ['code' => 'manual', 'add_javascript_file' => 0]];
+
+		$subject->set($view, 'CUSTOM_ADMIN');
+
+		$this->assertSame(
+			PHP_EOL . "\t\t\t/* Keep the prerequisite comment. */"
+				. PHP_EOL . "\t\t\t" . $path . ',' . PHP_EOL . "\t\t\t\"second.js\"," . PHP_EOL,
+			$content->get('manual|CUSTOM_ADMIN_VIEW_SCRIPT_PATHS')
+		);
+		$this->assertSame(["media/it's\\escaped.js", 'second.js'],
+			eval('return [' . $content->get('manual|CUSTOM_ADMIN_VIEW_SCRIPT_PATHS') . '];'));
+		$this->assertSame('', $content->get('manual|CUSTOM_ADMIN_DOCUMENT_CUSTOM_PHP'));
+		$this->assertSame('', $content->get('manual|CUSTOM_ADMIN_VIEW_SCRIPT_ENTRY'));
+	}
+
+	/**
+	 * Unrecognised document PHP remains byte-for-byte intact without partial migration.
+	 *
+	 * @param   string  $php  The original document contribution.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	#[DataProvider('unmigratedDocumentScripts')]
+	public function testDynamicConditionalAndMixedDocumentPhpIsNotMoved(string $php): void
+	{
+		$content = new ContentMulti();
+		$content->set('manual|ADMIN_DOCUMENT_CUSTOM_PHP', $php);
+		$subject = $this->renderer(JavaScriptFile::class, ['contentmulti' => $content]);
+		$view = ['settings' => (object) ['code' => 'manual', 'add_javascript_file' => 0]];
+
+		$subject->set($view, 'ADMIN');
+
+		$this->assertSame($php, $content->get('manual|ADMIN_DOCUMENT_CUSTOM_PHP'));
+		$this->assertSame('', $content->get('manual|ADMIN_VIEW_SCRIPT_PATHS'));
+	}
+
+	/**
+	 * Statements whose behaviour cannot be represented by an unconditional path list.
+	 *
+	 * @return  iterable
+	 * @since   6.2.1
+	 */
+	public static function unmigratedDocumentScripts(): iterable
+	{
+		$literal = "Html::_('script', 'marked.js', ['version' => 'auto']);";
+		yield 'conditional' => ['if ($enabled) { ' . $literal . ' }'];
+		yield 'unbraced conditional' => ['if ($enabled) ' . $literal];
+		yield 'dynamic path' => ["Html::_('script', \$path, ['version' => 'auto']);"];
+		yield 'mixed PHP after valid include' => [$literal . ' inspectDocument();'];
+		yield 'different version' => [str_replace("'auto'", "'1.2'", $literal)];
+		yield 'attributes' => [str_replace(']);', "], ['defer' => true]);", $literal)];
+		yield 'return value' => ['return ' . $literal];
+		yield 'comment only' => ['// ' . $literal];
+		yield 'different helper' => [str_replace('Html', 'OtherHelper', $literal)];
+		yield 'interpolated literal' => ["Html::_('script', \"\$path/marked.js\", ['version' => 'auto']);"];
 	}
 
 	/**

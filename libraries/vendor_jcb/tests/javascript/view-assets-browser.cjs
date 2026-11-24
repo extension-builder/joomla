@@ -36,7 +36,7 @@ for (const [name, fixture] of Object.entries(pages)) {
 			['https://example.test/subdir/jquery-noconflict.js', 'window.viewAssetOrder.push("jquery-noconflict");'],
 			[`https://example.test/subdir/media/com_fixture/js/${fixture.client}/article.js`, fixture.script],
 			["https://example.test/subdir/media/com_fixture/js/extra's.js", 'window.viewAssetOrder.push("extra"); window.fixtureFormat = value => "<strong>" + value + "</strong>";'],
-			['https://cdn.example.test/library.js', 'window.viewAssetOrder.push("protocol");'],
+			['https://cdn.example.test/library.js', 'window.viewAssetOrder.push("protocol"); window.fixtureProtocol = true;'],
 			['https://example.test/subdir/media/com_fixture/js/model.js', 'window.viewAssetOrder.push("model"); window.fixtureModel = "loaded";'],
 		]);
 		await page.route('**/*', async route => {
@@ -60,20 +60,22 @@ for (const [name, fixture] of Object.entries(pages)) {
 			const result = await page.evaluate(() => ({
 				order: window.viewAssetOrder,
 				prerequisites: window.fixturePrerequisites,
+				viewRendered: window.fixtureViewRendered,
 				inline: window.fixtureInline,
 				rendered: window.fixtureRendered,
 				color: getComputedStyle(document.getElementById('asset-result')).color,
 				border: getComputedStyle(document.getElementById('asset-result')).borderTopWidth,
 			}));
 			assert.deepEqual(result.order.filter(item => !['core', 'jquery', 'jquery-noconflict'].includes(item)),
-				fixture.populated ? ['view', 'extra', 'protocol', 'model', 'inline'] : ['model', 'inline']);
+				fixture.populated ? ['extra', 'protocol', 'view', 'model', 'inline'] : ['model', 'inline']);
 			assert.equal(result.inline, 'loaded', 'the authored inline consumer runs after the model script');
 			assert.equal(result.color, 'rgb(20, 80, 120)', 'model styles still resolve under the site subdirectory');
 			assert.equal(result.border, '3px', 'the authored inline style still follows the style phase');
 			assert.equal(result.order.includes('jquery-noconflict'), fixture.jquery === 1,
 				'the automatic jQuery setting retains its no-conflict activation');
 			if (fixture.populated) {
-				assert.deepEqual(result.prerequisites, [true, true], 'core and explicit jQuery precede the generated view file');
+				assert.deepEqual(result.prerequisites, [true, true, true], 'core, explicit jQuery and configured prerequisites precede the generated view file');
+				assert.equal(result.viewRendered, '<strong>view</strong>', 'the generated view file consumes its prerequisite during execution');
 				assert.equal(result.rendered, '<strong>ready</strong>', 'the unchanged inline receiver sees the view-local library');
 				const extraRequests = requests.filter(request => request.key.endsWith("/extra's.js"));
 				assert.equal(extraRequests.length, 1, 'repeated normalized paths activate one script');

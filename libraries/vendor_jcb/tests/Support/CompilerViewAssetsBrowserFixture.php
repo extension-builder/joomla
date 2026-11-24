@@ -114,11 +114,13 @@ final class CompilerViewAssetsBrowserFixture extends ArchitectureTestCase
 			'code' => 'article',
 			'version' => '1.0.0',
 			'add_javascript_file' => $populated ? 1 : 0,
-			'javascript_file' => 'window.viewAssetOrder.push("view"); window.fixturePrerequisites = [window.fixtureCore, window.fixtureJquery];',
-			'view_script_paths' => $populated ? ["media/com_fixture/js/extra's.js?flavour=a%26b", '//cdn.example.test/library.js'] : [],
+			'javascript_file' => 'window.viewAssetOrder.push("view"); window.fixturePrerequisites = [window.fixtureCore, window.fixtureJquery, window.fixtureProtocol];'
+				. ' window.fixtureViewRendered = window.fixtureFormat("view");',
+			'view_script_paths' => $populated ? ['//cdn.example.test/library.js'] : [],
 			'view_script_dependencies' => $populated ? ['jquery'] : [],
-			'add_php_document' => 0,
-			'php_document' => '',
+			'add_php_document' => $populated ? 1 : 0,
+			'php_document' => "// Add prerequisite library" . PHP_EOL
+				. "Html::_('script', \"media/com_fixture/js/extra's.js?flavour=a%26b\", ['version' => 'auto']);",
 			'add_css' => 0,
 			'css' => '',
 			'add_css_document' => 1,
