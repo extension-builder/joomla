@@ -5180,20 +5180,20 @@
         },
         {
             "name": "spomky-labs/pki-framework",
-            "version": "1.6.0",
+            "version": "1.6.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Spomky-Labs/pki-framework.git",
-                "reference": "80778a25426288acd2e3a7cde2def41a3d59cddf"
+                "reference": "792e909d4e387adffe3c4f404451c7d57a3d2022"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Spomky-Labs/pki-framework/zipball/80778a25426288acd2e3a7cde2def41a3d59cddf",
-                "reference": "80778a25426288acd2e3a7cde2def41a3d59cddf",
+                "url": "https://api.github.com/repos/Spomky-Labs/pki-framework/zipball/792e909d4e387adffe3c4f404451c7d57a3d2022",
+                "reference": "792e909d4e387adffe3c4f404451c7d57a3d2022",
                 "shasum": ""
             },
             "require": {
-                "brick/math": "^0.10|^0.11|^0.12|^0.13|^0.14|^0.15|^0.16|^0.17|^0.18|^0.19",
+                "brick/math": "^0.10|^0.11|^0.12|^0.13|^0.14|^0.15|^0.16|^0.17|^0.18|^0.19|^0.20|^1.0",
                 "ext-mbstring": "*",
                 "php": ">=8.1"
             },
@@ -5218,7 +5218,8 @@
             "suggest": {
                 "ext-bcmath": "For better performance (or GMP)",
                 "ext-gmp": "For better performance (or BCMath)",
-                "ext-openssl": "For OpenSSL based cyphering"
+                "ext-openssl": "For OpenSSL based cyphering",
+                "ext-sodium": "To verify Ed25519 signatures where the OpenSSL extension has no EdDSA"
             },
             "type": "library",
             "autoload": {
@@ -5273,7 +5274,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Spomky-Labs/pki-framework/issues",
-                "source": "https://github.com/Spomky-Labs/pki-framework/tree/1.6.0"
+                "source": "https://github.com/Spomky-Labs/pki-framework/tree/1.6.3"
             },
             "funding": [
                 {
@@ -5285,7 +5286,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2026-08-06T16:21:11+00:00"
+            "time": "2026-09-12T19:02:49+00:00"
         },
         {
             "name": "staabm/side-effects-detector",
@@ -7349,16 +7350,16 @@
         },
         {
             "name": "web-token/jwt-library",
-            "version": "3.4.10",
+            "version": "3.4.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/web-token/jwt-library.git",
-                "reference": "8c38010d971c2313406fa1376d763cee745a833b"
+                "reference": "fecebca3c2ef78188fada955f3b67da52f0012fc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/web-token/jwt-library/zipball/8c38010d971c2313406fa1376d763cee745a833b",
-                "reference": "8c38010d971c2313406fa1376d763cee745a833b",
+                "url": "https://api.github.com/repos/web-token/jwt-library/zipball/fecebca3c2ef78188fada955f3b67da52f0012fc",
+                "reference": "fecebca3c2ef78188fada955f3b67da52f0012fc",
                 "shasum": ""
             },
             "require": {
@@ -7430,8 +7431,7 @@
                 "symfony"
             ],
             "support": {
-                "issues": "https://github.com/web-token/jwt-library/issues",
-                "source": "https://github.com/web-token/jwt-library/tree/3.4.10"
+                "source": "https://github.com/web-token/jwt-library/tree/3.4.13"
             },
             "funding": [
                 {
@@ -7443,7 +7443,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2026-06-06T16:30:13+00:00"
+            "time": "2026-11-08T10:34:16+00:00"
         },
         {
             "name": "willdurand/negotiation",
