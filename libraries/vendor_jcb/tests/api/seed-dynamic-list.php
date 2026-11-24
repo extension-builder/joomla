@@ -12,8 +12,8 @@
 /**
  * Restrict the native Demo site list to one HTTP-created regression record.
  *
- * Only the source dynamic-get definition changes. Normal compilation creates
- * the read-only site_looks API resource alongside the admin looks resource.
+ * Protect both native site routes so permission checks authenticate the token.
+ * Normal compilation creates site_looks alongside the admin looks resource.
  * The fixed name makes empty results independent of shipped sample records.
  *
  * Usage: php seed-dynamic-list.php <disposable site root>
@@ -47,14 +47,15 @@ $db->set_charset('utf8mb4');
 $prefix = $config->dbprefix;
 $component = '1c20aec5-bf1a-44e7-9deb-d1c920ca591d';
 $view = '6a2d74e5-5bc6-497e-a075-70f084174eec';
+$itemView = 'b302faa4-7476-4b1f-bcce-0b9b3f2a8be1';
 $dynamicGet = 'bf0c72e1-f608-4d15-be16-572453fd0076';
 
 try
 {
 	$db->begin_transaction();
 	$stmt = $db->prepare(
-		"SELECT addsite_views FROM `{$prefix}componentbuilder_component_site_views`"
-		. ' WHERE joomla_component = ? AND published = 1'
+		"SELECT id, addsite_views FROM `{$prefix}componentbuilder_component_site_views`"
+		. ' WHERE joomla_component = ? AND published = 1 FOR UPDATE'
 	);
 	$stmt->bind_param('s', $component);
 	$stmt->execute();
@@ -62,10 +63,26 @@ try
 	$stmt->close();
 	$views = count($links) === 1 ? json_decode($links[0]['addsite_views'], true, 512, JSON_THROW_ON_ERROR) : [];
 
-	if (count(array_filter($views, static fn (array $entry): bool => ($entry['siteview'] ?? '') === $view)) !== 1)
+	foreach ([$view, $itemView] as $guid)
 	{
-		throw new RuntimeException('The native Demo list must remain linked exactly once.');
+		$matches = array_keys(array_filter($views, static fn (array $entry): bool => ($entry['siteview'] ?? '') === $guid));
+
+		if (count($matches) !== 1)
+		{
+			throw new RuntimeException('The native Demo site item and list must each remain linked exactly once.');
+		}
+
+		// Joomla skips token authentication on public routes. Compile both
+		// fixture routes with authentication and their native access checks.
+		$views[$matches[0]]['public_access'] = '0';
+		$views[$matches[0]]['access'] = '1';
 	}
+
+	$json = json_encode($views, JSON_THROW_ON_ERROR);
+	$stmt = $db->prepare("UPDATE `{$prefix}componentbuilder_component_site_views` SET addsite_views = ? WHERE id = ?");
+	$stmt->bind_param('si', $json, $links[0]['id']);
+	$stmt->execute();
+	$stmt->close();
 
 	$stmt = $db->prepare(
 		"SELECT d.id, d.`where` FROM `{$prefix}componentbuilder_dynamic_get` AS d"
