@@ -18,6 +18,7 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\Controller\ApiController;
+use Joomla\CMS\MVC\Controller\Exception\ResourceNotFound;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
@@ -28,6 +29,7 @@ use Joomla\Event\Dispatcher;
 use Joomla\Input\Input;
 use PHPUnit\Framework\Attributes\CoversNamespace;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
 use Tobscure\JsonApi\Exception\InvalidParameterException;
@@ -168,6 +170,21 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 		$this->assertSame('[]', $storage->row['options']);
 		$this->assertSame([], $storage->tags);
 		$this->assertSame([], $storage->beforeSaveData['tags']);
+	}
+
+	/**
+	 * A record can disappear between checkout and PATCH hydration.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	public function testMissingRecordDuringPatchHydrationReturnsNotFound(): void
+	{
+		$controller = $this->controller($this->storage(), ['name' => 'Missing record']);
+		$this->expectException(ResourceNotFound::class);
+		$this->expectExceptionCode(404);
+
+		(new ReflectionMethod($controller, 'preprocessSaveData'))->invoke($controller, ['id' => 43]);
 	}
 
 	/**
@@ -615,7 +632,7 @@ final class GeneratedPatchLifecycleTest extends ArchitectureTestCase
 				'###View###' => 'Articles',
 				'###view###' => 'article',
 				'###views###' => 'articles',
-				'###API_VIEW_CONTROLLER_HEADER###' => 'use Joomla\\CMS\\MVC\\Controller\\ApiController; use Joomla\\CMS\\Language\\Text;',
+				'###API_VIEW_CONTROLLER_HEADER###' => 'use Joomla\\CMS\\MVC\\Controller\\ApiController; use Joomla\\CMS\\Language\\Text; use Joomla\\CMS\\MVC\\Controller\\Exception\\ResourceNotFound;',
 				'###API_VIEW_CONTROLLER_GETMODEL###' => 'return ($this->modelFactory)();',
 				'###API_VIEW_CONTROLLER_RECORDID###' => $this->renderer(RecordId::class)->get('article'),
 				'###API_VIEW_CONTROLLER_ALLOWVIEW###' => 'return true;',
