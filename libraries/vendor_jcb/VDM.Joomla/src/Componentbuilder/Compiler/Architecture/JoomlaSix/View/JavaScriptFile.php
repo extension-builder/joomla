@@ -182,6 +182,7 @@ final class JavaScriptFile extends SharedJavaScriptFile
 				|| !in_array($parts[0], ['Html', 'Joomla__' . '_34690c75_1090_47eb_8c06_7228dc7eedd6___Power'], true)
 				|| !in_array($parts[4], ["'script'", '"script"'], true)
 				|| !is_array($statement[6]) || $statement[6][0] !== T_CONSTANT_ENCAPSED_STRING
+				|| in_array($parts[6], ["''", '""'], true)
 				|| !in_array($parts[9], ["'version'", '"version"'], true)
 				|| !in_array($parts[11], ["'auto'", '"auto"'], true))
 			{

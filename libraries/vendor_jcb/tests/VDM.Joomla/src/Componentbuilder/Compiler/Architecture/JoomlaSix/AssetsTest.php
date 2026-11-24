@@ -262,6 +262,7 @@ final class AssetsTest extends ArchitectureTestCase
 		yield 'conditional' => ['if ($enabled) { ' . $literal . ' }'];
 		yield 'unbraced conditional' => ['if ($enabled) ' . $literal];
 		yield 'dynamic path' => ["Html::_('script', \$path, ['version' => 'auto']);"];
+		yield 'empty path' => ["Html::_('script', '', ['version' => 'auto']);"];
 		yield 'mixed PHP after valid include' => [$literal . ' inspectDocument();'];
 		yield 'different version' => [str_replace("'auto'", "'1.2'", $literal)];
 		yield 'attributes' => [str_replace(']);', "], ['defer' => true]);", $literal)];

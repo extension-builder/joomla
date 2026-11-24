@@ -33,6 +33,8 @@ layout or accessibility markup change. Joomla 3–5 keep their existing output.
 
 Existing template, loader and generated-browser tests cover initialization,
 jQuery settings, prerequisite execution, duplicate paths and existing assets.
+The real document preparation and Power injector reproduce the maintainer's
+complete supplied Compiler function byte for byte in the committed fixture.
 The compiler golden comparison checks all four Joomla targets. Results are
 reported by the branch's pull-request checks.
 

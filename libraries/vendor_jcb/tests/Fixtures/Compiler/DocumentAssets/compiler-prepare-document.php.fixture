@@ -1,0 +1,117 @@
+	protected function _prepareDocument(): void
+	{
+		$wa = $this->getDocument()->getWebAssetManager();
+		$root = Uri::root();
+
+		$jcbStyleDependencies = [];
+		$jcbScriptDependencies = ['core'];
+
+		// Only load jQuery if needed. (default is true)
+		if ($this->params->get('add_jquery_framework', 1) == 1)
+		{
+			$wa->useScript('jquery')->useScript('jquery-noconflict');
+
+			$jcbScriptDependencies[] = 'jquery';
+			$jcbScriptDependencies[] = 'jquery-noconflict';
+		}
+
+		// Load the header checker class.
+		// Initialize the header checker.
+		$HeaderCheck = new HeaderCheck();
+
+		// Add styles
+		foreach ($this->styles as $style)
+		{
+			$style = str_starts_with($style, '//') ? $style : ltrim($style, '/');
+			$assetName = 'jcb.style.' . hash('sha256', $style);
+
+			if (!$wa->assetExists('style', $assetName))
+			{
+				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
+					? $style : $root . $style;
+
+				$wa->registerStyle(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbStyleDependencies
+				);
+			}
+
+			$wa->useStyle($assetName);
+
+			if (!in_array($assetName, $jcbStyleDependencies, true))
+			{
+				$jcbStyleDependencies[] = $assetName;
+			}
+		}
+
+		$viewScripts = [
+			// Add marked library
+			'administrator/components/com_componentbuilder/custom/marked.js',
+
+			// Add View JavaScript File
+			'media/com_componentbuilder/js/admin/compiler.js',
+
+			// Add scripts
+			...$this->scripts,
+		];
+
+		foreach ($viewScripts as $script)
+		{
+			$script = str_starts_with($script, '//') ? $script : ltrim($script, '/');
+			$assetName = 'jcb.script.' . hash('sha256', $script);
+
+			if (!$wa->assetExists('script', $assetName))
+			{
+				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
+					? $script : $root . $script;
+
+				$wa->registerScript(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbScriptDependencies
+				);
+			}
+
+			$wa->useScript($assetName);
+
+			if (!in_array($assetName, $jcbScriptDependencies, true))
+			{
+				$jcbScriptDependencies[] = $assetName;
+			}
+		}
+
+		// Set the Custom JS script to view
+		$this->getDocument()->getWebAssetManager()->addInlineScript("
+			function getComponentDetails_server(id) {
+				let getUrl = JRouter(\"index.php?option=com_componentbuilder&task=ajax.getComponentDetails&format=json&raw=true\");
+				let request = new URLSearchParams();
+				if (token.length > 0 && id > 0) {
+					request.append(token, '1');
+					request.append('id', id);
+				}
+				return fetch(getUrl + '&'  + request.toString(), {
+					method: 'GET',
+					headers: {
+						'Accept': 'application/json'
+					}
+				}).then(response => response.json());
+			}
+			function getComponentDetails(id) {
+				getComponentDetails_server(id).then(function(result) {
+					if (result.html) {
+						document.getElementById('component-details').innerHTML = result.html;
+						if (result.preferred_joomla_version) {
+							jQuery('#joomla_version').val(result.preferred_joomla_version);
+							jQuery('#joomla_version').trigger('liszt:updated');
+							jQuery('#joomla_version').trigger('change');
+						}
+					}
+				});
+			}
+		");
+	}
