@@ -215,4 +215,3 @@ class LibrariesLoader implements LibrariesLoaderInterface
 		return $setter;
 	}
 }
-

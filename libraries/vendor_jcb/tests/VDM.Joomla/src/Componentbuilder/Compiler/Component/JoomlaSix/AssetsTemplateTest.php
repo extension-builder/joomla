@@ -18,17 +18,31 @@ use Joomla\CMS\Language\Language;
 use Joomla\CMS\MVC\View\HtmlView;
 use Joomla\CMS\WebAsset\WebAssetManager;
 use Joomla\CMS\WebAsset\WebAssetRegistry;
+use Joomla\Database\DatabaseInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\JavaScriptFile;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\JoomlaSix\View\LibrariesLoader;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentCustomPHP;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\DocumentInlineAssets;
+use VDM\Joomla\Componentbuilder\Compiler\Architecture\View\PrepareDocument;
+use VDM\Joomla\Componentbuilder\Compiler\Builder\ContentMulti;
 use VDM\Joomla\Componentbuilder\Compiler\Component\Structuresingle;
 use VDM\Joomla\Componentbuilder\Compiler\Interfaces\Component\SettingsInterface;
+use VDM\Joomla\Componentbuilder\Compiler\Interfaces\PowerInterface;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Extractor;
+use VDM\Joomla\Componentbuilder\Compiler\JoomlaPower\Injector;
+use VDM\Joomla\Componentbuilder\Compiler\Library\Document;
+use VDM\Joomla\Componentbuilder\Compiler\Model\Createdate;
+use VDM\Joomla\Componentbuilder\Compiler\Model\Modifieddate;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Counter;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\File as CompilerFile;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Files;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Folder;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Paths;
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Structure;
+use VDM\Joomla\Componentbuilder\Power\Parser;
 use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase;
 
 
@@ -40,6 +54,76 @@ use VDM\Joomla\Tests\Componentbuilder\Compiler\Architecture\ArchitectureTestCase
 #[CoversNothing]
 final class AssetsTemplateTest extends ArchitectureTestCase
 {
+	/**
+	 * The Compiler-shaped definition emits the maintainer's complete function.
+	 *
+	 * @return  void
+	 * @since   6.2.1
+	 */
+	public function testCompilerDocumentMatchesTheRequestedFunctionExactly(): void
+	{
+		$this->config()->set('component_code_name', 'componentbuilder');
+		$this->config()->set('build_target', 'custom_admin');
+		$content = new ContentMulti();
+		// Recover only the unchanged authored JavaScript from the installed view.
+		$installed = str_replace("\r\n", "\n", file_get_contents(JCB_PROJECT_ROOT . '/admin/src/View/Compiler/HtmlView.php'));
+		$this->assertSame(1, preg_match('~->addInlineScript\("\n(?<script>.*?)\n\t\t"\);~s', $installed, $inline));
+		$script = str_replace('\\"', '"', preg_replace('/^\t{3}/m', '', $inline['script']));
+		$view = ['settings' => (object) [
+			'code' => 'compiler',
+			'version' => '1.0.0',
+			'add_javascript_file' => 1,
+			'javascript_file' => 'window.compilerFixture = true;',
+			'add_php_document' => 1,
+			'php_document' => "// add marked library" . PHP_EOL
+				. "Html::_('script', 'administrator/components/com_componentbuilder/custom/marked.js', ['version' => 'auto']);",
+			'add_css' => 0,
+			'css' => '',
+			'add_css_document' => 0,
+			'css_document' => '',
+			'add_js_document' => 1,
+			'js_document' => $script,
+			'metadata' => 0,
+			'main_get' => (object) ['gettype' => 1],
+		]];
+		$javascript = $this->renderer(JavaScriptFile::class, [
+			'contentmulti' => $content,
+			'createdate' => $this->createStub(Createdate::class),
+			'modifieddate' => $this->createStub(Modifieddate::class),
+		]);
+		$this->renderer(PrepareDocument::class, [
+			'contentmulti' => $content,
+			'libraries' => $this->renderer(LibrariesLoader::class, [
+				'document' => (new ReflectionClass(Document::class))->newInstanceWithoutConstructor(),
+			]),
+			'customphp' => $this->renderer(DocumentCustomPHP::class),
+			'inline' => $this->renderer(DocumentInlineAssets::class),
+			'javascript' => $javascript,
+		])->set($view);
+		$methodPattern = '~\tprotected function _prepareDocument\(\): void\n\t\{.*?\n\t\}~s';
+		$this->assertSame(1, preg_match($methodPattern, $this->template('CUSTOM_ADMIN_VIEW_HTML.php'), $method));
+		$source = preg_replace_callback('/###([A-Z_]+)###/', function (array $slot) use ($content): string
+		{
+			$key = 'compiler|' . $slot[1];
+			$this->assertTrue($content->exists($key), $slot[1] . ' must come from real document preparation.');
+
+			return $content->get($key);
+		}, $method[0]);
+		$power = $this->createStub(PowerInterface::class);
+		$power->method('get')->willReturnMap([
+			['eecc143e-b5cf-4c33-ba4d-97da1df61422', 0, (object) ['_namespace' => 'Joomla\\CMS\\Uri', 'class_name' => 'Uri', 'type' => 'class']],
+		]);
+		$injector = new Injector($power, new Extractor($this->createStub(DatabaseInterface::class), 6), new Parser(), $this->placeholder());
+		$source = $injector->power('<?php namespace CompilerDocumentFixture;' . PHP_EOL
+			. "defined('_JEXEC') or die;" . PHP_EOL . 'class CompilerView {' . PHP_EOL . $source . PHP_EOL . '}');
+		$this->assertStringNotContainsString('Joomla___', $source);
+		$this->assertSame(1, preg_match($methodPattern, $source, $method));
+		$this->assertSame(
+			file_get_contents(JCB_PROJECT_ROOT . '/libraries/vendor_jcb/tests/Fixtures/Compiler/DocumentAssets/compiler-prepare-document.php.fixture'),
+			$method[0] . PHP_EOL
+		);
+	}
+
 	/**
 	 * Model arrays activate unique assets in dependency order, including repeated URIs.
 	 *
