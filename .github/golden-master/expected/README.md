@@ -425,3 +425,32 @@ its original line endings and context; applying it to baseline tree
 `c07758620196313baf2c802c37a1e8dccea2b8df` reproduces candidate tree
 `ac45be5bd51b880446bec9132e34925d08a62908` exactly. The Joomla 6 installed
 discovery probe remains required after this reviewed output is accepted.
+
+## Joomla 6 document dependency initialization
+
+Source baseline: `d3527ec9f14106106ac771a1e3ad0090ac1c7e6e`.
+Reviewed candidate: `c0d7a35afb799bf2612faeff281386063a177559`, compiled by PR
+merge commit `efa149beb7f5f8665b06668c7cea7273631af33a`.
+Evidence: [workflow run 45349854288](https://github.com/extension-builder/joomla/actions/runs/45349854288),
+Joomla 6 artifact `14899154537`, SHA-256
+`d4d956ea292952a011be4b32df07419ca7b780962932b088c59142dac2d3080f`.
+
+The 252-file packages differ in four paths, with 28 added and 18 removed lines.
+`site/src/View/Greet/HtmlView.php` and `site/src/View/Greetings/HtmlView.php`
+initialize dependency arrays before loaders, append both jQuery assets inside
+the existing conditional, remove the later normalization, and retain the
+requested spacing between asset phases. `README.md` and `admin/README.txt`
+record the resulting ten additional lines: 31,037 becomes 31,047; other metrics
+are unchanged. No other path, mode, asset, manifest or Power output changes.
+This blueprint has no optional view file or prerequisite paths; the exact
+Compiler-function and browser tests cover their ordering separately.
+
+The unchanged 6,045-byte raw diff, including its original line endings, maps
+baseline tree `ac45be5bd51b880446bec9132e34925d08a62908` exactly to candidate
+tree `a0a31a67e5483868957105afed84d810932b2b70`. Both changed views pass PHP
+syntax checks. Joomla 3, 4 and 5 pass strict output equality and installed
+discovery at 0, 100 and 1,000 records; all targets retain identical Power
+evidence. [Run 45350075196](https://github.com/extension-builder/joomla/actions/runs/45350075196)
+at candidate `3de630f7804ea0ffc57569d1049a5c2eb9e3af5f` reproduces the same
+Joomla 6 package trees and raw diff byte for byte. The Joomla 6 installed
+discovery gate remains required after accepting this exact expectation.
