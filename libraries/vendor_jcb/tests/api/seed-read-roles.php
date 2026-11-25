@@ -127,7 +127,14 @@ try
 {
 	$reader = $group('JCB API Readonly');
 	$denied = $group('JCB API Denied');
-	$rules('root.1', ['core.login.api' => [$reader => 1, $denied => 1]]);
+	$tokenGroups = [$reader, $denied];
+	$accessSuite = ($argv[2] ?? '') === '--api-access';
+	if ($accessSuite)
+	{
+		$noComponent = $group('JCB API Component Denied');
+		$tokenGroups[] = $noComponent;
+	}
+	$rules('root.1', ['core.login.api' => array_fill_keys($tokenGroups, 1)]);
 	$grants = [
 		'site.looks.access' => [$reader => 1, $denied => 0],
 		'site.looking.access' => [$denied => 0],
@@ -148,6 +155,17 @@ try
 		$grants[$action] = [$reader => 0, $denied => 0];
 	}
 
+	if ($accessSuite)
+	{
+		$grants['core.api'] = [$reader => 1, $denied => 1, $noComponent => 0];
+		$grants['core.manage'] = [$reader => 0, $denied => 1, $noComponent => 1];
+		foreach (['qareport', 'qadetail'] as $view)
+		{
+			$grants[$view . '.access'] = [$reader => 1, $denied => 0, $noComponent => 1];
+		}
+		$grants['look.access'][$noComponent] = 1;
+	}
+
 	$rules('com_demo', $grants);
 	$plugin = $db->query("SELECT extension_id, params FROM `{$prefix}extensions` WHERE type = 'plugin' AND folder = 'user' AND element = 'token'")->fetch_assoc();
 
@@ -157,7 +175,7 @@ try
 	}
 
 	$params = json_decode((string) $plugin['params'], true, 512, JSON_THROW_ON_ERROR);
-	$params['allowedUserGroups'] = array_values(array_unique(array_merge($params['allowedUserGroups'] ?? [8], [$reader, $denied])));
+	$params['allowedUserGroups'] = array_values(array_unique(array_merge($params['allowedUserGroups'] ?? [8], $tokenGroups)));
 	$json = json_encode($params, JSON_THROW_ON_ERROR);
 	$stmt = $db->prepare("UPDATE `{$prefix}extensions` SET params = ?, enabled = 1 WHERE extension_id = ?");
 	$stmt->bind_param('si', $json, $plugin['extension_id']);

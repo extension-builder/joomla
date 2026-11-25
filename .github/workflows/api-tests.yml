@@ -22,6 +22,7 @@ on:
       # the installed demo and its webservices plugin.
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/**/JoomlaSix/**'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Service/**'
+      - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Creator/AccessSections.php'
       - 'libraries/vendor_jcb/VDM.Joomla/src/Componentbuilder/Compiler/Creator/Builders.php'
       - 'admin/compiler/joomla_4/API_*.php'
       - 'admin/compiler/joomla_4/ADMIN_VIEW_MODEL.php'
@@ -37,7 +38,19 @@ permissions:
 
 jobs:
   api:
-    name: Drive the compiled demo's JSON:API
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Drive the compiled demo's JSON:API
+            access_runtime: ''
+          - label: Joomla 5.4.11 API permissions
+            access_runtime: '5.4.11'
+          - label: Joomla 6.2.1 API permissions
+            access_runtime: '6.2.1'
+          - label: Joomla 6.1.2 legacy API permissions
+            access_runtime: '6.1.2'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -74,6 +87,7 @@ jobs:
 
       - name: Install, compile, and drive the API
         env:
+          JCB_API_ACCESS_RUNTIME: ${{ matrix.access_runtime }}
           JCB_DB_HOST: 127.0.0.1
           JCB_DB_USER: root
           JCB_DB_PASS: root
@@ -86,7 +100,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: api-tests-logs
+          name: api-tests-logs-${{ matrix.access_runtime || 'full' }}
           path: |
             .api-tests/*.log
             .api-tests/*-installed.sha256

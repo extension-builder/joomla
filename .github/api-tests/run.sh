@@ -28,6 +28,7 @@
 #   JCB_JOOMLA         Joomla release to install (default 6.1.2)
 #   JCB_PACKAGE_TAG    Tag of joomengine/pkg-component-builder to install first
 #                      (default v6.1.6)
+#   JCB_API_ACCESS_RUNTIME  Optional Joomla release for the focused API ACL suite
 #   JCB_API_PORT       Port the built-in server listens on (default 8090)
 #   JCB_API_HAMMER     Concurrent creates in the burst scenario (default 25)
 #   JCB_API_REPRODUCE  Set to 1 to assert the create fails the way it did before
@@ -48,6 +49,7 @@ JCB_DB_USER="${JCB_DB_USER:-root}"
 JCB_DB_PASS="${JCB_DB_PASS:-root}"
 JCB_DB_NAME="${JCB_DB_NAME:-jcb_api_tests}"
 JCB_JOOMLA="${JCB_JOOMLA:-6.1.2}"
+JCB_API_ACCESS_RUNTIME="${JCB_API_ACCESS_RUNTIME:-}"
 JCB_PACKAGE_TAG="${JCB_PACKAGE_TAG:-v6.1.6}"
 JCB_API_PORT="${JCB_API_PORT:-8090}"
 JCB_API_HAMMER="${JCB_API_HAMMER:-25}"
@@ -135,28 +137,33 @@ then
 fi
 JCB_PLUGINS_SOURCE="$(cd "${JCB_PLUGINS_SOURCE}" && pwd)"
 
-say "Joomla ${JCB_JOOMLA} into ${SITE}"
-if [[ ! -s "${OUT_DIR}/joomla.zip" ]]
-then
-	curl -fsSL -o "${OUT_DIR}/joomla.zip" \
-		"https://github.com/joomla/joomla-cms/releases/download/${JCB_JOOMLA}/Joomla_${JCB_JOOMLA}-Stable-Full_Package.zip"
-fi
-rm -rf "${SITE}"
-mkdir -p "${SITE}"
-unzip -q "${OUT_DIR}/joomla.zip" -d "${SITE}"
+install_site() {
+	local version="$1" database="$2" label="$3" archive="${OUT_DIR}/$3.zip"
+	say "Joomla ${version} into ${SITE}"
+	if [[ ! -s "${archive}" ]]
+	then
+		curl -fsSL -o "${archive}" \
+			"https://github.com/joomla/joomla-cms/releases/download/${version}/Joomla_${version}-Stable-Full_Package.zip"
+	fi
+	rm -rf "${SITE}"
+	mkdir -p "${SITE}"
+	unzip -q "${archive}" -d "${SITE}"
 
-say "Installing Joomla on ${JCB_DB_NAME} at ${JCB_DB_HOST}"
-(
-	cd "${SITE}"
-	php installation/joomla.php install \
-		--site-name="JCB API tests" --admin-user="API Admin" --admin-username=apiadmin \
-		--admin-password="${API_PASS}" --admin-email=apiadmin@jcb.invalid \
-		--db-type=mysqli --db-host="${JCB_DB_HOST}" --db-user="${JCB_DB_USER}" --db-pass="${JCB_DB_PASS}" \
-		--db-name="${JCB_DB_NAME}" --db-prefix=jcb_ --db-encryption=0 --no-interaction
-) > "${OUT_DIR}/joomla-install.log" 2>&1
-tail -3 "${OUT_DIR}/joomla-install.log"
-realpath "${SITE}" > "${SITE}/.jcb-api-test-site"
-chmod 600 "${SITE}/.jcb-api-test-site"
+	say "Installing Joomla on ${database} at ${JCB_DB_HOST}"
+	(
+		cd "${SITE}"
+		php installation/joomla.php install \
+			--site-name="JCB API tests" --admin-user="API Admin" --admin-username=apiadmin \
+			--admin-password="${API_PASS}" --admin-email=apiadmin@jcb.invalid \
+			--db-type=mysqli --db-host="${JCB_DB_HOST}" --db-user="${JCB_DB_USER}" --db-pass="${JCB_DB_PASS}" \
+			--db-name="${database}" --db-prefix=jcb_ --db-encryption=0 --no-interaction
+	) > "${OUT_DIR}/${label}-install.log" 2>&1
+	tail -3 "${OUT_DIR}/${label}-install.log"
+	realpath "${SITE}" > "${SITE}/.jcb-api-test-site"
+	chmod 600 "${SITE}/.jcb-api-test-site"
+}
+
+install_site "$JCB_JOOMLA" "$JCB_DB_NAME" joomla
 
 say "Installing the released JCB package ${JCB_PACKAGE_TAG}, for its console plugin"
 rm -rf "${OUT_DIR}/pkg-src"
@@ -180,19 +187,26 @@ verify_package tree
 say "Linking a webservices plugin to the demo component"
 php "${SUITE_DIR}/seed-webservices-plugin.php" "${SITE}" "${DEMO_COMPONENT}"
 
-say "Storing and linking the authored native content handler and forms"
-JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-native-content-plugin.php" \
-	"${SITE}" "${JCB_PLUGINS_SOURCE}" "${DEMO_COMPONENT}" 2>&1 | tee "${OUT_DIR}/native-content-seed.log"
+target=6
+if [[ -n "${JCB_API_ACCESS_RUNTIME}" ]]
+then
+	target="${JCB_API_ACCESS_RUNTIME%%.*}"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-api-access.php" "${SITE}"
+else
+	say "Storing and linking the authored native content handler and forms"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-native-content-plugin.php" \
+		"${SITE}" "${JCB_PLUGINS_SOURCE}" "${DEMO_COMPONENT}" 2>&1 | tee "${OUT_DIR}/native-content-seed.log"
 
-say "Adding optional encoded fields to the disposable Demo source definition"
-JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
+	say "Adding optional encoded fields to the disposable Demo source definition"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-partial-patch.php" "${SITE}"
 
-say "Restricting the native site list to its dynamic-list HTTP fixture"
-JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-dynamic-list.php" "${SITE}"
+	say "Restricting the native site list to its dynamic-list HTTP fixture"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-dynamic-list.php" "${SITE}"
+fi
 
-say "Compiling the demo component for Joomla 6"
+say "Compiling the demo component for Joomla ${target}"
 rm -f "${SITE}"/tmp/*.zip
-if ! compile --component="${DEMO_COMPONENT}" --joomla-version=6 \
+if ! compile --component="${DEMO_COMPONENT}" --joomla-version="${target}" \
 	--add-build-date=2 --build-date=2026-01-01 --no-interaction > "${OUT_DIR}/compile.log" 2>&1
 then
 	cat "${OUT_DIR}/compile.log"
@@ -221,9 +235,19 @@ then
 	exit 1
 fi
 
-say "Installing the compiled demo and its linked webservices and content plugins"
-for package in "${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip \
-	"${SITE}"/tmp/plg_content_componentbuilderfieldorderingtabs_*.zip
+if [[ -n "${JCB_API_ACCESS_RUNTIME}" ]]
+then
+	# JCB is a Joomla 6 application; install its compiled output on the requested CMS.
+	packages=("${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_demoapi_v*.zip)
+	SITE="${OUT_DIR}/runtime"
+	install_site "${JCB_API_ACCESS_RUNTIME}" "${JCB_DB_NAME}_runtime" "joomla-${JCB_API_ACCESS_RUNTIME}"
+else
+	packages=("${SITE}"/tmp/com_demo_*.zip "${SITE}"/tmp/plg_webservices_*.zip
+		"${SITE}"/tmp/plg_content_componentbuilderfieldorderingtabs_*.zip)
+fi
+
+say "Installing the compiled demo and its linked test plugins"
+for package in "${packages[@]}"
 do
 	[[ -s "${package}" ]] || { echo "Compile left a missing component or linked plugin package: ${package}"; cat "${OUT_DIR}/compile.log"; exit 1; }
 	label="demo-$(basename "${package}" .zip)"
@@ -241,9 +265,12 @@ $db->query("UPDATE `{$c->dbprefix}extensions` SET enabled = 1 WHERE folder = \"w
 echo "webservices plugin enabled\n";
 ' "${SITE}"
 
-say "Booting the installed native content provider and dispatching its real form event"
-JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/verify-native-content-plugin.php" \
-	"${SITE}" "${JCB_PLUGINS_SOURCE}" 2>&1 | tee "${OUT_DIR}/native-content-dispatch.log"
+if [[ -z "${JCB_API_ACCESS_RUNTIME}" ]]
+then
+	say "Booting the installed native content provider and dispatching its real form event"
+	JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/verify-native-content-plugin.php" \
+		"${SITE}" "${JCB_PLUGINS_SOURCE}" 2>&1 | tee "${OUT_DIR}/native-content-dispatch.log"
+fi
 
 say "A user with an API token"
 console user:add --username="${API_USER}" --name="API Tests" --password="${API_PASS}" \
@@ -251,7 +278,9 @@ console user:add --username="${API_USER}" --name="API Tests" --password="${API_P
 TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" "${API_USER}")"
 
 say "Native read-only and denied API users"
-JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-read-roles.php" "${SITE}"
+roleArgs=()
+if [[ -n "${JCB_API_ACCESS_RUNTIME}" ]]; then roleArgs+=(--api-access); fi
+JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/seed-read-roles.php" "${SITE}" "${roleArgs[@]}"
 console user:add --username=jcbapireader --name="API Readonly" --password="${API_PASS}" \
 	--email=jcbapireader@jcb.invalid --usergroup="JCB API Readonly" --no-interaction > "${OUT_DIR}/reader-user.log" 2>&1
 console user:add --username=jcbapidenied --name="API Denied" --password="${API_PASS}" \
@@ -261,6 +290,20 @@ DENIED_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapidenied)"
 
 say "Serving the site on ${BASE_URL}"
 start_server server
+
+if [[ -n "${JCB_API_ACCESS_RUNTIME}" ]]
+then
+	console user:add --username=jcbapicomponentdenied --name="API Component Denied" --password="${API_PASS}" \
+		--email=jcbapicomponentdenied@jcb.invalid --usergroup="JCB API Component Denied" --no-interaction > "${OUT_DIR}/component-denied-user.log" 2>&1
+	COMPONENT_DENIED_TOKEN="$(php "${SUITE_DIR}/token.php" "${SITE}" jcbapicomponentdenied)"
+	JCB_DISPOSABLE_TEST=1 python3 "${SUITE_DIR}/api-access.py" "${BASE_URL}" "${JCB_API_ACCESS_RUNTIME}" \
+		"${TOKEN}" "${READER_TOKEN}" "${DENIED_TOKEN}" "${COMPONENT_DENIED_TOKEN}" | tee "${OUT_DIR}/api-access.log"
+	if [[ "${JCB_API_ACCESS_RUNTIME}" != 6.1.2 ]]
+	then
+		JCB_DISPOSABLE_TEST=1 php "${SUITE_DIR}/check-api-permissions-save.php" "${SITE}"
+	fi
+	exit 0
+fi
 
 if [[ "${JCB_API_REPRODUCE}" == "1" ]]
 then
