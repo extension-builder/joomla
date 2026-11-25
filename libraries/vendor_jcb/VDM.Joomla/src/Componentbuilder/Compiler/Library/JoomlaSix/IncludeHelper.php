@@ -134,3 +134,4 @@ final class IncludeHelper extends SharedIncludeHelper
 		return $code . PHP_EOL . $outer . "{$dependencies} = array_values(array_unique(array_merge({$dependencies} ?? [], [{$nameCode}])));";
 	}
 }
+

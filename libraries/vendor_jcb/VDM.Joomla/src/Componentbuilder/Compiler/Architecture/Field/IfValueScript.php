@@ -421,5 +421,5 @@ final class IfValueScript
 			"\u{2029}" => '\\u2029',
 		]);
 	}
-
 }
+

@@ -1595,3 +1595,4 @@ class ArchitectureModel implements ServiceProviderInterface
 		);
 	}
 }
+

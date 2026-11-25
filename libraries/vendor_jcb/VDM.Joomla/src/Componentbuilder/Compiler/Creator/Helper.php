@@ -274,3 +274,4 @@ class Helper
 		return implode(PHP_EOL, $help);
 	}
 }
+

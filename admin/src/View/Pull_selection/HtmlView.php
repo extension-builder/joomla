@@ -195,12 +195,21 @@ class HtmlView extends BaseHtmlView
 	 */
 	protected function _prepareDocument(): void
 	{
+		$wa = $this->getDocument()->getWebAssetManager();
+		$root = Uri::root();
+
+		$jcbStyleDependencies = [];
+		$jcbScriptDependencies = ['core'];
 
 		// Only load jQuery if needed. (default is true)
 		if ($this->params->get('add_jquery_framework', 1) == 1)
 		{
-			$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');
+			$wa->useScript('jquery')->useScript('jquery-noconflict');
+
+			$jcbScriptDependencies[] = 'jquery';
+			$jcbScriptDependencies[] = 'jquery-noconflict';
 		}
+
 		// Load the header checker class.
 		// Initialize the header checker.
 		$HeaderCheck = new HeaderCheck();
@@ -234,15 +243,6 @@ if (!$jcbAssetManager->assetExists('script', 'jcb.script.e929ceac1025b3b0d4ece44
 }
 $jcbAssetManager->useScript('jcb.script.e929ceac1025b3b0d4ece44a86310dbd892f3cc57dffdac75e70c62541ec73f4');
 $jcbScriptDependencies = array_values(array_unique(array_merge($jcbScriptDependencies ?? [], ['jcb.script.e929ceac1025b3b0d4ece44a86310dbd892f3cc57dffdac75e70c62541ec73f4'])));
-
-		// Add View JavaScript File
-		$jcbAssetManager = Factory::getApplication()->getDocument()->getWebAssetManager();
-if (!$jcbAssetManager->assetExists('script', 'jcb.script.28ed4acadb20947658968d1cc559bd408d5fd46356af4dd4761872a2d024167a'))
-{
-	$jcbAssetManager->registerScript('jcb.script.28ed4acadb20947658968d1cc559bd408d5fd46356af4dd4761872a2d024167a', Uri::root() . 'media/com_componentbuilder/js/admin/pull_selection.js', ['version' => 'auto'], [], $jcbScriptDependencies ?? []);
-}
-$jcbAssetManager->useScript('jcb.script.28ed4acadb20947658968d1cc559bd408d5fd46356af4dd4761872a2d024167a');
-$jcbScriptDependencies = array_values(array_unique(array_merge($jcbScriptDependencies ?? [], ['jcb.script.28ed4acadb20947658968d1cc559bd408d5fd46356af4dd4761872a2d024167a'])));
 				// set some language strings for the JS class: [PullManager]
 				Text::script("COM_COMPONENTBUILDER_MISSING_REPOSITORY_OR_AREA_DATA");
 				Text::script("COM_COMPONENTBUILDER_FAILED_TO_RETRIEVE_REPOSITORY_INDEX");
@@ -253,37 +253,70 @@ $jcbScriptDependencies = array_values(array_unique(array_merge($jcbScriptDepende
 				Text::script('COM_COMPONENTBUILDER_THESE_ITEMS_WERE_ALREADY_PRESENT_LOCALLY_AND_WERE_NOT_PULLED'); // ?
 				Text::script('COM_COMPONENTBUILDER_THESE_ITEMS_COULD_NOT_BE_FOUND_IN_THE_REMOTE_REPOSITORY_AND_WERE_NOT_PULLED');
 				Text::script('COM_COMPONENTBUILDER_THESE_ITEMS_WERE_SUCCESSFULLY_PULLED');
-		$wa = $this->getDocument()->getWebAssetManager();
-		// add styles
-		$jcbStyleDependencies = $jcbStyleDependencies ?? [];
+
+		// Add styles
 		foreach ($this->styles as $style)
 		{
 			$style = str_starts_with($style, '//') ? $style : ltrim($style, '/');
 			$assetName = 'jcb.style.' . hash('sha256', $style);
+
 			if (!$wa->assetExists('style', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
-					? $style : Uri::root() . $style;
-				$wa->registerStyle($assetName, $assetUri, ['version' => 'auto'], [], $jcbStyleDependencies);
+					? $style : $root . $style;
+
+				$wa->registerStyle(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbStyleDependencies
+				);
 			}
+
 			$wa->useStyle($assetName);
-			$jcbStyleDependencies = array_values(array_unique([...$jcbStyleDependencies, $assetName]));
+
+			if (!in_array($assetName, $jcbStyleDependencies, true))
+			{
+				$jcbStyleDependencies[] = $assetName;
+			}
 		}
-		// add scripts
-		$jcbScriptDependencies = $jcbScriptDependencies ?? ['core'];
-		foreach ($this->scripts as $script)
+
+		$viewScripts = [
+			// Add View JavaScript File
+			'media/com_componentbuilder/js/admin/pull_selection.js',
+
+			// Add scripts
+			...$this->scripts,
+		];
+
+		foreach ($viewScripts as $script)
 		{
 			$script = str_starts_with($script, '//') ? $script : ltrim($script, '/');
 			$assetName = 'jcb.script.' . hash('sha256', $script);
+
 			if (!$wa->assetExists('script', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
-					? $script : Uri::root() . $script;
-				$wa->registerScript($assetName, $assetUri, ['version' => 'auto'], [], $jcbScriptDependencies);
+					? $script : $root . $script;
+
+				$wa->registerScript(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbScriptDependencies
+				);
 			}
+
 			$wa->useScript($assetName);
-			$jcbScriptDependencies = array_values(array_unique([...$jcbScriptDependencies, $assetName]));
+
+			if (!in_array($assetName, $jcbScriptDependencies, true))
+			{
+				$jcbScriptDependencies[] = $assetName;
+			}
 		}
+
 	}
 
 

@@ -212,3 +212,4 @@ abstract class GuidHelper
 		return false;
 	}
 }
+

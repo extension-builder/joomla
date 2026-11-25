@@ -479,55 +479,88 @@ class HtmlView extends BaseHtmlView
 	 */
 	protected function _prepareDocument(): void
 	{
+		$wa = $this->getDocument()->getWebAssetManager();
+		$root = Uri::root();
+
+		$jcbStyleDependencies = [];
+		$jcbScriptDependencies = ['core'];
 
 		// Only load jQuery if needed. (default is true)
 		if ($this->params->get('add_jquery_framework', 1) == 1)
 		{
-			$this->getDocument()->getWebAssetManager()->useScript('jquery')->useScript('jquery-noconflict');
+			$wa->useScript('jquery')->useScript('jquery-noconflict');
+
+			$jcbScriptDependencies[] = 'jquery';
+			$jcbScriptDependencies[] = 'jquery-noconflict';
 		}
+
 		// Load the header checker class.
 		// Initialize the header checker.
 		$HeaderCheck = new HeaderCheck();
 
-		// Add View JavaScript File
-		$jcbAssetManager = Factory::getApplication()->getDocument()->getWebAssetManager();
-if (!$jcbAssetManager->assetExists('script', 'jcb.script.f772ffbe57700e7bc7325417ab297aee5125d10007aeca1ba744db0c724c7147'))
-{
-	$jcbAssetManager->registerScript('jcb.script.f772ffbe57700e7bc7325417ab297aee5125d10007aeca1ba744db0c724c7147', Uri::root() . 'media/com_componentbuilder/js/admin/extrusion.js', ['version' => 'auto'], [], $jcbScriptDependencies ?? []);
-}
-$jcbAssetManager->useScript('jcb.script.f772ffbe57700e7bc7325417ab297aee5125d10007aeca1ba744db0c724c7147');
-$jcbScriptDependencies = array_values(array_unique(array_merge($jcbScriptDependencies ?? [], ['jcb.script.f772ffbe57700e7bc7325417ab297aee5125d10007aeca1ba744db0c724c7147'])));
-		$wa = $this->getDocument()->getWebAssetManager();
-		// add styles
-		$jcbStyleDependencies = $jcbStyleDependencies ?? [];
+		// Add styles
 		foreach ($this->styles as $style)
 		{
 			$style = str_starts_with($style, '//') ? $style : ltrim($style, '/');
 			$assetName = 'jcb.style.' . hash('sha256', $style);
+
 			if (!$wa->assetExists('style', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $style)
-					? $style : Uri::root() . $style;
-				$wa->registerStyle($assetName, $assetUri, ['version' => 'auto'], [], $jcbStyleDependencies);
+					? $style : $root . $style;
+
+				$wa->registerStyle(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbStyleDependencies
+				);
 			}
+
 			$wa->useStyle($assetName);
-			$jcbStyleDependencies = array_values(array_unique([...$jcbStyleDependencies, $assetName]));
+
+			if (!in_array($assetName, $jcbStyleDependencies, true))
+			{
+				$jcbStyleDependencies[] = $assetName;
+			}
 		}
-		// add scripts
-		$jcbScriptDependencies = $jcbScriptDependencies ?? ['core'];
-		foreach ($this->scripts as $script)
+
+		$viewScripts = [
+			// Add View JavaScript File
+			'media/com_componentbuilder/js/admin/extrusion.js',
+
+			// Add scripts
+			...$this->scripts,
+		];
+
+		foreach ($viewScripts as $script)
 		{
 			$script = str_starts_with($script, '//') ? $script : ltrim($script, '/');
 			$assetName = 'jcb.script.' . hash('sha256', $script);
+
 			if (!$wa->assetExists('script', $assetName))
 			{
 				$assetUri = preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $script)
-					? $script : Uri::root() . $script;
-				$wa->registerScript($assetName, $assetUri, ['version' => 'auto'], [], $jcbScriptDependencies);
+					? $script : $root . $script;
+
+				$wa->registerScript(
+					$assetName,
+					$assetUri,
+					['version' => 'auto'],
+					[],
+					$jcbScriptDependencies
+				);
 			}
+
 			$wa->useScript($assetName);
-			$jcbScriptDependencies = array_values(array_unique([...$jcbScriptDependencies, $assetName]));
+
+			if (!in_array($assetName, $jcbScriptDependencies, true))
+			{
+				$jcbScriptDependencies[] = $assetName;
+			}
 		}
+
 	}
 
 

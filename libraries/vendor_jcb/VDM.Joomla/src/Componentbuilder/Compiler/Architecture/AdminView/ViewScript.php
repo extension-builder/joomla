@@ -1139,3 +1139,4 @@ class ViewScript
 		return $isSet;
 	}
 }
+

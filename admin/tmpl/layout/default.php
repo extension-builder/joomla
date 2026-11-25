@@ -166,20 +166,8 @@ $this->getDocument()->getWebAssetManager()->addInlineScript(
 <script type="text/javascript">
 jQuery(function () {
 
-// #jform_add_php_view listeners for add_php_view_vvvvvzh function
-jQuery('#jform_add_php_view').on('keyup',function()
-{
-	var add_php_view_vvvvvzh = jQuery("#jform_add_php_view input[type='radio']:checked").val();
-	vvvvvzh(add_php_view_vvvvvzh);
-
-});
-jQuery('#adminForm').on('change', '#jform_add_php_view',function (e)
-{
-	e.preventDefault();
-	var add_php_view_vvvvvzh = jQuery("#jform_add_php_view input[type='radio']:checked").val();
-	vvvvvzh(add_php_view_vvvvvzh);
-
-});
+jQuery('#jform_add_php_view').on('keyup', updateLayoutConditions);
+jQuery('#adminForm').on('change', '#jform_add_php_view', updateLayoutConditions);
 
 });
 

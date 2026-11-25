@@ -140,3 +140,4 @@ class Config extends ComponentConfig
 		return array_values($approved);
 	}
 }
+

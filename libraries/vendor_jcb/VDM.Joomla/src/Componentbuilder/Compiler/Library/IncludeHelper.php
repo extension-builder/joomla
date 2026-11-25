@@ -11,6 +11,7 @@
 
 namespace VDM\Joomla\Componentbuilder\Compiler\Library;
 
+
 use VDM\Joomla\Componentbuilder\Compiler\Utilities\Indent;
 
 
@@ -61,3 +62,4 @@ class IncludeHelper
 		return Indent::_($indent) . $this->get($path);
 	}
 }
+

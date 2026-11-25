@@ -13,6 +13,7 @@
  *                  - Use phpseclib/phpseclib version 3 Instead.
  *                  - Checkout the JCB Crypt Suite. <https://git.vdm.dev/joomla/phpseclib>
  */
+
 namespace VDM\Joomla\FOF\Encrypt\AES;
 
 
@@ -24,7 +25,7 @@ use VDM\Joomla\FOF\Utils\Phpfunc;
  * 
  * @package  FrameworkOnFramework
  * @since    1.0
- * @deprecated Use phpseclib/phpseclib version 3 Instead. 
+ * @deprecated Use phpseclib/phpseclib version 3 Instead.
  */
 interface AesInterface
 {

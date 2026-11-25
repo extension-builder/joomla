@@ -44,3 +44,4 @@ final class LibrariesLoader extends SharedLibrariesLoader
 			. PHP_EOL . Indent::_(3) . "\$jcbScriptDependencies[] = 'jquery-noconflict';";
 	}
 }
+

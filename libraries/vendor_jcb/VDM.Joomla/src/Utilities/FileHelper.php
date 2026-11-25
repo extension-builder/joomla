@@ -468,3 +468,4 @@ abstract class FileHelper
 		return $exists;
 	}
 }
+

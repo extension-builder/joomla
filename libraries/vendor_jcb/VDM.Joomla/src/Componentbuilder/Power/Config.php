@@ -233,3 +233,4 @@ class Config extends ComponentConfig
 		return "\t";
 	}
 }
+

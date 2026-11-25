@@ -146,20 +146,8 @@ $this->getDocument()->getWebAssetManager()->addInlineScript(
 <script type="text/javascript">
 jQuery(function () {
 
-// #jform_extension_type listeners for extension_type_vvvvwan function
-jQuery('#jform_extension_type').on('keyup',function()
-{
-	var extension_type_vvvvwan = jQuery("#jform_extension_type").val();
-	vvvvwan(extension_type_vvvvwan);
-
-});
-jQuery('#adminForm').on('change', '#jform_extension_type',function (e)
-{
-	e.preventDefault();
-	var extension_type_vvvvwan = jQuery("#jform_extension_type").val();
-	vvvvwan(extension_type_vvvvwan);
-
-});
+jQuery('#jform_extension_type').on('keyup', updateClassMethodConditions);
+jQuery('#adminForm').on('change', '#jform_extension_type', updateClassMethodConditions);
 
 });
 

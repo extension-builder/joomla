@@ -197,3 +197,4 @@ final class JavaScriptFile extends SharedJavaScriptFile
 		return $found && $statement === [] ? $entries : null;
 	}
 }
+

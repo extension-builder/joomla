@@ -1474,7 +1474,6 @@ abstract class ComponentbuilderHelper
 		return self::$tabSpacerBucket[$nr];
 	}
 
-
 	/**
 	 * Local in-memory cache of session values for faster access.
 	 *
@@ -2322,7 +2321,6 @@ abstract class ComponentbuilderHelper
 		}
 		return $url;
 	}
-
 
 	/**
 	 * get Dynamic Scripts
@@ -3215,7 +3213,6 @@ abstract class ComponentbuilderHelper
 		return $string;
 	}
 
-
 	/**
 	* Get the file path or url
 	* 
@@ -3259,7 +3256,6 @@ abstract class ComponentbuilderHelper
 		// sanitize the path
 		return '/' . trim( $folderPath, '/' ) . '/';
 	}
-
 
 	/**
 	* the Crypt objects
@@ -3794,7 +3790,6 @@ abstract class ComponentbuilderHelper
 
 		return  true;
 	}
-
 
 	/**
 	 * the locker
@@ -4987,7 +4982,6 @@ abstract class ComponentbuilderHelper
 		}
 		return false;
 	}
-
 
 	/**
 	 * Making class or function name safe
