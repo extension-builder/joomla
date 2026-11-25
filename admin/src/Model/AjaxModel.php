@@ -7803,6 +7803,7 @@ class AjaxModel extends ListModel
 	{
 		$diff = ExtrusionFactory::_('Extrusion.Resolver.Diff');
 		$records = [];
+		$responseBytes = 0;
 
 		foreach (ExtrusionFactory::_('Extrusion.Registry.Proposal')->records() as $record)
 		{
@@ -7815,7 +7816,7 @@ class AjaxModel extends ListModel
 
 			foreach ((array) ($record['columns'] ?? []) as $column => $change)
 			{
-				$detail = $diff->compare((string) ($change['before'] ?? ''), (string) ($change['after'] ?? ''));
+				$detail = $diff->compare((string) ($change['before'] ?? ''), (string) ($change['after'] ?? ''), $responseBytes);
 
 				if ($detail === null)
 				{
