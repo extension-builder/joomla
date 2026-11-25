@@ -7614,10 +7614,14 @@ class AjaxModel extends ListModel
 			$completed = $phase;
 			$phase = 'review';
 
-			return [
-				'row' => $row,
-				'records' => $this->extrusionRecords($row)
-			] + $this->extrusionReview();
+			$records = $this->extrusionRecords($row);
+
+			if ($records === null)
+			{
+				return ['error' => Text::_('This diff is too large to display. Compare the changes locally, or increase the PHP memory_limit setting if the server has insufficient memory.')];
+			}
+
+			return ['row' => $row, 'records' => $records] + $this->extrusionReview();
 		}
 		catch (\Throwable $error)
 		{
@@ -7792,10 +7796,10 @@ class AjaxModel extends ListModel
 	 *
 	 * @param string $row  The board row, as kind and key.
 	 *
-	 * @return array
+	 * @return array|null  The records, or null when the detailed preview is too large.
 	 * @since  6.2.0
 	 */
-	protected function extrusionRecords(string $row): array
+	protected function extrusionRecords(string $row): ?array
 	{
 		$diff = ExtrusionFactory::_('Extrusion.Resolver.Diff');
 		$records = [];
@@ -7811,15 +7815,19 @@ class AjaxModel extends ListModel
 
 			foreach ((array) ($record['columns'] ?? []) as $column => $change)
 			{
+				$detail = $diff->compare((string) ($change['before'] ?? ''), (string) ($change['after'] ?? ''));
+
+				if ($detail === null)
+				{
+					return null;
+				}
+
 				$columns[] = [
 					'name' => $column,
 					'shape' => (string) ($change['shape'] ?? 'value'),
 					'additions' => (int) ($change['additions'] ?? 0),
 					'deletions' => (int) ($change['deletions'] ?? 0),
-					'hunks' => $diff->compare(
-						(string) ($change['before'] ?? ''),
-						(string) ($change['after'] ?? '')
-					)['hunks']
+					'hunks' => $detail['hunks']
 				];
 			}
 
