@@ -738,4 +738,3 @@ final class AccessSections
 		$this->counter->accessSize++;
 	}
 }
-

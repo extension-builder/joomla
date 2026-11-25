@@ -106,4 +106,3 @@ class AllowView
 		return $body;
 	}
 }
-
