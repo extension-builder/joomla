@@ -150,7 +150,8 @@ GEN;
 		$this->assertSame(1, $replacements);
 		$check = eval('use Joomla\\CMS\\Factory; return static function (object $core): bool {' . $body . '};');
 		$this->assertSame($legacy, $check(new \stdClass()));
-		$this->assertSame($patched, $check(new class {
+		$this->assertSame($patched, $check(new class
+		{
 			/**
 			 * The route accessor provided by Joomla's patched API application.
 			 *

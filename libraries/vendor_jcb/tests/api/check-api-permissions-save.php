@@ -3,6 +3,8 @@
  * @package    Joomla.Component.Builder.Tests
  *
  * @created    25th November, 2026
+ * @author     Llewellyn van der Merwe <https://dev.vdm.io>
+ * @git        Joomla Component Builder <https://git.vdm.dev/joomla/Component-Builder>
  * @copyright  Copyright (C) 2015 Vast Development Method. All rights reserved.
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
@@ -32,6 +34,11 @@ $_SERVER['SCRIPT_NAME'] = '/administrator/index.php';
 $_SERVER['REQUEST_URI'] = '/administrator/index.php?option=com_config&component=com_demo';
 require_once JPATH_BASE . '/includes/defines.php';
 require_once JPATH_BASE . '/includes/framework.php';
+
+// The normal administrator request sets these before dispatching com_config.
+define('JPATH_COMPONENT', JPATH_ADMINISTRATOR . '/components/com_config');
+define('JPATH_COMPONENT_SITE', JPATH_SITE . '/components/com_config');
+define('JPATH_COMPONENT_ADMINISTRATOR', JPATH_COMPONENT);
 
 $container = Factory::getContainer();
 $container->alias('session.web', 'session.web.administrator')

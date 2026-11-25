@@ -50,6 +50,13 @@ site installation. The source hashes are recorded in `native-content-seed.log`.
 Changing the pinned fixture requires reviewing and updating both this document
 and the workflow checkout SHA.
 
+For the API permission checks alone, run the same command with
+`JCB_API_ACCESS_RUNTIME=5.4.11`, `6.2.1`, or `6.1.2`. JCB compiles Demo
+on the Joomla 6 host for the selected target major. The harness installs the
+compiled ZIPs on a second, clean Joomla site using `<JCB_DB_NAME>_runtime`.
+The 5.4.11 and 6.2.1 runs exercise the component’s Web Services permission
+and its Options save. The 6.1.2 run verifies the legacy Custom Admin check.
+
 ## What the installed checks prove
 
 - JCB loads stored plugin bodies/imports and component links from its database,
