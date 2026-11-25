@@ -695,14 +695,22 @@ injected into `Architecture\SiteViews\Builder`,
 
 ### 8.6 Permissions and public access
 
-`allowView()` runs before the model, so a refusal is a 403 and never a
-redirect. A site resource requires `site.<code>.access` when the link sets
-`access`, and nothing otherwise beyond the API token. A custom admin
-resource requires `core.manage` on the component, and `<code>.access` when
-the link sets `access`. A site view whose link sets `public_access` gets its
-GET routes registered with `'public' => true`, so no token is needed and the
-model runs as the guest, with the guest's access levels in every
-access-level and user-group filter of the get.
+For Joomla 5 and 6 components with an API, the compiler declares `core.api` in the
+component section of `access.xml`, so administrators can grant **Access Web
+Services** in the component’s options. Joomla 5.4.11 and 6.2.1 introduced
+a component-level `core.api` check in the standard dispatcher for private
+routes. API users still need the global `core.login.api` permission.
+
+When a view link sets `access`, the generated `allowView()` checks
+`site.<code>.access` for a Site View or `<code>.access` for a Custom Admin
+View. A refusal returns HTTP 403 before the model runs. On older Joomla
+releases the generated Custom Admin View controller also checks `core.manage`.
+On releases with the new dispatcher check, a user can read the view with
+the component API and view permissions alone.
+
+A site view whose link sets `public_access` gets its GET routes registered
+with `'public' => true`. Anonymous requests run with the guest’s permissions
+and viewing access levels.
 
 ### 8.7 Request contract
 

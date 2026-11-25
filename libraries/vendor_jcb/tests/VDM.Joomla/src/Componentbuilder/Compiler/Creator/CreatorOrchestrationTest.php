@@ -17,6 +17,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Input\Input;
 use Joomla\Registry\Registry as JoomlaRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -173,6 +174,78 @@ final class CreatorOrchestrationTest extends CreatorTestCase
 		$this->assertSame(12, $state['counter']->accessSize);
 		$this->assertSame(0, $state['config']->get('add_assets_table_fix'));
 		$this->assertSame('Use Batch', $state['language']->get('bothadmin', 'COM_DEMO_USE_BATCH'));
+	}
+
+	/**
+	 * The API packaging flag controls the component permission and preserves custom actions.
+	 *
+	 * @param   int          $target       Generated Joomla major.
+	 * @param   int|null     $api          Resolved API packaging flag.
+	 * @param   string|null  $custom       Registry location of an existing action.
+	 * @param   string|null  $title        Expected action title, or null for no action.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	#[DataProvider('apiPermissions')]
+	public function testComponentApiPermission(int $target, ?int $api, ?string $custom, ?string $title): void
+	{
+		$component = $this->component(['admin_views' => [[
+			'settings' => (object) ['name_single' => 'Item', 'name_list' => 'Items', 'fields' => [], 'permissions' => []]
+		]]]);
+		$event = $this->createStub(EventInterface::class);
+		[$subject, $state] = $this->accessSections($component, $event);
+		$state['config']->set('joomla_version', $target);
+		$state['config']->set('add_api', $api);
+		$event->method('trigger')->willReturnCallback(static function (string $name) use ($state, $custom): void
+		{
+			if ($custom !== null && $name === 'jcb_ce_onAfterBuildAccessSections')
+			{
+				$action = ['name' => 'core.api', 'title' => 'CUSTOM_API', 'description' => 'CUSTOM_API_DESC'];
+				if ($custom === '->HEAD<-')
+				{
+					$state['componentPermissions']->add($custom, $action, true);
+				}
+				else
+				{
+					$state['componentPermissions']->set($custom, $action);
+				}
+			}
+		});
+
+		$xml = new \SimpleXMLElement('<access>' . $subject->get() . '</access>');
+		$actions = $xml->xpath("section[@name='component']/action[@name='core.api']");
+		$this->assertCount($title === null ? 0 : 1, $actions);
+		if ($title !== null)
+		{
+			$this->assertSame($title, (string) $actions[0]['title']);
+			$this->assertSame($custom === null ? 'COM_DEMO_ACCESS_WEB_SERVICES_DESC' : 'CUSTOM_API_DESC', (string) $actions[0]['description']);
+		}
+		$generated = $title === 'JACTION_API';
+		$this->assertSame($generated ? 13 : 12, $state['counter']->accessSize);
+		$this->assertSame(
+			$generated ? 'Allows users in this group to access this component through web services.' : '',
+			$state['language']->get('bothadmin', 'COM_DEMO_ACCESS_WEB_SERVICES_DESC')
+		);
+	}
+
+	/**
+	 * API folder selection is resolved by Structuremultiple for each generated major.
+	 *
+	 * @return  array<string, array{int, ?int, ?string, ?string}>
+	 * @since   6.3.0
+	 */
+	public static function apiPermissions(): array
+	{
+		return [
+			'Joomla 3 has no API folder' => [3, null, null, null],
+			'Joomla 4 has no component API permission' => [4, 1, null, null],
+			'Joomla 5 API' => [5, 1, null, 'JACTION_API'],
+			'Joomla 6 API' => [6, 1, null, 'JACTION_API'],
+			'disabled API' => [6, null, null, null],
+			'custom header' => [6, 1, '->HEAD<-', 'CUSTOM_API'],
+			'custom component action' => [6, 1, 'Custom Web Services', 'CUSTOM_API'],
+		];
 	}
 
 	/**
@@ -469,7 +542,7 @@ final class CreatorOrchestrationTest extends CreatorTestCase
 			$buttons
 		);
 
-		return [$subject, compact('config', 'language', 'counter')];
+		return [$subject, compact('config', 'language', 'counter', 'componentPermissions')];
 	}
 
 	/**
