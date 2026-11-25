@@ -205,7 +205,7 @@ final class DiffTest extends TestCase
 	}
 
 	/**
-	 * A text too large to line up exactly is reported as replaced, still truthfully.
+	 * An oversized middle keeps its review counts and omits the detail.
 	 *
 	 * @return  void
 	 * @since   6.2.0
@@ -214,11 +214,39 @@ final class DiffTest extends TestCase
 	{
 		$before = implode("\n", array_map(static fn (int $line): string => 'a' . $line, range(1, 1600)));
 		$after = implode("\n", array_map(static fn (int $line): string => 'b' . $line, range(1, 1600)));
-		$compared = $this->diff->compare($before, $after);
+		$this->assertSame(['additions' => 1600, 'deletions' => 1600], $this->diff->counts($before, $after));
+		$this->assertNull($this->diff->compare($before, $after));
+	}
 
-		$this->assertSame(1600, $compared['additions']);
-		$this->assertSame(1600, $compared['deletions']);
-		$this->assertNotSame([], $compared['hunks']);
+	/**
+	 * The summary survives a tight PHP memory limit and the preview can open
+	 * when the administrator raises it.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	public function testMemoryLimitedDetailDoesNotPreventExactReviewCounts(): void
+	{
+		$before = str_repeat("old\n", 749) . "shared\n" . str_repeat("old\n", 749) . 'old';
+		$after = str_repeat("new\n", 749) . "shared\n" . str_repeat("new\n", 749) . 'new';
+		$used = memory_get_usage(true);
+		$original = ini_get('memory_limit');
+
+		try
+		{
+			ini_set('memory_limit', (string) ($used + 16 * 1024 * 1024));
+			$this->assertSame(['additions' => 1499, 'deletions' => 1499], $this->diff->counts($before, $after));
+			$this->assertNull($this->diff->compare($before, $after));
+
+			ini_set('memory_limit', (string) ($used + 128 * 1024 * 1024));
+			$detail = $this->diff->compare($before, $after);
+			$this->assertSame(1499, $detail['additions']);
+			$this->assertNotEmpty($detail['hunks']);
+		}
+		finally
+		{
+			ini_set('memory_limit', $original);
+		}
 	}
 
 	/**

@@ -204,6 +204,12 @@ try
 		$manifest['library_noop'] = $root . '/noop/ExtrusionFixture.Joomla';
 		$manifest['library_shared'] = $root . '/shared/ExtrusionFixture.Joomla';
 		$manifest['library_new'] = $root . '/new/ExtrusionFixture.Independent';
+		$manifest['library_large_diff'] = $root . '/large-diff/ExtrusionFixture.Preview';
+		writeSource(
+			$manifest['library_large_diff'] . '/src/LargeChange.php',
+			"<?php\nnamespace ExtrusionFixture\\Preview;\nclass LargeChange\n{\n"
+				. "\tpublic const CONTENT = '" . str_repeat("x\n", 1501) . "';\n}\n"
+		);
 		$manifest['library_ambiguous'] = $root . '/ambiguous/ExtrusionFixture.Ambiguous';
 		$manifest['library_repair'] = $root . '/repair/ExtrusionFixture.Joomla';
 		foreach (['Factory', 'Consumer'] as $name)

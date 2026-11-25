@@ -21,11 +21,8 @@ namespace VDM\Joomla\Componentbuilder\Extrusion\Resolver;
  * unchanged text around them -- because that is the shape every developer
  * already knows how to read.
  * 
- * Two bounds keep a very large text honest rather than expensive: the lines
- * both texts share at the start and the end are recognised before anything is
- * compared, which is the whole of a typical edit; and a middle too large to
- * line up exactly is reported as replaced rather than matched line by line,
- * which is true, just less precise.
+ * The review counts additions and deletions. Opening a change builds its hunks
+ * only when the changed middle fits the preview limits.
  * 
  * @since 6.2.0
  */
@@ -48,167 +45,195 @@ final class Diff
 	private const LIMIT = 1500;
 
 	/**
-	 * Compare two texts line by line.
+	 * Return the requested hunks, or null if the preview is too large to display.
 	 *
-	 * @param   string  $before  The text as it stands.
-	 * @param   string  $after   The text as it would be.
+	 * @param   string  $before  The existing text.
+	 * @param   string  $after   The proposed text.
 	 *
-	 * @return  array{additions: int, deletions: int, hunks: array<int, array<string, mixed>>}  What changed.
+	 * @return  array{additions: int, deletions: int, hunks: array}|null
 	 * @since   6.2.0
 	 */
-	public function compare(string $before, string $after): array
+	public function compare(string $before, string $after): ?array
 	{
-		$operations = $this->operations($this->split($before), $this->split($after));
-		$additions = 0;
-		$deletions = 0;
-
-		foreach ($operations as $operation)
-		{
-			if ($operation['op'] === 'add')
-			{
-				$additions++;
-			}
-			elseif ($operation['op'] === 'remove')
-			{
-				$deletions++;
-			}
-		}
-
-		return [
-			'additions' => $additions,
-			'deletions' => $deletions,
-			'hunks' => $additions === 0 && $deletions === 0 ? [] : $this->hunks($operations)
-		];
+		return $this->changes($before, $after, true);
 	}
 
 	/**
-	 * Count what a comparison would add and take away, without the hunks.
+	 * Count changes without building display hunks or retaining an alignment table.
 	 *
-	 * @param   string  $before  The text as it stands.
-	 * @param   string  $after   The text as it would be.
+	 * @param   string  $before  The existing text.
+	 * @param   string  $after   The proposed text.
 	 *
-	 * @return  array{additions: int, deletions: int}  The counts alone.
+	 * @return  array{additions: int, deletions: int}
 	 * @since   6.2.0
 	 */
 	public function counts(string $before, string $after): array
 	{
-		$compared = $this->compare($before, $after);
-
-		unset($compared['hunks']);
-
-		return $compared;
+		return $this->changes($before, $after, false);
 	}
 
 	/**
-	 * The lines of one text.
+	 * Trim shared lines and align only the changed middle. A middle above the
+	 * alignment limit is counted as a replacement, as in earlier reviews.
 	 *
-	 * An empty text is no lines at all, not one empty line: a value that was
-	 * never set has nothing to show, and counting it as a line would report an
-	 * addition where a person sees none.
+	 * @param   string  $before   The existing text.
+	 * @param   string  $after    The proposed text.
+	 * @param   bool    $details  Whether to retain the edit path for display.
 	 *
-	 * @param   string  $text  The text.
-	 *
-	 * @return  array<int, string>  The lines.
-	 * @since   6.2.0
+	 * @return  array|null  The counts and any requested hunks.
+	 * @since   6.3.0
 	 */
-	protected function split(string $text): array
+	private function changes(string $before, string $after, bool $details): ?array
 	{
-		return $text === '' ? [] : explode("\n", str_replace("\r\n", "\n", $text));
+		$before = str_replace("\r\n", "\n", $before);
+		$after = str_replace("\r\n", "\n", $after);
+
+		if ($before === $after)
+		{
+			return ['additions' => 0, 'deletions' => 0] + ($details ? ['hunks' => []] : []);
+		}
+
+		$oldCount = $before === '' ? 0 : substr_count($before, "\n") + 1;
+		$newCount = $after === '' ? 0 : substr_count($after, "\n") + 1;
+		$old = $this->lines($before);
+		$new = $this->lines($after);
+		$context = [];
+		$head = 0;
+
+		while ($old->valid() && $new->valid() && $old->current() === $new->current())
+		{
+			if ($details)
+			{
+				$context[$head % self::CONTEXT] = $old->current();
+			}
+
+			$head++;
+			$old->next();
+			$new->next();
+		}
+
+		$oldCount -= $head;
+		$newCount -= $head;
+		$oldEnd = $this->lines($before, true);
+		$newEnd = $this->lines($after, true);
+		$tail = 0;
+
+		while ($oldCount > 0 && $newCount > 0 && $oldEnd->current() === $newEnd->current())
+		{
+			$tail++;
+			$oldCount--;
+			$newCount--;
+			$oldEnd->next();
+			$newEnd->next();
+		}
+
+		if (max($oldCount, $newCount) > self::LIMIT)
+		{
+			return $details ? null : ['additions' => $newCount, 'deletions' => $oldCount];
+		}
+
+		if ($details)
+		{
+			// Budget for packed PHP array rows (including unused capacity), line
+			// operations and JSON encoding before allocating the alignment table.
+			$limit = ini_parse_quantity(ini_get('memory_limit'));
+			$estimate = 32 * ($oldCount + 1) * ($newCount + 1)
+				+ 1024 * ($oldCount + $newCount + 2 * self::CONTEXT)
+				+ 6 * (strlen($before) + strlen($after));
+
+			if ($limit > 0 && $estimate > $limit - memory_get_usage(true))
+			{
+				return null;
+			}
+		}
+
+		$oldMiddle = $this->take($old, $oldCount);
+		$newMiddle = $this->take($new, $newCount);
+		$table = $details ? [] : null;
+		$shared = $this->lengths($oldMiddle, $newMiddle, $table);
+		$result = ['additions' => $newCount - $shared, 'deletions' => $oldCount - $shared];
+
+		if ($details)
+		{
+			$operations = [];
+
+			for ($line = max(0, $head - self::CONTEXT); $line < $head; $line++)
+			{
+				$operations[] = $this->operation('keep', $line, $line, $context[$line % self::CONTEXT]);
+			}
+
+			$operations = array_merge($operations, $this->aligned($oldMiddle, $newMiddle, $head, $table));
+
+			foreach ($this->take($old, min(self::CONTEXT, $tail)) as $index => $text)
+			{
+				$operations[] = $this->operation('keep', $head + $oldCount + $index, $head + $newCount + $index, $text);
+			}
+
+			$result['hunks'] = $this->hunks($operations);
+		}
+
+		return $result;
 	}
 
 	/**
-	 * Line up two sets of lines and say what happens to each.
+	 * Read lines in either direction without expanding the entire text into an array.
 	 *
-	 * @param   array<int, string>  $old  The lines as they stand.
-	 * @param   array<int, string>  $new  The lines as they would be.
+	 * @param   string  $text     Text with normalized line endings.
+	 * @param   bool    $reverse  Whether to start at the final line.
 	 *
-	 * @return  array<int, array{op: string, old: int|null, new: int|null, text: string}>  The operations in order.
-	 * @since   6.2.0
+	 * @return  \Generator<int, string>
+	 * @since   6.3.0
 	 */
-	protected function operations(array $old, array $new): array
+	private function lines(string $text, bool $reverse = false): \Generator
 	{
-		$head = $this->head($old, $new);
-		$tail = $this->tail($old, $new, $head);
-		$operations = [];
+		$length = strlen($text);
 
-		for ($index = 0; $index < $head; $index++)
+		if ($length === 0)
 		{
-			$operations[] = $this->operation('keep', $index, $index, $old[$index]);
+			return;
 		}
 
-		$middleOld = array_slice($old, $head, count($old) - $head - $tail);
-		$middleNew = array_slice($new, $head, count($new) - $head - $tail);
+		$offset = $reverse ? $length : 0;
 
-		foreach ($this->middle($middleOld, $middleNew, $head) as $operation)
+		do
 		{
-			$operations[] = $operation;
+			if ($reverse)
+			{
+				$break = $offset === 0 ? false : strrpos($text, "\n", $offset - $length - 1);
+				$start = $break === false ? 0 : $break + 1;
+				yield substr($text, $start, $offset - $start);
+				$offset = $break;
+			}
+			else
+			{
+				$break = strpos($text, "\n", $offset);
+				yield substr($text, $offset, ($break === false ? $length : $break) - $offset);
+				$offset = $break + 1;
+			}
 		}
-
-		for ($index = 0; $index < $tail; $index++)
-		{
-			$oldLine = count($old) - $tail + $index;
-			$operations[] = $this->operation('keep', $oldLine, count($new) - $tail + $index, $old[$oldLine]);
-		}
-
-		return $operations;
+		while ($break !== false);
 	}
 
 	/**
-	 * What happens between the shared start and the shared end.
+	 * Consume a bounded number of lines from the current position.
 	 *
-	 * @param   array<int, string>  $old   The differing lines as they stand.
-	 * @param   array<int, string>  $new   The differing lines as they would be.
-	 * @param   int                 $head  How many shared lines came first.
+	 * @param   \Generator  $lines  The remaining lines.
+	 * @param   int         $count  How many lines to consume.
 	 *
-	 * @return  array<int, array{op: string, old: int|null, new: int|null, text: string}>  The operations in order.
-	 * @since   6.2.0
+	 * @return  array<int, string>
+	 * @since   6.3.0
 	 */
-	protected function middle(array $old, array $new, int $head): array
+	private function take(\Generator $lines, int $count): array
 	{
-		if ($old === [] && $new === [])
+		$result = [];
+
+		for ($i = 0; $i < $count; $i++)
 		{
-			return [];
+			$result[] = $lines->current();
+			$lines->next();
 		}
 
-		// a middle this large is reported as replaced rather than lined up: the
-		// answer stays true, and the work stays bounded
-		if (count($old) > self::LIMIT || count($new) > self::LIMIT)
-		{
-			return array_merge(
-				$this->all('remove', $old, $head, true),
-				$this->all('add', $new, $head, false)
-			);
-		}
-
-		return $this->aligned($old, $new, $head);
-	}
-
-	/**
-	 * Every line of one side as one kind of operation.
-	 *
-	 * @param   string              $op      The operation.
-	 * @param   array<int, string>  $lines   The lines.
-	 * @param   int                 $head    How many shared lines came first.
-	 * @param   bool                $isOld   Whether these are the standing lines.
-	 *
-	 * @return  array<int, array{op: string, old: int|null, new: int|null, text: string}>  The operations.
-	 * @since   6.2.0
-	 */
-	protected function all(string $op, array $lines, int $head, bool $isOld): array
-	{
-		$operations = [];
-
-		foreach ($lines as $index => $line)
-		{
-			$operations[] = $this->operation(
-				$op,
-				$isOld ? $head + $index : null,
-				$isOld ? null : $head + $index,
-				$line
-			);
-		}
-
-		return $operations;
+		return $result;
 	}
 
 	/**
@@ -216,14 +241,14 @@ final class Diff
 	 *
 	 * @param   array<int, string>  $old   The differing lines as they stand.
 	 * @param   array<int, string>  $new   The differing lines as they would be.
-	 * @param   int                 $head  How many shared lines came first.
+	 * @param   int                 $head     How many shared lines came first.
+	 * @param   array               $lengths  The alignment lengths for these lines.
 	 *
 	 * @return  array<int, array{op: string, old: int|null, new: int|null, text: string}>  The operations in order.
 	 * @since   6.2.0
 	 */
-	protected function aligned(array $old, array $new, int $head): array
+	protected function aligned(array $old, array $new, int $head, array $lengths): array
 	{
-		$lengths = $this->lengths($old, $new);
 		$operations = [];
 		$oldIndex = 0;
 		$newIndex = 0;
@@ -273,77 +298,44 @@ final class Diff
 	}
 
 	/**
-	 * The longest common run of lines from every position onward.
+	 * Compute the common subsequence length with one row of working storage.
+	 * A detail request also retains the rows needed to reconstruct the edit.
 	 *
-	 * @param   array<int, string>  $old  The differing lines as they stand.
-	 * @param   array<int, string>  $new  The differing lines as they would be.
+	 * @param   array<int, string>  $old    The existing lines.
+	 * @param   array<int, string>  $new    The proposed lines.
+	 * @param   array|null          $table  Optional table for reconstructing hunks.
 	 *
-	 * @return  array<int, array<int, int>>  The run lengths.
+	 * @return  int  Number of common lines in the changed middle.
 	 * @since   6.2.0
 	 */
-	protected function lengths(array $old, array $new): array
+	protected function lengths(array $old, array $new, ?array &$table): int
 	{
-		$oldCount = count($old);
-		$newCount = count($new);
-		$lengths = array_fill(0, $oldCount + 1, array_fill(0, $newCount + 1, 0));
+		$width = count($new);
+		$row = array_fill(0, $width + 1, 0);
 
-		for ($oldIndex = $oldCount - 1; $oldIndex >= 0; $oldIndex--)
+		if ($table !== null)
 		{
-			for ($newIndex = $newCount - 1; $newIndex >= 0; $newIndex--)
+			$table[count($old)] = $row;
+		}
+
+		for ($i = count($old) - 1; $i >= 0; $i--)
+		{
+			$diagonal = 0;
+
+			for ($j = $width - 1; $j >= 0; $j--)
 			{
-				$lengths[$oldIndex][$newIndex] = $old[$oldIndex] === $new[$newIndex]
-					? $lengths[$oldIndex + 1][$newIndex + 1] + 1
-					: max($lengths[$oldIndex + 1][$newIndex], $lengths[$oldIndex][$newIndex + 1]);
+				$below = $row[$j];
+				$row[$j] = $old[$i] === $new[$j] ? $diagonal + 1 : max($below, $row[$j + 1]);
+				$diagonal = $below;
+			}
+
+			if ($table !== null)
+			{
+				$table[$i] = $row;
 			}
 		}
 
-		return $lengths;
-	}
-
-	/**
-	 * How many lines both texts share at the start.
-	 *
-	 * @param   array<int, string>  $old  The lines as they stand.
-	 * @param   array<int, string>  $new  The lines as they would be.
-	 *
-	 * @return  int  The shared count.
-	 * @since   6.2.0
-	 */
-	protected function head(array $old, array $new): int
-	{
-		$shared = 0;
-		$shortest = min(count($old), count($new));
-
-		while ($shared < $shortest && $old[$shared] === $new[$shared])
-		{
-			$shared++;
-		}
-
-		return $shared;
-	}
-
-	/**
-	 * How many lines both texts share at the end, beyond the shared start.
-	 *
-	 * @param   array<int, string>  $old   The lines as they stand.
-	 * @param   array<int, string>  $new   The lines as they would be.
-	 * @param   int                 $head  How many lines they share at the start.
-	 *
-	 * @return  int  The shared count.
-	 * @since   6.2.0
-	 */
-	protected function tail(array $old, array $new, int $head): int
-	{
-		$shared = 0;
-		$shortest = min(count($old), count($new)) - $head;
-
-		while ($shared < $shortest
-			&& $old[count($old) - $shared - 1] === $new[count($new) - $shared - 1])
-		{
-			$shared++;
-		}
-
-		return $shared;
+		return $row[0];
 	}
 
 	/**

@@ -441,6 +441,38 @@ test.describe('the extrusion view', () => {
 		return page.locator('[data-extrusion-row="power|' + key + '"]');
 	}
 
+	test('explains an oversized diff only when the changed row is opened', async ({ page }) => {
+		let requests = 0;
+		page.on('request', (request) => {
+			if (request.url().includes('task=ajax.extrusionDiff')) {
+				requests++;
+			}
+		});
+
+		const harvest = await harvestFixture(page, fixtures.library_large_diff, fixtures.component_b_id);
+		const source = harvest.powers.classes.find((candidate) => candidate.class === 'LargeChange');
+		const row = powerRow(page, source.source_key);
+		const badge = row.locator('.extrusion-change');
+		await expect(badge).toBeVisible();
+		await expect(row.locator('.extrusion-diff')).toHaveCount(0);
+		expect(requests, 'harvesting the board must not fetch detailed diffs').toBe(0);
+		expect(harvest.plan.status).toBe('preview');
+
+		const detail = responseFor(page, 'extrusionDiff');
+		await badge.click();
+		const response = await detail;
+		expect(response.status()).toBe(200);
+		const payload = await response.json();
+		expect(payload.error).toContain('This diff is too large to display.');
+		expect(payload.records).toBeUndefined();
+		await expect(row.locator('.extrusion-diff')).toContainText('memory_limit');
+		await expect(row.locator('.extrusion-diff-table')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Import into JCB', exact: true })).toBeEnabled();
+		await badge.click();
+		await expect(row.locator('.extrusion-diff')).toHaveCount(0);
+		expect(requests).toBe(1);
+	});
+
 	test('automatically matches existing Powers, previews only namespaces and repairs the reviewed dry-run plan', async ({ page }) => {
 		test.setTimeout(240_000);
 		const before = '[[[NamespacePrefix]]]\\Joomla\\Extrusionfixtureb.RepairValue';
