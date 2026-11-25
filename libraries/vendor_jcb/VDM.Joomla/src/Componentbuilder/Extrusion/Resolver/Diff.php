@@ -47,15 +47,16 @@ final class Diff
 	/**
 	 * Return the requested hunks, or null if the preview is too large to display.
 	 *
-	 * @param   string  $before  The existing text.
-	 * @param   string  $after   The proposed text.
+	 * @param   string  $before         The existing text.
+	 * @param   string  $after          The proposed text.
+	 * @param   int     $responseBytes  Encoding space reserved for this row’s earlier hunks.
 	 *
 	 * @return  array{additions: int, deletions: int, hunks: array}|null
 	 * @since   6.2.0
 	 */
-	public function compare(string $before, string $after): ?array
+	public function compare(string $before, string $after, int &$responseBytes = 0): ?array
 	{
-		return $this->changes($before, $after, true);
+		return $this->changes($before, $after, $responseBytes);
 	}
 
 	/**
@@ -69,7 +70,7 @@ final class Diff
 	 */
 	public function counts(string $before, string $after): array
 	{
-		return $this->changes($before, $after, false);
+		return $this->changes($before, $after);
 	}
 
 	/**
@@ -78,15 +79,14 @@ final class Diff
 	 *
 	 * @param   string  $before   The existing text.
 	 * @param   string  $after    The proposed text.
-	 * @param   bool    $details  Whether to retain the edit path for display.
+	 * @param   int|null  $responseBytes  Reserve for encoding all previews in the row. Null requests counts only.
 	 *
 	 * @return  array|null  The counts and any requested hunks.
 	 * @since   6.3.0
 	 */
-	private function changes(string $before, string $after, bool $details): ?array
+	private function changes(string $before, string $after, ?int &$responseBytes = null): ?array
 	{
-		$before = str_replace("\r\n", "\n", $before);
-		$after = str_replace("\r\n", "\n", $after);
+		$details = $responseBytes !== null;
 
 		if ($before === $after)
 		{
@@ -132,14 +132,28 @@ final class Diff
 			return $details ? null : ['additions' => $newCount, 'deletions' => $oldCount];
 		}
 
+		$oldMiddle = $this->take($old, $oldCount);
+		$newMiddle = $this->take($new, $newCount);
+
 		if ($details)
 		{
-			// Budget for packed PHP array rows (including unused capacity), line
-			// operations and JSON encoding before allocating the alignment table.
+			$endContext = $this->take($old, min(self::CONTEXT, $tail));
+			$lines = $oldCount + $newCount + count($context) + count($endContext);
+
+			// Allow for JSON escaping and per-line metadata across every column in the requested row.
+			$responseBytes += 128 * $lines;
+
+			foreach ([$oldMiddle, $newMiddle, $context, $endContext] as $part)
+			{
+				foreach ($part as $text)
+				{
+					$responseBytes += 6 * strlen($text);
+				}
+			}
+
+			// Packed PHP rows can have spare capacity. Allow separately for the display operations.
+			$estimate = 40 * ($oldCount + 1) * ($newCount + 1) + 1024 * $lines + $responseBytes;
 			$limit = ini_parse_quantity(ini_get('memory_limit'));
-			$estimate = 32 * ($oldCount + 1) * ($newCount + 1)
-				+ 1024 * ($oldCount + $newCount + 2 * self::CONTEXT)
-				+ 6 * (strlen($before) + strlen($after));
 
 			if ($limit > 0 && $estimate > $limit - memory_get_usage(true))
 			{
@@ -147,8 +161,6 @@ final class Diff
 			}
 		}
 
-		$oldMiddle = $this->take($old, $oldCount);
-		$newMiddle = $this->take($new, $newCount);
 		$table = $details ? [] : null;
 		$shared = $this->lengths($oldMiddle, $newMiddle, $table);
 		$result = ['additions' => $newCount - $shared, 'deletions' => $oldCount - $shared];
@@ -164,7 +176,7 @@ final class Diff
 
 			$operations = array_merge($operations, $this->aligned($oldMiddle, $newMiddle, $head, $table));
 
-			foreach ($this->take($old, min(self::CONTEXT, $tail)) as $index => $text)
+			foreach ($endContext as $index => $text)
 			{
 				$operations[] = $this->operation('keep', $head + $oldCount + $index, $head + $newCount + $index, $text);
 			}
@@ -178,7 +190,7 @@ final class Diff
 	/**
 	 * Read lines in either direction without expanding the entire text into an array.
 	 *
-	 * @param   string  $text     Text with normalized line endings.
+	 * @param   string  $text     Text with LF or CRLF line endings.
 	 * @param   bool    $reverse  Whether to start at the final line.
 	 *
 	 * @return  \Generator<int, string>
@@ -201,15 +213,23 @@ final class Diff
 			{
 				$break = $offset === 0 ? false : strrpos($text, "\n", $offset - $length - 1);
 				$start = $break === false ? 0 : $break + 1;
-				yield substr($text, $start, $offset - $start);
+				$end = $offset;
 				$offset = $break;
 			}
 			else
 			{
 				$break = strpos($text, "\n", $offset);
-				yield substr($text, $offset, ($break === false ? $length : $break) - $offset);
-				$offset = $break + 1;
+				$start = $offset;
+				$end = $break === false ? $length : $break;
+				$offset = $end + 1;
 			}
+			// Strip CR only where LF actually terminated this line.
+			if ($end < $length && $end > $start && $text[$end - 1] === "\r")
+			{
+				$end--;
+			}
+
+			yield substr($text, $start, $end - $start);
 		}
 		while ($break !== false);
 	}
@@ -439,4 +459,3 @@ final class Diff
 		];
 	}
 }
-

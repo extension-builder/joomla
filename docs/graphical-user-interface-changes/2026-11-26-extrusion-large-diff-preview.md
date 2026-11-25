@@ -34,7 +34,7 @@ The review and change totals remain available. Opening an oversized row displays
 
 PHP 8.4.27 lint passed for the administrator model and the GUI fixture builder. Node syntax validation passed for the updated Playwright spec.
 
-The installed GUI regression in `libraries/vendor_jcb/tests/gui/specs/extrusion.spec.js` harvests a synthetic Power, verifies that the board issues no detail request, opens the changed row, and checks the returned notice and review state. The existing small-diff test covers the ordinary table.
+The installed GUI regression in `libraries/vendor_jcb/tests/gui/specs/extrusion.spec.js` harvests a synthetic Power, verifies that the board issues no detail request, opens the changed row, and checks the returned notice and review state. Both this case and the existing small-diff test passed against an installed Joomla 6.2.1 site with PHP 8.4.27 and Chromium.
 
 ### Manual scenarios
 
