@@ -158,7 +158,6 @@ $tmpl    = $tmpl ? '&tmpl=' . $tmpl : '';
 
 <script type="text/javascript">
 
-// Generated field conditions (compiler preview).
 jQuery('#jform_datalenght').on('keyup', updateFieldConditions);
 jQuery('#adminForm').on('change', '#jform_datalenght', updateFieldConditions);
 
@@ -185,6 +184,9 @@ jQuery('#adminForm').on('change', '#jform_add_javascript_views_footer', updateFi
 
 jQuery('#jform_fieldtype').on('keyup', updateFieldConditions);
 jQuery('#adminForm').on('change', '#jform_fieldtype', updateFieldConditions);
+
+
+
 
 /**
  * Initialize form listeners and code block click handlers.

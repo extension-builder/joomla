@@ -264,3 +264,4 @@ class Sftp implements Serverinterface
 		return null;
 	}
 }
+

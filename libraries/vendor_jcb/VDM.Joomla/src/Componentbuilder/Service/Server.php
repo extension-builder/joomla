@@ -128,5 +128,5 @@ class Server implements ServiceProviderInterface
 	{
 		return new ClientFactory();
 	}
-
 }
+

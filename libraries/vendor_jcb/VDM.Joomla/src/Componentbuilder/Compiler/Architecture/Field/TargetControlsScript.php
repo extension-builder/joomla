@@ -180,5 +180,5 @@ final class TargetControlsScript
 			. PHP_EOL . Indent::_(2) . "jQuery('#jform_" . $name . "').removeAttr('aria-required');"
 			. PHP_EOL . Indent::_(2) . "jQuery('#jform_" . $name . "').removeClass('required');";
 	}
-
 }
+

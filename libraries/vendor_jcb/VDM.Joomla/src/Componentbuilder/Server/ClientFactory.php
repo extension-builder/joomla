@@ -18,7 +18,7 @@ use phpseclib3\Net\SFTP as SftpClient;
 
 /**
  * Creates independent FTP and SFTP clients without opening a connection.
- *
+ * 
  * @since  6.2.1
  */
 class ClientFactory
@@ -50,3 +50,4 @@ class ClientFactory
 		return new SftpClient($host, $port);
 	}
 }
+

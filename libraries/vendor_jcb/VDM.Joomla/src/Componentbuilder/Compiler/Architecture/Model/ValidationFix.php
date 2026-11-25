@@ -19,10 +19,10 @@ use VDM\Joomla\Componentbuilder\Compiler\Registry as CompilerRegistry;
 
 /**
  * Generate model declarations for native conditional form validation.
- *
+ * 
  * The model owns its definitions and stored-record access. The shared generated
  * rule owns evaluation and temporary form state at Joomla's validation boundary.
- *
+ * 
  * @since  6.1.7
  * @since  6.2.1  Separate model declarations from the reusable rule implementation.
  */
@@ -331,3 +331,4 @@ PHP;
 			. PHP_EOL . Indent::_($level) . ']';
 	}
 }
+

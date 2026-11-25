@@ -229,5 +229,5 @@ class Ftp implements Serverinterface
 
 		return $client;
 	}
-
 }
+

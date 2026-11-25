@@ -18,7 +18,7 @@ use VDM\Joomla\Componentbuilder\Compiler\Utilities\Line;
 
 /**
  * Emit the native FormRule lifecycle and conditional requirement evaluator.
- *
+ * 
  * @since  6.2.0
  */
 final class ConditionalRule
@@ -873,3 +873,4 @@ PHP;
 			. PHP_EOL . PHP_EOL . implode(PHP_EOL, $lines);
 	}
 }
+

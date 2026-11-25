@@ -156,5 +156,5 @@ class Load extends Model implements ModelInterface
 	{
 		return 'server';
 	}
-
 }
+

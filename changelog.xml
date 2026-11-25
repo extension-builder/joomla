@@ -402,4 +402,29 @@
       <item>Consolidate shared compiler logic across Joomla versions while retaining version-specific generation where required.</item>
     </note>
   </changelog>
+  <changelog>
+    <element>com_componentbuilder</element>
+    <type>component</type>
+    <version>6.2.1</version>
+    <fix>
+      <item>Fix Note and Spacer fields failing to save because hidden database settings were incorrectly required.</item>
+      <item>Fix conditional field visibility and required-state updates after selector changes and AJAX refreshes.</item>
+      <item>Fix chained conditions and numeric comparisons producing inconsistent browser and server validation.</item>
+      <item>Fix generated JavaScript errors caused by special characters and leading-zero numbers in condition values.</item>
+      <item>Fix conditional validation incorrectly making optional or disabled fields required again.</item>
+      <item>Fix Markdown rendering of images, linked images and bracketed alternative text.</item>
+      <item>Fix JCB Search pagination skipping or repeating records and potentially failing to finish.</item>
+      <item>Fix legacy FOF encryption service initialization by removing unused dependency lookups.</item>
+      <item>Fix generated frontend form navigation when custom view names are used. #1118</item>
+      <item>Fix missing or misplaced Joomla Power imports, including Uri, in generated PHP classes. #1123</item>
+      <item>Fix sales-server uploads over FTP and SFTP, including credential handling, authentication checks and remote paths. #1283</item>
+      <item>Fix language-translation filtering for exact language matches, legacy NULL records, extension selections and cached results. #1309</item>
+      <item>Fix empty Site View and Custom Admin View API lists returning HTTP 500 return HTTP 200. #1330</item>
+      <item>Fix infinite loops in Save as Copy and Batch Copy when unique numeric fields conflict with existing records, and report a clear error. #1328</item>
+    </fix>
+    <note>
+      <item>Normalize compiler-created translation records to the same empty value used by manual saves. #1309</item>
+      <item>Correct the NotAllowed import so denied Site View and Custom Admin View API requests return HTTP 403 instead of HTTP 500. #1326</item>
+    </note>
+  </changelog>
 </changelogs>

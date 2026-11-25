@@ -1,3 +1,22 @@
+# v6.2.1
+
+- Fix Note and Spacer fields failing to save because hidden database settings were incorrectly required.
+- Fix conditional field visibility and required-state updates after selector changes and AJAX refreshes.
+- Fix chained conditions and numeric comparisons producing inconsistent browser and server validation.
+- Fix generated JavaScript errors caused by special characters and leading-zero numbers in condition values.
+- Fix conditional validation incorrectly making optional or disabled fields required again.
+- Fix Markdown rendering of images, linked images and bracketed alternative text.
+- Fix JCB Search pagination skipping or repeating records and potentially failing to finish.
+- Fix legacy FOF encryption service initialization by removing unused dependency lookups.
+- Fix generated frontend form navigation when custom view names are used. #1118
+- Fix missing or misplaced Joomla Power imports, including Uri, in generated PHP classes. #1123
+- Fix sales-server uploads over FTP and SFTP, including credential handling, authentication checks and remote paths. #1283
+- Fix language-translation filtering for exact language matches, legacy NULL records, extension selections and cached results. #1309
+- Normalize compiler-created translation records to the same empty value used by manual saves. #1309
+- Correct the NotAllowed import so denied Site View and Custom Admin View API requests return HTTP 403 instead of HTTP 500. #1326
+- Fix empty Site View and Custom Admin View API lists returning HTTP 500 return HTTP 200. #1330
+- Fix infinite loops in Save as Copy and Batch Copy when unique numeric fields conflict with existing records, and report a clear error. #1328
+
 # v6.2.0
 
 - Add a dedicated Extrusion view for importing existing Joomla components and PHP libraries into JCB.

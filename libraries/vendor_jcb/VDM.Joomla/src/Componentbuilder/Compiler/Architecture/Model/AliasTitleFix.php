@@ -317,3 +317,4 @@ final class AliasTitleFix
 		return PHP_EOL . implode(PHP_EOL, $fixUnique);
 	}
 }
+
