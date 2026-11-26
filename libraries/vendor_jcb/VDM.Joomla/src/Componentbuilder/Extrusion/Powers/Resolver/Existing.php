@@ -581,4 +581,3 @@ final class Existing
 		return preg_replace('/[^A-Za-z0-9_]/', '_', $segment) ?? $segment;
 	}
 }
-

@@ -1160,4 +1160,3 @@ final class Identity
 		return $result;
 	}
 }
-
