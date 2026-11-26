@@ -179,6 +179,7 @@ $this->getDocument()->getWebAssetManager()->addInlineScript(
 </div>
 
 <script type="text/javascript">
+// Generated field conditions (compiler preview).
 jQuery(function () {
 
 jQuery('#jform_datalenght').on('keyup', updateFieldConditions);
@@ -209,8 +210,6 @@ jQuery('#jform_fieldtype').on('keyup', updateFieldConditions);
 jQuery('#adminForm').on('change', '#jform_fieldtype', updateFieldConditions);
 
 });
-
-
 
 /**
  * Initialize form listeners and code block click handlers.
