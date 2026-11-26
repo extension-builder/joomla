@@ -111,3 +111,9 @@ The helper is an existing Power (`Componentbuilder/Utilities/FilterHelper`): syn
 - [x] Behavioral and visual impact are explicit.
 - [x] Transfer is required and reconciliation is not claimed.
 - [x] Focused results and hosted GUI evidence are recorded; the unperformed authoritative-source self-build is explicit.
+
+## PR #77 — restore the list cache key after the 6.3.0-alpha1 rebuild
+
+The request to fix the failing translation checks authorizes this update to `admin/src/Model/Language_translationsModel.php`. Commit `89151ad` removed the five lines in `getStoreId()` that encoded the three custom filters. This change restores the previous tuple. A reused model now retrieves the rows, total and page offset for the selected extension, translated language and untranslated language.
+
+The existing cache fixture switches one model through eight states. The installed browser spec now also switches between two translated languages and back after pagination. The source transfer recorded above still applies to the next self-compilation.

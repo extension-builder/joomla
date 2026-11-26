@@ -85,5 +85,9 @@ test.describe('Language Translations filters', () => {
 		await sources(page, ['translated', 'complete', 'other_extension', 'compiler_created']);
 		await select(page, 'translated', fixtures.language_a);
 		await sources(page, ['zero', 'translated', 'complete', 'other_extension']);
+		await select(page, 'translated', fixtures.language_b);
+		await sources(page, ['incidental', 'complete']);
+		await select(page, 'translated', fixtures.language_a);
+		await sources(page, ['zero', 'translated', 'complete', 'other_extension']);
 	});
 });
