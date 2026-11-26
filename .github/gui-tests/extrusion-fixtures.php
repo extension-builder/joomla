@@ -130,7 +130,7 @@ try
 		check(!file_exists($manifestPath), 'fixture directory is fresh');
 		$manifest = [];
 		$template = '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory';
-		foreach (['a', 'b'] as $owner)
+		foreach (['a' => 1, 'b' => 1, 'trashed' => -2] as $owner => $published)
 		{
 			$guid = identity('factory-' . $owner);
 			$manifest['factory_' . $owner] = $guid;
@@ -139,7 +139,7 @@ try
 				'namespace' => $template, 'type' => 'class',
 				'main_class_code' => base64_encode("\tpublic function value(): int\n\t{\n\t\treturn 1;\n\t}"),
 				'licensing_template' => base64_encode('A curated licence.'), 'add_licensing_template' => 2,
-				'power_version' => '1.0.0', 'published' => 1
+				'power_version' => '1.0.0', 'published' => $published
 			]);
 		}
 		$manifest['consumer_b'] = identity('consumer-b');
@@ -187,6 +187,8 @@ try
 			$references = [$manifest['factory_' . $owner], $manifest['shared']];
 			if ($owner === 'b')
 			{
+				// A component can retain a reference after its Power goes to trash.
+				$references[] = $manifest['factory_trashed'];
 				$references[] = $manifest['consumer_b'];
 				$references[] = $manifest['repair'];
 			}
@@ -237,7 +239,7 @@ try
 	{
 		$manifest = json_decode(file_get_contents($manifestPath), true, 32, JSON_THROW_ON_ERROR);
 		$before = [];
-		foreach (['factory_a', 'factory_b', 'consumer_b', 'shared', 'repair'] as $name)
+		foreach (['factory_a', 'factory_b', 'factory_trashed', 'consumer_b', 'shared', 'repair'] as $name)
 		{
 			$before[$name] = readRecord('power', $manifest[$name]);
 		}
@@ -264,6 +266,7 @@ try
 			}
 			$report = $engine->extrude();
 			check($report->get('plan.status') === 'committed', 'real Data pipeline commits approved changes: ' . json_encode($report->get('plan')));
+			check(readRecord('power', $manifest['factory_trashed']) === $before['factory_trashed'], 'the trashed duplicate stays untouched after import');
 			check(readRecord('power', $manifest['factory_a']) === $before['factory_a'], 'every A field and metadata value remains unchanged');
 			check(readRecord('power', $manifest['factory_b'])['namespace'] === $before['factory_b']['namespace'], 'B retains its curated namespace representation');
 			check(readRecord('power', $manifest['factory_b'])['licensing_template'] === $before['factory_b']['licensing_template'], 'B retains its curated licence');

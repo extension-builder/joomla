@@ -897,6 +897,11 @@ final class References
 	 */
 	protected function read(string $entity, array $where): array
 	{
+		if ($entity === 'power')
+		{
+			$where['a.published'] = 1;
+		}
+
 		$rows = array_map(static fn ($row): array => (array) $row,
 			(array) $this->load->items(['all' => 'a.*'], ['a' => $entity], $where ?: null));
 		usort($rows, static fn (array $a, array $b): int => strcmp(serialize($a), serialize($b)));

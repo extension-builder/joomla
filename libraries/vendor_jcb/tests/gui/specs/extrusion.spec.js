@@ -891,17 +891,26 @@ test.describe('the extrusion view', () => {
 		}
 	});
 
-	test('loads only linked Powers until an exact manual target is requested', async ({ page }) => {
+	test('pairs the published duplicate and offers only published Powers in target searches', async ({ page }) => {
 		const catalogueResponse = responseFor(page, 'extrusionCatalogue');
 		const payload = await harvestFixture(page, fixtures.library_b, fixtures.component_b_id);
 		const catalogue = await (await catalogueResponse).json();
 		expect(catalogue.powers.map((power) => power.guid)).toContain(fixtures.factory_b);
 		expect(catalogue.powers.map((power) => power.guid)).not.toContain(fixtures.factory_a);
+		expect(catalogue.powers.map((power) => power.guid)).not.toContain(fixtures.factory_trashed);
 		const factory = payload.powers.classes.find((candidate) => candidate.class === 'Factory');
+		expect(payload.plan.status).toBe('preview');
+		expect(factory.matched_guid).toBe(fixtures.factory_b);
+		const consumer = payload.powers.classes.find((candidate) => candidate.class === 'Consumer');
+		expect(consumer.dependencies.map((dependency) => dependency.guid)).toContain(fixtures.factory_b);
 		// A matched row names its current target on the update button.
 		await powerRow(page, factory.source_key)
 			.getByRole('button', { name: 'Extrusion Fixture Factory B', exact: true }).click();
 		await expect(page.locator('#extrusion-power-search-hint')).toContainText('exact name');
+		const trashedLookup = responseFor(page, 'extrusionCatalogue');
+		await page.locator('#extrusion-modal-search').fill(fixtures.factory_trashed);
+		expect((await (await trashedLookup).json()).powers).toEqual([]);
+		await expect(page.locator('#extrusion-modal .extrusion-modal-row')).toHaveCount(0);
 		const lookup = responseFor(page, 'extrusionCatalogue');
 		await page.locator('#extrusion-modal-search').fill(fixtures.factory_a);
 		const answer = await lookup;

@@ -96,6 +96,11 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	 */
 	public function record(string $table, int $id, array $row): self
 	{
+		if ($table === 'power')
+		{
+			$row += ['published' => 1];
+		}
+
 		$this->records[$table][$id] = (object) (['id' => $id] + $row);
 
 		return $this;
@@ -139,6 +144,7 @@ final class ExtrusionPowerLoadFixture implements LoadInterface
 	public function power(int $id, string $guid, string $name, string $namespace): self
 	{
 		$this->powers[] = (object) [
+			'published' => 1,
 			'id' => $id,
 			'guid' => $guid,
 			'name' => $name,

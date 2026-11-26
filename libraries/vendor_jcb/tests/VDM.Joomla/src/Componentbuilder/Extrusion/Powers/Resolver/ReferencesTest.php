@@ -277,7 +277,7 @@ final class ReferencesTest extends JoomlaTestCase
 		$this->assertCount(50, $powerReads);
 		$misses = array_values(array_filter($powerReads, static fn (array $query): bool => $query['ids'] === []));
 		$this->assertCount(1, $misses);
-		$this->assertSame(['a.guid' => $this->guid('missing')], $misses[0]['where']);
+		$this->assertSame(['a.guid' => $this->guid('missing'), 'a.published' => 1], $misses[0]['where']);
 		$before = $graph->diagnostics();
 		$this->assertSame($context, $graph->context(1));
 		$this->assertSame($before, $graph->diagnostics());

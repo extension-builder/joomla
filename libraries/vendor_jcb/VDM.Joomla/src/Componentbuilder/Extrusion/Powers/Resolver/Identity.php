@@ -430,6 +430,11 @@ final class Identity
 			'power', 'scoped-source-v2', $target['guid'] ?: (string) $this->config->get('targetComponentGuid', $result['source_unit']), $result['source_key']
 		]);
 		$supplied = strtolower((string) ($source['source_guid'] ?? ''));
+		if ($this->guid->valid($supplied) && $this->existing->hasInactiveGuid($supplied) && $this->existing->power($supplied) === null)
+		{
+			$supplied = '';
+		}
+
 		$explicit = strtolower((string) ($decision['target'] ?? ''));
 		$compatible = [];
 
@@ -573,8 +578,15 @@ final class Identity
 				return $this->block($result, 'unresolved', 'The source namespace or file placement cannot be safely reconstructed.');
 			}
 
+			$guid = $supplied !== '' && $this->guid->valid($supplied) ? $supplied : $derived;
+
+			if ($this->existing->hasInactiveGuid($guid))
+			{
+				return $this->block($result, 'conflict', 'An inactive Power already owns the GUID for this new definition.');
+			}
+
 			$result['status'] = 'new';
-			$result['write_guid'] = $supplied !== '' && $this->guid->valid($supplied) ? $supplied : $derived;
+			$result['write_guid'] = $guid;
 			// Equality fallbacks cannot prove the absence of arbitrary unlinked
 			// custom-name/alias definitions. Preserve creation, but bind the
 			// acknowledged uncertainty to the reviewed plan before writing.
@@ -583,6 +595,11 @@ final class Identity
 			$result['candidate_coverage'] = 'selected-context-and-indexed-fallback';
 
 			return $this->remapping($result, $sourceId, $target['id']);
+		}
+
+		if (!$reference && $this->existing->hasInactiveGuid($chosen))
+		{
+			return $this->block($result, 'conflict', 'An inactive Power shares the selected target GUID.');
 		}
 
 		$record = $this->existing->power($chosen);
