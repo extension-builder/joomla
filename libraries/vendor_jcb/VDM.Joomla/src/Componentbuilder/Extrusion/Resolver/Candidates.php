@@ -264,7 +264,8 @@ final class Candidates
 		foreach ($columns as $column)
 		{
 			$rows = (array) $this->load->items($select, ['a' => 'power'],
-				['a.' . $column => $column === 'guid' ? strtolower($search) : $search], ['a.id' => 'ASC'], 101);
+				['a.' . $column => $column === 'guid' ? strtolower($search) : $search, 'a.published' => 1],
+				['a.id' => 'ASC'], 101);
 			$truncated = $truncated || count($rows) > 100;
 
 			foreach ($rows as $row)
@@ -1032,6 +1033,11 @@ final class Candidates
 		$where = $guids === null
 			? null
 			: ['a.guid' => ['operator' => 'IN', 'value' => $guids]];
+		if ($table === 'power')
+		{
+			$where['a.published'] = 1;
+		}
+
 		$rows = $this->load->items($select, ['a' => $table], $where);
 
 		if (!is_array($rows))

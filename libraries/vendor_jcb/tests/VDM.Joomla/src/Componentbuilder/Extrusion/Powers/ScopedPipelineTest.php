@@ -225,6 +225,60 @@ final class ScopedPipelineTest extends FilesystemTestCase
 	}
 
 	/**
+	 * An inactive namespace twin cannot compete with the published dependency.
+	 *
+	 * @param   int  $state  Publication state of the obsolete Power.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	#[DataProvider('inactiveStates')]
+	public function testOnlyPublishedNamespaceTwinCanBePaired(int $state): void
+	{
+		[$container, $load] = $this->engine();
+		$this->sources();
+		$namespace = '[[[NamespacePrefix]]]\Joomla\[[[ComponentNamespace]]].Factory';
+		$load->record('power', 11, [
+			'guid' => $this->guid('power-a'), 'name' => 'Factory', 'type' => 'class',
+			'namespace' => $namespace, 'published' => $state
+		]);
+		$load->record('joomla_component', 2, $this->component('beta', 'component-b', ['power-a', 'power-b']));
+		$container->get('Extrusion.Config')->set('libraries', [$this->temporaryPath('lib')]);
+		$container->get('Extrusion.Powers.Harvester')->harvest();
+		$assembler = $container->get('Extrusion.Powers.Assembler');
+		$this->assertSame(2, $assembler->assemble());
+		$harvest = $container->get('Extrusion.Registry.Harvest');
+		$factory = $this->source($harvest->get('classes'), 'Factory');
+		$consumer = $this->source($harvest->get('classes'), 'Consumer');
+		$this->assertSame($this->guid('power-b'), $factory['matched_guid']);
+		$this->assertSame([$this->guid('power-b')], array_keys($factory['resolution']['candidates']));
+		$this->assertSame($this->guid('power-b'), $harvest->get('resolved.' . $consumer['source_key'])->use_selection['use_selection0']['use']);
+		$this->assertSame($this->guid('power-b'), $container->get('Extrusion.Powers.Resolver.Existing')->match($namespace)['guid']);
+
+		$factory['source_guid'] = $this->guid('power-a');
+		$identity = $container->get('Extrusion.Powers.Resolver.Identity');
+		$this->assertSame($this->guid('power-b'), $identity->resolve($factory)['matched_guid']);
+		$this->assertArrayNotHasKey($this->guid('power-a'), $container->get('Extrusion.Powers.Resolver.References')->context(2)['powers']);
+
+		$container->get('Extrusion.Resolver.Pairing')->load(['power' => [
+			$factory['source_key'] => ['action' => 'update', 'target' => $this->guid('power-a')]
+		]]);
+		$this->assertSame(0, $assembler->assemble());
+		$this->assertNull($harvest->get('classes.' . $factory['source_key'])['matched_guid']);
+	}
+
+	/**
+	 * Joomla publication states that cannot supply existing Powers.
+	 *
+	 * @return  array<string, array{int}>  Ineligible states.
+	 * @since   6.3.0
+	 */
+	public static function inactiveStates(): array
+	{
+		return ['trashed' => [-2], 'unpublished' => [0], 'archived' => [2]];
+	}
+
+	/**
 	 * An unresolved local Factory blocks its dependants instead of becoming raw PHP.
 	 *
 	 * @return  void

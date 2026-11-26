@@ -492,7 +492,7 @@ final class CandidatesTest extends TestCase
 			'guid' => $guid->derive(['selected-component']), 'name_code' => 'demo', 'add_powers' => 1,
 			'add_php_helper_both' => 1, 'php_helper_both' => base64_encode('Super___' . str_replace('-', '_', $selected) . '___Power')
 		]);
-		$rows = [['id' => 1, 'guid' => $selected, 'name' => 'Selected', 'system_name' => 'Selected Power',
+		$rows = [['id' => 1, 'published' => 1, 'guid' => $selected, 'name' => 'Selected', 'system_name' => 'Selected Power',
 			'namespace' => 'Demo\\Library.Selected', 'type' => 'class']];
 		$this->powerLoad->record('power', 1, $rows[0]);
 		$this->load->table('power', $rows);
@@ -521,7 +521,7 @@ final class CandidatesTest extends TestCase
 		{
 			if ($call['table'] === 'power')
 			{
-				$this->assertSame(['a.guid' => ['operator' => 'IN', 'value' => [$selected]]], $call['where']);
+				$this->assertSame(['a.guid' => ['operator' => 'IN', 'value' => [$selected]], 'a.published' => 1], $call['where']);
 			}
 		}
 		$this->assertSame([], $resolver->catalogue(0)['powers']);
@@ -536,8 +536,12 @@ final class CandidatesTest extends TestCase
 	public function testManualPowerSearchFindsForeignGuidNameNamespaceAndSystemName(): void
 	{
 		$foreign = (new Guid())->derive(['foreign-power']);
-		$this->load->table('power', [['id' => 8, 'guid' => $foreign, 'name' => 'ForeignFactory',
-			'system_name' => 'Other Component Factory', 'namespace' => 'Other\\Library.Factory']]);
+		$trashed = (new Guid())->derive(['trashed-power']);
+		$power = ['name' => 'ForeignFactory', 'system_name' => 'Other Component Factory', 'namespace' => 'Other\\Library.Factory'];
+		$this->load->table('power', [
+			['id' => 7, 'published' => -2, 'guid' => $trashed] + $power,
+			['id' => 8, 'published' => 1, 'guid' => $foreign] + $power
+		]);
 		$calls = [];
 		$resolver = $this->tracked($calls);
 		foreach ([$foreign, 'ForeignFactory', 'Other\\Library.Factory', 'Other Component Factory'] as $search)
@@ -546,14 +550,17 @@ final class CandidatesTest extends TestCase
 			$this->assertSame([$foreign], array_column($catalogue['powers'], 'guid'));
 			$this->assertSame(['exact' => true, 'limit' => 100, 'truncated' => false], $catalogue['power_search']);
 		}
+		$this->assertSame([], $resolver->catalogue(0, $trashed)['powers']);
 		$this->assertSame([], $resolver->catalogue(0, 'Foreign%')['powers']);
 		$this->assertSame([], $this->powerLoad->queries, 'An explicit lookup must not build any component graph.');
 		$queries = array_values(array_filter($calls, static fn (array $call): bool => $call['table'] === 'power'));
-		$this->assertCount(13, $queries);
-		$this->assertSame(['a.guid' => $foreign], $queries[0]['where']);
+		$this->assertCount(14, $queries);
+		$this->assertSame(['a.guid' => $foreign, 'a.published' => 1], $queries[0]['where']);
 		foreach ($queries as $query)
 		{
 			$this->assertSame(101, $query['limit']);
+			$this->assertSame(1, $query['where']['a.published']);
+			unset($query['where']['a.published']);
 			$this->assertCount(1, $query['where']);
 			$this->assertIsString(reset($query['where']));
 		}
@@ -571,7 +578,7 @@ final class CandidatesTest extends TestCase
 		$guid = new Guid();
 		for ($index = 1; $index <= 130; $index++)
 		{
-			$rows[] = ['id' => $index, 'guid' => $guid->derive(['collision', (string) $index]),
+			$rows[] = ['id' => $index, 'published' => 1, 'guid' => $guid->derive(['collision', (string) $index]),
 				'name' => 'Factory', 'system_name' => 'Factory ' . $index, 'namespace' => 'Vendor\\Package' . $index . '.Factory'];
 		}
 		$this->load->table('power', $rows);

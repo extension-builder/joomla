@@ -382,6 +382,45 @@ final class CommitTest extends FilesystemTestCase
 	}
 
 	/**
+	 * Neither create nor update can overwrite a trashed row under the same GUID.
+	 *
+	 * @param   string  $class  Source that would create or update a Power.
+	 *
+	 * @return  void
+	 * @since   6.3.0
+	 */
+	#[DataProvider('guidCollisions')]
+	public function testWriteCannotOverwriteATrashedGuid(string $class): void
+	{
+		[$container, $load, $item, $db] = $this->prepared();
+		$db->expects($this->never())->method('transactionStart');
+		$engine = $container->get('Extrusion.Powers.Extruder');
+		$this->assertSame('preview', $engine->dryRun()->extrude()->get('plan.status'));
+		$source = $this->source($container->get('Extrusion.Registry.Harvest')->get('classes'), $class);
+		$guid = $source['guid'];
+		$row = ['guid' => $guid, 'published' => -2, 'name' => $class, 'type' => 'class', 'namespace' => $source['placeholder']];
+		$load->record('power', 30, $row);
+		$item->identity('power', $guid, 30)->serve('power', $guid, (object) ($row + ['id' => 30]));
+		$review = $engine->extrude();
+		$this->assertSame('blocked', $review->get('plan.status'));
+		$this->assertNotContains($guid, array_column($container->get('Extrusion.Registry.Plan')->writes(), 'identity'));
+		$container->get('Extrusion.Config')->set('approvedPlan', $review->get('plan.fingerprint'))->set('acknowledgeUnknown', true);
+		$this->assertSame('blocked', $engine->dryRun(false)->extrude()->get('plan.status'));
+		$this->assertSame([], $item->records());
+	}
+
+	/**
+	 * Source classes that respectively create and update rows in the prepared plan.
+	 *
+	 * @return  array<string, array{string}>  Physical GUID collision cases.
+	 * @since   6.3.0
+	 */
+	public static function guidCollisions(): array
+	{
+		return ['create' => ['Consumer'], 'update' => ['Factory']];
+	}
+
+	/**
 	 * A changed source after review must be shown again before any persistence.
 	 *
 	 * @return  void
@@ -404,10 +443,14 @@ final class CommitTest extends FilesystemTestCase
 	/**
 	 * Re-read affected records inside the transaction before its first mutation.
 	 *
+	 * @param   string      $column  The affected column.
+	 * @param   int|string  $value   The intervening change.
+	 *
 	 * @return  void
 	 * @since   6.2.0
 	 */
-	public function testInterveningRecordEditRollsBackBeforeTheFirstWrite(): void
+	#[DataProvider('interveningEdits')]
+	public function testInterveningRecordEditRollsBackBeforeTheFirstWrite(string $column, int|string $value): void
 	{
 		[$container, $load, $item, $db] = $this->prepared();
 		$db->expects($this->once())->method('transactionStart');
@@ -422,11 +465,23 @@ final class CommitTest extends FilesystemTestCase
 		$config->set('approvedPlan', $container->get('Extrusion.Registry.Report')->get('plan.fingerprint'));
 		$config->set('acknowledgeUnknown', true)->set('dryRun', false);
 		$row = clone $item->table('power')->get($this->guid('power-b'));
-		$row->main_class_code = 'An intervening developer edit';
+		$row->{$column} = $value;
+		$load->record('power', 12, get_object_vars($row));
 		$item->serve('power', $this->guid('power-b'), $row);
 		$this->assertFalse($container->get('Extrusion.Resolver.Commit')->apply());
 		$this->assertSame([], $item->records());
 		$this->assertSame('blocked', $container->get('Extrusion.Registry.Report')->get('plan.status'));
+	}
+
+	/**
+	 * Changes to a reviewed write target before the database commit.
+	 *
+	 * @return  array<string, array{string, int|string}>  Intervening column changes.
+	 * @since   6.3.0
+	 */
+	public static function interveningEdits(): array
+	{
+		return ['content edit' => ['main_class_code', 'An intervening developer edit'], 'moved to trash' => ['published', -2]];
 	}
 
 	/**
@@ -542,7 +597,7 @@ final class CommitTest extends FilesystemTestCase
 		$this->writeTemporaryFile('lib/Acme.Joomla/src/Beta/Factory.php', "<?php\nnamespace Acme\\Joomla\\Beta;\nclass Factory { public function value(): int { return 2; } }\n");
 		foreach ([1 => 'a', 2 => 'b'] as $id => $key)
 		{
-			$native = (object) ['id' => 10 + $id, 'guid' => $this->guid('power-' . $key), 'name' => 'Factory',
+			$native = (object) ['id' => 10 + $id, 'published' => 1, 'guid' => $this->guid('power-' . $key), 'name' => 'Factory',
 				'type' => 'class', 'system_name' => 'Factory ' . strtoupper($key),
 				'namespace' => '[[[NamespacePrefix]]]\\Joomla\\[[[ComponentNamespace]]].Factory',
 				'main_class_code' => 'public function value(): int { return 1; }', 'add_licensing_template' => 1];

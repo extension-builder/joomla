@@ -85,6 +85,14 @@ final class Existing
 	protected array $loaded = [];
 
 	/**
+	 * GUIDs also held by an inactive row cannot be written through the GUID-keyed writer.
+	 *
+	 * @var    array<string, bool>
+	 * @since  6.3.0
+	 */
+	protected array $inactive = [];
+
+	/**
 	 * Cached deterministic fingerprint of the bounded query results.
 	 *
 	 * @var    string|null
@@ -158,6 +166,22 @@ final class Existing
 		}
 
 		return $this->loaded[$guid];
+	}
+
+	/**
+	 * Check whether an inactive database row owns a specific GUID.
+	 *
+	 * @param   string  $guid  The Power GUID.
+	 *
+	 * @return  bool  True when writing by this GUID could change an inactive row.
+	 * @since   6.3.0
+	 */
+	public function hasInactiveGuid(string $guid): bool
+	{
+		$guid = strtolower(trim($guid));
+		$this->power($guid);
+
+		return isset($this->inactive[$guid]);
 	}
 
 	/**
@@ -336,6 +360,7 @@ final class Existing
 		$this->under = null;
 		$this->reads = [];
 		$this->loaded = [];
+		$this->inactive = [];
 		$this->snapshot = null;
 
 		return $this;
@@ -363,14 +388,24 @@ final class Existing
 
 		$rows = (array) $this->load->items([
 			'a.id' => 'id', 'a.guid' => 'guid', 'a.name' => 'name',
-			'a.namespace' => 'namespace', 'a.type' => 'type', 'a.system_name' => 'system_name'
-		], ['a' => 'power'], $where);
+			'a.namespace' => 'namespace', 'a.type' => 'type', 'a.system_name' => 'system_name', 'a.published' => 'published'
+		], ['a' => 'power'], isset($where['a.guid']) ? $where : $where + ['a.published' => 1]);
 		$records = [];
 		$digests = [];
 
 		foreach ($rows as $row)
 		{
 			$row = (array) $row;
+
+			// Direct GUID reads also establish whether a GUID-keyed write is safe.
+			if (isset($where['a.guid']) && (int) ($row['published'] ?? 0) !== 1)
+			{
+				$this->inactive[$where['a.guid']] = true;
+				$digests[] = 'inactive';
+
+				continue;
+			}
+
 			ksort($row);
 			$digests[] = hash('sha256', serialize($row));
 			$guid = strtolower(trim((string) ($row['guid'] ?? '')));
@@ -432,7 +467,7 @@ final class Existing
 		$rows = $this->load->items([
 			'a.id' => 'id', 'a.guid' => 'guid', 'a.name' => 'name',
 			'a.namespace' => 'namespace', 'a.type' => 'type', 'a.system_name' => 'system_name'
-		], ['a' => 'power']);
+		], ['a' => 'power'], ['a.published' => 1]);
 
 		foreach ((array) $rows as $row)
 		{
