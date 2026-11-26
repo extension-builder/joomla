@@ -1008,4 +1008,3 @@ final class References
 		return $result;
 	}
 }
-
