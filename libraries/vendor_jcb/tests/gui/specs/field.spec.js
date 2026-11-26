@@ -217,6 +217,7 @@ test('Field keeps Text defaults when an earlier real Note response arrives late'
 		releaseNote();
 		await expectFieldTypeResponse(await noteResponse);
 		await expectTextDefaults(page);
+		await expect(page.locator('#properties_properties0__value'), 'a late response cannot replace the Text property form').toHaveValue('text');
 		await expectConditionalField(page, 'datatype', true, 'a late Note response cannot hide Text database settings');
 		await expectConditionalField(page, 'null_switch', true, 'a late response cannot remove the Text null requirement');
 		await expectConditionalField(page, 'store', true, 'a late response cannot remove the Text storage requirement');
