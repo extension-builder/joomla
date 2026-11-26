@@ -449,6 +449,11 @@ class Language_translationsModel extends ListModel
 		$id .= ':' . $this->getState('filter.created_by');
 		$id .= ':' . $this->getState('filter.modified_by');
 		$id .= ':' . $this->getState('filter.source');
+		$id .= ':' . json_encode([
+			$this->getState('filter.extension'),
+			$this->getState('filter.translated'),
+			$this->getState('filter.not_translated'),
+		]);
 
 		return parent::getStoreId($id);
 	}
